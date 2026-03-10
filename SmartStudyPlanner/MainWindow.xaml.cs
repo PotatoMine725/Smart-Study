@@ -31,11 +31,13 @@ namespace SmartStudyPlanner
                 MessageBox.Show("Vui lòng nhập đầy đủ tên học kỳ và ngày bắt đầu", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             else {
-                // Lấy ngày ra và format thành chuẩn Ngày/Tháng/Năm của Việt Nam
-                string chuoiNgay = ngayChon.Value.ToString("dd/MM/yyyy");
+                HocKy hocKyMoi = new HocKy(tenHK, ngayChon.Value);
 
-                // Dùng nội suy chuỗi để ghép cả tên và ngày
-                txtTrangThai.Text = $"Đã tạo học kỳ {tenHK} bắt đầu từ ngày {chuoiNgay}";
+                string chuoiNgay = hocKyMoi.NgayBatDau.ToString("dd/MM/yyyy");
+
+                txtTrangThai.Text = $"Đã tạo học kỳ: {hocKyMoi.Ten} bắt đầu từ ngày {chuoiNgay}";
+
+                MessageBox.Show($"Học kỳ '{hocKyMoi.Ten}' đã được tạo với ngày bắt đầu là {chuoiNgay}", "Thành công", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
     }
