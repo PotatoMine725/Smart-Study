@@ -28,62 +28,48 @@ namespace SmartStudyPlanner
         {
             string tenMon = txtTenMon.Text;
 
-            // Kiểm tra tên môn có bị trống không
             if (string.IsNullOrWhiteSpace(tenMon))
             {
                 MessageBox.Show("Vui lòng nhập tên môn học!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return; // Dừng hàm ngay tại đây
+                return;
             }
 
-            // Lấy số tín chỉ, nếu nhập sai (chữ) thì gán là -1
             int soTinChi = int.TryParse(txtSoTinChi.Text, out int tinChi) ? tinChi : -1;
 
-            // Kiểm tra số tín chỉ (phải lớn hơn 0)
             if (soTinChi <= 0)
             {
                 MessageBox.Show("Số tín chỉ phải là một số lớn hơn 0!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return; // Dừng hàm ngay tại đây
+                return;
             }
 
-            // --- NẾU VƯỢ QUA 2 BÀI KIỂM TRA TRÊN THÌ MỚI CHẠY XUỐNG ĐÂY ---
-
             MonHoc monHocMoi = new MonHoc(tenMon, soTinChi);
-            danhSachMonHoc.Add(monHocMoi);
 
-            MessageBox.Show($"Môn học '{monHocMoi.TenMonHoc}' với {monHocMoi.SoTinChi} tín chỉ đã được thêm vào danh sách.", "Thành công", MessageBoxButton.OK, MessageBoxImage.Information);
+            // SỬA Ở ĐÂY: Thêm vào ba lô của hocKyHienTai
+            hocKyHienTai.DanhSachMonHoc.Add(monHocMoi);
 
-            // Dọn dẹp form để nhập môn tiếp theo
+            // Dọn dẹp form 
             txtTenMon.Clear();
-            txtSoTinChi.Clear(); // Nhớ xóa luôn cả ô tín chỉ nhé
-            txtTenMon.Focus();   // Đưa con trỏ chuột quay lại ô Tên Môn
+            txtSoTinChi.Clear();
+            txtTenMon.Focus();
         }
 
-        // HÀM MỚI: Xử lý sự kiện khi bấm nút Xóa trên từng dòng
         private void BtnXoaMon_Click(object sender, RoutedEventArgs e)
         {
-            // 1. Lấy ra cái nút bấm vừa bị click
             Button btn = sender as Button;
-
-            // 2. Trích xuất dữ liệu của cái dòng chứa nút bấm đó
             MonHoc monCanXoa = btn.DataContext as MonHoc;
 
-            // Kiểm tra chắc chắn là đã tìm thấy dữ liệu
             if (monCanXoa != null)
             {
-                // 3. Hiển thị hộp thoại HỎI XÁC NHẬN (Cực kỳ quan trọng cho UX)
-                // Chú ý: Ta dùng MessageBoxButton.YesNo để hiện ra 2 nút "Có" và "Không"
                 MessageBoxResult ketQua = MessageBox.Show(
                     $"Bạn có chắc chắn muốn xóa môn '{monCanXoa.TenMonHoc}' không?",
                     "Xác nhận xóa",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Question);
 
-                // 4. Nếu người dùng chọn Yes thì mới xóa
                 if (ketQua == MessageBoxResult.Yes)
                 {
-                    // Phép màu của ObservableCollection: Chỉ cần xóa khỏi danh sách, 
-                    // DataGrid trên màn hình sẽ tự động làm biến mất dòng đó!
-                    danhSachMonHoc.Remove(monCanXoa);
+                    // SỬA Ở ĐÂY: Xóa khỏi ba lô của hocKyHienTai
+                    hocKyHienTai.DanhSachMonHoc.Remove(monCanXoa);
                 }
             }
         }
