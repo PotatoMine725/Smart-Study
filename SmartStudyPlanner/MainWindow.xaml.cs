@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Collections.ObjectModel;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -16,9 +17,12 @@ namespace SmartStudyPlanner
     /// </summary>
     public partial class MainWindow : Window
     {
+        private ObservableCollection<MonHoc> danhSachMonHoc = new ObservableCollection<MonHoc>();
         public MainWindow()
         {
             InitializeComponent();
+            // Thiết lập nguồn dữ liệu cho DataGrid
+            dgDanhSachMon.ItemsSource = danhSachMonHoc;
         }
 
         private void BtnTaoHocKy_Click(object sender, RoutedEventArgs e)
@@ -37,8 +41,18 @@ namespace SmartStudyPlanner
 
                 txtTrangThai.Text = $"Đã tạo học kỳ: {hocKyMoi.Ten} bắt đầu từ ngày {chuoiNgay}";
 
-                MessageBox.Show($"Học kỳ '{hocKyMoi.Ten}' đã được tạo với ngày bắt đầu là {chuoiNgay}", "Thành công", MessageBoxButton.OK, MessageBoxImage.Information);
+                // 1. Khởi tạo Học kỳ (Giống code cũ của em)
+                HocKy hocKyMoi = new HocKy(tenHK, ngayChon.Value);
+
+                // 2. MỞ CỬA SỔ MỚI và BƠM object hocKyMoi vào cửa sổ đó
+                QuanLyMonHocWindow cuaSoMonHoc = new QuanLyMonHocWindow(hocKyMoi);
+                cuaSoMonHoc.Show(); // Lệnh hiển thị cửa sổ mới lên
+
+                // 3. ĐÓNG CỬA SỔ CŨ LẠI
+                this.Close();
             }
         }
+
+        
     }
 }
