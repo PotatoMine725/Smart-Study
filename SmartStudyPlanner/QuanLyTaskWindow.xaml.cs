@@ -20,6 +20,8 @@ namespace SmartStudyPlanner
             // Đổi tiêu đề
             txtTieuDe.Text = $"QUẢN LÝ DEADLINE - MÔN {monHocHienTai.TenMonHoc.ToUpper()}";
 
+            TinhDiemVaSapXep();
+
             // Gắn cái "Ba lô Task" của môn này vào DataGrid
             dgDanhSachTask.ItemsSource = monHocHienTai.DanhSachTask;
         }
@@ -105,12 +107,36 @@ namespace SmartStudyPlanner
                 btnThemTask.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(155, 89, 182));
             }
 
+            TinhDiemVaSapXep();
+
             // Dọn dẹp form cho lần nhập tiếp theo
             txtTenTask.Clear();
             txtDoKho.Clear();
             dpHanChot.SelectedDate = null; // Xóa luôn ngày
             cmbLoaiTask.SelectedIndex = 0; // Trả ComboBox về mặc định (Bài tập về nhà)
             txtTenTask.Focus();
+        }
+        // BƯỚC MA THUẬT: Hàm tự động chấm điểm và sắp xếp
+        private void TinhDiemVaSapXep()
+        {
+            // 1. Gọi Decision Engine ra chấm điểm cho TỪNG bài tập trong ba lô
+            foreach (var task in monHocHienTai.DanhSachTask)
+            {
+                task.DiemUuTien = DecisionEngine.CalculatePriority(task, monHocHienTai);
+            }
+
+            // 2. Dùng LINQ để sắp xếp danh sách từ Điểm Cao xuống Điểm Thấp
+            // Hàm OrderByDescending là vũ khí mạnh nhất của C# để sắp xếp dữ liệu
+            var danhSachDaSapXep = monHocHienTai.DanhSachTask.OrderByDescending(t => t.DiemUuTien).ToList();
+
+            // 3. Xóa các bài tập lộn xộn cũ trong ba lô đi...
+            monHocHienTai.DanhSachTask.Clear();
+
+            // 4. ...Và xếp lại các bài tập đã được sắp xếp chuẩn xác vào ba lô
+            foreach (var task in danhSachDaSapXep)
+            {
+                monHocHienTai.DanhSachTask.Add(task);
+            }
         }
     }
 }
