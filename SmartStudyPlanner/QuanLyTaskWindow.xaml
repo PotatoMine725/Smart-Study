@@ -49,6 +49,17 @@
                 <DataGridTextColumn Header="Loại" Binding="{Binding LoaiTask}" Width="120" />
                 <DataGridTextColumn Header="Độ Khó" Binding="{Binding DoKho}" Width="60" />
                 <DataGridTextColumn Header="Trạng Thái" Binding="{Binding TrangThai}" Width="100" />
+
+                <DataGridTemplateColumn Header="Thao tác" Width="120">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Button Content="Sửa" Background="#F1C40F" Foreground="White" Padding="10,2" Margin="0,0,5,0" Cursor="Hand" Click="BtnSuaTask_Click" />
+                                <Button Content="Xóa" Background="#E74C3C" Foreground="White" Padding="10,2" Cursor="Hand" Click="BtnXoaTask_Click" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
     </StackPanel>

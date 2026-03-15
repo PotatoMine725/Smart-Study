@@ -9,6 +9,8 @@ namespace SmartStudyPlanner
         // Nhớ môn học hiện tại đang được quản lý
         private MonHoc monHocHienTai;
 
+        private StudyTask taskDangSua = null;
+
         // Constructor yêu cầu phải truyền MonHoc vào
         public QuanLyTaskWindow(MonHoc monHocDuocTruyen)
         {
@@ -23,32 +25,91 @@ namespace SmartStudyPlanner
         }
 
         // Bắt sự kiện thêm Task
+        // 1. HÀM XÓA TASK
+        private void BtnXoaTask_Click(object sender, RoutedEventArgs e)
+        {
+            Button btn = sender as Button;
+            StudyTask taskCanXoa = btn.DataContext as StudyTask;
+
+            if (taskCanXoa != null)
+            {
+                MessageBoxResult result = MessageBox.Show(
+                    $"Bạn có chắc chắn muốn xóa bài tập '{taskCanXoa.TenTask}'?",
+                    "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    monHocHienTai.DanhSachTask.Remove(taskCanXoa);
+                }
+            }
+        }
+
+        // 2. HÀM BẤM NÚT SỬA TRÊN DÒNG (Đẩy dữ liệu lên form)
+        private void BtnSuaTask_Click(object sender, RoutedEventArgs e)
+        {
+            Button btn = sender as Button;
+            taskDangSua = btn.DataContext as StudyTask;
+
+            if (taskDangSua != null)
+            {
+                // Đẩy dữ liệu ngược lên các ô nhập liệu
+                txtTenTask.Text = taskDangSua.TenTask;
+                dpHanChot.SelectedDate = taskDangSua.HanChot;
+                cmbLoaiTask.SelectedIndex = (int)taskDangSua.LoaiTask; // Ép kiểu Enum về số thứ tự
+                txtDoKho.Text = taskDangSua.DoKho.ToString();
+
+                // Đổi nút "Thêm" thành "Cập Nhật" (Màu xanh dương)
+                btnThemTask.Content = "Cập Nhật";
+                btnThemTask.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(52, 152, 219));
+            }
+        }
+
+        // 3. CẬP NHẬT HÀM THÊM TASK (Xử lý cả 2 trường hợp Thêm và Cập Nhật)
         private void BtnThemTask_Click(object sender, RoutedEventArgs e)
         {
             string tenTask = txtTenTask.Text;
             DateTime? hanChot = dpHanChot.SelectedDate;
 
-            // Validate cơ bản
             if (string.IsNullOrWhiteSpace(tenTask) || hanChot == null)
             {
                 MessageBox.Show("Vui lòng nhập Tên bài tập và Hạn chót!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            // Lấy độ khó (mặc định là 1 nếu nhập sai)
             int doKho = int.TryParse(txtDoKho.Text, out int parsedDoKho) ? parsedDoKho : 1;
-            if (doKho < 1 || doKho > 5) doKho = 1; // Ép về chuẩn 1-5
+            if (doKho < 1 || doKho > 5) doKho = 1;
 
-            // Lấy loại công việc từ ComboBox (chuyển đổi index thành Enum)
             LoaiCongViec loaiTask = (LoaiCongViec)cmbLoaiTask.SelectedIndex;
 
-            // Tạo Task mới và nhét vào ba lô
-            StudyTask taskMoi = new StudyTask(tenTask, hanChot.Value, loaiTask, doKho);
-            monHocHienTai.DanhSachTask.Add(taskMoi);
+            // --- KIỂM TRA ĐANG Ở TRẠNG THÁI NÀO ---
+            if (taskDangSua == null)
+            {
+                // TRƯỜNG HỢP A: THÊM MỚI
+                StudyTask taskMoi = new StudyTask(tenTask, hanChot.Value, loaiTask, doKho);
+                monHocHienTai.DanhSachTask.Add(taskMoi);
+            }
+            else
+            {
+                // TRƯỜNG HỢP B: CẬP NHẬT
+                taskDangSua.TenTask = tenTask;
+                taskDangSua.HanChot = hanChot.Value;
+                taskDangSua.LoaiTask = loaiTask;
+                taskDangSua.DoKho = doKho;
 
-            // Dọn form
+                // Bắt DataGrid vẽ lại dữ liệu mới
+                dgDanhSachTask.Items.Refresh();
+
+                // Xóa trí nhớ, trả nút bấm về trạng thái Thêm mới (Màu tím)
+                taskDangSua = null;
+                btnThemTask.Content = "Thêm Deadline";
+                btnThemTask.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(155, 89, 182));
+            }
+
+            // Dọn dẹp form cho lần nhập tiếp theo
             txtTenTask.Clear();
             txtDoKho.Clear();
+            dpHanChot.SelectedDate = null; // Xóa luôn ngày
+            cmbLoaiTask.SelectedIndex = 0; // Trả ComboBox về mặc định (Bài tập về nhà)
             txtTenTask.Focus();
         }
     }
