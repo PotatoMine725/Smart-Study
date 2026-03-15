@@ -13,9 +13,14 @@ namespace SmartStudyPlanner
             // ==========================================
             // TẦNG 1: DICTATORSHIP MODULE (Mệnh lệnh độc tài)
             // ==========================================
-            // Những quy tắc sinh tử, vi phạm là ưu tiên lên nóc nhà ngay lập tức.
-            if (soNgayConLai < 0) return 100.0; // Đã trễ hạn (Overdue) -> Điểm Tuyệt đối
-            if (soNgayConLai == 0) return 95.0; // Hạn chót là hôm nay -> Khẩn cấp mức cao nhất
+            // 1. Nếu quá hạn HƠN 3 NGÀY (soNgayConLai < -3) -> Hết cứu, tự động ép về 0 điểm
+            if (soNgayConLai < -3) return 0.0;
+
+            // 2. Nếu quá hạn từ 1 đến 3 ngày (-3 <= soNgayConLai < 0) -> Báo động đỏ (100 điểm) bắt nộp bù
+            if (soNgayConLai < 0) return 100.0;
+
+            // 3. Hạn chót là hôm nay
+            if (soNgayConLai == 0) return 95.0;
 
             // ==========================================
             // TẦNG 2: VETO MODULE (Quyền phủ quyết)

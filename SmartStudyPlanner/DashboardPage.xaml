@@ -1,8 +1,7 @@
-﻿<Window x:Class="SmartStudyPlanner.DashboardWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Smart Study Planner - Dashboard" Height="500" Width="700"
-        WindowStartupLocation="CenterScreen">
+﻿<Page x:Class="SmartStudyPlanner.DashboardPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Title="Dashboard" Loaded="Page_Loaded">
 
     <StackPanel Margin="20">
         <TextBlock x:Name="txtTieuDe" Text="TỔNG QUAN HỌC KỲ" FontWeight="Bold" FontSize="22" Foreground="#2C3E50" HorizontalAlignment="Center" Margin="0,0,0,10" />
@@ -18,7 +17,7 @@
 
         <TextBlock Text="🔥 TOP 5 DEADLINE KHẨN CẤP NHẤT" FontWeight="Bold" FontSize="16" Foreground="#E74C3C" Margin="0,0,0,10" />
 
-        <DataGrid x:Name="dgTop5Task" Height="200" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
+        <DataGrid x:Name="dgTop5Task" Height="250" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">
                     <Style.Triggers>
@@ -44,4 +43,4 @@
             </DataGrid.Columns>
         </DataGrid>
     </StackPanel>
-</Window>
+</Page>

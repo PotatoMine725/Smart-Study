@@ -1,33 +1,36 @@
 ﻿using System;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Navigation; // Dùng cho nút Quay lại
 
 namespace SmartStudyPlanner
 {
-    public partial class QuanLyTaskWindow : Window
+    public partial class QuanLyTaskPage : Page
     {
-        // Nhớ môn học hiện tại đang được quản lý
+        private HocKy hocKyHienTai; // Cần giữ lại để phục vụ Save Game
         private MonHoc monHocHienTai;
-
         private StudyTask taskDangSua = null;
 
-        // Constructor yêu cầu phải truyền MonHoc vào
-        public QuanLyTaskWindow(MonHoc monHocDuocTruyen)
+        // Constructor ĐÃ ĐƯỢC SỬA LẠI ĐỂ NHẬN 2 THAM SỐ
+        public QuanLyTaskPage(HocKy hocKyTruyenSang, MonHoc monHocDuocTruyen)
         {
             InitializeComponent();
+            hocKyHienTai = hocKyTruyenSang;
             monHocHienTai = monHocDuocTruyen;
 
-            // Đổi tiêu đề
             txtTieuDe.Text = $"QUẢN LÝ DEADLINE - MÔN {monHocHienTai.TenMonHoc.ToUpper()}";
 
             TinhDiemVaSapXep();
-
-            // Gắn cái "Ba lô Task" của môn này vào DataGrid
             dgDanhSachTask.ItemsSource = monHocHienTai.DanhSachTask;
         }
 
-        // Bắt sự kiện thêm Task
-        // 1. HÀM XÓA TASK
+        // HÀM MỚI: Bắt sự kiện quay lại trang trước
+        private void BtnQuayLai_Click(object sender, RoutedEventArgs e)
+        {
+            NavigationService.GoBack();
+        }
+
         private void BtnXoaTask_Click(object sender, RoutedEventArgs e)
         {
             Button btn = sender as Button;
@@ -35,18 +38,14 @@ namespace SmartStudyPlanner
 
             if (taskCanXoa != null)
             {
-                MessageBoxResult result = MessageBox.Show(
-                    $"Bạn có chắc chắn muốn xóa bài tập '{taskCanXoa.TenTask}'?",
-                    "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-                if (result == MessageBoxResult.Yes)
+                if (MessageBox.Show($"Bạn có chắc chắn muốn xóa bài tập '{taskCanXoa.TenTask}'?", "Xác nhận", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                 {
                     monHocHienTai.DanhSachTask.Remove(taskCanXoa);
+                    DataManager.LuuHocKy(hocKyHienTai); // AUTO-SAVE
                 }
             }
         }
 
-        // 2. HÀM BẤM NÚT SỬA TRÊN DÒNG (Đẩy dữ liệu lên form)
         private void BtnSuaTask_Click(object sender, RoutedEventArgs e)
         {
             Button btn = sender as Button;
@@ -54,19 +53,16 @@ namespace SmartStudyPlanner
 
             if (taskDangSua != null)
             {
-                // Đẩy dữ liệu ngược lên các ô nhập liệu
                 txtTenTask.Text = taskDangSua.TenTask;
                 dpHanChot.SelectedDate = taskDangSua.HanChot;
-                cmbLoaiTask.SelectedIndex = (int)taskDangSua.LoaiTask; // Ép kiểu Enum về số thứ tự
+                cmbLoaiTask.SelectedIndex = (int)taskDangSua.LoaiTask;
                 txtDoKho.Text = taskDangSua.DoKho.ToString();
 
-                // Đổi nút "Thêm" thành "Cập Nhật" (Màu xanh dương)
                 btnThemTask.Content = "Cập Nhật";
                 btnThemTask.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(52, 152, 219));
             }
         }
 
-        // 3. CẬP NHẬT HÀM THÊM TASK (Xử lý cả 2 trường hợp Thêm và Cập Nhật)
         private void BtnThemTask_Click(object sender, RoutedEventArgs e)
         {
             string tenTask = txtTenTask.Text;
@@ -83,43 +79,37 @@ namespace SmartStudyPlanner
 
             LoaiCongViec loaiTask = (LoaiCongViec)cmbLoaiTask.SelectedIndex;
 
-            // --- KIỂM TRA ĐANG Ở TRẠNG THÁI NÀO ---
             if (taskDangSua == null)
             {
-                // TRƯỜNG HỢP A: THÊM MỚI
                 StudyTask taskMoi = new StudyTask(tenTask, hanChot.Value, loaiTask, doKho);
                 monHocHienTai.DanhSachTask.Add(taskMoi);
             }
             else
             {
-                // TRƯỜNG HỢP B: CẬP NHẬT
                 taskDangSua.TenTask = tenTask;
                 taskDangSua.HanChot = hanChot.Value;
                 taskDangSua.LoaiTask = loaiTask;
                 taskDangSua.DoKho = doKho;
 
-                // Bắt DataGrid vẽ lại dữ liệu mới
                 dgDanhSachTask.Items.Refresh();
 
-                // Xóa trí nhớ, trả nút bấm về trạng thái Thêm mới (Màu tím)
                 taskDangSua = null;
                 btnThemTask.Content = "Thêm Deadline";
                 btnThemTask.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(155, 89, 182));
             }
 
             TinhDiemVaSapXep();
+            DataManager.LuuHocKy(hocKyHienTai); // AUTO-SAVE
 
-            // Dọn dẹp form cho lần nhập tiếp theo
             txtTenTask.Clear();
             txtDoKho.Clear();
-            dpHanChot.SelectedDate = null; // Xóa luôn ngày
-            cmbLoaiTask.SelectedIndex = 0; // Trả ComboBox về mặc định (Bài tập về nhà)
+            dpHanChot.SelectedDate = null;
+            cmbLoaiTask.SelectedIndex = 0;
             txtTenTask.Focus();
         }
-        // BƯỚC MA THUẬT: Hàm tự động chấm điểm và sắp xếp
+
         private void TinhDiemVaSapXep()
         {
-            // 1. Gọi Decision Engine ra chấm điểm cho TỪNG bài tập trong ba lô
             foreach (var task in monHocHienTai.DanhSachTask)
             {
                 task.DiemUuTien = DecisionEngine.CalculatePriority(task, monHocHienTai);
@@ -142,21 +132,15 @@ namespace SmartStudyPlanner
                 }
             }
 
-            // 2. Dùng LINQ để sắp xếp danh sách từ Điểm Cao xuống Điểm Thấp
-            // Hàm OrderByDescending là vũ khí mạnh nhất của C# để sắp xếp dữ liệu
             var danhSachDaSapXep = monHocHienTai.DanhSachTask.OrderByDescending(t => t.DiemUuTien).ToList();
-
-            // 3. Xóa các bài tập lộn xộn cũ trong ba lô đi...
             monHocHienTai.DanhSachTask.Clear();
 
-            // 4. ...Và xếp lại các bài tập đã được sắp xếp chuẩn xác vào ba lô
             foreach (var task in danhSachDaSapXep)
             {
                 monHocHienTai.DanhSachTask.Add(task);
             }
         }
 
-        // HÀM MỚI: Đánh dấu hoàn thành bài tập
         private void BtnHoanThanh_Click(object sender, RoutedEventArgs e)
         {
             Button btn = sender as Button;
@@ -164,22 +148,13 @@ namespace SmartStudyPlanner
 
             if (taskDaXong != null)
             {
-                // Nếu đã hoàn thành rồi thì không làm gì cả
-                if (taskDaXong.TrangThai == "Hoàn thành")
-                {
-                    MessageBox.Show("Bài tập này đã được hoàn thành rồi!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
-                    return;
-                }
+                if (taskDaXong.TrangThai == "Hoàn thành") return;
 
-                // 1. Cập nhật trạng thái
                 taskDaXong.TrangThai = "Hoàn thành";
-
-                // 2. PHÉP MÀU XẢY RA Ở ĐÂY: Gọi lại Decision Engine để chấm điểm và sắp xếp
-                // Vì trạng thái đã là "Hoàn thành", Tầng Veto sẽ trả về 0.0 điểm!
                 TinhDiemVaSapXep();
-
-                // 3. Bắt DataGrid vẽ lại để cập nhật chữ "Hoàn thành" lên màn hình
                 dgDanhSachTask.Items.Refresh();
+
+                DataManager.LuuHocKy(hocKyHienTai); // AUTO-SAVE
             }
         }
     }
