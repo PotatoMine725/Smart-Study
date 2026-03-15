@@ -72,5 +72,32 @@ namespace SmartStudyPlanner
             DataManager.LuuHocKy(hocKyHienTai);
             MessageBox.Show("Đã lưu tiến trình thành công!", "Save Game", MessageBoxButton.OK, MessageBoxImage.Information);
         }
+
+        // HÀM MỚI: Điều hướng sâu (Deep Linking)
+        private void BtnDiToiTask_Click(object sender, RoutedEventArgs e)
+        {
+            Button btn = sender as Button;
+
+            // Lấy dòng dữ liệu (TaskDashboardItem) đang được bấm
+            TaskDashboardItem taskDuocChon = btn.DataContext as TaskDashboardItem;
+
+            if (taskDuocChon != null)
+            {
+                // Dùng LINQ để dò tìm lại cái object Môn Học gốc bên trong ba lô HocKyHienTai
+                // Thuật toán: Tìm môn nào có Tên bằng với Tên môn học hiển thị trên dòng này
+                MonHoc monHocCanTim = hocKyHienTai.DanhSachMonHoc.FirstOrDefault(m => m.TenMonHoc == taskDuocChon.TenMonHoc);
+
+                if (monHocCanTim != null)
+                {
+                    // TÌM THẤY RỒI! Chuyển kênh thẳng sang trang Quản lý Bài Tập của môn đó luôn!
+                    NavigationService.Navigate(new QuanLyTaskPage(hocKyHienTai, monHocCanTim));
+                }
+                else
+                {
+                    MessageBox.Show("Không tìm thấy môn học gốc. Dữ liệu có thể bị lỗi!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
     }
 }
