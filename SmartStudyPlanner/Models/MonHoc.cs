@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 using System.Text;
 
 
-namespace SmartStudyPlanner
+namespace SmartStudyPlanner.Models
 {
     public class MonHoc
     {

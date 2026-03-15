@@ -1,7 +1,6 @@
-﻿using System;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Navigation; // Bắt buộc phải có
+﻿using System.Windows.Controls;
+using System.Windows.Navigation;
+using SmartStudyPlanner.ViewModels; // Khai báo đường dẫn tới thư mục ViewModels
 
 namespace SmartStudyPlanner
 {
@@ -10,24 +9,18 @@ namespace SmartStudyPlanner
         public SetupPage()
         {
             InitializeComponent();
-        }
 
-        private void BtnTaoHocKy_Click(object sender, RoutedEventArgs e)
-        {
-            string tenHK = txtTenHocKy.Text;
-            DateTime? ngayChon = dpNgayBatDau.SelectedDate;
+            // 1. Khởi tạo "Bộ não" ViewModel
+            SetupViewModel vm = new SetupViewModel();
 
-            if (string.IsNullOrEmpty(tenHK) || ngayChon == null)
+            // 2. Lắng nghe tiếng hét của ViewModel: Nếu tạo xong Học kỳ thì View sẽ tự động chuyển trang
+            vm.OnSetupCompleted = (hocKyMoi) =>
             {
-                MessageBox.Show("Vui lòng nhập đầy đủ tên học kỳ và ngày bắt đầu", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-            else
-            {
-                HocKy hocKyMoi = new HocKy(tenHK, ngayChon.Value);
-
-                // PHÉP MÀU: Đổi kênh sang DashboardPage mà KHÔNG CẦN mở cửa sổ mới
                 NavigationService.Navigate(new DashboardPage(hocKyMoi));
-            }
+            };
+
+            // 3. Gắn bộ não vào giao diện (Bắt buộc phải có dòng này thì các sợi dây Binding mới hoạt động)
+            this.DataContext = vm;
         }
     }
 }
