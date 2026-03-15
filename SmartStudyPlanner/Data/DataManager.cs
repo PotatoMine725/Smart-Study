@@ -1,7 +1,8 @@
-﻿using System.IO;
+﻿using SmartStudyPlanner.Models;
+using System.IO;
 using System.Text.Json;
 
-namespace SmartStudyPlanner
+namespace SmartStudyPlanner.Data
 {
     public static class DataManager
     {
