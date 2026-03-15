@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Text;
 
 
@@ -10,6 +11,8 @@ namespace SmartStudyPlanner
         public string TenMonHoc { get; set; }
         public int SoTinChi { get; set; }
         public Guid MaMonHoc { get; set; }
+
+        public ObservableCollection<StudyTask> DanhSachTask { get; set; }
 
         public MonHoc() {  }
 

@@ -121,5 +121,21 @@ namespace SmartStudyPlanner
                 btnThemMon.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(52, 152, 219)); // Đổi sang màu xanh dương
             }
         }
+
+        // HÀM MỚI: Xử lý khi bấm nút Tasks
+        private void BtnXemTask_Click(object sender, RoutedEventArgs e)
+        {
+            Button btn = sender as Button;
+            MonHoc monDuocChon = btn.DataContext as MonHoc; // Lấy ra môn học ở dòng bị bấm
+
+            if (monDuocChon != null)
+            {
+                // TẠM THỜI: Hiện thông báo để test. 
+                // Ở bước sau, ta sẽ mở một Window mới và truyền monDuocChon này sang đó.
+                MessageBox.Show($"Bạn chuẩn bị mở giao diện Quản lý Bài Tập cho môn: {monDuocChon.TenMonHoc}\n" +
+                                $"Số lượng Task hiện tại: {monDuocChon.DanhSachTask.Count}",
+                                "Chuyển hướng", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
     }
 }
