@@ -130,11 +130,12 @@ namespace SmartStudyPlanner
 
             if (monDuocChon != null)
             {
-                // TẠM THỜI: Hiện thông báo để test. 
-                // Ở bước sau, ta sẽ mở một Window mới và truyền monDuocChon này sang đó.
-                MessageBox.Show($"Bạn chuẩn bị mở giao diện Quản lý Bài Tập cho môn: {monDuocChon.TenMonHoc}\n" +
-                                $"Số lượng Task hiện tại: {monDuocChon.DanhSachTask.Count}",
-                                "Chuyển hướng", MessageBoxButton.OK, MessageBoxImage.Information);
+                // Mở cửa sổ quản lý Task và truyền môn học sang
+                QuanLyTaskWindow cuaSoTask = new QuanLyTaskWindow(monDuocChon);
+
+                // Dùng ShowDialog() thay vì Show(). 
+                // Nghĩa là người dùng phải tắt cửa sổ Task này thì mới được thao tác tiếp ở cửa sổ Môn học.
+                cuaSoTask.ShowDialog();
             }
         }
     }
