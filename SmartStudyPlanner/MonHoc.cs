@@ -14,13 +14,20 @@ namespace SmartStudyPlanner
 
         public ObservableCollection<StudyTask> DanhSachTask { get; set; }
 
-        public MonHoc() {  }
+        public MonHoc()
+        {
+            // SỬA LỖI Ở ĐÂY
+            DanhSachTask = new ObservableCollection<StudyTask>();
+        }
 
         public MonHoc(string tenMonHoc, int soTinChi)
         {
             TenMonHoc = tenMonHoc;
             SoTinChi = soTinChi;
             MaMonHoc = Guid.NewGuid();
+
+            // SỬA LỖI Ở ĐÂY
+            DanhSachTask = new ObservableCollection<StudyTask>();
         }
 
         // Optional: construct with an explicit id (useful when loading from storage)
@@ -29,6 +36,9 @@ namespace SmartStudyPlanner
             TenMonHoc = tenMonHoc;
             SoTinChi = soTinChi;
             MaMonHoc = maMonHoc;
+
+            // SỬA LỖI Ở ĐÂY
+            DanhSachTask = new ObservableCollection<StudyTask>();
         }
     }
 }
