@@ -8,7 +8,27 @@ namespace SmartStudyPlanner
         public MainWindow()
         {
             InitializeComponent();
-            // Đã xóa dgDanhSachMon.ItemsSource vì bảng này không còn ở đây nữa
+
+            // KIỂM TRA TÌM FILE SAVE CŨ
+            HocKy hocKyCu = DataManager.DocHocKy();
+
+            // Nếu phát hiện có dữ liệu cũ
+            if (hocKyCu != null)
+            {
+                MessageBoxResult result = MessageBox.Show(
+                    $"Tìm thấy dữ liệu của '{hocKyCu.Ten}'. Bạn có muốn tiếp tục quản lý học kỳ này không?",
+                    "Phát hiện dữ liệu cũ",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                // Nếu người dùng bấm YES -> Nhảy thẳng sang màn hình Môn Học luôn!
+                if (result == MessageBoxResult.Yes)
+                {
+                    QuanLyMonHocWindow window = new QuanLyMonHocWindow(hocKyCu);
+                    window.Show();
+                    this.Close(); // Đóng màn hình MainWindow (tạo mới) lại
+                }
+            }
         }
 
         private void BtnTaoHocKy_Click(object sender, RoutedEventArgs e)

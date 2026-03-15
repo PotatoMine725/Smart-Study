@@ -9,7 +9,9 @@ namespace SmartStudyPlanner
     {
         public string TenMonHoc { get; set; }
         public int SoTinChi { get; set; }
-        public Guid MaMonHoc { get; private set; }
+        public Guid MaMonHoc { get; set; }
+
+        public MonHoc() {  }
 
         public MonHoc(string tenMonHoc, int soTinChi)
         {
