@@ -9,6 +9,8 @@ namespace SmartStudyPlanner
         // 1. Tạo một biến toàn cục để lưu Học kỳ được truyền từ màn hình kia sang
         private HocKy hocKyHienTai;
 
+        private MonHoc monDangSua = null;
+
         // 2. Sửa lại Constructor để ÉP màn hình này phải nhận vào 1 object HocKy khi được mở lên
         public QuanLyMonHocWindow(HocKy hocKyTruyenSang)
         {
@@ -42,10 +44,29 @@ namespace SmartStudyPlanner
                 return;
             }
 
-            MonHoc monHocMoi = new MonHoc(tenMon, soTinChi);
+            if (monDangSua == null)
+            {
+                // TRƯỜNG HỢP 1: THÊM MỚI (Biến nhớ đang trống)
+                MonHoc monHocMoi = new MonHoc(tenMon, soTinChi);
+                hocKyHienTai.DanhSachMonHoc.Add(monHocMoi);
+                MessageBox.Show("Thêm thành công!", "Thành công", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                // TRƯỜNG HỢP 2: CẬP NHẬT (Đang có môn được chọn để sửa)
+                monDangSua.TenMonHoc = tenMon;
+                monDangSua.SoTinChi = soTinChi;
 
-            // SỬA Ở ĐÂY: Thêm vào ba lô của hocKyHienTai
-            hocKyHienTai.DanhSachMonHoc.Add(monHocMoi);
+                // Lệnh này bắt DataGrid phải vẽ lại dữ liệu mới vì ta vừa sửa Object ở dưới nền
+                dgDanhSachMon.Items.Refresh();
+
+                MessageBox.Show("Cập nhật thành công!", "Thành công", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                // Sửa xong thì phải "Xóa trí nhớ" và đưa nút bấm về như cũ
+                monDangSua = null;
+                btnThemMon.Content = "Thêm Môn";
+                btnThemMon.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(46, 204, 113)); // Trả lại màu xanh lá
+            }
 
             // Dọn dẹp form 
             txtTenMon.Clear();
@@ -71,6 +92,49 @@ namespace SmartStudyPlanner
                     // SỬA Ở ĐÂY: Xóa khỏi ba lô của hocKyHienTai
                     hocKyHienTai.DanhSachMonHoc.Remove(monCanXoa);
                 }
+            }
+        }
+
+        private void BtnLuu_Click(object sender, RoutedEventArgs e)
+        {
+            // Gọi anh DataManager ra để nhờ lưu cái "ba lô" hiện tại
+            DataManager.LuuHocKy(hocKyHienTai);
+
+            MessageBox.Show("Đã lưu tiến trình thành công! Bây giờ bạn có thể tắt App.",
+                            "Save Game", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        // HÀM MỚI: Bắt sự kiện khi bấm nút Sửa trên dòng
+        private void BtnSuaMon_Click(object sender, RoutedEventArgs e)
+        {
+            Button btn = sender as Button;
+            monDangSua = btn.DataContext as MonHoc; // Lưu môn học đang chọn vào biến nhớ
+
+            if (monDangSua != null)
+            {
+                // Đẩy dữ liệu ngược lên 2 ô TextBox
+                txtTenMon.Text = monDangSua.TenMonHoc;
+                txtSoTinChi.Text = monDangSua.SoTinChi.ToString();
+
+                // Đổi chữ của nút Thêm thành Cập Nhật cho người dùng biết
+                btnThemMon.Content = "Cập Nhật";
+                btnThemMon.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(52, 152, 219)); // Đổi sang màu xanh dương
+            }
+        }
+
+        // HÀM MỚI: Xử lý khi bấm nút Tasks
+        private void BtnXemTask_Click(object sender, RoutedEventArgs e)
+        {
+            Button btn = sender as Button;
+            MonHoc monDuocChon = btn.DataContext as MonHoc; // Lấy ra môn học ở dòng bị bấm
+
+            if (monDuocChon != null)
+            {
+                // TẠM THỜI: Hiện thông báo để test. 
+                // Ở bước sau, ta sẽ mở một Window mới và truyền monDuocChon này sang đó.
+                MessageBox.Show($"Bạn chuẩn bị mở giao diện Quản lý Bài Tập cho môn: {monDuocChon.TenMonHoc}\n" +
+                                $"Số lượng Task hiện tại: {monDuocChon.DanhSachTask.Count}",
+                                "Chuyển hướng", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
     }

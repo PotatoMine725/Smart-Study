@@ -11,6 +11,12 @@ namespace SmartStudyPlanner
         // MỚI: Cái "ba lô" để chứa các môn học thuộc về học kỳ này
         public ObservableCollection<MonHoc> DanhSachMonHoc { get; set; }
 
+        // Constructor mặc định (nếu cần)
+        public HocKy()
+        {
+            DanhSachMonHoc = new ObservableCollection<MonHoc>();
+        }
+
         public HocKy(string ten, DateTime ngayBatDau)
         {
             Ten = ten;
