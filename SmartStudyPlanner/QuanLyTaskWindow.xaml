@@ -42,7 +42,31 @@
         <Button x:Name="btnThemTask" Content="Thêm Deadline" Height="35" Width="200" FontWeight="Bold" 
                 Background="#9B59B6" Foreground="White" Cursor="Hand" Click="BtnThemTask_Click" Margin="0,0,0,20" />
 
-        <DataGrid x:Name="dgDanhSachTask" Height="220" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" AlternatingRowBackground="#F9F9F9">
+        <DataGrid x:Name="dgDanhSachTask" Height="220" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
+
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding MucDoCanhBao}" Value="Khẩn cấp">
+                            <Setter Property="Background" Value="#FFCDD2" />
+                        </DataTrigger>
+
+                        <DataTrigger Binding="{Binding MucDoCanhBao}" Value="Chú ý">
+                            <Setter Property="Background" Value="#FFF9C4" />
+                        </DataTrigger>
+
+                        <DataTrigger Binding="{Binding MucDoCanhBao}" Value="An toàn">
+                            <Setter Property="Background" Value="#C8E6C9" />
+                        </DataTrigger>
+
+                        <DataTrigger Binding="{Binding MucDoCanhBao}" Value="Đã xong">
+                            <Setter Property="Background" Value="#E0E0E0" />
+                            <Setter Property="Foreground" Value="#7F8C8D" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Tên Bài Tập" Binding="{Binding TenTask}" Width="*" />
                 <DataGridTextColumn Header="Hạn Chót" Binding="{Binding HanChot, StringFormat=dd/MM/yyyy}" Width="100" />
@@ -55,6 +79,7 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Button Content="Xong" Background="#2ECC71" Foreground="White" Padding="10,2" Margin="0,0,5,0" Cursor="Hand" Click="BtnHoanThanh_Click" />
                                 <Button Content="Sửa" Background="#F1C40F" Foreground="White" Padding="10,2" Margin="0,0,5,0" Cursor="Hand" Click="BtnSuaTask_Click" />
                                 <Button Content="Xóa" Background="#E74C3C" Foreground="White" Padding="10,2" Cursor="Hand" Click="BtnXoaTask_Click" />
                             </StackPanel>

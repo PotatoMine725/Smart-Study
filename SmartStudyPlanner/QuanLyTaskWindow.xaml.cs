@@ -123,6 +123,23 @@ namespace SmartStudyPlanner
             foreach (var task in monHocHienTai.DanhSachTask)
             {
                 task.DiemUuTien = DecisionEngine.CalculatePriority(task, monHocHienTai);
+
+                if (task.TrangThai == "Hoàn thành")
+                {
+                    task.MucDoCanhBao = "Đã xong";
+                }
+                else if (task.DiemUuTien >= 80)
+                {
+                    task.MucDoCanhBao = "Khẩn cấp";
+                }
+                else if (task.DiemUuTien >= 50)
+                {
+                    task.MucDoCanhBao = "Chú ý";
+                }
+                else
+                {
+                    task.MucDoCanhBao = "An toàn";
+                }
             }
 
             // 2. Dùng LINQ để sắp xếp danh sách từ Điểm Cao xuống Điểm Thấp
@@ -136,6 +153,33 @@ namespace SmartStudyPlanner
             foreach (var task in danhSachDaSapXep)
             {
                 monHocHienTai.DanhSachTask.Add(task);
+            }
+        }
+
+        // HÀM MỚI: Đánh dấu hoàn thành bài tập
+        private void BtnHoanThanh_Click(object sender, RoutedEventArgs e)
+        {
+            Button btn = sender as Button;
+            StudyTask taskDaXong = btn.DataContext as StudyTask;
+
+            if (taskDaXong != null)
+            {
+                // Nếu đã hoàn thành rồi thì không làm gì cả
+                if (taskDaXong.TrangThai == "Hoàn thành")
+                {
+                    MessageBox.Show("Bài tập này đã được hoàn thành rồi!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                // 1. Cập nhật trạng thái
+                taskDaXong.TrangThai = "Hoàn thành";
+
+                // 2. PHÉP MÀU XẢY RA Ở ĐÂY: Gọi lại Decision Engine để chấm điểm và sắp xếp
+                // Vì trạng thái đã là "Hoàn thành", Tầng Veto sẽ trả về 0.0 điểm!
+                TinhDiemVaSapXep();
+
+                // 3. Bắt DataGrid vẽ lại để cập nhật chữ "Hoàn thành" lên màn hình
+                dgDanhSachTask.Items.Refresh();
             }
         }
     }
