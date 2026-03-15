@@ -1,4 +1,7 @@
-﻿using System;
+﻿using SmartStudyPlanner.Data;
+using SmartStudyPlanner.Models;
+using SmartStudyPlanner.Services;
+using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;

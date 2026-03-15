@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using SmartStudyPlanner.Data;
+using SmartStudyPlanner.Models;
+using SmartStudyPlanner.Services;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace SmartStudyPlanner
+namespace SmartStudyPlanner.Models
 {
     // 1. TẠO ENUM: Chuẩn hóa các loại sự kiện để người dùng không thể gõ sai chính tả
     public enum LoaiCongViec

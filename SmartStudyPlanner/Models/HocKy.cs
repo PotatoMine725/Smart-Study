@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.ObjectModel; // Nhớ thêm thư viện này
 
-namespace SmartStudyPlanner
+namespace SmartStudyPlanner.Models
 {
     public class HocKy
     {

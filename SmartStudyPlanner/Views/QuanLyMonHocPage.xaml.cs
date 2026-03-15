@@ -1,4 +1,6 @@
-﻿using System.Windows;
+﻿using SmartStudyPlanner.Data;
+using SmartStudyPlanner.Models;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Navigation;
 
