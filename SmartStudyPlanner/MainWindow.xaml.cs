@@ -21,10 +21,11 @@ namespace SmartStudyPlanner
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Question);
 
-                // Nếu người dùng bấm YES -> Nhảy thẳng sang màn hình Môn Học luôn!
+                // Nếu người dùng bấm YES -> Nhảy thẳng sang màn hình Dashboard (Trang chủ) luôn!
                 if (result == MessageBoxResult.Yes)
                 {
-                    QuanLyMonHocWindow window = new QuanLyMonHocWindow(hocKyCu);
+                    // ĐÃ SỬA: Chuyển hướng sang DashboardWindow
+                    DashboardWindow window = new DashboardWindow(hocKyCu);
                     window.Show();
                     this.Close(); // Đóng màn hình MainWindow (tạo mới) lại
                 }
@@ -42,12 +43,13 @@ namespace SmartStudyPlanner
             }
             else
             {
-                // 1. Chỉ khởi tạo Học kỳ MỘT LẦN (đã xóa txtTrangThai và biến khởi tạo thừa)
+                // 1. Chỉ khởi tạo Học kỳ MỘT LẦN 
                 HocKy hocKyMoi = new HocKy(tenHK, ngayChon.Value);
 
-                // 2. MỞ CỬA SỔ MỚI và BƠM object hocKyMoi vào cửa sổ đó
-                QuanLyMonHocWindow cuaSoMonHoc = new QuanLyMonHocWindow(hocKyMoi);
-                cuaSoMonHoc.Show();
+                // 2. MỞ CỬA SỔ DASHBOARD và BƠM object hocKyMoi vào cửa sổ đó
+                // ĐÃ SỬA: Đổi QuanLyMonHocWindow thành DashboardWindow
+                DashboardWindow cuaSoChinh = new DashboardWindow(hocKyMoi);
+                cuaSoChinh.Show();
 
                 // 3. ĐÓNG CỬA SỔ CŨ LẠI
                 this.Close();
