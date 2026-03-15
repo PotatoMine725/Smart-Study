@@ -22,6 +22,12 @@ namespace SmartStudyPlanner
         // 2. THUỘC TÍNH MỚI: Phân loại sự kiện
         public LoaiCongViec LoaiTask { get; set; }
 
+        // 3. THUỘC TÍNH MỚI: Điểm ưu tiên do DecisionEngine tính ra (Ta vẫn giữ lại nhưng sau này sẽ ép trọng số cao lên trong DecisionEngine)
+        public double DiemUuTien { get; set; }
+
+        // THUỘC TÍNH MỚI: Dùng để làm biển báo nhuộm màu giao diện
+        public string MucDoCanhBao { get; set; }
+
         // Độ khó do người dùng nhập (Ta vẫn giữ lại nhưng sau này sẽ ép trọng số thấp xuống trong DecisionEngine)
         public int DoKho { get; set; }
 
