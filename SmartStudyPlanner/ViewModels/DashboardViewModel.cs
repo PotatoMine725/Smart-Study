@@ -92,7 +92,9 @@ namespace SmartStudyPlanner.ViewModels
                             TenTask = task.TenTask,
                             HanChot = task.HanChot,
                             DiemUuTien = task.DiemUuTien,
-                            MucDoCanhBao = mucDo
+                            MucDoCanhBao = mucDo,
+                            // Gợi ý thời gian học dựa trên thuật toán của DecisionEngine
+                            ThoiGianGoiY = DecisionEngine.SuggestStudyTime(task)
                         });
                     }
                 }

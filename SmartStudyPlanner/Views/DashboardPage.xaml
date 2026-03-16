@@ -60,6 +60,7 @@
                 <DataGridTextColumn Header="Hạn Chót" Binding="{Binding HanChot, StringFormat=dd/MM/yyyy}" Width="100" />
                 <DataGridTextColumn Header="Điểm Ưu Tiên" Binding="{Binding DiemUuTien}" Width="100" />
                 <DataGridTextColumn Header="Mức Độ" Binding="{Binding MucDoCanhBao}" Width="100" />
+                <DataGridTextColumn Header="Gợi ý học hôm nay" Binding="{Binding ThoiGianGoiY}" Width="140" FontWeight="Bold" Foreground="#16A085"/>
 
                 <DataGridTemplateColumn Header="Thao tác" Width="100">
                     <DataGridTemplateColumn.CellTemplate>

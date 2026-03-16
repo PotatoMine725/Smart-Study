@@ -1,63 +1,93 @@
-﻿using SmartStudyPlanner.Models;
-using System;
+﻿using System;
+using SmartStudyPlanner.Models;
 
 namespace SmartStudyPlanner.Services
 {
+    // CẢI TIẾN 1: Tách các hệ số ra thành Object Cấu hình (Externalise Config)
+    public class WeightConfig
+    {
+        public double TimeWeight { get; set; } = 0.40;
+        public double TaskTypeWeight { get; set; } = 0.30;
+        public double CreditWeight { get; set; } = 0.20;
+        public double DifficultyWeight { get; set; } = 0.10;
+        public int MaxCredits { get; set; } = 4;
+        public int MaxDifficulty { get; set; } = 5;
+        public int HorizonDays { get; set; } = 60;
+    }
+
     public static class DecisionEngine
     {
-        // Hàm này sẽ nhận vào 1 Task và Môn học của nó, sau đó trả về Điểm ưu tiên (0 - 100)
+        public static WeightConfig Config { get; set; } = new WeightConfig();
+
         public static double CalculatePriority(StudyTask task, MonHoc monHoc)
         {
-            // Tính số ngày còn lại từ hôm nay đến hạn chót
+            // CẢI TIẾN 2: Thêm Guards chống lỗi Null (Null validation)
+            if (task == null || monHoc == null) return 0.0;
+
             double soNgayConLai = (task.HanChot.Date - DateTime.Now.Date).TotalDays;
 
             // ==========================================
-            // TẦNG 1: DICTATORSHIP MODULE (Mệnh lệnh độc tài)
+            // TẦNG 1: DICTATORSHIP MODULE 
             // ==========================================
-            // 1. Nếu quá hạn HƠN 3 NGÀY (soNgayConLai < -3) -> Hết cứu, tự động ép về 0 điểm
             if (soNgayConLai < -3) return 0.0;
-
-            // 2. Nếu quá hạn từ 1 đến 3 ngày (-3 <= soNgayConLai < 0) -> Báo động đỏ (100 điểm) bắt nộp bù
             if (soNgayConLai < 0) return 100.0;
 
-            // 3. Hạn chót là hôm nay
-            if (soNgayConLai == 0) return 95.0;
+            // CẢI TIẾN 3: Sửa lỗi Critical (Floating-point equality)
+            if (soNgayConLai < 1) return 95.0;
 
             // ==========================================
-            // TẦNG 2: VETO MODULE (Quyền phủ quyết)
+            // TẦNG 2: VETO MODULE 
             // ==========================================
-            // Bộ lọc loại bỏ các công việc không cần quan tâm.
-            if (task.TrangThai == "Hoàn thành") return 0.0; // Đã làm xong -> Không thèm quan tâm nữa
-            if (soNgayConLai > 60) return 1.0; // Hơn 2 tháng nữa mới nộp -> Quá xa, cho điểm chạm đáy
+            if (task.TrangThai == "Hoàn thành") return 0.0;
+            if (soNgayConLai > Config.HorizonDays) return 1.0;
 
             // ==========================================
-            // TẦNG 3: DEMOCRACY MODULE (Tổng hợp ý kiến / Dân chủ)
+            // TẦNG 3: DEMOCRACY MODULE 
             // ==========================================
-            // Nếu thoát được 2 tầng trên, các "chuyên gia" sẽ bắt đầu chấm điểm (thang 100)
 
-            // 1. Chuyên gia Thời gian: Càng gần ngày nộp điểm càng cao. 
-            // (Giả sử mốc 30 ngày là 0 điểm, 1 ngày là gần 100 điểm)
-            double diemThoiGian = 100 - (soNgayConLai * (100.0 / 30.0));
-            if (diemThoiGian < 0) diemThoiGian = 0;
+            // CẢI TIẾN 4: Sửa lỗi High (Formula gap). Trải đều trên 60 ngày.
+            double diemThoiGian = Math.Max(0, 100.0 * (1.0 - soNgayConLai / Config.HorizonDays));
 
-            // 2. Chuyên gia Khách quan: Hệ số loại công việc (Thi cuối kỳ, Giữa kỳ...)
             double diemLoaiTask = task.LayHeSoQuanTrong() * 100;
 
-            // 3. Chuyên gia Tín chỉ: Môn càng nhiều tín chỉ càng quan trọng (Giả sử Max 4 tín chỉ)
-            double diemTinChi = (monHoc.SoTinChi / 4.0) * 100;
+            int tinChiHopLe = Math.Max(1, monHoc.SoTinChi);
+            double diemTinChi = (tinChiHopLe / (double)Config.MaxCredits) * 100;
             if (diemTinChi > 100) diemTinChi = 100;
 
-            // 4. Chuyên gia Chủ quan: Độ khó do sinh viên tự nhận định (Thang 1-5)
-            double diemDoKho = (task.DoKho / 5.0) * 100;
+            // CẢI TIẾN 5: Clamp giới hạn trần cho độ khó (Difficulty ceiling clamp)
+            int doKhoHopLe = Math.Min(Config.MaxDifficulty, Math.Max(1, task.DoKho));
+            double diemDoKho = (doKhoHopLe / (double)Config.MaxDifficulty) * 100;
 
-            // TỔNG HỢP (Arithmetic Mean có trọng số):
-            // Giao quyền quyết định: Thời gian (40%), Tính chất sự kiện (30%), Tín chỉ (20%), Độ khó chủ quan (10%)
-            double finalPriority = (diemThoiGian * 0.4) +
-                                   (diemLoaiTask * 0.3) +
-                                   (diemTinChi * 0.2) +
-                                   (diemDoKho * 0.1);
+            double finalPriority = (diemThoiGian * Config.TimeWeight) +
+                                   (diemLoaiTask * Config.TaskTypeWeight) +
+                                   (diemTinChi * Config.CreditWeight) +
+                                   (diemDoKho * Config.DifficultyWeight);
 
-            return Math.Round(finalPriority, 2); // Làm tròn 2 chữ số thập phân cho đẹp
+            return Math.Round(finalPriority, 2);
+        }
+
+        // ==========================================
+        // SMART SCHEDULING: GỢI Ý THỜI GIAN HỌC
+        // ==========================================
+        public static string SuggestStudyTime(StudyTask task)
+        {
+            if (task.TrangThai == "Hoàn thành" || task.DiemUuTien <= 0) return "0 phút";
+
+            // Điểm ưu tiên càng cao, độ khó càng cao thì cần càng nhiều thời gian
+            double baseMinutes = (task.DiemUuTien / 100.0) * 120.0; // Max 2 tiếng do áp lực deadline
+            double difficultyBonus = (task.DoKho / 5.0) * 60.0;     // Max 1 tiếng do độ khó môn học
+
+            int totalMinutes = (int)(baseMinutes + difficultyBonus);
+
+            // Làm tròn theo block 15 phút (Chuẩn phương pháp học Pomodoro)
+            totalMinutes = (int)Math.Round(totalMinutes / 15.0) * 15;
+
+            if (totalMinutes <= 0) return "15 phút";
+            if (totalMinutes < 60) return $"{totalMinutes} phút";
+
+            int hours = totalMinutes / 60;
+            int mins = totalMinutes % 60;
+            return mins > 0 ? $"{hours}h {mins}p" : $"{hours}h";
         }
     }
 }
