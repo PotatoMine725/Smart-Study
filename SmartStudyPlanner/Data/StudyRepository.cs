@@ -34,5 +34,17 @@ namespace SmartStudyPlanner.Data
                 await db.SaveChangesAsync();
             }
         }
+
+        public async Task<List<HocKy>> LayDanhSachHocKyAsync()
+        {
+            using (var db = new AppDbContext())
+            {
+                // Dùng ToListAsync() để lôi TOÀN BỘ học kỳ có trong DB lên
+                return await db.HocKys
+                         .Include(hk => hk.DanhSachMonHoc)
+                            .ThenInclude(mon => mon.DanhSachTask)
+                         .ToListAsync();
+            }
+        }
     }
 }

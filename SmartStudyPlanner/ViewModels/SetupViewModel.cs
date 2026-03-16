@@ -1,45 +1,78 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Models;
 using System;
+using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using System.Windows;
 
 namespace SmartStudyPlanner.ViewModels
 {
-    // BẮT BUỘC phải có chữ "partial" và kế thừa "ObservableObject"
     public partial class SetupViewModel : ObservableObject
     {
-        // 1. DỮ LIỆU (DATA)
-        // Phép màu của thư viện Toolkit: Chỉ cần khai báo biến viết thường có [ObservableProperty]
-        // Thư viện sẽ TỰ ĐỘNG sinh ra một thuộc tính viết hoa (TenHocKy) có khả năng báo cáo sự thay đổi lên UI!
+        private readonly IStudyRepository _repository = new StudyRepository();
+
         [ObservableProperty]
         private string tenHocKy;
 
         [ObservableProperty]
-        private DateTime? ngayBatDau = DateTime.Now; // Mặc định chọn ngày hôm nay
+        private DateTime? ngayBatDau = DateTime.Now;
 
-        // 2. SỰ KIỆN CHUYỂN TRANG
-        // Trong MVVM chuẩn, ViewModel KHÔNG ĐƯỢC PHÉP biết về View (không được gọi NavigationService).
-        // Ta dùng một cái "Loa thông báo" (Action) để hét lên khi tạo xong Học kỳ.
+        // DANH SÁCH HỌC KỲ CŨ ĐỂ CHỌN
+        [ObservableProperty]
+        private ObservableCollection<HocKy> danhSachHocKyCu = new ObservableCollection<HocKy>();
+
+        [ObservableProperty]
+        private HocKy hocKyDuocChon;
+
+        [ObservableProperty]
+        private bool coHocKyCu = false;
+
         public Action<HocKy> OnSetupCompleted { get; set; }
 
-        // 3. NÚT BẤM (COMMAND)
-        // Thư viện tự động biến hàm này thành một cái nút bấm tên là "TaoHocKyCommand"
-        [RelayCommand]
-        private void TaoHocKy()
+        public SetupViewModel()
         {
-            // Ta dùng thẳng các thuộc tính (viết hoa chữ cái đầu) mà thư viện tự đẻ ra
+            TaiDanhSachHocKy();
+        }
+
+        private async void TaiDanhSachHocKy()
+        {
+            var list = await _repository.LayDanhSachHocKyAsync();
+            foreach (var hk in list)
+            {
+                DanhSachHocKyCu.Add(hk);
+            }
+
+            if (DanhSachHocKyCu.Count > 0)
+            {
+                CoHocKyCu = true;
+                HocKyDuocChon = DanhSachHocKyCu[0]; // Chọn sẵn mục đầu tiên
+            }
+        }
+
+        [RelayCommand]
+        private async Task TaoHocKy()
+        {
             if (string.IsNullOrWhiteSpace(TenHocKy) || NgayBatDau == null)
             {
                 MessageBox.Show("Vui lòng nhập đầy đủ tên học kỳ và ngày bắt đầu", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            // Tạo học kỳ mới
             HocKy hocKyMoi = new HocKy(TenHocKy, NgayBatDau.Value);
+            await _repository.LuuHocKyAsync(hocKyMoi); // Lưu DB ngay lập tức
 
-            // Hét lên: "Tạo xong rồi, View ơi chuyển trang đi!"
             OnSetupCompleted?.Invoke(hocKyMoi);
+        }
+
+        [RelayCommand]
+        private void TiepTucHocKyCu()
+        {
+            if (HocKyDuocChon != null)
+            {
+                OnSetupCompleted?.Invoke(HocKyDuocChon);
+            }
         }
     }
 }
