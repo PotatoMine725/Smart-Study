@@ -1,38 +1,48 @@
 ﻿using System.Linq;
-using Microsoft.EntityFrameworkCore; // Thư viện cực kỳ quan trọng để dùng .Include()
+using Microsoft.EntityFrameworkCore;
 using SmartStudyPlanner.Models;
 
 namespace SmartStudyPlanner.Data
 {
     public static class DataManager
     {
-        // HÀM 1: LƯU DỮ LIỆU BẰNG SQLITE
         public static void LuuHocKy(HocKy hocKy)
         {
             if (hocKy == null) return;
 
             using (var db = new AppDbContext())
             {
-                // Phép màu của EF Core: 
-                // Lệnh Update này sẽ tự động phân tích cả cái "ba lô" HocKy.
-                // Cái nào mới -> Nó lệnh cho CSDL Insert.
-                // Cái nào bị đổi tên -> Nó lệnh cho CSDL Update.
-                db.HocKys.Update(hocKy);
+                // 1. Tìm xem Học kỳ này đã có trong Database chưa (Nhớ phải lôi cả Môn và Task lên)
+                var hocKyCu = db.HocKys
+                    .Include(h => h.DanhSachMonHoc)
+                    .ThenInclude(m => m.DanhSachTask)
+                    .FirstOrDefault(h => h.MaHocKy == hocKy.MaHocKy);
 
-                // Chốt lưu xuống file .db
+                if (hocKyCu == null)
+                {
+                    // 2A. Nếu chưa có (Tạo mới ở màn hình Setup) -> Insert thẳng vào DB
+                    db.HocKys.Add(hocKy);
+                }
+                else
+                {
+                    // 2B. Nếu đã có -> XÓA SẠCH CÁI CŨ ĐI
+                    db.HocKys.Remove(hocKyCu);
+                    db.SaveChanges(); // Chốt lệnh xóa để CSDL dọn dẹp chỗ trống
+
+                    // ĐẮP NGUYÊN CÁI MỚI VÀO
+                    db.HocKys.Add(hocKy);
+                }
+
+                // 3. Chốt lưu xuống file .db
                 db.SaveChanges();
             }
         }
 
-        // HÀM 2: ĐỌC DỮ LIỆU TỪ SQLITE
         public static HocKy DocHocKy()
         {
             using (var db = new AppDbContext())
             {
-                // Truy vấn bằng LINQ thay vì đọc file Text:
-                // Lấy Học Kỳ đầu tiên tìm thấy trong Database
-                // .Include: Tự động móc nối để kéo luôn các Môn Học của học kỳ đó ra
-                // .ThenInclude: Từ Môn Học kéo luôn các Bài Tập bên trong ra
+                // Truy vấn lôi toàn bộ cây dữ liệu lên
                 return db.HocKys
                          .Include(hk => hk.DanhSachMonHoc)
                             .ThenInclude(mon => mon.DanhSachTask)
