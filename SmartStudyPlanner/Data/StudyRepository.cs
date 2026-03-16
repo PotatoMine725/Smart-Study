@@ -25,24 +25,44 @@ namespace SmartStudyPlanner.Data
 
             using (var db = new AppDbContext())
             {
-                // 1. Kiểm tra xem Học kỳ này đã tồn tại trong CSDL chưa
-                // (Dùng AsNoTracking() để DB chỉ nhìn lướt qua mà không "nhớ" nó, giúp tránh lỗi Tracking)
-                var tonTai = await db.HocKys
-                                     .AsNoTracking()
-                                     .AnyAsync(h => h.MaHocKy == hocKy.MaHocKy);
-
-                if (tonTai)
+                // BẢO MẬT 1: Bật Transaction. Nếu đang lưu mà cúp điện hoặc crash app, 
+                // Database sẽ tự động hoàn tác (Rollback), dữ liệu cũ không bao giờ bị mất!
+                using (var transaction = await db.Database.BeginTransactionAsync())
                 {
-                    // Đã có trong DB -> Tiến hành ghi đè (Update)
-                    db.HocKys.Update(hocKy);
-                }
-                else
-                {
-                    // Chưa có trong DB -> Thêm mới hoàn toàn (Insert)
-                    db.HocKys.Add(hocKy);
-                }
+                    try
+                    {
+                        // 1. Kéo toàn bộ rễ của Học kỳ cũ lên
+                        var hocKyCu = await db.HocKys
+                            .Include(h => h.DanhSachMonHoc)
+                            .ThenInclude(m => m.DanhSachTask)
+                            .FirstOrDefaultAsync(h => h.MaHocKy == hocKy.MaHocKy);
 
-                await db.SaveChangesAsync();
+                        // 2. Nếu có cũ -> Xóa sạch bách khỏi CSDL
+                        if (hocKyCu != null)
+                        {
+                            db.HocKys.Remove(hocKyCu);
+                            await db.SaveChangesAsync();
+                        }
+
+                        // BẢO MẬT 2: CHÌA KHÓA DIỆT LỖI TRACKING!
+                        // Xóa sạch trí nhớ của EF Core để nó quên đi cái hocKyCu vừa bị xóa,
+                        // dọn đường sạch sẽ để đón hocKy mới vào mà không bị "đụng" ID.
+                        db.ChangeTracker.Clear();
+
+                        // 3. Đắp nguyên cái ba-lô dữ liệu mới vào
+                        db.HocKys.Add(hocKy);
+                        await db.SaveChangesAsync();
+
+                        // 4. Chốt giao dịch, ghi thẳng vào ổ cứng
+                        await transaction.CommitAsync();
+                    }
+                    catch (Exception)
+                    {
+                        // Gặp biến -> Quay xe!
+                        await transaction.RollbackAsync();
+                        throw;
+                    }
+                }
             }
         }
 
