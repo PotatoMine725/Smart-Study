@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Toolkit.Uwp.Notifications;
 // THÊM 3 THƯ VIỆN NÀY CHO BIỂU ĐỒ
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
@@ -19,6 +20,7 @@ namespace SmartStudyPlanner.ViewModels
     public partial class DashboardViewModel : ObservableObject
     {
         private HocKy _hocKyHienTai;
+        private static bool _daThongBao = false; // Biến static để nhớ là đã báo rồi
 
         [ObservableProperty] private string tieuDe;
         [ObservableProperty] private string thongKe;
@@ -131,6 +133,36 @@ namespace SmartStudyPlanner.ViewModels
             {
                 new Axis { Labels = tenCacMon.ToArray(), LabelsRotation = 15 } // Xoay chữ nhẹ cho khỏi đè nhau
             };
+            // --- HỆ THỐNG WINDOWS TOAST NOTIFICATION ---
+            if (!_daThongBao)
+            {
+                // Đếm xem có bao nhiêu task Khẩn cấp
+                int soTaskKhanCap = top5KhẩnCấp.Count(t => t.MucDoCanhBao == "Khẩn cấp");
+
+                if (soTaskKhanCap > 0)
+                {
+                    // Lắp ráp và bắn thông báo ra Desktop
+                    new ToastContentBuilder()
+                        .AddText("🔥 CẢNH BÁO DEADLINE!")
+                        .AddText($"Bạn đang có {soTaskKhanCap} bài tập KHẨN CẤP cần xử lý ngay lập tức!")
+                        .AddText("Hãy kiểm tra Smart Study Planner để xem gợi ý lịch học.")
+                        // Thêm âm thanh báo động mặc định của Windows
+                        .AddAudio(new Uri("ms-winsoundevent:Notification.Default"))
+                        .Show(); // Lệnh hiển thị
+
+                    _daThongBao = true; // Đánh dấu là đã báo để không bị spam
+                }
+                else if (tatCaTask.Count > 0)
+                {
+                    // Nếu không có gì khẩn cấp, báo một câu nhẹ nhàng
+                    new ToastContentBuilder()
+                        .AddText("✅ Mọi thứ đang trong tầm kiểm soát!")
+                        .AddText($"Bạn có {tatCaTask.Count} bài tập, nhưng chưa có gì quá hạn.")
+                        .Show();
+
+                    _daThongBao = true;
+                }
+            }
         }
 
         [RelayCommand]
