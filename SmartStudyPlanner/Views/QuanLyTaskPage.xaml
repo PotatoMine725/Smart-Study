@@ -4,9 +4,10 @@
       Title="Quản Lý Bài Tập / Deadline">
 
     <StackPanel Margin="20">
-        <Button Content="⬅ Quay lại Môn Học" HorizontalAlignment="Left" Background="Transparent" BorderBrush="Transparent" Foreground="#3498DB" FontWeight="Bold" Cursor="Hand" Click="BtnQuayLai_Click" Margin="0,0,0,10"/>
+        <Button Content="⬅ Quay lại Môn Học" HorizontalAlignment="Left" Background="Transparent" BorderBrush="Transparent" Foreground="#3498DB" FontWeight="Bold" Cursor="Hand" Margin="0,0,0,10"
+                Command="{Binding QuayLaiCommand}"/>
 
-        <TextBlock x:Name="txtTieuDe" Text="QUẢN LÝ DEADLINE - MÔN TÊN MÔN" FontWeight="Bold" FontSize="18" Foreground="#8E44AD" HorizontalAlignment="Center" Margin="0,0,0,20" />
+        <TextBlock Text="{Binding TieuDe}" FontWeight="Bold" FontSize="18" Foreground="#8E44AD" HorizontalAlignment="Center" Margin="0,0,0,20" />
 
         <Grid Margin="0,0,0,20">
             <Grid.ColumnDefinitions>
@@ -22,14 +23,17 @@
             </Grid.RowDefinitions>
 
             <TextBlock Text="Tên bài tập:" Grid.Row="0" Grid.Column="0" Margin="0,0,10,10" VerticalAlignment="Center" Foreground="Gray"/>
-            <TextBox x:Name="txtTenTask" Grid.Row="0" Grid.Column="1" Height="30" Margin="0,0,20,10" Padding="5" VerticalContentAlignment="Center"/>
+            <TextBox Grid.Row="0" Grid.Column="1" Height="30" Margin="0,0,20,10" Padding="5" VerticalContentAlignment="Center"
+                     Text="{Binding TenTask, UpdateSourceTrigger=PropertyChanged}"/>
 
             <TextBlock Text="Hạn chót:" Grid.Row="0" Grid.Column="2" Margin="0,0,10,10" VerticalAlignment="Center" Foreground="Gray"/>
-            <DatePicker x:Name="dpHanChot" Grid.Row="0" Grid.Column="3" Height="30" Margin="0,0,0,10" VerticalContentAlignment="Center"/>
+            <DatePicker Grid.Row="0" Grid.Column="3" Height="30" Margin="0,0,0,10" VerticalContentAlignment="Center"
+                        SelectedDate="{Binding HanChot}"/>
 
             <TextBlock Text="Loại sự kiện:" Grid.Row="1" Grid.Column="0" Margin="0,0,10,10" VerticalAlignment="Center" Foreground="Gray"/>
-            <ComboBox x:Name="cmbLoaiTask" Grid.Row="1" Grid.Column="1" Height="30" Margin="0,0,20,10" VerticalContentAlignment="Center">
-                <ComboBoxItem Content="Bài Tập Về Nhà" IsSelected="True"/>
+            <ComboBox Grid.Row="1" Grid.Column="1" Height="30" Margin="0,0,20,10" VerticalContentAlignment="Center"
+                      SelectedIndex="{Binding LoaiTaskIndex}">
+                <ComboBoxItem Content="Bài Tập Về Nhà"/>
                 <ComboBoxItem Content="Kiểm Tra Thường Xuyên"/>
                 <ComboBoxItem Content="Thi Giữa Kỳ"/>
                 <ComboBoxItem Content="Đồ Án Cuối Kỳ"/>
@@ -37,13 +41,17 @@
             </ComboBox>
 
             <TextBlock Text="Độ khó (1-5):" Grid.Row="1" Grid.Column="2" Margin="0,0,10,10" VerticalAlignment="Center" Foreground="Gray"/>
-            <TextBox x:Name="txtDoKho" Grid.Row="1" Grid.Column="3" Height="30" Margin="0,0,0,10" Padding="5" VerticalContentAlignment="Center"/>
+            <TextBox Grid.Row="1" Grid.Column="3" Height="30" Margin="0,0,0,10" Padding="5" VerticalContentAlignment="Center"
+                     Text="{Binding DoKho, UpdateSourceTrigger=PropertyChanged}"/>
         </Grid>
 
-        <Button x:Name="btnThemTask" Content="Thêm Deadline" Height="35" Width="200" FontWeight="Bold" 
-                Background="#9B59B6" Foreground="White" Cursor="Hand" Click="BtnThemTask_Click" Margin="0,0,0,20" />
+        <Button Height="35" Width="200" FontWeight="Bold" Foreground="White" Cursor="Hand" Margin="0,0,0,20" 
+                Content="{Binding TextNutThem}"
+                Background="{Binding MauNutThem}"
+                Command="{Binding ThemTaskCommand}" />
 
-        <DataGrid x:Name="dgDanhSachTask" Height="220" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
+        <DataGrid x:Name="dgDanhSachTask" Height="220" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
+                  ItemsSource="{Binding MonHocHienTai.DanhSachTask}">
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">
                     <Style.Triggers>
@@ -76,9 +84,17 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <Button Content="Xong" Background="#2ECC71" Foreground="White" Padding="10,2" Margin="0,0,5,0" Cursor="Hand" Click="BtnHoanThanh_Click" />
-                                <Button Content="Sửa" Background="#F1C40F" Foreground="White" Padding="10,2" Margin="0,0,5,0" Cursor="Hand" Click="BtnSuaTask_Click" />
-                                <Button Content="Xóa" Background="#E74C3C" Foreground="White" Padding="10,2" Cursor="Hand" Click="BtnXoaTask_Click" />
+                                <Button Content="Xong" Background="#2ECC71" Foreground="White" Padding="10,2" Margin="0,0,5,0" Cursor="Hand" 
+                                        Command="{Binding DataContext.HoanThanhTaskCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                        CommandParameter="{Binding}" />
+
+                                <Button Content="Sửa" Background="#F1C40F" Foreground="White" Padding="10,2" Margin="0,0,5,0" Cursor="Hand" 
+                                        Command="{Binding DataContext.SuaTaskCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                        CommandParameter="{Binding}" />
+
+                                <Button Content="Xóa" Background="#E74C3C" Foreground="White" Padding="10,2" Cursor="Hand" 
+                                        Command="{Binding DataContext.XoaTaskCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                        CommandParameter="{Binding}" />
                             </StackPanel>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>

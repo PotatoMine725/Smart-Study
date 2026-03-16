@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace SmartStudyPlanner
+namespace SmartStudyPlanner.Models
 {
     // Class này chỉ dùng để hiển thị dữ liệu lên màn hình Dashboard
     public class TaskDashboardItem
