@@ -1,4 +1,6 @@
-﻿using System;
+﻿using SmartStudyPlanner.Data;
+using SmartStudyPlanner.Models;
+using System;
 using System.Windows;
 
 namespace SmartStudyPlanner

@@ -4,20 +4,22 @@
       Title="Dashboard" Loaded="Page_Loaded">
 
     <StackPanel Margin="20">
-        <TextBlock x:Name="txtTieuDe" Text="TỔNG QUAN HỌC KỲ" FontWeight="Bold" FontSize="22" Foreground="#2C3E50" HorizontalAlignment="Center" Margin="0,0,0,10" />
-        <TextBlock x:Name="txtThongKe" Text="Bạn đang có X môn học và Y bài tập cần hoàn thành." FontSize="14" Foreground="Gray" HorizontalAlignment="Center" Margin="0,0,0,20" />
+        <TextBlock Text="{Binding TieuDe}" FontWeight="Bold" FontSize="22" Foreground="#2C3E50" HorizontalAlignment="Center" Margin="0,0,0,10" />
+        <TextBlock Text="{Binding ThongKe}" FontSize="14" Foreground="Gray" HorizontalAlignment="Center" Margin="0,0,0,20" />
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
-            <Button x:Name="btnQuanLyMonHoc" Content="📚 Quản lý Môn Học &amp; Bài Tập" Height="40" Width="250" FontWeight="Bold" 
-                    Background="#3498DB" Foreground="White" Cursor="Hand" Click="BtnQuanLyMonHoc_Click" Margin="0,0,10,0"/>
+            <Button Content="📚 Quản lý Môn Học &amp; Bài Tập" Height="40" Width="250" FontWeight="Bold" 
+                    Background="#3498DB" Foreground="White" Cursor="Hand" Margin="0,0,10,0"
+                    Command="{Binding MoQuanLyMonHocCommand}"/>
 
-            <Button x:Name="btnLuuDuLieu" Content="💾 Lưu Tiến Trình" Height="40" Width="150" FontWeight="Bold" 
-                    Background="#F39C12" Foreground="White" Cursor="Hand" Click="BtnLuuDuLieu_Click" />
+            <Button Content="💾 Lưu Tiến Trình" Height="40" Width="150" FontWeight="Bold" 
+                    Background="#F39C12" Foreground="White" Cursor="Hand" 
+                    Command="{Binding LuuDuLieuCommand}" />
         </StackPanel>
 
         <TextBlock Text="🔥 TOP 5 DEADLINE KHẨN CẤP NHẤT" FontWeight="Bold" FontSize="16" Foreground="#E74C3C" Margin="0,0,0,10" />
 
-        <DataGrid x:Name="dgTop5Task" Height="250" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
+        <DataGrid Height="250" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" ItemsSource="{Binding Top5Task}">
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">
                     <Style.Triggers>
@@ -45,7 +47,9 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <Button Content="Đi tới ➔" Background="#3498DB" Foreground="White" 
-                                    Padding="10,2" Cursor="Hand" Click="BtnDiToiTask_Click" />
+                                    Padding="10,2" Cursor="Hand" 
+                                    Command="{Binding DataContext.DiToiTaskCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                    CommandParameter="{Binding}" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>

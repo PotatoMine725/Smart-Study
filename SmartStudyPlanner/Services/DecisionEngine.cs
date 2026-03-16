@@ -1,6 +1,7 @@
-﻿using System;
+﻿using SmartStudyPlanner.Models;
+using System;
 
-namespace SmartStudyPlanner
+namespace SmartStudyPlanner.Services
 {
     public static class DecisionEngine
     {
