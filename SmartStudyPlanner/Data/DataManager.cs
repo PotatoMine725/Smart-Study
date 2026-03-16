@@ -1,41 +1,53 @@
-﻿using SmartStudyPlanner.Models;
-using System.IO;
-using System.Text.Json;
+﻿using System.Linq;
+using Microsoft.EntityFrameworkCore;
+using SmartStudyPlanner.Models;
 
 namespace SmartStudyPlanner.Data
 {
     public static class DataManager
     {
-        // Đường dẫn tới file lưu trữ (nằm ngay trong thư mục chạy của app)
-        private static readonly string filePath = "dulieu_hocky.json";
-
-        // HÀM 1: LƯU DỮ LIỆU
         public static void LuuHocKy(HocKy hocKy)
         {
-            // Tùy chọn này giúp file Json sinh ra được thụt lề đẹp mắt dễ đọc
-            var options = new JsonSerializerOptions { WriteIndented = true };
+            if (hocKy == null) return;
 
-            // Đóng gói Object thành chuỗi Json
-            string jsonString = JsonSerializer.Serialize(hocKy, options);
+            using (var db = new AppDbContext())
+            {
+                // 1. Tìm xem Học kỳ này đã có trong Database chưa (Nhớ phải lôi cả Môn và Task lên)
+                var hocKyCu = db.HocKys
+                    .Include(h => h.DanhSachMonHoc)
+                    .ThenInclude(m => m.DanhSachTask)
+                    .FirstOrDefault(h => h.MaHocKy == hocKy.MaHocKy);
 
-            // Ghi ra file
-            File.WriteAllText(filePath, jsonString);
+                if (hocKyCu == null)
+                {
+                    // 2A. Nếu chưa có (Tạo mới ở màn hình Setup) -> Insert thẳng vào DB
+                    db.HocKys.Add(hocKy);
+                }
+                else
+                {
+                    // 2B. Nếu đã có -> XÓA SẠCH CÁI CŨ ĐI
+                    db.HocKys.Remove(hocKyCu);
+                    db.SaveChanges(); // Chốt lệnh xóa để CSDL dọn dẹp chỗ trống
+
+                    // ĐẮP NGUYÊN CÁI MỚI VÀO
+                    db.HocKys.Add(hocKy);
+                }
+
+                // 3. Chốt lưu xuống file .db
+                db.SaveChanges();
+            }
         }
 
-        // HÀM 2: ĐỌC DỮ LIỆU
         public static HocKy DocHocKy()
         {
-            // Nếu chưa từng lưu file nào thì trả về null
-            if (!File.Exists(filePath))
+            using (var db = new AppDbContext())
             {
-                return null;
+                // Truy vấn lôi toàn bộ cây dữ liệu lên
+                return db.HocKys
+                         .Include(hk => hk.DanhSachMonHoc)
+                            .ThenInclude(mon => mon.DanhSachTask)
+                         .FirstOrDefault();
             }
-
-            // Đọc chuỗi Json từ file
-            string jsonString = File.ReadAllText(filePath);
-
-            // Giải nén Json thành Object
-            return JsonSerializer.Deserialize<HocKy>(jsonString);
         }
     }
 }

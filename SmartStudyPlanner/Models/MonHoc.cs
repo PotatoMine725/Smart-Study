@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.ComponentModel.DataAnnotations;
 
 namespace SmartStudyPlanner.Models
 {
     public class MonHoc
     {
         // KHÓA CHÍNH
-        public Guid MaMonHoc { get; set; }
+        [Key] public Guid MaMonHoc { get; set; }
 
         // KHÓA NGOẠI (Móc vào HocKy)
         public Guid MaHocKy { get; set; }

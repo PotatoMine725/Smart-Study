@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.ComponentModel.DataAnnotations;
 
 namespace SmartStudyPlanner.Models
 {
     public class HocKy
     {
         // KHÓA CHÍNH
-        public Guid MaHocKy { get; set; }
+        [Key] public Guid MaHocKy { get; set; }
 
         public string Ten { get; set; }
         public DateTime NgayBatDau { get; set; }
