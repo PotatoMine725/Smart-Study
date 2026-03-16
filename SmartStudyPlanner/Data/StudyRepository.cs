@@ -25,11 +25,22 @@ namespace SmartStudyPlanner.Data
 
             using (var db = new AppDbContext())
             {
-                // SỨC MẠNH THẬT SỰ CỦA EF CORE:
-                // Lệnh Update() thông minh này sẽ tự động duyệt qua toàn bộ Học Kỳ, Môn, Task.
-                // Cái nào mới -> tự phát hiện và INSERT. Cái nào cũ -> tự UPDATE.
-                // Ta KHÔNG CẦN phải Xóa-rồi-thêm như DataManager cũ nữa!
-                db.HocKys.Update(hocKy);
+                // 1. Kiểm tra xem Học kỳ này đã tồn tại trong CSDL chưa
+                // (Dùng AsNoTracking() để DB chỉ nhìn lướt qua mà không "nhớ" nó, giúp tránh lỗi Tracking)
+                var tonTai = await db.HocKys
+                                     .AsNoTracking()
+                                     .AnyAsync(h => h.MaHocKy == hocKy.MaHocKy);
+
+                if (tonTai)
+                {
+                    // Đã có trong DB -> Tiến hành ghi đè (Update)
+                    db.HocKys.Update(hocKy);
+                }
+                else
+                {
+                    // Chưa có trong DB -> Thêm mới hoàn toàn (Insert)
+                    db.HocKys.Add(hocKy);
+                }
 
                 await db.SaveChangesAsync();
             }
