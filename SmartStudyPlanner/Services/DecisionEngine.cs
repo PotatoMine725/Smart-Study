@@ -3,7 +3,6 @@ using SmartStudyPlanner.Models;
 
 namespace SmartStudyPlanner.Services
 {
-    // CẢI TIẾN 1: Tách các hệ số ra thành Object Cấu hình (Externalise Config)
     public class WeightConfig
     {
         public double TimeWeight { get; set; } = 0.40;
@@ -13,48 +12,62 @@ namespace SmartStudyPlanner.Services
         public int MaxCredits { get; set; } = 4;
         public int MaxDifficulty { get; set; } = 5;
         public int HorizonDays { get; set; } = 60;
+
+        // BẢO MẬT 1: Kiểm tra tổng trọng số có bằng 1.0 (100%) hay không
+        // Dùng sai số 0.001 vì phép cộng số thập phân (double) trong C# có thể bị lệch một chút
+        public bool IsValid()
+        {
+            return Math.Abs(TimeWeight + TaskTypeWeight + CreditWeight + DifficultyWeight - 1.0) < 0.001;
+        }
     }
 
     public static class DecisionEngine
     {
         public static WeightConfig Config { get; set; } = new WeightConfig();
 
+        // BẢO MẬT 2: Hàm lấy hệ số được chuyển về đây (Tuân thủ Single Responsibility Principle)
+        public static double LayHeSoQuanTrong(LoaiCongViec loaiTask)
+        {
+            switch (loaiTask)
+            {
+                case LoaiCongViec.ThiCuoiKy: return 1.0;
+                case LoaiCongViec.DoAnCuoiKy: return 0.8;
+                case LoaiCongViec.ThiGiuaKy: return 0.6;
+                case LoaiCongViec.KiemTraThuongXuyen: return 0.3;
+                case LoaiCongViec.BaiTapVeNha: return 0.1;
+                default: return 0.1;
+            }
+        }
+
         public static double CalculatePriority(StudyTask task, MonHoc monHoc)
         {
-            // CẢI TIẾN 2: Thêm Guards chống lỗi Null (Null validation)
             if (task == null || monHoc == null) return 0.0;
+
+            // BẢO MẬT 3: Nếu config bị ai đó (hoặc người dùng) chỉnh sửa sai tổng số, 
+            // tự động fallback (quay về) cấu hình mặc định an toàn để app không bị tính sai điểm.
+            if (!Config.IsValid())
+            {
+                Config = new WeightConfig();
+            }
 
             double soNgayConLai = (task.HanChot.Date - DateTime.Now.Date).TotalDays;
 
-            // ==========================================
-            // TẦNG 1: DICTATORSHIP MODULE 
-            // ==========================================
             if (soNgayConLai < -3) return 0.0;
             if (soNgayConLai < 0) return 100.0;
-
-            // CẢI TIẾN 3: Sửa lỗi Critical (Floating-point equality)
             if (soNgayConLai < 1) return 95.0;
 
-            // ==========================================
-            // TẦNG 2: VETO MODULE 
-            // ==========================================
             if (task.TrangThai == "Hoàn thành") return 0.0;
             if (soNgayConLai > Config.HorizonDays) return 1.0;
 
-            // ==========================================
-            // TẦNG 3: DEMOCRACY MODULE 
-            // ==========================================
-
-            // CẢI TIẾN 4: Sửa lỗi High (Formula gap). Trải đều trên 60 ngày.
             double diemThoiGian = Math.Max(0, 100.0 * (1.0 - soNgayConLai / Config.HorizonDays));
 
-            double diemLoaiTask = task.LayHeSoQuanTrong() * 100;
+            // CẬP NHẬT GỌI HÀM MỚI Ở ĐÂY
+            double diemLoaiTask = LayHeSoQuanTrong(task.LoaiTask) * 100;
 
             int tinChiHopLe = Math.Max(1, monHoc.SoTinChi);
             double diemTinChi = (tinChiHopLe / (double)Config.MaxCredits) * 100;
             if (diemTinChi > 100) diemTinChi = 100;
 
-            // CẢI TIẾN 5: Clamp giới hạn trần cho độ khó (Difficulty ceiling clamp)
             int doKhoHopLe = Math.Min(Config.MaxDifficulty, Math.Max(1, task.DoKho));
             double diemDoKho = (doKhoHopLe / (double)Config.MaxDifficulty) * 100;
 
@@ -66,20 +79,14 @@ namespace SmartStudyPlanner.Services
             return Math.Round(finalPriority, 2);
         }
 
-        // ==========================================
-        // SMART SCHEDULING: GỢI Ý THỜI GIAN HỌC
-        // ==========================================
         public static string SuggestStudyTime(StudyTask task)
         {
             if (task.TrangThai == "Hoàn thành" || task.DiemUuTien <= 0) return "0 phút";
 
-            // Điểm ưu tiên càng cao, độ khó càng cao thì cần càng nhiều thời gian
-            double baseMinutes = (task.DiemUuTien / 100.0) * 120.0; // Max 2 tiếng do áp lực deadline
-            double difficultyBonus = (task.DoKho / 5.0) * 60.0;     // Max 1 tiếng do độ khó môn học
+            double baseMinutes = (task.DiemUuTien / 100.0) * 120.0;
+            double difficultyBonus = (task.DoKho / 5.0) * 60.0;
 
             int totalMinutes = (int)(baseMinutes + difficultyBonus);
-
-            // Làm tròn theo block 15 phút (Chuẩn phương pháp học Pomodoro)
             totalMinutes = (int)Math.Round(totalMinutes / 15.0) * 15;
 
             if (totalMinutes <= 0) return "15 phút";
