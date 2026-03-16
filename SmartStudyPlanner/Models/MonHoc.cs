@@ -1,43 +1,32 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Text;
-
 
 namespace SmartStudyPlanner.Models
 {
     public class MonHoc
     {
+        // KHÓA CHÍNH
+        public Guid MaMonHoc { get; set; }
+
+        // KHÓA NGOẠI (Móc vào HocKy)
+        public Guid MaHocKy { get; set; }
+
         public string TenMonHoc { get; set; }
         public int SoTinChi { get; set; }
-        public Guid MaMonHoc { get; set; }
 
         public ObservableCollection<StudyTask> DanhSachTask { get; set; }
 
         public MonHoc()
         {
-            // SỬA LỖI Ở ĐÂY
+            MaMonHoc = Guid.NewGuid();
             DanhSachTask = new ObservableCollection<StudyTask>();
         }
 
         public MonHoc(string tenMonHoc, int soTinChi)
         {
-            TenMonHoc = tenMonHoc;
-            SoTinChi = soTinChi;
             MaMonHoc = Guid.NewGuid();
-
-            // SỬA LỖI Ở ĐÂY
-            DanhSachTask = new ObservableCollection<StudyTask>();
-        }
-
-        // Optional: construct with an explicit id (useful when loading from storage)
-        public MonHoc(string tenMonHoc, int soTinChi, Guid maMonHoc)
-        {
             TenMonHoc = tenMonHoc;
             SoTinChi = soTinChi;
-            MaMonHoc = maMonHoc;
-
-            // SỬA LỖI Ở ĐÂY
             DanhSachTask = new ObservableCollection<StudyTask>();
         }
     }
