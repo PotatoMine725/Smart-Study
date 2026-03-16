@@ -6,6 +6,7 @@ using SmartStudyPlanner.Services;
 using System;
 using System.Linq;
 using System.Windows;
+using System.Threading.Tasks;
 
 namespace SmartStudyPlanner.ViewModels
 {
@@ -14,6 +15,9 @@ namespace SmartStudyPlanner.ViewModels
         public HocKy HocKyHienTai { get; set; }
         public MonHoc MonHocHienTai { get; set; }
         private StudyTask _taskDangSua = null;
+
+        // Repository để tương tác với dữ liệu (nếu cần)
+        private readonly IStudyRepository _repository = new StudyRepository();
 
         // 1. DỮ LIỆU HIỂN THỊ (BINDING)
         [ObservableProperty]
@@ -76,27 +80,27 @@ namespace SmartStudyPlanner.ViewModels
         private void QuayLai() => OnGoBack?.Invoke();
 
         [RelayCommand]
-        private void XoaTask(StudyTask taskCanXoa)
+        private async Task XoaTask(StudyTask taskCanXoa)
         {
             if (taskCanXoa != null)
             {
                 if (MessageBox.Show($"Xóa bài tập '{taskCanXoa.TenTask}'?", "Xác nhận", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                 {
                     MonHocHienTai.DanhSachTask.Remove(taskCanXoa);
-                    DataManager.LuuHocKy(HocKyHienTai); // Auto-save
+                    await _repository.LuuHocKyAsync(HocKyHienTai); // Lưu DB không giật lag
                 }
             }
         }
 
         [RelayCommand]
-        private void HoanThanhTask(StudyTask taskDaXong)
+        private async Task HoanThanhTask(StudyTask taskDaXong)
         {
             if (taskDaXong != null && taskDaXong.TrangThai != "Hoàn thành")
             {
                 taskDaXong.TrangThai = "Hoàn thành";
                 TinhDiemVaSapXep();
                 OnRefreshGrid?.Invoke();
-                DataManager.LuuHocKy(HocKyHienTai); // Auto-save
+                await _repository.LuuHocKyAsync(HocKyHienTai); // Lưu DB không giật lag
             }
         }
 
@@ -118,7 +122,7 @@ namespace SmartStudyPlanner.ViewModels
         }
 
         [RelayCommand]
-        private void ThemTask()
+        private async Task ThemTask()
         {
             if (string.IsNullOrWhiteSpace(TenTask) || HanChot == null)
             {
@@ -150,7 +154,7 @@ namespace SmartStudyPlanner.ViewModels
 
             TinhDiemVaSapXep();
             OnRefreshGrid?.Invoke();
-            DataManager.LuuHocKy(HocKyHienTai); // Auto-save
+            await _repository.LuuHocKyAsync(HocKyHienTai);
 
             // Dọn dẹp form
             TenTask = string.Empty;

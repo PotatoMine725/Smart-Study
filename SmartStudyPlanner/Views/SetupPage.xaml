@@ -3,21 +3,46 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       Title="SetupPage">
 
-    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,100,0,0">
-        <TextBlock Text="THIẾT LẬP HỌC KỲ" FontWeight="Bold" FontSize="22" Foreground="#2C3E50" HorizontalAlignment="Center" Margin="0,0,0,20" />
+    <Grid>
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="400">
+            <TextBlock Text="🎓 SMART STUDY PLANNER" FontSize="24" FontWeight="Bold" Foreground="#2C3E50" HorizontalAlignment="Center" Margin="0,0,0,30"/>
 
-        <TextBlock Text="Tên Học kỳ (VD: Học kỳ 1 - 2026):" FontSize="14" Margin="0,0,0,5" Foreground="#555555" />
+            <StackPanel Margin="0,0,0,30">
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding CoHocKyCu}" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
 
-        <TextBox Width="300" Height="30" FontSize="14" Padding="5" Margin="0,0,0,15" VerticalContentAlignment="Center" 
-                 Text="{Binding TenHocKy, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBlock Text="Tiếp tục Học kỳ đã lưu:" FontWeight="Bold" Foreground="Gray" Margin="0,0,0,5"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-        <TextBlock Text="Ngày bắt đầu:" FontSize="14" Margin="0,0,0,5" Foreground="#555555" />
+                    <ComboBox Grid.Column="0" ItemsSource="{Binding DanhSachHocKyCu}" SelectedItem="{Binding HocKyDuocChon}" DisplayMemberPath="Ten" Height="35" Margin="0,0,10,0" VerticalContentAlignment="Center" FontSize="14"/>
 
-        <DatePicker Width="300" Height="30" Margin="0,0,0,20" VerticalContentAlignment="Center" 
-                    SelectedDate="{Binding NgayBatDau}"/>
+                    <Button Grid.Column="1" Content="Tiếp tục ➔" Command="{Binding TiepTucHocKyCuCommand}" Width="100" Height="35" Background="#27AE60" Foreground="White" FontWeight="Bold" Cursor="Hand"/>
+                </Grid>
 
-        <Button Content="Bắt đầu lên kế hoạch ➔" Height="40" Width="300" FontSize="14" FontWeight="Bold" 
-                Background="#3498DB" Foreground="White" Cursor="Hand" 
-                Command="{Binding TaoHocKyCommand}" />
-    </StackPanel>
+                <Separator Margin="0,20,0,0" Background="#BDC3C7"/>
+            </StackPanel>
+
+            <TextBlock Text="Hoặc Tạo Học kỳ mới:" FontWeight="Bold" Foreground="Gray" Margin="0,0,0,10"/>
+
+            <TextBlock Text="Tên Học Kỳ (vd: Học kỳ 1 - 2026):" Margin="0,0,0,5"/>
+            <TextBox Text="{Binding TenHocKy, UpdateSourceTrigger=PropertyChanged}" Height="35" Margin="0,0,0,15" Padding="5" VerticalContentAlignment="Center" FontSize="14"/>
+
+            <TextBlock Text="Ngày Bắt Đầu:" Margin="0,0,0,5"/>
+            <DatePicker SelectedDate="{Binding NgayBatDau}" Height="35" Margin="0,0,0,20" VerticalContentAlignment="Center" FontSize="14"/>
+
+            <Button Content="TẠO MỚI VÀ BẮT ĐẦU" Command="{Binding TaoHocKyCommand}" Height="40" Background="#2980B9" Foreground="White" FontWeight="Bold" FontSize="14" Cursor="Hand"/>
+        </StackPanel>
+    </Grid>
 </Page>

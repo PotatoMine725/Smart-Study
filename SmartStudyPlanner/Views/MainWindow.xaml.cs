@@ -1,6 +1,5 @@
 ﻿using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Models;
-using System;
 using System.Windows;
 
 namespace SmartStudyPlanner
@@ -10,30 +9,15 @@ namespace SmartStudyPlanner
         public MainWindow()
         {
             InitializeComponent();
+            // Gắn sự kiện Loaded để chạy hàm Async khi cửa sổ vừa mở lên
+            this.Loaded += MainWindow_Loaded;
+        }
 
-            HocKy hocKyCu = DataManager.DocHocKy();
-
-            if (hocKyCu != null)
-            {
-                MessageBoxResult result = MessageBox.Show(
-                    $"Tìm thấy dữ liệu của '{hocKyCu.Ten}'. Bạn có muốn tiếp tục quản lý học kỳ này không?",
-                    "Phát hiện dữ liệu cũ", MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-                if (result == MessageBoxResult.Yes)
-                {
-                    // ĐỔI KÊNH SANG DASHBOARD
-                    MainFrame.Navigate(new DashboardPage(hocKyCu));
-                }
-                else
-                {
-                    // ĐỔI KÊNH SANG SETUP
-                    MainFrame.Navigate(new SetupPage());
-                }
-            }
-            else
-            {
-                MainFrame.Navigate(new SetupPage());
-            }
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            // Luôn luôn mở SetupPage đầu tiên. 
+            // SetupPage sẽ lo việc hiển thị danh sách học kỳ cũ hoặc tạo mới.
+            MainFrame.Navigate(new SetupPage());
         }
     }
 }
