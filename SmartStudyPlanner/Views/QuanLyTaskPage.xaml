@@ -9,6 +9,24 @@
 
         <TextBlock Text="{Binding TieuDe}" FontWeight="Bold" FontSize="18" Foreground="#8E44AD" HorizontalAlignment="Center" Margin="0,0,0,20" />
 
+        <Border Background="#ECF0F1" CornerRadius="8" Padding="15" Margin="0,0,0,20">
+            <StackPanel>
+                <TextBlock Text="⚡ Nhập liệu Siêu tốc (Smart Add):" FontWeight="Bold" Foreground="#8E44AD" Margin="0,0,0,5"/>
+                <TextBlock Text="Dán tin nhắn của lớp trưởng vào đây. VD: 'T6 tuần sau nộp btl căng lắm'" FontSize="12" Foreground="Gray" Margin="0,0,0,10" TextWrapping="Wrap"/>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0" Text="{Binding VanBanNhapNhanh, UpdateSourceTrigger=PropertyChanged}" Height="35" Padding="5" VerticalContentAlignment="Center" Margin="0,0,10,0"/>
+                    <Button Grid.Column="1" Content="Tự điền 🪄" Command="{Binding PhanTichNhapNhanhCommand}" Width="80" Background="#8E44AD" Foreground="White" FontWeight="Bold" Cursor="Hand"/>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <Separator Margin="0,0,0,20"/>
+
         <Grid Margin="0,0,0,20">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>

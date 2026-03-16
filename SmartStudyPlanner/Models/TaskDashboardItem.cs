@@ -12,5 +12,7 @@ namespace SmartStudyPlanner.Models
         public string MucDoCanhBao { get; set; }
 
         public string ThoiGianGoiY { get; set; }
+        public StudyTask TaskGoc { get; set; }
+        public MonHoc MonHocGoc { get; set; }
     }
 }

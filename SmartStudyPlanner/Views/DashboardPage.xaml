@@ -34,7 +34,7 @@
                 <lvc:CartesianChart Height="190" Series="{Binding BieuDoMonHoc}" XAxes="{Binding TrucXMonHoc}" />
             </StackPanel>
         </Grid>
-        
+
         <TextBlock Text="🔥 TOP 5 DEADLINE KHẨN CẤP NHẤT" FontWeight="Bold" FontSize="16" Foreground="#E74C3C" Margin="0,0,0,10" />
 
         <DataGrid Height="250" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" ItemsSource="{Binding Top5Task}">
@@ -62,13 +62,20 @@
                 <DataGridTextColumn Header="Mức Độ" Binding="{Binding MucDoCanhBao}" Width="100" />
                 <DataGridTextColumn Header="Gợi ý học hôm nay" Binding="{Binding ThoiGianGoiY}" Width="140" FontWeight="Bold" Foreground="#16A085"/>
 
-                <DataGridTemplateColumn Header="Thao tác" Width="100">
+                <DataGridTemplateColumn Header="Thao tác" Width="200">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <Button Content="Đi tới ➔" Background="#3498DB" Foreground="White" 
-                                    Padding="10,2" Cursor="Hand" 
-                                    Command="{Binding DataContext.DiToiTaskCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
-                                    CommandParameter="{Binding}" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="🍅 HỌC NGAY" 
+                                        Command="{Binding DataContext.MoFocusModeCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                        CommandParameter="{Binding}" 
+                                        Background="#E74C3C" Foreground="White" FontWeight="Bold" Cursor="Hand" Padding="10,2" Margin="0,0,5,0"/>
+
+                                <Button Content="Đi tới ➔" Background="#3498DB" Foreground="White" 
+                                        Padding="10,2" Cursor="Hand" 
+                                        Command="{Binding DataContext.DiToiTaskCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                        CommandParameter="{Binding}" />
+                            </StackPanel>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
