@@ -41,6 +41,9 @@ namespace SmartStudyPlanner.ViewModels
         [ObservableProperty]
         private string mauNutThem = "#9B59B6"; // Màu Tím
 
+        [ObservableProperty]
+        private string vanBanNhapNhanh; // Chuỗi người dùng copy/paste vào
+
         // 2. LOA THÔNG BÁO CHO VIEW
         public Action OnGoBack { get; set; }
         public Action OnRefreshGrid { get; set; }
@@ -161,6 +164,27 @@ namespace SmartStudyPlanner.ViewModels
             DoKho = string.Empty;
             HanChot = null;
             LoaiTaskIndex = 0;
+        }
+
+        [RelayCommand]
+        private void PhanTichNhapNhanh()
+        {
+            if (string.IsNullOrWhiteSpace(VanBanNhapNhanh)) return;
+
+            // Truyền câu nói lộn xộn vào cho SmartParser xử lý
+            var ketQua = SmartParser.Parse(VanBanNhapNhanh);
+
+            // Bơm kết quả vào lại giao diện để người dùng kiểm tra (Review)
+            TenTask = ketQua.TenTask;
+            HanChot = ketQua.HanChot;
+            LoaiTaskIndex = (int)ketQua.Loai;
+            DoKho = ketQua.DoKho.ToString();
+
+            // Nhấn mạnh nút Thêm để nhắc họ lưu
+            TextNutThem = "Lưu Deadline (Hãy kiểm tra lại)";
+            MauNutThem = "#E67E22"; // Màu cam nổi bật
+
+            VanBanNhapNhanh = string.Empty; // Xóa ô nhập nhanh
         }
     }
 }
