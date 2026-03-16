@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="SmartStudyPlanner.Tests/SmartStudyPlanner.Tests.csproj" Id="a35c68b7-0467-4627-9680-3ec126499cd9" />
   <Project Path="SmartStudyPlanner/SmartStudyPlanner.csproj" />
 </Solution>
