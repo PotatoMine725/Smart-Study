@@ -1,0 +1,23 @@
+﻿<Window x:Class="SmartStudyPlanner.Views.FocusWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Focus Mode" WindowState="Maximized" Topmost="True" WindowStyle="None" Background="#2C3E50">
+
+    <Grid>
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+
+            <TextBlock Text="{Binding TrangThaiText}" Foreground="{Binding MauTrangThai}" FontSize="36" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+
+            <TextBlock Text="{Binding TieuDeTask}" Foreground="White" FontSize="20" HorizontalAlignment="Center" Margin="0,0,0,40"/>
+
+            <TextBlock Text="{Binding ThoiGianHienThi}" Foreground="White" FontSize="120" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,50"/>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button Content="▶ Bắt Đầu" Command="{Binding BatDauCommand}" Width="120" Height="50" FontSize="18" FontWeight="Bold" Background="#27AE60" Foreground="White" Margin="0,0,20,0" Cursor="Hand"/>
+                <Button Content="⏸ Tạm Dừng" Command="{Binding TamDungCommand}" Width="120" Height="50" FontSize="18" FontWeight="Bold" Background="#F39C12" Foreground="White" Margin="0,0,20,0" Cursor="Hand"/>
+                <Button Content="✅ Đã Xong" Command="{Binding HoanThanhCommand}" Width="120" Height="50" FontSize="18" FontWeight="Bold" Background="#3498DB" Foreground="White" Cursor="Hand"/>
+            </StackPanel>
+
+        </StackPanel>
+    </Grid>
+</Window>

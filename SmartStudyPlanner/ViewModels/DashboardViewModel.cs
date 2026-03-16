@@ -98,7 +98,9 @@ namespace SmartStudyPlanner.ViewModels
                             DiemUuTien = task.DiemUuTien,
                             MucDoCanhBao = mucDo,
                             // Gợi ý thời gian học dựa trên thuật toán của DecisionEngine
-                            ThoiGianGoiY = DecisionEngine.SuggestStudyTime(task)
+                            ThoiGianGoiY = DecisionEngine.SuggestStudyTime(task),
+                            TaskGoc = task,
+                            MonHocGoc = mon
                         });
                     }
                 }
@@ -184,6 +186,20 @@ namespace SmartStudyPlanner.ViewModels
             {
                 MonHoc monHocCanTim = _hocKyHienTai.DanhSachMonHoc.FirstOrDefault(m => m.TenMonHoc == taskDuocChon.TenMonHoc);
                 if (monHocCanTim != null) OnNavigateToTask?.Invoke(_hocKyHienTai, monHocCanTim);
+            }
+        }
+
+        [RelayCommand]
+        private void MoFocusMode(TaskDashboardItem taskDuocChon)
+        {
+            if (taskDuocChon != null)
+            {
+                // Mở cửa sổ Focus Mode
+                var focusWin = new Views.FocusWindow(taskDuocChon);
+                focusWin.ShowDialog(); // ShowDialog để chặn tương tác với app ở dưới
+
+                // Sau khi cửa sổ Focus đóng lại, tải lại dữ liệu (nhỡ người dùng đã làm xong)
+                LoadDuLieuDashboard();
             }
         }
     }
