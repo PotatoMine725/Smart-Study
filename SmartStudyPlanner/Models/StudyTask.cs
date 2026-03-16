@@ -1,5 +1,5 @@
 ﻿using System;
-
+using System.ComponentModel.DataAnnotations;
 namespace SmartStudyPlanner.Models
 {
     public enum LoaiCongViec
@@ -14,7 +14,7 @@ namespace SmartStudyPlanner.Models
     public class StudyTask
     {
         // KHÓA CHÍNH
-        public Guid MaTask { get; set; }
+        [Key] public Guid MaTask { get; set; }
 
         // KHÓA NGOẠI (Móc vào MonHoc)
         public Guid MaMonHoc { get; set; }
