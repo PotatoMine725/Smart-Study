@@ -35,7 +35,9 @@ namespace SmartStudyPlanner.Tests
         public void CalculatePriority_TaskToiHanHomNay_TraVe95()
         {
             var monHoc = new MonHoc("Hóa", 2);
-            var task = new StudyTask("Hôm nay", DateTime.Now.AddHours(5), LoaiCongViec.BaiTapVeNha, 2);
+
+            // SỬA Ở ĐÂY: Dùng DateTime.Now thay vì AddHours(5) để đảm bảo mãi mãi nằm trong ngày hôm nay
+            var task = new StudyTask("Hôm nay", DateTime.Now, LoaiCongViec.BaiTapVeNha, 2);
 
             double score = DecisionEngine.CalculatePriority(task, monHoc);
             Assert.Equal(95.0, score);
