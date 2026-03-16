@@ -1,5 +1,11 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Toolkit.Uwp.Notifications;
+// THÊM 3 THƯ VIỆN NÀY CHO BIỂU ĐỒ
+using LiveChartsCore;
+using LiveChartsCore.SkiaSharpView;
+using LiveChartsCore.SkiaSharpView.Painting;
+using SkiaSharp;
 using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
@@ -14,18 +20,17 @@ namespace SmartStudyPlanner.ViewModels
     public partial class DashboardViewModel : ObservableObject
     {
         private HocKy _hocKyHienTai;
+        private static bool _daThongBao = false; // Biến static để nhớ là đã báo rồi
 
-        // 1. DỮ LIỆU HIỂN THỊ (Sẽ tự động sinh ra TieuDe, ThongKe, Top5Task)
-        [ObservableProperty]
-        private string tieuDe;
+        [ObservableProperty] private string tieuDe;
+        [ObservableProperty] private string thongKe;
+        [ObservableProperty] private ObservableCollection<TaskDashboardItem> top5Task;
 
-        [ObservableProperty]
-        private string thongKe;
+        // --- BIẾN MỚI CHO BIỂU ĐỒ ---
+        [ObservableProperty] private ISeries[] bieuDoTrangThai; // Biểu đồ tròn
+        [ObservableProperty] private ISeries[] bieuDoMonHoc;    // Biểu đồ cột
+        [ObservableProperty] private Axis[] trucXMonHoc;        // Tên các môn học ở đáy biểu đồ cột
 
-        [ObservableProperty]
-        private ObservableCollection<TaskDashboardItem> top5Task;
-
-        // 2. LOA THÔNG BÁO (Dùng để bảo View chuyển trang)
         public Action<HocKy> OnNavigateToMonHoc { get; set; }
         public Action<HocKy, MonHoc> OnNavigateToTask { get; set; }
 
@@ -36,7 +41,6 @@ namespace SmartStudyPlanner.ViewModels
             LoadDuLieuDashboard();
         }
 
-        // Hàm tính toán và cập nhật lại bảng xếp hạng
         public void LoadDuLieuDashboard()
         {
             TieuDe = $"TỔNG QUAN - {_hocKyHienTai.Ten.ToUpper()}";
@@ -44,16 +48,43 @@ namespace SmartStudyPlanner.ViewModels
             int tongSoMon = _hocKyHienTai.DanhSachMonHoc.Count;
             List<TaskDashboardItem> tatCaTask = new List<TaskDashboardItem>();
 
+            // Biến đếm cho biểu đồ tròn
+            int countKhanCap = 0, countChuY = 0, countAnToan = 0, countDaXong = 0;
+
+            // Biến mảng cho biểu đồ cột
+            List<string> tenCacMon = new List<string>();
+            List<int> soTaskCacMon = new List<int>();
+
             foreach (var mon in _hocKyHienTai.DanhSachMonHoc)
             {
+                tenCacMon.Add(mon.TenMonHoc);
+                int taskCuaMon = 0;
+
                 foreach (var task in mon.DanhSachTask)
                 {
+                    taskCuaMon++;
                     task.DiemUuTien = DecisionEngine.CalculatePriority(task, mon);
 
                     string mucDo = "An toàn";
-                    if (task.TrangThai == "Hoàn thành") mucDo = "Đã xong";
-                    else if (task.DiemUuTien >= 80) mucDo = "Khẩn cấp";
-                    else if (task.DiemUuTien >= 50) mucDo = "Chú ý";
+                    if (task.TrangThai == "Hoàn thành")
+                    {
+                        mucDo = "Đã xong";
+                        countDaXong++;
+                    }
+                    else if (task.DiemUuTien >= 80)
+                    {
+                        mucDo = "Khẩn cấp";
+                        countKhanCap++;
+                    }
+                    else if (task.DiemUuTien >= 50)
+                    {
+                        mucDo = "Chú ý";
+                        countChuY++;
+                    }
+                    else
+                    {
+                        countAnToan++;
+                    }
 
                     if (task.TrangThai != "Hoàn thành")
                     {
@@ -63,29 +94,79 @@ namespace SmartStudyPlanner.ViewModels
                             TenTask = task.TenTask,
                             HanChot = task.HanChot,
                             DiemUuTien = task.DiemUuTien,
-                            MucDoCanhBao = mucDo
+                            MucDoCanhBao = mucDo,
+                            // Gợi ý thời gian học dựa trên thuật toán của DecisionEngine
+                            ThoiGianGoiY = DecisionEngine.SuggestStudyTime(task)
                         });
                     }
                 }
+                soTaskCacMon.Add(taskCuaMon);
             }
 
             ThongKe = $"Bạn đang quản lý {tongSoMon} môn học và có {tatCaTask.Count} deadline chưa hoàn thành.";
-            var top5KhẩnCấp = tatCaTask.OrderByDescending(t => t.DiemUuTien).Take(5).ToList();
 
-            // Xóa rổ cũ và đắp dữ liệu mới vào
+            var top5KhẩnCấp = tatCaTask.OrderByDescending(t => t.DiemUuTien).Take(5).ToList();
             Top5Task.Clear();
-            foreach (var item in top5KhẩnCấp)
+            foreach (var item in top5KhẩnCấp) Top5Task.Add(item);
+
+            // --- VẼ BIỂU ĐỒ TRÒN (Tô màu chuẩn hệ thống) ---
+            BieuDoTrangThai = new ISeries[]
             {
-                Top5Task.Add(item);
+                new PieSeries<int> { Values = new int[] { countKhanCap }, Name = "Khẩn cấp", Fill = new SolidColorPaint(SKColors.Crimson) },
+                new PieSeries<int> { Values = new int[] { countChuY }, Name = "Chú ý", Fill = new SolidColorPaint(SKColors.Orange) },
+                new PieSeries<int> { Values = new int[] { countAnToan }, Name = "An toàn", Fill = new SolidColorPaint(SKColors.MediumSeaGreen) },
+                new PieSeries<int> { Values = new int[] { countDaXong }, Name = "Đã xong", Fill = new SolidColorPaint(SKColors.Gray) }
+            };
+
+            // --- VẼ BIỂU ĐỒ CỘT ---
+            BieuDoMonHoc = new ISeries[]
+            {
+                new ColumnSeries<int>
+                {
+                    Values = soTaskCacMon.ToArray(),
+                    Name = "Số bài tập",
+                    Fill = new SolidColorPaint(SKColors.CornflowerBlue)
+                }
+            };
+
+            TrucXMonHoc = new Axis[]
+            {
+                new Axis { Labels = tenCacMon.ToArray(), LabelsRotation = 15 } // Xoay chữ nhẹ cho khỏi đè nhau
+            };
+            // --- HỆ THỐNG WINDOWS TOAST NOTIFICATION ---
+            if (!_daThongBao)
+            {
+                // Đếm xem có bao nhiêu task Khẩn cấp
+                int soTaskKhanCap = top5KhẩnCấp.Count(t => t.MucDoCanhBao == "Khẩn cấp");
+
+                if (soTaskKhanCap > 0)
+                {
+                    // Lắp ráp và bắn thông báo ra Desktop
+                    new ToastContentBuilder()
+                        .AddText("🔥 CẢNH BÁO DEADLINE!")
+                        .AddText($"Bạn đang có {soTaskKhanCap} bài tập KHẨN CẤP cần xử lý ngay lập tức!")
+                        .AddText("Hãy kiểm tra Smart Study Planner để xem gợi ý lịch học.")
+                        // Thêm âm thanh báo động mặc định của Windows
+                        .AddAudio(new Uri("ms-winsoundevent:Notification.Default"))
+                        .Show(); // Lệnh hiển thị
+
+                    _daThongBao = true; // Đánh dấu là đã báo để không bị spam
+                }
+                else if (tatCaTask.Count > 0)
+                {
+                    // Nếu không có gì khẩn cấp, báo một câu nhẹ nhàng
+                    new ToastContentBuilder()
+                        .AddText("✅ Mọi thứ đang trong tầm kiểm soát!")
+                        .AddText($"Bạn có {tatCaTask.Count} bài tập, nhưng chưa có gì quá hạn.")
+                        .Show();
+
+                    _daThongBao = true;
+                }
             }
         }
 
-        // 3. CÁC NÚT BẤM (COMMANDS)
         [RelayCommand]
-        private void MoQuanLyMonHoc()
-        {
-            OnNavigateToMonHoc?.Invoke(_hocKyHienTai);
-        }
+        private void MoQuanLyMonHoc() => OnNavigateToMonHoc?.Invoke(_hocKyHienTai);
 
         [RelayCommand]
         private void LuuDuLieu()
@@ -94,21 +175,13 @@ namespace SmartStudyPlanner.ViewModels
             MessageBox.Show("Đã lưu tiến trình thành công!", "Save Game", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        // Ma thuật Deep Linking: Nút này sẽ nhận vào 1 Object là cái dòng bị bấm!
         [RelayCommand]
         private void DiToiTask(TaskDashboardItem taskDuocChon)
         {
             if (taskDuocChon != null)
             {
                 MonHoc monHocCanTim = _hocKyHienTai.DanhSachMonHoc.FirstOrDefault(m => m.TenMonHoc == taskDuocChon.TenMonHoc);
-                if (monHocCanTim != null)
-                {
-                    OnNavigateToTask?.Invoke(_hocKyHienTai, monHocCanTim);
-                }
-                else
-                {
-                    MessageBox.Show("Không tìm thấy môn học gốc. Dữ liệu có thể bị lỗi!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                if (monHocCanTim != null) OnNavigateToTask?.Invoke(_hocKyHienTai, monHocCanTim);
             }
         }
     }

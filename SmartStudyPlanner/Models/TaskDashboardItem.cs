@@ -10,5 +10,7 @@ namespace SmartStudyPlanner.Models
         public DateTime HanChot { get; set; }
         public double DiemUuTien { get; set; }
         public string MucDoCanhBao { get; set; }
+
+        public string ThoiGianGoiY { get; set; }
     }
 }
