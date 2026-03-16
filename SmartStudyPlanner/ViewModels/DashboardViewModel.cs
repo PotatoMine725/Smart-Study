@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
+using System.Threading.Tasks;
 
 namespace SmartStudyPlanner.ViewModels
 {
@@ -21,6 +22,7 @@ namespace SmartStudyPlanner.ViewModels
     {
         private HocKy _hocKyHienTai;
         private static bool _daThongBao = false; // Biến static để nhớ là đã báo rồi
+        private readonly IStudyRepository _repository = new StudyRepository();
 
         [ObservableProperty] private string tieuDe;
         [ObservableProperty] private string thongKe;
@@ -169,9 +171,9 @@ namespace SmartStudyPlanner.ViewModels
         private void MoQuanLyMonHoc() => OnNavigateToMonHoc?.Invoke(_hocKyHienTai);
 
         [RelayCommand]
-        private void LuuDuLieu()
+        private async Task LuuDuLieu() // Đổi từ void sang async Task
         {
-            DataManager.LuuHocKy(_hocKyHienTai);
+            await _repository.LuuHocKyAsync(_hocKyHienTai);
             MessageBox.Show("Đã lưu tiến trình thành công!", "Save Game", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 

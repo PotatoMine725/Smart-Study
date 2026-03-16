@@ -4,6 +4,7 @@ using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Models;
 using System;
 using System.Windows;
+using System.Threading.Tasks;
 
 namespace SmartStudyPlanner.ViewModels
 {
@@ -12,6 +13,9 @@ namespace SmartStudyPlanner.ViewModels
         // Biến lưu trữ gốc
         public HocKy HocKyHienTai { get; set; }
         private MonHoc _monDangSua = null;
+
+        // Repository để tương tác với dữ liệu (nếu cần)
+        private readonly IStudyRepository _repository = new StudyRepository();
 
         // 1. DỮ LIỆU HIỂN THỊ TRÊN UI
         [ObservableProperty]
@@ -71,20 +75,20 @@ namespace SmartStudyPlanner.ViewModels
         }
 
         [RelayCommand]
-        private void XoaMon(MonHoc monCanXoa)
+        private async Task XoaMon(MonHoc monCanXoa)
         {
             if (monCanXoa != null)
             {
                 if (MessageBox.Show($"Xóa môn '{monCanXoa.TenMonHoc}'?", "Xác nhận", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                 {
                     HocKyHienTai.DanhSachMonHoc.Remove(monCanXoa);
-                    DataManager.LuuHocKy(HocKyHienTai); // Auto-save
+                    await _repository.LuuHocKyAsync(HocKyHienTai); // Đã đổi sang Async
                 }
             }
         }
 
         [RelayCommand]
-        private void ThemMon()
+        private async Task ThemMon()
         {
             if (string.IsNullOrWhiteSpace(TenMon)) return;
             int tinChi = int.TryParse(SoTinChi, out int tc) ? tc : -1;
@@ -98,18 +102,15 @@ namespace SmartStudyPlanner.ViewModels
             {
                 _monDangSua.TenMonHoc = TenMon;
                 _monDangSua.SoTinChi = tinChi;
-
-                OnRefreshGrid?.Invoke(); // Hét View cập nhật lại bảng
+                OnRefreshGrid?.Invoke();
 
                 _monDangSua = null;
-                // Trả nút bấm về hình dạng cũ
                 TextNutThem = "Thêm Môn";
                 MauNutThem = "#2ECC71";
             }
 
-            DataManager.LuuHocKy(HocKyHienTai); // Auto-save
+            await _repository.LuuHocKyAsync(HocKyHienTai); // Đã đổi sang Async
 
-            // Dọn dẹp TextBox
             TenMon = string.Empty;
             SoTinChi = string.Empty;
         }

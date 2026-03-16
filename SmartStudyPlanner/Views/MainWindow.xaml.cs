@@ -1,6 +1,5 @@
 ﻿using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Models;
-using System;
 using System.Windows;
 
 namespace SmartStudyPlanner
@@ -10,8 +9,17 @@ namespace SmartStudyPlanner
         public MainWindow()
         {
             InitializeComponent();
+            // Gắn sự kiện Loaded để chạy hàm Async khi cửa sổ vừa mở lên
+            this.Loaded += MainWindow_Loaded;
+        }
 
-            HocKy hocKyCu = DataManager.DocHocKy();
+        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            // 1. Khởi tạo Repository
+            IStudyRepository repository = new StudyRepository();
+
+            // 2. Đọc dữ liệu bất đồng bộ (UI vẫn mượt mà trong lúc chờ đợi)
+            HocKy hocKyCu = await repository.DocHocKyAsync();
 
             if (hocKyCu != null)
             {
@@ -20,15 +28,9 @@ namespace SmartStudyPlanner
                     "Phát hiện dữ liệu cũ", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
                 if (result == MessageBoxResult.Yes)
-                {
-                    // ĐỔI KÊNH SANG DASHBOARD
                     MainFrame.Navigate(new DashboardPage(hocKyCu));
-                }
                 else
-                {
-                    // ĐỔI KÊNH SANG SETUP
                     MainFrame.Navigate(new SetupPage());
-                }
             }
             else
             {

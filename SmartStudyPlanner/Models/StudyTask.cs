@@ -40,19 +40,6 @@ namespace SmartStudyPlanner.Models
             LoaiTask = loaiTask;
             DoKho = doKho;
             TrangThai = "Chưa làm";
-        }
-
-        public double LayHeSoQuanTrong()
-        {
-            switch (LoaiTask)
-            {
-                case LoaiCongViec.ThiCuoiKy: return 1.0;
-                case LoaiCongViec.DoAnCuoiKy: return 0.8;
-                case LoaiCongViec.ThiGiuaKy: return 0.6;
-                case LoaiCongViec.KiemTraThuongXuyen: return 0.3;
-                case LoaiCongViec.BaiTapVeNha: return 0.1;
-                default: return 0.1;
-            }
-        }
+        }     
     }
 }
