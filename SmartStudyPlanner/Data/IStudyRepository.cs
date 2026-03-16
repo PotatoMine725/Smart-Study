@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using SmartStudyPlanner.Models;
+using System.Collections.Generic;
 
 namespace SmartStudyPlanner.Data
 {
@@ -8,6 +9,7 @@ namespace SmartStudyPlanner.Data
     {
         // Chữ Task và Async đại diện cho việc chạy ngầm (Bất đồng bộ)
         Task<HocKy> DocHocKyAsync();
+        Task<List<HocKy>> LayDanhSachHocKyAsync();
         Task LuuHocKyAsync(HocKy hocKy);
     }
 }
