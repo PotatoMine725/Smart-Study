@@ -89,11 +89,16 @@ namespace SmartStudyPlanner.Services
             int totalMinutes = (int)(baseMinutes + difficultyBonus);
             totalMinutes = (int)Math.Round(totalMinutes / 15.0) * 15;
 
-            if (totalMinutes <= 0) return "15 phút";
-            if (totalMinutes < 60) return $"{totalMinutes} phút";
+            // DÒNG MỚI: Trừ đi thời gian người dùng đã cày cuốc
+            int remainingMinutes = totalMinutes - task.ThoiGianDaHoc;
 
-            int hours = totalMinutes / 60;
-            int mins = totalMinutes % 60;
+            // Nếu đã học đủ hoặc dư thời gian
+            if (remainingMinutes <= 0) return "Đã đạt mục tiêu 🎉";
+
+            if (remainingMinutes < 60) return $"{remainingMinutes} phút";
+
+            int hours = remainingMinutes / 60;
+            int mins = remainingMinutes % 60;
             return mins > 0 ? $"{hours}h {mins}p" : $"{hours}h";
         }
     }

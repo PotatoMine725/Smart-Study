@@ -18,6 +18,8 @@
 
             <TextBlock Text="{Binding ThoiGianHienThi}" Foreground="White" FontSize="120" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,50"/>
 
+            <TextBlock Text="{Binding TienDoText}" Foreground="#BDC3C7" FontSize="24" HorizontalAlignment="Center" Margin="0,0,0,40" FontStyle="Italic"/>
+
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                 <Button Content="▶ Bắt Đầu" Command="{Binding BatDauCommand}" Width="120" Height="50" FontSize="18" FontWeight="Bold" Background="#27AE60" Foreground="White" Margin="0,0,20,0" Cursor="Hand"/>
                 <Button Content="⏸ Tạm Dừng" Command="{Binding TamDungCommand}" Width="120" Height="50" FontSize="18" FontWeight="Bold" Background="#F39C12" Foreground="White" Margin="0,0,20,0" Cursor="Hand"/>

@@ -58,9 +58,10 @@
                 <DataGridTextColumn Header="Môn Học" Binding="{Binding TenMonHoc}" Width="150" FontWeight="Bold"/>
                 <DataGridTextColumn Header="Tên Bài Tập" Binding="{Binding TenTask}" Width="*" />
                 <DataGridTextColumn Header="Hạn Chót" Binding="{Binding HanChot, StringFormat=dd/MM/yyyy}" Width="100" />
+                <DataGridTextColumn Header="Đã học" Binding="{Binding TaskGoc.ThoiGianDaHoc, StringFormat={}{0} phút}" Width="80" Foreground="Gray" FontWeight="Bold"/>
                 <DataGridTextColumn Header="Điểm Ưu Tiên" Binding="{Binding DiemUuTien}" Width="100" />
                 <DataGridTextColumn Header="Mức Độ" Binding="{Binding MucDoCanhBao}" Width="100" />
-                <DataGridTextColumn Header="Gợi ý học hôm nay" Binding="{Binding ThoiGianGoiY}" Width="140" FontWeight="Bold" Foreground="#16A085"/>
+                <DataGridTextColumn Header="Cần học thêm" Binding="{Binding ThoiGianGoiY}" Width="140" FontWeight="Bold" Foreground="#16A085"/>
 
                 <DataGridTemplateColumn Header="Thao tác" Width="200">
                     <DataGridTemplateColumn.CellTemplate>

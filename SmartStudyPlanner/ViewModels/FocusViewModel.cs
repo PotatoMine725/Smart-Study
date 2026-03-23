@@ -21,6 +21,7 @@ namespace SmartStudyPlanner.ViewModels
         [ObservableProperty] private string thoiGianHienThi;
         [ObservableProperty] private string trangThaiText;
         [ObservableProperty] private string mauTrangThai;
+        [ObservableProperty] private string tienDoText;
 
         public Action OnKetThuc { get; set; }
 
@@ -50,7 +51,14 @@ namespace SmartStudyPlanner.ViewModels
             _thoiGianConLai--;
 
             // NẾU ĐANG LÀ CHẾ ĐỘ HỌC THÌ CỘNG DỒN THỜI GIAN ĐÃ NGỒI
-            if (_dangHoc) _tongGiayDaHoc++;
+            if (_dangHoc)
+            {
+                _tongGiayDaHoc++;
+
+                // HIỂN THỊ TIẾN ĐỘ THỰC TẾ
+                int tongPhutHienTai = TaskHienTai.TaskGoc.ThoiGianDaHoc + (_tongGiayDaHoc / 60);
+                TienDoText = $"Tiến độ: Đã học {tongPhutHienTai} phút";
+            }
 
             CậpNhậtGiaoDiệnThờiGian();
 
