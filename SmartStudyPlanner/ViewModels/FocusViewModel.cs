@@ -30,20 +30,20 @@ namespace SmartStudyPlanner.ViewModels
             TaskHienTai = task;
             TieuDeTask = $"Đang Focus: {task.TenTask} ({task.TenMonHoc})";
 
-            ThiếtLậpPomodoro(true);
+            ThietLapPomodoro(true);
 
             _timer = new DispatcherTimer();
             _timer.Interval = TimeSpan.FromSeconds(1);
             _timer.Tick += Timer_Tick;
         }
 
-        private void ThiếtLậpPomodoro(bool laHoc)
+        private void ThietLapPomodoro(bool laHoc)
         {
             _dangHoc = laHoc;
             _thoiGianConLai = laHoc ? 25 * 60 : 5 * 60;
             TrangThaiText = laHoc ? "THỜI GIAN TẬP TRUNG" : "GIẢI LAO";
             MauTrangThai = laHoc ? "#E74C3C" : "#2ECC71";
-            CậpNhậtGiaoDiệnThờiGian();
+            CapNhatGiaoDienThoiGian();
         }
 
         private void Timer_Tick(object sender, EventArgs e)
@@ -60,18 +60,18 @@ namespace SmartStudyPlanner.ViewModels
                 TienDoText = $"Tiến độ: Đã học {tongPhutHienTai} phút";
             }
 
-            CậpNhậtGiaoDiệnThờiGian();
+            CapNhatGiaoDienThoiGian();
 
             if (_thoiGianConLai <= 0)
             {
                 _timer.Stop();
                 System.Media.SystemSounds.Exclamation.Play();
-                ThiếtLậpPomodoro(!_dangHoc);
+                ThietLapPomodoro(!_dangHoc);
                 _timer.Start();
             }
         }
 
-        private void CậpNhậtGiaoDiệnThờiGian()
+        private void CapNhatGiaoDienThoiGian()
         {
             int phut = _thoiGianConLai / 60;
             int giay = _thoiGianConLai % 60;

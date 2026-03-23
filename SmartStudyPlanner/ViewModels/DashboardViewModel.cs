@@ -97,7 +97,6 @@ namespace SmartStudyPlanner.ViewModels
                             HanChot = task.HanChot,
                             DiemUuTien = task.DiemUuTien,
                             MucDoCanhBao = mucDo,
-                            // Gợi ý thời gian học dựa trên thuật toán của DecisionEngine
                             ThoiGianGoiY = DecisionEngine.SuggestStudyTime(task),
                             TaskGoc = task,
                             MonHocGoc = mon
@@ -109,9 +108,10 @@ namespace SmartStudyPlanner.ViewModels
 
             ThongKe = $"Bạn đang quản lý {tongSoMon} môn học và có {tatCaTask.Count} deadline chưa hoàn thành.";
 
-            var top5KhẩnCấp = tatCaTask.OrderByDescending(t => t.DiemUuTien).Take(5).ToList();
+            // ĐÃ SỬA THÀNH KHÔNG DẤU Ở ĐÂY
+            var top5KhanCap = tatCaTask.OrderByDescending(t => t.DiemUuTien).Take(5).ToList();
             Top5Task.Clear();
-            foreach (var item in top5KhẩnCấp) Top5Task.Add(item);
+            foreach (var item in top5KhanCap) Top5Task.Add(item);
 
             // --- VẼ BIỂU ĐỒ TRÒN (Tô màu chuẩn hệ thống) ---
             BieuDoTrangThai = new ISeries[]
@@ -137,11 +137,12 @@ namespace SmartStudyPlanner.ViewModels
             {
                 new Axis { Labels = tenCacMon.ToArray(), LabelsRotation = 15 } // Xoay chữ nhẹ cho khỏi đè nhau
             };
+
             // --- HỆ THỐNG WINDOWS TOAST NOTIFICATION ---
             if (!_daThongBao)
             {
-                // Đếm xem có bao nhiêu task Khẩn cấp
-                int soTaskKhanCap = top5KhẩnCấp.Count(t => t.MucDoCanhBao == "Khẩn cấp");
+                // ĐÃ SỬA TÊN BIẾN Ở ĐÂY
+                int soTaskKhanCap = top5KhanCap.Count(t => t.MucDoCanhBao == "Khẩn cấp");
 
                 if (soTaskKhanCap > 0)
                 {
@@ -150,15 +151,13 @@ namespace SmartStudyPlanner.ViewModels
                         .AddText("🔥 CẢNH BÁO DEADLINE!")
                         .AddText($"Bạn đang có {soTaskKhanCap} bài tập KHẨN CẤP cần xử lý ngay lập tức!")
                         .AddText("Hãy kiểm tra Smart Study Planner để xem gợi ý lịch học.")
-                        // Thêm âm thanh báo động mặc định của Windows
                         .AddAudio(new Uri("ms-winsoundevent:Notification.Default"))
-                        .Show(); // Lệnh hiển thị
+                        .Show();
 
-                    _daThongBao = true; // Đánh dấu là đã báo để không bị spam
+                    _daThongBao = true;
                 }
                 else if (tatCaTask.Count > 0)
                 {
-                    // Nếu không có gì khẩn cấp, báo một câu nhẹ nhàng
                     new ToastContentBuilder()
                         .AddText("✅ Mọi thứ đang trong tầm kiểm soát!")
                         .AddText($"Bạn có {tatCaTask.Count} bài tập, nhưng chưa có gì quá hạn.")
