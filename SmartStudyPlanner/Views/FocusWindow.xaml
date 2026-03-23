@@ -4,6 +4,12 @@
         Title="Focus Mode" WindowState="Maximized" Topmost="True" WindowStyle="None" Background="#2C3E50">
 
     <Grid>
+
+        <Button Content="✖ Thoát khẩn cấp" Command="{Binding ThoatKhanCapCommand}" 
+                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="20" 
+                Background="Transparent" Foreground="Gray" FontSize="16" FontWeight="Bold" 
+                BorderBrush="Transparent" Cursor="Hand"/>
+
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
 
             <TextBlock Text="{Binding TrangThaiText}" Foreground="{Binding MauTrangThai}" FontSize="36" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,20"/>

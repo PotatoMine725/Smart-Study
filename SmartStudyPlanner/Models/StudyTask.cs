@@ -27,6 +27,8 @@ namespace SmartStudyPlanner.Models
         public string MucDoCanhBao { get; set; }
         public int DoKho { get; set; }
 
+        public int ThoiGianDaHoc { get; set; } = 0;
+
         public StudyTask()
         {
             MaTask = Guid.NewGuid();

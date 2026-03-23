@@ -190,15 +190,17 @@ namespace SmartStudyPlanner.ViewModels
         }
 
         [RelayCommand]
-        private void MoFocusMode(TaskDashboardItem taskDuocChon)
+        private async Task MoFocusMode(TaskDashboardItem taskDuocChon)
         {
             if (taskDuocChon != null)
             {
-                // Mở cửa sổ Focus Mode
                 var focusWin = new Views.FocusWindow(taskDuocChon);
-                focusWin.ShowDialog(); // ShowDialog để chặn tương tác với app ở dưới
+                focusWin.ShowDialog(); // App sẽ dừng ở dòng này chờ đến khi cửa sổ đóng
 
-                // Sau khi cửa sổ Focus đóng lại, tải lại dữ liệu (nhỡ người dùng đã làm xong)
+                // KHI CỬA SỔ ĐÓNG, TỰ ĐỘNG LƯU DATABASE NGAY LẬP TỨC
+                await _repository.LuuHocKyAsync(_hocKyHienTai);
+
+                // Tải lại bảng xếp hạng
                 LoadDuLieuDashboard();
             }
         }
