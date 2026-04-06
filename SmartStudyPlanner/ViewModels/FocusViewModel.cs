@@ -9,22 +9,19 @@ namespace SmartStudyPlanner.ViewModels
     public partial class FocusViewModel : ObservableObject
     {
         private DispatcherTimer _timer;
-        private int _thoiGianConLai; // Tính bằng giây
-        private bool _dangHoc = true; // true = 25p học, false = 5p nghỉ
+        private int _thoiGianConLai;
+        private bool _dangHoc = true;
+
+        // BIẾN MỚI: Đếm tổng số giây THỰC TẾ đã ngồi học
+        private int _tongGiayDaHoc = 0;
 
         public TaskDashboardItem TaskHienTai { get; set; }
 
-        [ObservableProperty]
-        private string tieuDeTask;
-
-        [ObservableProperty]
-        private string thoiGianHienThi;
-
-        [ObservableProperty]
-        private string trangThaiText;
-
-        [ObservableProperty]
-        private string mauTrangThai;
+        [ObservableProperty] private string tieuDeTask;
+        [ObservableProperty] private string thoiGianHienThi;
+        [ObservableProperty] private string trangThaiText;
+        [ObservableProperty] private string mauTrangThai;
+        [ObservableProperty] private string tienDoText;
 
         public Action OnKetThuc { get; set; }
 
@@ -33,54 +30,86 @@ namespace SmartStudyPlanner.ViewModels
             TaskHienTai = task;
             TieuDeTask = $"Đang Focus: {task.TenTask} ({task.TenMonHoc})";
 
-            ThiếtLậpPomodoro(true);
+            ThietLapPomodoro(true);
 
             _timer = new DispatcherTimer();
             _timer.Interval = TimeSpan.FromSeconds(1);
             _timer.Tick += Timer_Tick;
         }
 
-        private void ThiếtLậpPomodoro(bool laHoc)
+        private void ThietLapPomodoro(bool laHoc)
         {
             _dangHoc = laHoc;
-            _thoiGianConLai = laHoc ? 25 * 60 : 5 * 60; // 25p học hoặc 5p nghỉ
+            _thoiGianConLai = laHoc ? 25 * 60 : 5 * 60;
             TrangThaiText = laHoc ? "THỜI GIAN TẬP TRUNG" : "GIẢI LAO";
-            MauTrangThai = laHoc ? "#E74C3C" : "#2ECC71"; // Đỏ lúc học, Xanh lúc nghỉ
-            CậpNhậtGiaoDiệnThờiGian();
+            MauTrangThai = laHoc ? "#E74C3C" : "#2ECC71";
+            CapNhatGiaoDienThoiGian();
         }
 
         private void Timer_Tick(object sender, EventArgs e)
         {
             _thoiGianConLai--;
-            CậpNhậtGiaoDiệnThờiGian();
+
+            // NẾU ĐANG LÀ CHẾ ĐỘ HỌC THÌ CỘNG DỒN THỜI GIAN ĐÃ NGỒI
+            if (_dangHoc)
+            {
+                _tongGiayDaHoc++;
+
+                // HIỂN THỊ TIẾN ĐỘ THỰC TẾ
+                int tongPhutHienTai = TaskHienTai.TaskGoc.ThoiGianDaHoc + (_tongGiayDaHoc / 60);
+                TienDoText = $"Tiến độ: Đã học {tongPhutHienTai} phút";
+            }
+
+            CapNhatGiaoDienThoiGian();
 
             if (_thoiGianConLai <= 0)
             {
                 _timer.Stop();
-                // Hết giờ -> Kêu bíp và Đổi trạng thái
                 System.Media.SystemSounds.Exclamation.Play();
-                ThiếtLậpPomodoro(!_dangHoc); // Đảo ngược trạng thái
+                ThietLapPomodoro(!_dangHoc);
                 _timer.Start();
             }
         }
 
-        private void CậpNhậtGiaoDiệnThờiGian()
+        private void CapNhatGiaoDienThoiGian()
         {
             int phut = _thoiGianConLai / 60;
             int giay = _thoiGianConLai % 60;
             ThoiGianHienThi = $"{phut:D2}:{giay:D2}";
         }
 
-        [RelayCommand]
-        private void BatDau() => _timer.Start();
+        // --- CÁC HÀM XỬ LÝ KẾT THÚC VÀ LƯU DỮ LIỆU ---
+        private void LuuThoiGianThucTe()
+        {
+            int phutDaHoc = _tongGiayDaHoc / 60;
+            if (phutDaHoc > 0)
+            {
+                // Cộng dồn vào task gốc (để nếu học nhiều lần thì vẫn cộng dồn)
+                TaskHienTai.TaskGoc.ThoiGianDaHoc += phutDaHoc;
+            }
+        }
 
-        [RelayCommand]
-        private void TamDung() => _timer.Stop();
+        [RelayCommand] private void BatDau() => _timer.Start();
+        [RelayCommand] private void TamDung() => _timer.Stop();
 
         [RelayCommand]
         private void HoanThanh()
         {
             _timer.Stop();
+            LuuThoiGianThucTe();
+
+            // Tự động đánh dấu Hoàn thành cho rảnh tay
+            TaskHienTai.TaskGoc.TrangThai = "Hoàn thành";
+
+            OnKetThuc?.Invoke();
+        }
+
+        // LỆNH MỚI: Chỉ lưu thời gian, không đánh dấu hoàn thành
+        [RelayCommand]
+        private void ThoatKhanCap()
+        {
+            _timer.Stop();
+            LuuThoiGianThucTe();
             OnKetThuc?.Invoke();
         }
     }
