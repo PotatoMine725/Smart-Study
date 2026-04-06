@@ -45,7 +45,6 @@ namespace SmartStudyPlanner.ViewModels
         [RelayCommand]
         private void GenerateSchedule()
         {
-            // BƯỚC 1: XÓA SẠCH DANH SÁCH HIỆN TẠI THAY VÌ TẠO DANH SÁCH MỚI
             Schedule.Clear();
 
             int capacityMinutes = (int)(CapacityHours * 60);
@@ -73,36 +72,62 @@ namespace SmartStudyPlanner.ViewModels
                 days.Add(new ScheduleDay { Date = d, DisplayName = name });
             }
 
+            // 4. THUẬT TOÁN LEAST LOAD + AUTO-SPLITTING (TỰ ĐỘNG CHIA NHỎ)
             foreach (var task in sortedTasks)
             {
                 int minutesNeeded = DecisionEngine.CalculateRawSuggestedMinutes(task) - task.ThoiGianDaHoc;
                 if (minutesNeeded <= 0) continue;
 
-                var targetDay = days.Where(d => d.TotalMinutes + minutesNeeded <= capacityMinutes)
-                                    .OrderBy(d => d.TotalMinutes)
-                                    .FirstOrDefault();
+                int remainingMinutes = minutesNeeded;
+                int part = 1; // Biến đếm xem bài tập bị chia làm mấy phần
 
-                if (targetDay == null)
+                while (remainingMinutes > 0)
                 {
-                    targetDay = days.OrderBy(d => d.TotalMinutes).First();
+                    // Tìm ngày rảnh nhất mà VẪN CÒN TRỐNG so với Capacity
+                    var targetDay = days.Where(d => d.TotalMinutes < capacityMinutes)
+                                        .OrderBy(d => d.TotalMinutes)
+                                        .FirstOrDefault();
+
+                    // Nếu 7 ngày tới đều đã bị full Capacity -> Bắt buộc nhét phần còn lại vào ngày rảnh nhất
+                    if (targetDay == null)
+                    {
+                        targetDay = days.OrderBy(d => d.TotalMinutes).First();
+
+                        targetDay.Tasks.Add(new ScheduledTask
+                        {
+                            TenTask = part > 1 ? $"{task.TenTask} (Phần {part})" : task.TenTask,
+                            TenMon = dictMonHoc[task].TenMonHoc,
+                            SoPhut = remainingMinutes
+                        });
+                        targetDay.TotalMinutes += remainingMinutes;
+                        break; // Nhét xong rồi thì thoát vòng lặp
+                    }
+
+                    // Tính xem ngày này còn chứa được bao nhiêu phút
+                    int spaceLeft = capacityMinutes - targetDay.TotalMinutes;
+
+                    // Chỉ cắt đúng phần vừa vặn với chỗ trống
+                    int chunk = Math.Min(remainingMinutes, spaceLeft);
+
+                    targetDay.Tasks.Add(new ScheduledTask
+                    {
+                        // Tự động nối thêm chữ (Phần 1, Phần 2...) nếu bài tập bị chặt ra
+                        TenTask = (minutesNeeded > spaceLeft || part > 1) ? $"{task.TenTask} (Phần {part})" : task.TenTask,
+                        TenMon = dictMonHoc[task].TenMonHoc,
+                        SoPhut = chunk
+                    });
+
+                    targetDay.TotalMinutes += chunk;
+                    remainingMinutes -= chunk;
+                    part++;
                 }
-
-                targetDay.Tasks.Add(new ScheduledTask
-                {
-                    TenTask = task.TenTask,
-                    TenMon = dictMonHoc[task].TenMonHoc,
-                    SoPhut = minutesNeeded
-                });
-                targetDay.TotalMinutes += minutesNeeded;
             }
 
-            // BƯỚC 2: BƠM DỮ LIỆU MỚI VÀO DANH SÁCH CŨ, UI SẼ LẬP TỨC CHỚP SÁNG VÀ VẼ LẠI
             foreach (var d in days.Where(d => d.Tasks.Count > 0))
             {
                 Schedule.Add(d);
             }
 
-            // BƯỚC 3: HIỆN THÔNG BÁO ĐỂ DEBUG (Để biết thanh Slider có truyền đúng số vào không)
             System.Windows.MessageBox.Show($"Thuật toán đã xếp lại lịch thành công với giới hạn:\n{CapacityHours} giờ/ngày!", "Workload Balancer");
         }
     }
