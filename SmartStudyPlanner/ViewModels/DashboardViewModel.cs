@@ -59,7 +59,12 @@ namespace SmartStudyPlanner.ViewModels
 
             foreach (var mon in _hocKyHienTai.DanhSachMonHoc)
             {
-                tenCacMon.Add(mon.TenMonHoc);
+                string tenMonNganGon = mon.TenMonHoc.Length > 15
+                                     ? mon.TenMonHoc.Substring(0, 12) + "..."
+                                     : mon.TenMonHoc;
+
+                tenCacMon.Add(tenMonNganGon); // Đưa tên đã cắt ngắn vào trục X của biểu đồ
+
                 int taskCuaMon = 0;
 
                 foreach (var task in mon.DanhSachTask)
