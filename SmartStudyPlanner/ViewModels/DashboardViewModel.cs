@@ -214,7 +214,7 @@ namespace SmartStudyPlanner.ViewModels
         private async Task LuuDuLieu() // Đổi từ void sang async Task
         {
             await _repository.LuuHocKyAsync(_hocKyHienTai);
-            MessageBox.Show("Đã lưu tiến trình thành công!", "Save Game", MessageBoxButton.OK, MessageBoxImage.Information);
+            System.Windows.MessageBox.Show("Đã lưu tiến trình thành công!", "Save Game", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         [RelayCommand]

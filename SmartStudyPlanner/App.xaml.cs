@@ -3,7 +3,7 @@ using SmartStudyPlanner.Data;
 
 namespace SmartStudyPlanner
 {
-    public partial class App : Application
+    public partial class App : System.Windows.Application
     {
         // Hàm này tự động chạy trước khi mở cửa sổ đầu tiên
         protected override void OnStartup(StartupEventArgs e)

@@ -79,7 +79,7 @@ namespace SmartStudyPlanner.ViewModels
         {
             if (monCanXoa != null)
             {
-                if (MessageBox.Show($"Xóa môn '{monCanXoa.TenMonHoc}'?", "Xác nhận", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                if (System.Windows.MessageBox.Show($"Xóa môn '{monCanXoa.TenMonHoc}'?", "Xác nhận", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                 {
                     HocKyHienTai.DanhSachMonHoc.Remove(monCanXoa);
                     await _repository.LuuHocKyAsync(HocKyHienTai); // Đã đổi sang Async
