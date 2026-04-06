@@ -32,7 +32,7 @@ namespace SmartStudyPlanner.ViewModels
         private HocKy _hocKy;
 
         // CAPACITY CỦA NGƯỜI DÙNG (Mặc định 3 tiếng)
-        [ObservableProperty] private int capacityHours = 3;
+        [ObservableProperty] private double capacityHours = 3;
 
         [ObservableProperty] private ObservableCollection<ScheduleDay> schedule = new ObservableCollection<ScheduleDay>();
 
@@ -45,10 +45,11 @@ namespace SmartStudyPlanner.ViewModels
         [RelayCommand]
         private void GenerateSchedule()
         {
+            // BƯỚC 1: XÓA SẠCH DANH SÁCH HIỆN TẠI THAY VÌ TẠO DANH SÁCH MỚI
             Schedule.Clear();
-            int capacityMinutes = CapacityHours * 60; // Đổi ra phút
 
-            // 1. Gom tất cả Task chưa làm
+            int capacityMinutes = (int)(CapacityHours * 60);
+
             var tatCaTask = new List<StudyTask>();
             var dictMonHoc = new Dictionary<StudyTask, MonHoc>();
 
@@ -62,10 +63,8 @@ namespace SmartStudyPlanner.ViewModels
                 }
             }
 
-            // 2. GREEDY + WEIGHTED: Ưu tiên Task điểm cao nhất (Khẩn cấp nhất) làm trước
             var sortedTasks = tatCaTask.OrderByDescending(t => t.DiemUuTien).ToList();
 
-            // 3. Chuẩn bị "Các bình chứa nước" cho 7 ngày tới
             var days = new List<ScheduleDay>();
             for (int i = 0; i < 7; i++)
             {
@@ -74,19 +73,15 @@ namespace SmartStudyPlanner.ViewModels
                 days.Add(new ScheduleDay { Date = d, DisplayName = name });
             }
 
-            // 4. THUẬT TOÁN LEAST LOAD ĐỂ NHÉT TASK VÀO NGÀY
             foreach (var task in sortedTasks)
             {
-                // Gọi hàm AI hiện tại để lấy số phút dự kiến
                 int minutesNeeded = DecisionEngine.CalculateRawSuggestedMinutes(task) - task.ThoiGianDaHoc;
                 if (minutesNeeded <= 0) continue;
 
-                // Tìm ngày rảnh nhất (Least Load) mà khi nhét task này vào vẫn CHƯA VƯỢT Capacity
                 var targetDay = days.Where(d => d.TotalMinutes + minutesNeeded <= capacityMinutes)
                                     .OrderBy(d => d.TotalMinutes)
                                     .FirstOrDefault();
 
-                // Nếu ngày nào cũng đầy tràn Capacity -> Ép nhét vào ngày trống nhất hiện hành (Overload)
                 if (targetDay == null)
                 {
                     targetDay = days.OrderBy(d => d.TotalMinutes).First();
@@ -101,11 +96,14 @@ namespace SmartStudyPlanner.ViewModels
                 targetDay.TotalMinutes += minutesNeeded;
             }
 
-            // Hiển thị ra UI những ngày có bài tập
+            // BƯỚC 2: BƠM DỮ LIỆU MỚI VÀO DANH SÁCH CŨ, UI SẼ LẬP TỨC CHỚP SÁNG VÀ VẼ LẠI
             foreach (var d in days.Where(d => d.Tasks.Count > 0))
             {
                 Schedule.Add(d);
             }
+
+            // BƯỚC 3: HIỆN THÔNG BÁO ĐỂ DEBUG (Để biết thanh Slider có truyền đúng số vào không)
+            System.Windows.MessageBox.Show($"Thuật toán đã xếp lại lịch thành công với giới hạn:\n{CapacityHours} giờ/ngày!", "Workload Balancer");
         }
     }
 }
