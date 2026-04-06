@@ -1,17 +1,18 @@
 ﻿<Page x:Class="SmartStudyPlanner.QuanLyMonHocPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      Title="Quản Lý Môn Học">
+      Title="Quản Lý Môn Học"
+      Background="{DynamicResource AppBackground}">
       
     <StackPanel Margin="20">
         <Button Content="⬅ Quay lại Dashboard" HorizontalAlignment="Left" Background="Transparent" BorderBrush="Transparent" Foreground="#3498DB" FontWeight="Bold" Cursor="Hand" Margin="0,0,0,10"
                 Command="{Binding QuayLaiCommand}"/>
 
-        <TextBlock Text="{Binding TieuDe}" FontWeight="Bold" FontSize="18" Foreground="#2C3E50" HorizontalAlignment="Center" Margin="0,0,0,20" />
+        <TextBlock Text="{Binding TieuDe}" FontWeight="Bold" FontSize="18" Foreground="{DynamicResource PrimaryText}" HorizontalAlignment="Center" Margin="0,0,0,20" />
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,5" Width="550">
-            <TextBlock Text="Tên môn học" Width="300" Margin="0,0,10,0" Foreground="Gray" />
-            <TextBlock Text="Tín chỉ" Width="80" Margin="0,0,10,0" Foreground="Gray" />
+            <TextBlock Text="Tên môn học" Width="300" Margin="0,0,10,0" Foreground="{DynamicResource SecondaryText}" />
+            <TextBlock Text="Tín chỉ" Width="80" Margin="0,0,10,0" Foreground="{DynamicResource SecondaryText}" />
         </StackPanel>
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20" Width="550">
@@ -27,8 +28,24 @@
                     Command="{Binding ThemMonCommand}" />
         </StackPanel>
 
-        <DataGrid x:Name="dgDanhSachMon" Width="650" Height="300" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" AlternatingRowBackground="#F9F9F9" HorizontalAlignment="Center"
-                  ItemsSource="{Binding HocKyHienTai.DanhSachMonHoc}">
+        <DataGrid x:Name="dgDanhSachMon" Width="650" Height="300" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" HorizontalAlignment="Center"
+                  ItemsSource="{Binding HocKyHienTai.DanhSachMonHoc}"
+                  Background="{DynamicResource CardBackground}" Foreground="{DynamicResource PrimaryText}">
+            <DataGrid.Resources>
+                <Style TargetType="DataGridColumnHeader">
+                    <Setter Property="Background" Value="{DynamicResource CardBackground}" />
+                    <Setter Property="Foreground" Value="{DynamicResource PrimaryText}" />
+                    <Setter Property="FontWeight" Value="Bold" />
+                    <Setter Property="Padding" Value="8,5" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
+                    <Setter Property="BorderThickness" Value="0,0,0,1" />
+                </Style>
+            </DataGrid.Resources>
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+                </Style>
+            </DataGrid.RowStyle>
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Tên Môn Học" Binding="{Binding TenMonHoc}" Width="*" />
                 <DataGridTextColumn Header="Số Tín Chỉ" Binding="{Binding SoTinChi}" Width="80" />
