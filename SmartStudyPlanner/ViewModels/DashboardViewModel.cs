@@ -36,6 +36,8 @@ namespace SmartStudyPlanner.ViewModels
         [ObservableProperty] private ISeries[] bieuDoThoiGian;
         [ObservableProperty] private Axis[] trucXThoiGian;
 
+        [ObservableProperty] private string chuoiStreak;
+
         public Action<HocKy> OnNavigateToMonHoc { get; set; }
         public Action<HocKy, MonHoc> OnNavigateToTask { get; set; }
 
@@ -177,6 +179,10 @@ namespace SmartStudyPlanner.ViewModels
             };
             TrucXThoiGian = new Axis[] { new Axis { Labels = tenCacMon.ToArray(), LabelsRotation = 15 } };
 
+            // --- CẬP NHẬT NGỌN LỬA STREAK ---
+            var dataStreak = Services.StreakManager.GetCurrentStreak();
+            ChuoiStreak = $"🔥 {dataStreak.StreakCount} Ngày";
+
             // --- HỆ THỐNG WINDOWS TOAST NOTIFICATION ---
             if (!_daThongBao)
             {
@@ -214,7 +220,7 @@ namespace SmartStudyPlanner.ViewModels
         private async Task LuuDuLieu() // Đổi từ void sang async Task
         {
             await _repository.LuuHocKyAsync(_hocKyHienTai);
-            MessageBox.Show("Đã lưu tiến trình thành công!", "Save Game", MessageBoxButton.OK, MessageBoxImage.Information);
+            System.Windows.MessageBox.Show("Đã lưu tiến trình thành công!", "Save Game", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         [RelayCommand]

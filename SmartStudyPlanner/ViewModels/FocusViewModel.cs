@@ -86,6 +86,8 @@ namespace SmartStudyPlanner.ViewModels
             {
                 // Cộng dồn vào task gốc (để nếu học nhiều lần thì vẫn cộng dồn)
                 TaskHienTai.TaskGoc.ThoiGianDaHoc += phutDaHoc;
+                // 🔥 KÍCH HOẠT STREAK
+                Services.StreakManager.UpdateStreak();
             }
         }
 

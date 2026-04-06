@@ -7,7 +7,13 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
 
         <StackPanel Margin="20">
-            <TextBlock Text="{Binding TieuDe}" FontWeight="Bold" FontSize="22" Foreground="#2C3E50" HorizontalAlignment="Center" Margin="0,0,0,10" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
+                <TextBlock Text="{Binding TieuDe}" FontWeight="Bold" FontSize="22" Foreground="#2C3E50" Margin="0,0,20,0" VerticalAlignment="Center" />
+
+                <Border Background="#FFF3E0" BorderBrush="#E67E22" BorderThickness="1" CornerRadius="12" Padding="15,4">
+                    <TextBlock Text="{Binding ChuoiStreak}" FontWeight="Bold" FontSize="16" Foreground="#E67E22" VerticalAlignment="Center" ToolTip="Chuỗi ngày duy trì học tập liên tục!" />
+                </Border>
+            </StackPanel>
             <TextBlock Text="{Binding ThongKe}" FontSize="14" Foreground="Gray" HorizontalAlignment="Center" Margin="0,0,0,20" />
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
