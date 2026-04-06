@@ -79,17 +79,25 @@ namespace SmartStudyPlanner.Services
             return Math.Round(finalPriority, 2);
         }
 
-        public static string SuggestStudyTime(StudyTask task)
+        // HÀM MỚI 1: Trả về con số phút thô (int) để vẽ biểu đồ
+        public static int CalculateRawSuggestedMinutes(StudyTask task)
         {
-            if (task.TrangThai == "Hoàn thành" || task.DiemUuTien <= 0) return "0 phút";
+            if (task.TrangThai == "Hoàn thành" || task.DiemUuTien <= 0) return 0;
 
             double baseMinutes = (task.DiemUuTien / 100.0) * 120.0;
             double difficultyBonus = (task.DoKho / 5.0) * 60.0;
 
             int totalMinutes = (int)(baseMinutes + difficultyBonus);
-            totalMinutes = (int)Math.Round(totalMinutes / 15.0) * 15;
+            return (int)Math.Round(totalMinutes / 15.0) * 15;
+        }
 
-            // DÒNG MỚI: Trừ đi thời gian người dùng đã cày cuốc
+        // HÀM MỚI 2: Dùng lại hàm trên để format ra chuỗi chữ cho DataGrid
+        public static string SuggestStudyTime(StudyTask task)
+        {
+            int totalMinutes = CalculateRawSuggestedMinutes(task);
+            if (totalMinutes == 0) return "0 phút";
+
+            // Trừ đi thời gian người dùng đã cày cuốc
             int remainingMinutes = totalMinutes - task.ThoiGianDaHoc;
 
             // Nếu đã học đủ hoặc dư thời gian

@@ -32,6 +32,9 @@ namespace SmartStudyPlanner.ViewModels
         [ObservableProperty] private ISeries[] bieuDoTrangThai; // Biểu đồ tròn
         [ObservableProperty] private ISeries[] bieuDoMonHoc;    // Biểu đồ cột
         [ObservableProperty] private Axis[] trucXMonHoc;        // Tên các môn học ở đáy biểu đồ cột
+        // --- BIẾN MỚI CHO BIỂU ĐỒ SO SÁNH THỜI GIAN ---
+        [ObservableProperty] private ISeries[] bieuDoThoiGian;
+        [ObservableProperty] private Axis[] trucXThoiGian;
 
         public Action<HocKy> OnNavigateToMonHoc { get; set; }
         public Action<HocKy, MonHoc> OnNavigateToTask { get; set; }
@@ -53,24 +56,34 @@ namespace SmartStudyPlanner.ViewModels
             // Biến đếm cho biểu đồ tròn
             int countKhanCap = 0, countChuY = 0, countAnToan = 0, countDaXong = 0;
 
-            // Biến mảng cho biểu đồ cột
+            // Biến mảng cho biểu đồ cột khối lượng bài tập
             List<string> tenCacMon = new List<string>();
             List<int> soTaskCacMon = new List<int>();
 
+            // Biến mảng cho biểu đồ so sánh thời gian (TÍNH NĂNG MỚI)
+            List<double> thoiGianKyVong = new List<double>();
+            List<double> thoiGianThucTe = new List<double>();
+
             foreach (var mon in _hocKyHienTai.DanhSachMonHoc)
             {
+                // 🔥 SỬA LỖI UX: Cắt ngắn tên môn học nếu dài hơn 15 ký tự
                 string tenMonNganGon = mon.TenMonHoc.Length > 15
                                      ? mon.TenMonHoc.Substring(0, 12) + "..."
                                      : mon.TenMonHoc;
-
                 tenCacMon.Add(tenMonNganGon); // Đưa tên đã cắt ngắn vào trục X của biểu đồ
 
                 int taskCuaMon = 0;
+                double tongKyVongMon = 0;
+                double tongThucTeMon = 0;
 
                 foreach (var task in mon.DanhSachTask)
                 {
                     taskCuaMon++;
                     task.DiemUuTien = DecisionEngine.CalculatePriority(task, mon);
+
+                    // 🔥 THU THẬP DỮ LIỆU THỜI GIAN CHO BIỂU ĐỒ MỚI
+                    tongKyVongMon += DecisionEngine.CalculateRawSuggestedMinutes(task);
+                    tongThucTeMon += task.ThoiGianDaHoc;
 
                     string mucDo = "An toàn";
                     if (task.TrangThai == "Hoàn thành")
@@ -108,12 +121,15 @@ namespace SmartStudyPlanner.ViewModels
                         });
                     }
                 }
+
                 soTaskCacMon.Add(taskCuaMon);
+                thoiGianKyVong.Add(tongKyVongMon);
+                thoiGianThucTe.Add(tongThucTeMon);
             }
 
             ThongKe = $"Bạn đang quản lý {tongSoMon} môn học và có {tatCaTask.Count} deadline chưa hoàn thành.";
 
-            // ĐÃ SỬA THÀNH KHÔNG DẤU Ở ĐÂY
+            // ĐÃ SỬA THÀNH KHÔNG DẤU
             var top5KhanCap = tatCaTask.OrderByDescending(t => t.DiemUuTien).Take(5).ToList();
             Top5Task.Clear();
             foreach (var item in top5KhanCap) Top5Task.Add(item);
@@ -127,7 +143,7 @@ namespace SmartStudyPlanner.ViewModels
                 new PieSeries<int> { Values = new int[] { countDaXong }, Name = "Đã xong", Fill = new SolidColorPaint(SKColors.Gray) }
             };
 
-            // --- VẼ BIỂU ĐỒ CỘT ---
+            // --- VẼ BIỂU ĐỒ CỘT (Khối lượng bài tập) ---
             BieuDoMonHoc = new ISeries[]
             {
                 new ColumnSeries<int>
@@ -143,10 +159,28 @@ namespace SmartStudyPlanner.ViewModels
                 new Axis { Labels = tenCacMon.ToArray(), LabelsRotation = 15 } // Xoay chữ nhẹ cho khỏi đè nhau
             };
 
+            // --- 🔥 VẼ BIỂU ĐỒ SO SÁNH THỜI GIAN (TÍNH NĂNG MỚI) ---
+            BieuDoThoiGian = new ISeries[]
+            {
+                new ColumnSeries<double>
+                {
+                    Values = thoiGianKyVong.ToArray(),
+                    Name = "Kỳ vọng (phút)",
+                    Fill = new SolidColorPaint(SKColors.CornflowerBlue)
+                },
+                new ColumnSeries<double>
+                {
+                    Values = thoiGianThucTe.ToArray(),
+                    Name = "Thực tế đã học (phút)",
+                    Fill = new SolidColorPaint(SKColors.MediumSeaGreen)
+                }
+            };
+            TrucXThoiGian = new Axis[] { new Axis { Labels = tenCacMon.ToArray(), LabelsRotation = 15 } };
+
             // --- HỆ THỐNG WINDOWS TOAST NOTIFICATION ---
             if (!_daThongBao)
             {
-                // ĐÃ SỬA TÊN BIẾN Ở ĐÂY
+                // ĐÃ SỬA TÊN BIẾN
                 int soTaskKhanCap = top5KhanCap.Count(t => t.MucDoCanhBao == "Khẩn cấp");
 
                 if (soTaskKhanCap > 0)

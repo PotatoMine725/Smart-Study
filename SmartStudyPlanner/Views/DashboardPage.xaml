@@ -83,5 +83,10 @@
 
             </DataGrid.Columns>
         </DataGrid>
+        <TextBlock Text="📈 TIẾN ĐỘ THỜI GIAN HỌC" FontWeight="Bold" FontSize="16" Foreground="#2980B9" Margin="0,20,0,10" />
+
+        <Border Background="White" CornerRadius="8" Padding="10" Margin="0,0,0,20" Height="250">
+            <lvc:CartesianChart Series="{Binding BieuDoThoiGian}" XAxes="{Binding TrucXThoiGian}" LegendPosition="Right" />
+        </Border>
     </StackPanel>
 </Page>
