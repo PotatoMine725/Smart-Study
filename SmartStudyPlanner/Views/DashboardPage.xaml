@@ -28,6 +28,10 @@
                 <Button Content="💾 Lưu Tiến Trình" Height="40" Width="150" FontWeight="Bold" 
                     Background="#F39C12" Foreground="White" Cursor="Hand" 
                     Command="{Binding LuuDuLieuCommand}" />
+
+                <Button Content="🌙 Giao Diện" Height="40" Width="120" FontWeight="Bold" 
+                    Background="#2C3E50" Foreground="White" Cursor="Hand" Margin="0,0,10,0"
+                    Command="{Binding ToggleThemeCommand}" />
             </StackPanel>
 
             <Grid Height="220" Margin="0,0,0,20">

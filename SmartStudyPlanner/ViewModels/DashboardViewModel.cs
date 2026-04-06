@@ -256,5 +256,11 @@ namespace SmartStudyPlanner.ViewModels
             win.Owner = System.Windows.Application.Current.MainWindow; // Làm mờ cửa sổ chính
             win.ShowDialog();
         }
+
+        [RelayCommand]
+        private void ToggleTheme()
+        {
+            Services.ThemeManager.ToggleTheme();
+        }
     }
 }
