@@ -248,5 +248,13 @@ namespace SmartStudyPlanner.ViewModels
                 LoadDuLieuDashboard();
             }
         }
+
+        [RelayCommand]
+        private void MoWorkloadBalancer()
+        {
+            var win = new Views.WorkloadBalancerWindow(_hocKyHienTai);
+            win.Owner = System.Windows.Application.Current.MainWindow; // Làm mờ cửa sổ chính
+            win.ShowDialog();
+        }
     }
 }
