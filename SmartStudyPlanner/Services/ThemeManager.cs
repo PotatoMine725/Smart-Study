@@ -10,13 +10,16 @@ namespace SmartStudyPlanner.Services
         public static void ToggleTheme()
         {
             IsDarkMode = !IsDarkMode;
-            string themeFile = IsDarkMode ? "Themes/DarkTheme.xaml" : "Themes/LightTheme.xaml";
 
-            // CHỈ ĐỊNH RÕ SYSTEM.WINDOWS.APPLICATION
+            // SỬ DỤNG ĐƯỜNG DẪN PACK URI TUYỆT ĐỐI
+            string themeFile = IsDarkMode
+                ? "pack://application:,,,/Themes/DarkTheme.xaml"
+                : "pack://application:,,,/Themes/LightTheme.xaml";
+
             System.Windows.Application.Current.Resources.MergedDictionaries.Clear();
 
-            // Nạp từ điển mới
-            var newDict = new ResourceDictionary() { Source = new Uri(themeFile, UriKind.Relative) };
+            // Đổi UriKind.Relative thành UriKind.Absolute
+            var newDict = new ResourceDictionary() { Source = new Uri(themeFile, UriKind.Absolute) };
             System.Windows.Application.Current.Resources.MergedDictionaries.Add(newDict);
         }
     }

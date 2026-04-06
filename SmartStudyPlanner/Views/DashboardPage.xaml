@@ -60,6 +60,16 @@
 
             <DataGrid Height="250" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" ItemsSource="{Binding Top5Task}"
                       Background="{DynamicResource CardBackground}" Foreground="{DynamicResource PrimaryText}">
+                <DataGrid.Resources>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="{DynamicResource CardBackground}" />
+                        <Setter Property="Foreground" Value="{DynamicResource PrimaryText}" />
+                        <Setter Property="FontWeight" Value="Bold" />
+                        <Setter Property="Padding" Value="8,5" />
+                        <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
+                        <Setter Property="BorderThickness" Value="0,0,0,1" />
+                    </Style>
+                </DataGrid.Resources>
                 <DataGrid.RowStyle>
                     <Style TargetType="DataGridRow">
                         <Setter Property="Foreground" Value="Black" />
