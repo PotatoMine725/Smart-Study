@@ -116,6 +116,28 @@
                 </DataGrid.Columns>
             </DataGrid>
 
+            <TextBlock Text="{Binding TieuDeLichHomNay}" FontWeight="Bold" FontSize="16" Foreground="#27AE60" Margin="0,20,0,10" />
+
+            <ItemsControl ItemsSource="{Binding LichHocHomNay}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="{DynamicResource CardBackground}" CornerRadius="5" Padding="10" Margin="0,0,0,5" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="{Binding TenTask}" FontWeight="Bold" Foreground="{DynamicResource PrimaryText}"/>
+                                    <TextBlock Text="{Binding TenMon}" FontSize="12" Foreground="{DynamicResource SecondaryText}"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="{Binding ThoiGianHienThi}" FontWeight="Bold" Foreground="#E67E22" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
             <TextBlock Text="📈 TIẾN ĐỘ THỜI GIAN HỌC" FontWeight="Bold" FontSize="16" Foreground="#2980B9" Margin="0,20,0,10" />
 
             <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="10" Margin="0,0,0,20" Height="250">
