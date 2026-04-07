@@ -37,6 +37,8 @@ namespace SmartStudyPlanner.ViewModels
         [ObservableProperty] private Axis[] trucXThoiGian;
 
         [ObservableProperty] private string chuoiStreak;
+        [ObservableProperty] private ObservableCollection<Services.ScheduledTask> lichHocHomNay = new ObservableCollection<Services.ScheduledTask>();
+        [ObservableProperty] private string tieuDeLichHomNay;
 
         public Action<HocKy> OnNavigateToMonHoc { get; set; }
         public Action<HocKy, MonHoc> OnNavigateToTask { get; set; }
@@ -183,6 +185,22 @@ namespace SmartStudyPlanner.ViewModels
             var dataStreak = Services.StreakManager.GetCurrentStreak();
             ChuoiStreak = $"🔥 {dataStreak.StreakCount} Ngày";
 
+            // --- KẾ HOẠCH HỌC TẬP HÔM NAY (TỪ BALANCER) ---
+            double currentCap = Services.WorkloadService.GetCapacity();
+            var fullSchedule = Services.WorkloadService.GenerateSchedule(_hocKyHienTai, currentCap);
+            var todaySchedule = fullSchedule.FirstOrDefault(); // Rút đúng cái ngày "Hôm nay" ra
+
+            LichHocHomNay.Clear();
+            if (todaySchedule != null && todaySchedule.Tasks.Count > 0)
+            {
+                foreach (var t in todaySchedule.Tasks) LichHocHomNay.Add(t);
+                TieuDeLichHomNay = $"🎯 KẾ HOẠCH HỌC TẬP HÔM NAY ({todaySchedule.TotalMinutes} phút / {currentCap * 60} phút)";
+            }
+            else
+            {
+                TieuDeLichHomNay = "🎯 KẾ HOẠCH HỌC TẬP HÔM NAY (Tuyệt vời, bạn không có deadline nào!)";
+            }
+
             // --- HỆ THỐNG WINDOWS TOAST NOTIFICATION ---
             if (!_daThongBao)
             {
@@ -247,6 +265,21 @@ namespace SmartStudyPlanner.ViewModels
                 // Tải lại bảng xếp hạng
                 LoadDuLieuDashboard();
             }
+        }
+
+        [RelayCommand]
+        private void MoWorkloadBalancer()
+        {
+            var win = new Views.WorkloadBalancerWindow(_hocKyHienTai);
+            win.Owner = System.Windows.Application.Current.MainWindow; // Làm mờ cửa sổ chính
+            win.ShowDialog();
+            LoadDuLieuDashboard();
+        }
+
+        [RelayCommand]
+        private void ToggleTheme()
+        {
+            Services.ThemeManager.ToggleTheme();
         }
     }
 }

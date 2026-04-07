@@ -13,7 +13,7 @@ namespace SmartStudyPlanner
     {
         private WinForms.NotifyIcon _notifyIcon;
         private DispatcherTimer _backgroundTimer;
-
+        private bool _thucSuMuonTat = false;
         public MainWindow()
         {
             InitializeComponent();
@@ -100,7 +100,10 @@ namespace SmartStudyPlanner
         // MA THUẬT NẰM Ở ĐÂY: Ghi đè sự kiện khi người dùng bấm nút [X] ở góc phải
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         {
-            // 1. Chặn lại, KHÔNG cho app tắt
+            // THÊM DÒNG NÀY: Nếu là tắt thật thì thả cửa cho đóng luôn, không chạy code bên dưới nữa
+            if (_thucSuMuonTat) return;
+
+            // 1. Chặn lại, KHÔNG cho app tắt (NẾU CHỈ BẤM NÚT X BÌNH THƯỜNG)
             e.Cancel = true;
 
             // 2. Giấu cửa sổ đi
@@ -122,6 +125,7 @@ namespace SmartStudyPlanner
 
         private void ThoatHoanToan()
         {
+            _thucSuMuonTat = true;
             // Nhớ dọn dẹp cái icon rác dưới khay hệ thống trước khi ngắt thở
             if (_notifyIcon != null)
             {

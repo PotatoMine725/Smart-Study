@@ -2,28 +2,37 @@
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
-      Title="Dashboard" Loaded="Page_Loaded">
-
+      Title="Dashboard" Loaded="Page_Loaded"
+      Background="{DynamicResource AppBackground}">
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
 
         <StackPanel Margin="20">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
-                <TextBlock Text="{Binding TieuDe}" FontWeight="Bold" FontSize="22" Foreground="#2C3E50" Margin="0,0,20,0" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding TieuDe}" FontWeight="Bold" FontSize="22" Foreground="{DynamicResource PrimaryText}" Margin="0,0,20,0" VerticalAlignment="Center" />
 
                 <Border Background="#FFF3E0" BorderBrush="#E67E22" BorderThickness="1" CornerRadius="12" Padding="15,4">
                     <TextBlock Text="{Binding ChuoiStreak}" FontWeight="Bold" FontSize="16" Foreground="#E67E22" VerticalAlignment="Center" ToolTip="Chuỗi ngày duy trì học tập liên tục!" />
                 </Border>
             </StackPanel>
-            <TextBlock Text="{Binding ThongKe}" FontSize="14" Foreground="Gray" HorizontalAlignment="Center" Margin="0,0,0,20" />
+
+            <TextBlock Text="{Binding ThongKe}" FontSize="14" Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" Margin="0,0,0,20" />
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
                 <Button Content="📚 Quản lý Môn Học &amp; Bài Tập" Height="40" Width="250" FontWeight="Bold" 
-                    Background="#3498DB" Foreground="White" Cursor="Hand" Margin="0,0,10,0"
-                    Command="{Binding MoQuanLyMonHocCommand}"/>
+                        Background="#3498DB" Foreground="White" Cursor="Hand" Margin="0,0,10,0"
+                        Command="{Binding MoQuanLyMonHocCommand}"/>
+
+                <Button Content="⚖️ Cân Bằng Tải" Height="40" Width="150" FontWeight="Bold" 
+                        Background="#8E44AD" Foreground="White" Cursor="Hand" Margin="0,0,10,0"
+                        Command="{Binding MoWorkloadBalancerCommand}" />
 
                 <Button Content="💾 Lưu Tiến Trình" Height="40" Width="150" FontWeight="Bold" 
-                    Background="#F39C12" Foreground="White" Cursor="Hand" 
-                    Command="{Binding LuuDuLieuCommand}" />
+                        Background="#F39C12" Foreground="White" Cursor="Hand" Margin="0,0,10,0"
+                        Command="{Binding LuuDuLieuCommand}" />
+
+                <Button Content="🌙 Giao Diện" Height="40" Width="120" FontWeight="Bold" 
+                        Background="#2C3E50" Foreground="White" Cursor="Hand" Margin="0,0,10,0"
+                        Command="{Binding ToggleThemeCommand}" />
             </StackPanel>
 
             <Grid Height="220" Margin="0,0,0,20">
@@ -33,21 +42,37 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                    <TextBlock Text="Tỉ lệ hoàn thành" FontWeight="Bold" Foreground="#7F8C8D" HorizontalAlignment="Center"/>
-                    <lvc:PieChart Height="190" Series="{Binding BieuDoTrangThai}" LegendPosition="Right" />
+                    <TextBlock Text="Tỉ lệ hoàn thành" FontWeight="Bold" Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center"/>
+                    <Border Background="#F0F3F4" CornerRadius="8" Padding="10">
+                        <lvc:PieChart Height="170" Series="{Binding BieuDoTrangThai}" LegendPosition="Right" />
+                    </Border>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                    <TextBlock Text="Khối lượng bài tập" FontWeight="Bold" Foreground="#7F8C8D" HorizontalAlignment="Center"/>
-                    <lvc:CartesianChart Height="190" Series="{Binding BieuDoMonHoc}" XAxes="{Binding TrucXMonHoc}" />
+                    <TextBlock Text="Khối lượng bài tập" FontWeight="Bold" Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center"/>
+                    <Border Background="#F0F3F4" CornerRadius="8" Padding="10">
+                        <lvc:CartesianChart Height="170" Series="{Binding BieuDoMonHoc}" XAxes="{Binding TrucXMonHoc}" />
+                    </Border>
                 </StackPanel>
             </Grid>
 
             <TextBlock Text="🔥 TOP 5 DEADLINE KHẨN CẤP NHẤT" FontWeight="Bold" FontSize="16" Foreground="#E74C3C" Margin="0,0,0,10" />
 
-            <DataGrid Height="250" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" ItemsSource="{Binding Top5Task}">
+            <DataGrid Height="250" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" ItemsSource="{Binding Top5Task}"
+                      Background="{DynamicResource CardBackground}" Foreground="{DynamicResource PrimaryText}">
+                <DataGrid.Resources>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="{DynamicResource CardBackground}" />
+                        <Setter Property="Foreground" Value="{DynamicResource PrimaryText}" />
+                        <Setter Property="FontWeight" Value="Bold" />
+                        <Setter Property="Padding" Value="8,5" />
+                        <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
+                        <Setter Property="BorderThickness" Value="0,0,0,1" />
+                    </Style>
+                </DataGrid.Resources>
                 <DataGrid.RowStyle>
                     <Style TargetType="DataGridRow">
+                        <Setter Property="Foreground" Value="Black" />
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding MucDoCanhBao}" Value="Khẩn cấp">
                                 <Setter Property="Background" Value="#FFCDD2" />
@@ -88,12 +113,34 @@
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-
                 </DataGrid.Columns>
             </DataGrid>
+
+            <TextBlock Text="{Binding TieuDeLichHomNay}" FontWeight="Bold" FontSize="16" Foreground="#27AE60" Margin="0,20,0,10" />
+
+            <ItemsControl ItemsSource="{Binding LichHocHomNay}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="{DynamicResource CardBackground}" CornerRadius="5" Padding="10" Margin="0,0,0,5" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="{Binding TenTask}" FontWeight="Bold" Foreground="{DynamicResource PrimaryText}"/>
+                                    <TextBlock Text="{Binding TenMon}" FontSize="12" Foreground="{DynamicResource SecondaryText}"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="{Binding ThoiGianHienThi}" FontWeight="Bold" Foreground="#E67E22" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
             <TextBlock Text="📈 TIẾN ĐỘ THỜI GIAN HỌC" FontWeight="Bold" FontSize="16" Foreground="#2980B9" Margin="0,20,0,10" />
 
-            <Border Background="White" CornerRadius="8" Padding="10" Margin="0,0,0,20" Height="250">
+            <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="10" Margin="0,0,0,20" Height="250">
                 <lvc:CartesianChart Series="{Binding BieuDoThoiGian}" XAxes="{Binding TrucXThoiGian}" LegendPosition="Right" />
             </Border>
         </StackPanel>
