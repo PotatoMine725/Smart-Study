@@ -56,7 +56,7 @@ namespace SmartStudyPlanner.ViewModels
         {
             if (string.IsNullOrWhiteSpace(TenHocKy) || NgayBatDau == null)
             {
-                MessageBox.Show("Vui lòng nhập đầy đủ tên học kỳ và ngày bắt đầu", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Windows.MessageBox.Show("Vui lòng nhập đầy đủ tên học kỳ và ngày bắt đầu", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 

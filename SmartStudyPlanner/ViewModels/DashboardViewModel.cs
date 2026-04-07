@@ -32,6 +32,13 @@ namespace SmartStudyPlanner.ViewModels
         [ObservableProperty] private ISeries[] bieuDoTrangThai; // Biểu đồ tròn
         [ObservableProperty] private ISeries[] bieuDoMonHoc;    // Biểu đồ cột
         [ObservableProperty] private Axis[] trucXMonHoc;        // Tên các môn học ở đáy biểu đồ cột
+        // --- BIẾN MỚI CHO BIỂU ĐỒ SO SÁNH THỜI GIAN ---
+        [ObservableProperty] private ISeries[] bieuDoThoiGian;
+        [ObservableProperty] private Axis[] trucXThoiGian;
+
+        [ObservableProperty] private string chuoiStreak;
+        [ObservableProperty] private ObservableCollection<Services.ScheduledTask> lichHocHomNay = new ObservableCollection<Services.ScheduledTask>();
+        [ObservableProperty] private string tieuDeLichHomNay;
 
         public Action<HocKy> OnNavigateToMonHoc { get; set; }
         public Action<HocKy, MonHoc> OnNavigateToTask { get; set; }
@@ -53,19 +60,34 @@ namespace SmartStudyPlanner.ViewModels
             // Biến đếm cho biểu đồ tròn
             int countKhanCap = 0, countChuY = 0, countAnToan = 0, countDaXong = 0;
 
-            // Biến mảng cho biểu đồ cột
+            // Biến mảng cho biểu đồ cột khối lượng bài tập
             List<string> tenCacMon = new List<string>();
             List<int> soTaskCacMon = new List<int>();
 
+            // Biến mảng cho biểu đồ so sánh thời gian (TÍNH NĂNG MỚI)
+            List<double> thoiGianKyVong = new List<double>();
+            List<double> thoiGianThucTe = new List<double>();
+
             foreach (var mon in _hocKyHienTai.DanhSachMonHoc)
             {
-                tenCacMon.Add(mon.TenMonHoc);
+                // 🔥 SỬA LỖI UX: Cắt ngắn tên môn học nếu dài hơn 15 ký tự
+                string tenMonNganGon = mon.TenMonHoc.Length > 15
+                                     ? mon.TenMonHoc.Substring(0, 12) + "..."
+                                     : mon.TenMonHoc;
+                tenCacMon.Add(tenMonNganGon); // Đưa tên đã cắt ngắn vào trục X của biểu đồ
+
                 int taskCuaMon = 0;
+                double tongKyVongMon = 0;
+                double tongThucTeMon = 0;
 
                 foreach (var task in mon.DanhSachTask)
                 {
                     taskCuaMon++;
                     task.DiemUuTien = DecisionEngine.CalculatePriority(task, mon);
+
+                    // 🔥 THU THẬP DỮ LIỆU THỜI GIAN CHO BIỂU ĐỒ MỚI
+                    tongKyVongMon += DecisionEngine.CalculateRawSuggestedMinutes(task);
+                    tongThucTeMon += task.ThoiGianDaHoc;
 
                     string mucDo = "An toàn";
                     if (task.TrangThai == "Hoàn thành")
@@ -97,21 +119,24 @@ namespace SmartStudyPlanner.ViewModels
                             HanChot = task.HanChot,
                             DiemUuTien = task.DiemUuTien,
                             MucDoCanhBao = mucDo,
-                            // Gợi ý thời gian học dựa trên thuật toán của DecisionEngine
                             ThoiGianGoiY = DecisionEngine.SuggestStudyTime(task),
                             TaskGoc = task,
                             MonHocGoc = mon
                         });
                     }
                 }
+
                 soTaskCacMon.Add(taskCuaMon);
+                thoiGianKyVong.Add(tongKyVongMon);
+                thoiGianThucTe.Add(tongThucTeMon);
             }
 
             ThongKe = $"Bạn đang quản lý {tongSoMon} môn học và có {tatCaTask.Count} deadline chưa hoàn thành.";
 
-            var top5KhẩnCấp = tatCaTask.OrderByDescending(t => t.DiemUuTien).Take(5).ToList();
+            // ĐÃ SỬA THÀNH KHÔNG DẤU
+            var top5KhanCap = tatCaTask.OrderByDescending(t => t.DiemUuTien).Take(5).ToList();
             Top5Task.Clear();
-            foreach (var item in top5KhẩnCấp) Top5Task.Add(item);
+            foreach (var item in top5KhanCap) Top5Task.Add(item);
 
             // --- VẼ BIỂU ĐỒ TRÒN (Tô màu chuẩn hệ thống) ---
             BieuDoTrangThai = new ISeries[]
@@ -122,7 +147,7 @@ namespace SmartStudyPlanner.ViewModels
                 new PieSeries<int> { Values = new int[] { countDaXong }, Name = "Đã xong", Fill = new SolidColorPaint(SKColors.Gray) }
             };
 
-            // --- VẼ BIỂU ĐỒ CỘT ---
+            // --- VẼ BIỂU ĐỒ CỘT (Khối lượng bài tập) ---
             BieuDoMonHoc = new ISeries[]
             {
                 new ColumnSeries<int>
@@ -137,11 +162,50 @@ namespace SmartStudyPlanner.ViewModels
             {
                 new Axis { Labels = tenCacMon.ToArray(), LabelsRotation = 15 } // Xoay chữ nhẹ cho khỏi đè nhau
             };
+
+            // --- 🔥 VẼ BIỂU ĐỒ SO SÁNH THỜI GIAN (TÍNH NĂNG MỚI) ---
+            BieuDoThoiGian = new ISeries[]
+            {
+                new ColumnSeries<double>
+                {
+                    Values = thoiGianKyVong.ToArray(),
+                    Name = "Kỳ vọng (phút)",
+                    Fill = new SolidColorPaint(SKColors.CornflowerBlue)
+                },
+                new ColumnSeries<double>
+                {
+                    Values = thoiGianThucTe.ToArray(),
+                    Name = "Thực tế đã học (phút)",
+                    Fill = new SolidColorPaint(SKColors.MediumSeaGreen)
+                }
+            };
+            TrucXThoiGian = new Axis[] { new Axis { Labels = tenCacMon.ToArray(), LabelsRotation = 15 } };
+
+            // --- CẬP NHẬT NGỌN LỬA STREAK ---
+            var dataStreak = Services.StreakManager.GetCurrentStreak();
+            ChuoiStreak = $"🔥 {dataStreak.StreakCount} Ngày";
+
+            // --- KẾ HOẠCH HỌC TẬP HÔM NAY (TỪ BALANCER) ---
+            double currentCap = Services.WorkloadService.GetCapacity();
+            var fullSchedule = Services.WorkloadService.GenerateSchedule(_hocKyHienTai, currentCap);
+            var todaySchedule = fullSchedule.FirstOrDefault(); // Rút đúng cái ngày "Hôm nay" ra
+
+            LichHocHomNay.Clear();
+            if (todaySchedule != null && todaySchedule.Tasks.Count > 0)
+            {
+                foreach (var t in todaySchedule.Tasks) LichHocHomNay.Add(t);
+                TieuDeLichHomNay = $"🎯 KẾ HOẠCH HỌC TẬP HÔM NAY ({todaySchedule.TotalMinutes} phút / {currentCap * 60} phút)";
+            }
+            else
+            {
+                TieuDeLichHomNay = "🎯 KẾ HOẠCH HỌC TẬP HÔM NAY (Tuyệt vời, bạn không có deadline nào!)";
+            }
+
             // --- HỆ THỐNG WINDOWS TOAST NOTIFICATION ---
             if (!_daThongBao)
             {
-                // Đếm xem có bao nhiêu task Khẩn cấp
-                int soTaskKhanCap = top5KhẩnCấp.Count(t => t.MucDoCanhBao == "Khẩn cấp");
+                // ĐÃ SỬA TÊN BIẾN
+                int soTaskKhanCap = top5KhanCap.Count(t => t.MucDoCanhBao == "Khẩn cấp");
 
                 if (soTaskKhanCap > 0)
                 {
@@ -150,15 +214,13 @@ namespace SmartStudyPlanner.ViewModels
                         .AddText("🔥 CẢNH BÁO DEADLINE!")
                         .AddText($"Bạn đang có {soTaskKhanCap} bài tập KHẨN CẤP cần xử lý ngay lập tức!")
                         .AddText("Hãy kiểm tra Smart Study Planner để xem gợi ý lịch học.")
-                        // Thêm âm thanh báo động mặc định của Windows
                         .AddAudio(new Uri("ms-winsoundevent:Notification.Default"))
-                        .Show(); // Lệnh hiển thị
+                        .Show();
 
-                    _daThongBao = true; // Đánh dấu là đã báo để không bị spam
+                    _daThongBao = true;
                 }
                 else if (tatCaTask.Count > 0)
                 {
-                    // Nếu không có gì khẩn cấp, báo một câu nhẹ nhàng
                     new ToastContentBuilder()
                         .AddText("✅ Mọi thứ đang trong tầm kiểm soát!")
                         .AddText($"Bạn có {tatCaTask.Count} bài tập, nhưng chưa có gì quá hạn.")
@@ -176,7 +238,7 @@ namespace SmartStudyPlanner.ViewModels
         private async Task LuuDuLieu() // Đổi từ void sang async Task
         {
             await _repository.LuuHocKyAsync(_hocKyHienTai);
-            MessageBox.Show("Đã lưu tiến trình thành công!", "Save Game", MessageBoxButton.OK, MessageBoxImage.Information);
+            System.Windows.MessageBox.Show("Đã lưu tiến trình thành công!", "Save Game", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         [RelayCommand]
@@ -190,17 +252,34 @@ namespace SmartStudyPlanner.ViewModels
         }
 
         [RelayCommand]
-        private void MoFocusMode(TaskDashboardItem taskDuocChon)
+        private async Task MoFocusMode(TaskDashboardItem taskDuocChon)
         {
             if (taskDuocChon != null)
             {
-                // Mở cửa sổ Focus Mode
                 var focusWin = new Views.FocusWindow(taskDuocChon);
-                focusWin.ShowDialog(); // ShowDialog để chặn tương tác với app ở dưới
+                focusWin.ShowDialog(); // App sẽ dừng ở dòng này chờ đến khi cửa sổ đóng
 
-                // Sau khi cửa sổ Focus đóng lại, tải lại dữ liệu (nhỡ người dùng đã làm xong)
+                // KHI CỬA SỔ ĐÓNG, TỰ ĐỘNG LƯU DATABASE NGAY LẬP TỨC
+                await _repository.LuuHocKyAsync(_hocKyHienTai);
+
+                // Tải lại bảng xếp hạng
                 LoadDuLieuDashboard();
             }
+        }
+
+        [RelayCommand]
+        private void MoWorkloadBalancer()
+        {
+            var win = new Views.WorkloadBalancerWindow(_hocKyHienTai);
+            win.Owner = System.Windows.Application.Current.MainWindow; // Làm mờ cửa sổ chính
+            win.ShowDialog();
+            LoadDuLieuDashboard();
+        }
+
+        [RelayCommand]
+        private void ToggleTheme()
+        {
+            Services.ThemeManager.ToggleTheme();
         }
     }
 }

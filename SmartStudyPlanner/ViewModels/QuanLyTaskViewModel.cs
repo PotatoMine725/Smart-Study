@@ -87,7 +87,7 @@ namespace SmartStudyPlanner.ViewModels
         {
             if (taskCanXoa != null)
             {
-                if (MessageBox.Show($"Xóa bài tập '{taskCanXoa.TenTask}'?", "Xác nhận", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                if (System.Windows.MessageBox.Show($"Xóa bài tập '{taskCanXoa.TenTask}'?", "Xác nhận", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                 {
                     MonHocHienTai.DanhSachTask.Remove(taskCanXoa);
                     await _repository.LuuHocKyAsync(HocKyHienTai); // Lưu DB không giật lag
@@ -129,7 +129,7 @@ namespace SmartStudyPlanner.ViewModels
         {
             if (string.IsNullOrWhiteSpace(TenTask) || HanChot == null)
             {
-                MessageBox.Show("Vui lòng nhập Tên bài tập và Hạn chót!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
+                System.Windows.MessageBox.Show("Vui lòng nhập Tên bài tập và Hạn chót!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
