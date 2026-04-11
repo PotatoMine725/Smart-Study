@@ -5,23 +5,22 @@ namespace SmartStudyPlanner.Services.Strategies
 {
     public interface IPriorityComponent
     {
-        double Score(StudyTask task, MonHoc mon, WeightConfig cfg);
+        // daysLeft được PriorityCalculator tính 1 lần rồi truyền xuống để tránh
+        // tính trùng và đảm bảo mọi component nhìn thấy cùng 1 mốc thời gian.
+        double Score(StudyTask task, MonHoc mon, WeightConfig cfg, double daysLeft);
         double Weight(WeightConfig cfg);
     }
 
     public class TimeComponent : IPriorityComponent
     {
-        private readonly IClock _clock;
-
-        public TimeComponent(IClock clock)
+        public double Score(StudyTask task, MonHoc mon, WeightConfig cfg, double daysLeft)
         {
-            _clock = clock;
-        }
+            // Defensive: HorizonDays <= 0 không hợp lệ; WeightConfig.IsValid không
+            // check field này nên guard tại đây để component dùng độc lập cũng an toàn.
+            int horizon = cfg.HorizonDays;
+            if (horizon <= 0) return 0;
 
-        public double Score(StudyTask task, MonHoc mon, WeightConfig cfg)
-        {
-            double daysLeft = (task.HanChot.Date - _clock.Now.Date).TotalDays;
-            return Math.Max(0, 100.0 * (1.0 - daysLeft / cfg.HorizonDays));
+            return Math.Max(0, 100.0 * (1.0 - daysLeft / horizon));
         }
 
         public double Weight(WeightConfig cfg) => cfg.TimeWeight;
@@ -36,7 +35,7 @@ namespace SmartStudyPlanner.Services.Strategies
             _provider = provider;
         }
 
-        public double Score(StudyTask task, MonHoc mon, WeightConfig cfg)
+        public double Score(StudyTask task, MonHoc mon, WeightConfig cfg, double daysLeft)
             => _provider.GetWeight(task.LoaiTask) * 100;
 
         public double Weight(WeightConfig cfg) => cfg.TaskTypeWeight;
@@ -44,7 +43,7 @@ namespace SmartStudyPlanner.Services.Strategies
 
     public class CreditComponent : IPriorityComponent
     {
-        public double Score(StudyTask task, MonHoc mon, WeightConfig cfg)
+        public double Score(StudyTask task, MonHoc mon, WeightConfig cfg, double daysLeft)
         {
             int tinChiHopLe = Math.Max(1, mon.SoTinChi);
             double diem = (tinChiHopLe / (double)cfg.MaxCredits) * 100;
@@ -56,7 +55,7 @@ namespace SmartStudyPlanner.Services.Strategies
 
     public class DifficultyComponent : IPriorityComponent
     {
-        public double Score(StudyTask task, MonHoc mon, WeightConfig cfg)
+        public double Score(StudyTask task, MonHoc mon, WeightConfig cfg, double daysLeft)
         {
             int doKhoHopLe = Math.Min(cfg.MaxDifficulty, Math.Max(1, task.DoKho));
             return (doKhoHopLe / (double)cfg.MaxDifficulty) * 100;

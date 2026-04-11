@@ -23,16 +23,15 @@ namespace SmartStudyPlanner.Services.Strategies
             _clock = clock;
         }
 
+        // Lưu ý: caller có trách nhiệm cung cấp WeightConfig hợp lệ qua cfgAccessor.
+        // Facade DecisionEngine là nơi self-heal static Config toàn cục; PriorityCalculator
+        // không mutate state ngoài phạm vi và cũng không duplicate check IsValid ở đây
+        // (tránh chia rẽ logic self-heal giữa 2 nơi).
         public double Calculate(StudyTask task, MonHoc mon)
         {
             if (task == null || mon == null) return 0.0;
 
             var cfg = _cfgAccessor();
-            if (!cfg.IsValid())
-            {
-                cfg = new WeightConfig();
-            }
-
             double daysLeft = (task.HanChot.Date - _clock.Now.Date).TotalDays;
 
             foreach (var rule in _rules)
@@ -44,7 +43,7 @@ namespace SmartStudyPlanner.Services.Strategies
             double total = 0;
             foreach (var c in _components)
             {
-                total += c.Score(task, mon, cfg) * c.Weight(cfg);
+                total += c.Score(task, mon, cfg, daysLeft) * c.Weight(cfg);
             }
 
             return Math.Round(total, 2);
