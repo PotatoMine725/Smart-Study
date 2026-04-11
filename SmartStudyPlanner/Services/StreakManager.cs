@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Text.Json;
+using SmartStudyPlanner.Services.Strategies;
 
 namespace SmartStudyPlanner.Services
 {
@@ -14,6 +15,8 @@ namespace SmartStudyPlanner.Services
     {
         // File lưu trữ chuỗi ngày sẽ nằm cạnh file database .db
         private static readonly string FilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "streak_data.json");
+
+        private static IClock _clock = new SystemClock();
 
         private static UserStreakData Load()
         {
@@ -37,7 +40,7 @@ namespace SmartStudyPlanner.Services
             var data = Load();
 
             // LỜI NGUYỀN CỦA STREAK: Nếu hôm nay mà cách ngày học cuối cùng LỚN HƠN 1 NGÀY -> Mất chuỗi!
-            if (data.StreakCount > 0 && (DateTime.Now.Date - data.LastStudyDate.Date).TotalDays > 1)
+            if (data.StreakCount > 0 && (_clock.Now.Date - data.LastStudyDate.Date).TotalDays > 1)
             {
                 data.StreakCount = 0;
                 Save(data);
@@ -48,7 +51,7 @@ namespace SmartStudyPlanner.Services
         public static void UpdateStreak()
         {
             var data = Load();
-            var today = DateTime.Now.Date;
+            var today = _clock.Now.Date;
 
             if (data.LastStudyDate.Date == today) return; // Hôm nay đã được cộng chuỗi rồi thì thôi
 

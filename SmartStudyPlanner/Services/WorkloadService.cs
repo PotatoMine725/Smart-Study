@@ -1,4 +1,5 @@
 ﻿using SmartStudyPlanner.Models;
+using SmartStudyPlanner.Services.Strategies;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -28,6 +29,8 @@ namespace SmartStudyPlanner.Services
     {
         // Lưu thiết lập Capacity vào file text nhỏ để không bị "trôi tuột"
         private static readonly string FilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "capacity.txt");
+
+        private static IClock _clock = new SystemClock();
 
         public static double GetCapacity()
         {
@@ -60,9 +63,10 @@ namespace SmartStudyPlanner.Services
             var sortedTasks = tatCaTask.OrderByDescending(t => t.DiemUuTien).ToList();
             var days = new List<ScheduleDay>();
 
+            DateTime today = _clock.Now.Date;
             for (int i = 0; i < 7; i++)
             {
-                DateTime d = DateTime.Now.Date.AddDays(i);
+                DateTime d = today.AddDays(i);
                 string name = i == 0 ? "Hôm nay" : (i == 1 ? "Ngày mai" : d.ToString("dd/MM/yyyy"));
                 days.Add(new ScheduleDay { Date = d, DisplayName = name });
             }
