@@ -48,10 +48,6 @@ namespace SmartStudyPlanner.Services
             },
             clock: _clock);
 
-        // Giữ lại để tương thích ngược — giờ ủy quyền sang ITaskTypeWeightProvider
-        public static double LayHeSoQuanTrong(LoaiCongViec loaiTask)
-            => _taskTypeProvider.GetWeight(loaiTask);
-
         public static double CalculatePriority(StudyTask task, MonHoc monHoc)
         {
             // BẢO MẬT: Facade là nơi duy nhất chịu trách nhiệm self-heal static Config.
