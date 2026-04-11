@@ -41,7 +41,7 @@ namespace SmartStudyPlanner.Services
             },
             components: new IPriorityComponent[]
             {
-                new TimeComponent(_clock),
+                new TimeComponent(),
                 new TaskTypeComponent(_taskTypeProvider),
                 new CreditComponent(),
                 new DifficultyComponent(),
@@ -54,9 +54,10 @@ namespace SmartStudyPlanner.Services
 
         public static double CalculatePriority(StudyTask task, MonHoc monHoc)
         {
-            // BẢO MẬT: Nếu config bị chỉnh sai tổng trọng số, tự động fallback mặc định
-            // (logic này cũng được PriorityCalculator xử lý, nhưng để ở đây để giữ side-effect
-            // "sửa" static Config như bản gốc — có ViewModel đọc Config.HorizonDays trực tiếp)
+            // BẢO MẬT: Facade là nơi duy nhất chịu trách nhiệm self-heal static Config.
+            // Cần mutate tại đây (không chỉ dùng bản local) vì các ViewModel khác đọc
+            // DecisionEngine.Config.HorizonDays trực tiếp — nếu không persist fallback,
+            // chỗ khác sẽ vẫn thấy config sai.
             if (!Config.IsValid())
             {
                 Config = new WeightConfig();
