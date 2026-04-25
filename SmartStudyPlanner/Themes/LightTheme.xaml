@@ -22,7 +22,7 @@
     <!-- Semantic -->
     <SolidColorBrush x:Key="DangerColor"           Color="#DC2626"/>
     <SolidColorBrush x:Key="DangerBackground"      Color="#FEE2E2"/>
-    <SolidColorBrush x:Key="WarningColor"          Color="#D97706"/>
+    <SolidColorBrush x:Key="WarningColor"          Color="#A85900"/>
     <SolidColorBrush x:Key="WarningBackground"     Color="#FEF3C7"/>
     <SolidColorBrush x:Key="SuccessColor"          Color="#16A34A"/>
     <SolidColorBrush x:Key="SuccessBackground"     Color="#DCFCE7"/>
