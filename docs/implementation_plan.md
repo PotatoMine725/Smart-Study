@@ -658,8 +658,8 @@ graph LR
     style M2 fill:#4CAF50,color:white
     style M3 fill:#4CAF50,color:white
     style M4 fill:#4CAF50,color:white
-    style M45 fill:#FFA726,color:white
-    style M46 fill:#FFA726,color:white
+    style M45 fill:#4CAF50,color:white
+    style M46 fill:#4CAF50,color:white
     style M5 fill:#F44336,color:white
     style M6 fill:#9C27B0,color:white
     style M7 fill:#FF5722,color:white
@@ -673,9 +673,9 @@ graph LR
 | M2: DecisionEngine refactor | ✅ Done — uncommitted | 2h | — |
 | M3: WorkloadService refactor | ✅ Done — uncommitted | 1h | — |
 | M4: Risk Analyzer (logic + tests) | ✅ Done — uncommitted, **UI thiếu** | 2h | — |
-| **M4.5**: Render Risk + tách 4 commit M1-M4 | 🔲 **Next** | 1.5-2h | 🟢 Thấp |
-| **M4.6**: Migrate call sites + xoá facade static | 🔲 | 2-3h | 🟡 Trung (7 call sites) |
-| M5: Pipeline Orchestrator | 🔲 | 5-6h | 🔴 Cao |
+| **M4.5**: Render Risk + tách 4 commit M1-M4 | ✅ Done (`c74db6b`…`be8a06e`) | 1.5h | — |
+| **M4.6**: Migrate call sites + xoá facade static | ✅ Done (`af673d2`) | 1.5h | — |
+| M5: Pipeline Orchestrator | 🔲 **Next** | 5-6h | 🔴 Cao |
 | M6: Study Analytics | 🔲 | 5-6h | 🟡 Trung |
 | M7: ML Engine (5 phases) | 🔲 | 11-16h | 🔴 Cao (data dependency) |
 | Backlog N6: upgrade `System.Drawing.Common` (NU1904) | 🔲 | 30 phút | 🟢 Thấp |
@@ -684,9 +684,13 @@ graph LR
 ### Thứ tự đề xuất
 
 ```
-M4.5 → commit M1-M4 → M4.6 → M5 → M6 → M7
-                     └─ N6 chen vào lúc nào cũng được (độc lập)
+[M4.5 ✅] → [M4.6 ✅] → M5 → M6 → M7
+                          └─ N6 chen vào lúc nào cũng được (độc lập)
 ```
+
+**Kết quả sau M4.6**: Không còn `static class` nào trong Services layer.
+`DecisionEngine.cs` và `WorkloadService.cs` đã bị xoá. `WeightConfig` sống ở `Services/WeightConfig.cs`.
+`MainWindow.xaml.cs` resolve DI qua `ServiceLocator`. 110 tests pass.
 
 ## 5. Quy tắc Bắt buộc (từ README §8)
 
