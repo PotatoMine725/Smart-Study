@@ -1,8 +1,37 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <SolidColorBrush x:Key="AppBackground" Color="#1E1E1E"/>
-    <SolidColorBrush x:Key="CardBackground" Color="#2D2D30"/>
-    <SolidColorBrush x:Key="PrimaryText" Color="#E0E0E0"/>
-    <SolidColorBrush x:Key="SecondaryText" Color="#A0A0A0"/>
-    <SolidColorBrush x:Key="BorderColor" Color="#404040"/>
+    <!-- Base surfaces -->
+    <SolidColorBrush x:Key="AppBackground"        Color="#0F172A"/>
+    <SolidColorBrush x:Key="CardBackground"        Color="#1E293B"/>
+    <SolidColorBrush x:Key="StatCardBackground"    Color="#1E293B"/>
+    <SolidColorBrush x:Key="ChartBackground"       Color="#1A2536"/>
+    <SolidColorBrush x:Key="SurfaceHover"          Color="#334155"/>
+
+    <!-- Text -->
+    <SolidColorBrush x:Key="PrimaryText"           Color="#F1F5F9"/>
+    <SolidColorBrush x:Key="SecondaryText"         Color="#94A3B8"/>
+
+    <!-- Borders -->
+    <SolidColorBrush x:Key="BorderColor"           Color="#334155"/>
+
+    <!-- Accent (blue) -->
+    <SolidColorBrush x:Key="AccentColor"           Color="#3B82F6"/>
+    <SolidColorBrush x:Key="AccentHover"           Color="#2563EB"/>
+    <SolidColorBrush x:Key="AccentText"            Color="#60A5FA"/>
+
+    <!-- Semantic -->
+    <SolidColorBrush x:Key="DangerColor"           Color="#F87171"/>
+    <SolidColorBrush x:Key="DangerBackground"      Color="#1F0606"/>
+    <SolidColorBrush x:Key="WarningColor"          Color="#FCD34D"/>
+    <SolidColorBrush x:Key="WarningBackground"     Color="#1C0D00"/>
+    <SolidColorBrush x:Key="SuccessColor"          Color="#4ADE80"/>
+    <SolidColorBrush x:Key="SuccessBackground"     Color="#022C0D"/>
+
+    <!-- Sidebar -->
+    <SolidColorBrush x:Key="SidebarBackground"     Color="#020617"/>
+    <SolidColorBrush x:Key="SidebarBorder"         Color="#1E293B"/>
+    <SolidColorBrush x:Key="SidebarText"           Color="#475569"/>
+    <SolidColorBrush x:Key="SidebarActiveBackground" Color="#1E293B"/>
+    <SolidColorBrush x:Key="SidebarActiveText"     Color="#F8FAFC"/>
+    <SolidColorBrush x:Key="SidebarIconColor"      Color="#475569"/>
 </ResourceDictionary>

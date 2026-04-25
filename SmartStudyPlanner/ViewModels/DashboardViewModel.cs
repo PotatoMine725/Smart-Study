@@ -41,6 +41,19 @@ namespace SmartStudyPlanner.ViewModels
         [ObservableProperty] private ObservableCollection<ScheduledTask> lichHocHomNay = new();
         [ObservableProperty] private string tieuDeLichHomNay;
 
+        public int SoTaskHomNay => LichHocHomNay?.Count ?? 0;
+
+        public string TyLeHoanThanhText
+        {
+            get
+            {
+                var total = Top5Task?.Count ?? 0;
+                if (total == 0) return "0%";
+                var done = Top5Task!.Count(t => t.MucDoCanhBao == "An toàn");
+                return $"{done * 100 / total}%";
+            }
+        }
+
         public Action<HocKy> OnNavigateToMonHoc { get; set; }
         public Action<HocKy, MonHoc> OnNavigateToTask { get; set; }
 
@@ -87,6 +100,8 @@ namespace SmartStudyPlanner.ViewModels
             ApplySchedule(summary.ScheduleDay);
             ApplyStreak();
             RaiseNotification(summary.TopTasks);
+            OnPropertyChanged(nameof(SoTaskHomNay));
+            OnPropertyChanged(nameof(TyLeHoanThanhText));
         }
 
         private DashboardSummary BuildDashboardSummary(ScheduleDay? todaySchedule)

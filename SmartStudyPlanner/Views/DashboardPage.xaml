@@ -4,38 +4,74 @@
       xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
       Title="Dashboard" Loaded="Page_Loaded"
       Background="{DynamicResource AppBackground}">
+    <Page.Resources>
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="FontSize"     Value="14"/>
+            <Setter Property="FontWeight"   Value="SemiBold"/>
+            <Setter Property="Foreground"   Value="{DynamicResource PrimaryText}"/>
+            <Setter Property="Margin"       Value="0,20,0,10"/>
+        </Style>
+    </Page.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
 
         <StackPanel Margin="20">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
                 <TextBlock Text="{Binding TieuDe}" FontWeight="Bold" FontSize="22" Foreground="{DynamicResource PrimaryText}" Margin="0,0,20,0" VerticalAlignment="Center" />
+            </StackPanel>
 
-                <Border Background="#FFF3E0" BorderBrush="#E67E22" BorderThickness="1" CornerRadius="12" Padding="15,4">
-                    <TextBlock Text="{Binding ChuoiStreak}" FontWeight="Bold" FontSize="16" Foreground="#E67E22" VerticalAlignment="Center" ToolTip="Chuỗi ngày duy trì học tập liên tục!" />
+            <Grid Margin="0,0,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Card 1: Task hôm nay -->
+                <Border Grid.Column="0" Background="{DynamicResource StatCardBackground}"
+                        CornerRadius="10" Padding="16,14"
+                        BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="&#xE8A1;" FontFamily="Segoe MDL2 Assets" FontSize="20"
+                                   Foreground="{DynamicResource AccentColor}" Margin="0,0,0,6"/>
+                        <TextBlock Text="{Binding SoTaskHomNay}" FontSize="28" FontWeight="Bold"
+                                   Foreground="{DynamicResource PrimaryText}"/>
+                        <TextBlock Text="Task hôm nay" FontSize="12"
+                                   Foreground="{DynamicResource SecondaryText}"/>
+                    </StackPanel>
                 </Border>
-            </StackPanel>
 
-            <TextBlock Text="{Binding ThongKe}" FontSize="14" Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" Margin="0,0,0,20" />
+                <!-- Card 2: Tỉ lệ hoàn thành -->
+                <Border Grid.Column="2" Background="{DynamicResource StatCardBackground}"
+                        CornerRadius="10" Padding="16,14"
+                        BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="&#xE930;" FontFamily="Segoe MDL2 Assets" FontSize="20"
+                                   Foreground="{DynamicResource SuccessColor}" Margin="0,0,0,6"/>
+                        <TextBlock Text="{Binding TyLeHoanThanhText}" FontSize="28" FontWeight="Bold"
+                                   Foreground="{DynamicResource PrimaryText}"/>
+                        <TextBlock Text="Hoàn thành (Top 5)" FontSize="12"
+                                   Foreground="{DynamicResource SecondaryText}"/>
+                    </StackPanel>
+                </Border>
 
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
-                <Button Content="📚 Quản lý Môn Học &amp; Bài Tập" Height="40" Width="250" FontWeight="Bold" 
-                        Background="#3498DB" Foreground="White" Cursor="Hand" Margin="0,0,10,0"
-                        Command="{Binding MoQuanLyMonHocCommand}"/>
+                <!-- Card 3: Streak -->
+                <Border Grid.Column="4" Background="{DynamicResource StatCardBackground}"
+                        CornerRadius="10" Padding="16,14"
+                        BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" FontSize="20"
+                                   Foreground="{DynamicResource WarningColor}" Margin="0,0,0,6"/>
+                        <TextBlock Text="{Binding ChuoiStreak}" FontSize="20" FontWeight="Bold"
+                                   Foreground="{DynamicResource PrimaryText}"/>
+                        <TextBlock Text="Streak duy trì" FontSize="12"
+                                   Foreground="{DynamicResource SecondaryText}"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
 
-                <Button Content="⚖️ Cân Bằng Tải" Height="40" Width="150" FontWeight="Bold" 
-                        Background="#8E44AD" Foreground="White" Cursor="Hand" Margin="0,0,10,0"
-                        Command="{Binding MoWorkloadBalancerCommand}" />
-
-                <Button Content="💾 Lưu Tiến Trình" Height="40" Width="150" FontWeight="Bold" 
-                        Background="#F39C12" Foreground="White" Cursor="Hand" Margin="0,0,10,0"
-                        Command="{Binding LuuDuLieuCommand}" />
-
-                <Button Content="🌙 Giao Diện" Height="40" Width="120" FontWeight="Bold" 
-                        Background="#2C3E50" Foreground="White" Cursor="Hand" Margin="0,0,10,0"
-                        Command="{Binding ToggleThemeCommand}" />
-            </StackPanel>
-
-            <Grid Height="220" Margin="0,0,0,20">
+<Grid Height="220" Margin="0,0,0,20">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
@@ -43,20 +79,25 @@
 
                 <StackPanel Grid.Column="0" Margin="0,0,10,0">
                     <TextBlock Text="Tỉ lệ hoàn thành" FontWeight="Bold" Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center"/>
-                    <Border Background="#F0F3F4" CornerRadius="8" Padding="10">
+                    <Border Background="{DynamicResource ChartBackground}" CornerRadius="8" Padding="10">
                         <lvc:PieChart Height="170" Series="{Binding BieuDoTrangThai}" LegendPosition="Right" />
                     </Border>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Margin="10,0,0,0">
                     <TextBlock Text="Khối lượng bài tập" FontWeight="Bold" Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center"/>
-                    <Border Background="#F0F3F4" CornerRadius="8" Padding="10">
+                    <Border Background="{DynamicResource ChartBackground}" CornerRadius="8" Padding="10">
                         <lvc:CartesianChart Height="170" Series="{Binding BieuDoMonHoc}" XAxes="{Binding TrucXMonHoc}" />
                     </Border>
                 </StackPanel>
             </Grid>
 
-            <TextBlock Text="🔥 TOP 5 DEADLINE KHẨN CẤP NHẤT" FontWeight="Bold" FontSize="16" Foreground="#E74C3C" Margin="0,0,0,10" />
+            <StackPanel Orientation="Horizontal" Margin="0,20,0,10">
+                <TextBlock Text="&#xEA6C;" FontFamily="Segoe MDL2 Assets" FontSize="15"
+                           Foreground="{DynamicResource DangerColor}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBlock Text="TOP 5 DEADLINE KHẨN CẤP NHẤT" Style="{StaticResource SectionHeader}"
+                           Foreground="{DynamicResource DangerColor}" Margin="0"/>
+            </StackPanel>
 
             <DataGrid Height="260" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" ItemsSource="{Binding Top5Task}"
                       Background="{DynamicResource CardBackground}" Foreground="{DynamicResource PrimaryText}">
@@ -72,18 +113,8 @@
                 </DataGrid.Resources>
                 <DataGrid.RowStyle>
                     <Style TargetType="DataGridRow">
-                        <Setter Property="Foreground" Value="Black" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding MucDoCanhBao}" Value="Khẩn cấp">
-                                <Setter Property="Background" Value="#FFCDD2" />
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding MucDoCanhBao}" Value="Chú ý">
-                                <Setter Property="Background" Value="#FFF9C4" />
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding MucDoCanhBao}" Value="An toàn">
-                                <Setter Property="Background" Value="#C8E6C9" />
-                            </DataTrigger>
-                        </Style.Triggers>
+                        <Setter Property="Foreground" Value="{DynamicResource PrimaryText}" />
+                        <Setter Property="Background" Value="{DynamicResource CardBackground}" />
                     </Style>
                 </DataGrid.RowStyle>
 
@@ -91,25 +122,53 @@
                     <DataGridTextColumn Header="Môn Học" Binding="{Binding TenMonHoc}" Width="130" FontWeight="Bold"/>
                     <DataGridTextColumn Header="Tên Bài Tập" Binding="{Binding TenTask}" Width="*" />
                     <DataGridTextColumn Header="Hạn Chót" Binding="{Binding HanChot, StringFormat=dd/MM/yyyy}" Width="90" />
-                    <DataGridTextColumn Header="Đã học" Binding="{Binding TaskGoc.ThoiGianDaHoc, StringFormat={}{0} phút}" Width="75" Foreground="Gray" FontWeight="Bold"/>
+                    <DataGridTextColumn Header="Đã học" Binding="{Binding TaskGoc.ThoiGianDaHoc, StringFormat={}{0} phút}" Width="75" Foreground="{DynamicResource SecondaryText}" FontWeight="Bold"/>
                     <DataGridTextColumn Header="Điểm ƯT" Binding="{Binding DiemUuTien}" Width="75" />
-                    <DataGridTextColumn Header="Mức Độ" Binding="{Binding MucDoCanhBao}" Width="85" />
+                    <DataGridTemplateColumn Header="Mức Độ" Width="100">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border CornerRadius="4" Padding="8,3"
+                                        HorizontalAlignment="Left" Margin="4,2">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="{StaticResource BadgeNeutral}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding MucDoCanhBao}" Value="Khẩn cấp">
+                                                    <Setter Property="Background" Value="{StaticResource BadgeDanger}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding MucDoCanhBao}" Value="Chú ý">
+                                                    <Setter Property="Background" Value="{StaticResource BadgeWarning}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding MucDoCanhBao}" Value="An toàn">
+                                                    <Setter Property="Background" Value="{StaticResource BadgeSuccess}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding MucDoCanhBao}" Foreground="White"
+                                               FontSize="11" FontWeight="SemiBold"/>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                     <DataGridTextColumn Header="Rủi Ro" Binding="{Binding MucDoRuiRo}" Width="130" FontWeight="Bold"/>
-                    <DataGridTextColumn Header="Cần học thêm" Binding="{Binding ThoiGianGoiY}" Width="120" FontWeight="Bold" Foreground="#16A085"/>
+                    <DataGridTextColumn Header="Cần học thêm" Binding="{Binding ThoiGianGoiY}" Width="120" FontWeight="Bold" Foreground="{DynamicResource SuccessColor}"/>
 
                     <DataGridTemplateColumn Header="Thao tác" Width="185">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal">
-                                    <Button Content="🍅 HỌC NGAY" 
-                                        Command="{Binding DataContext.MoFocusModeCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
-                                        CommandParameter="{Binding}" 
-                                        Background="#E74C3C" Foreground="White" FontWeight="Bold" Cursor="Hand" Padding="10,2" Margin="0,0,5,0"/>
+                                    <Button Content="HỌC NGAY"
+                                        Command="{Binding DataContext.MoFocusModeCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding}"
+                                        Background="{DynamicResource DangerColor}" Foreground="White"
+                                        FontWeight="Bold" Padding="10,4" Margin="0,0,5,0"/>
 
-                                    <Button Content="Đi tới ➔" Background="#3498DB" Foreground="White" 
-                                        Padding="10,2" Cursor="Hand" 
-                                        Command="{Binding DataContext.DiToiTaskCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
-                                        CommandParameter="{Binding}" />
+                                    <Button Content="Đi tới"
+                                        Command="{Binding DataContext.DiToiTaskCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding}"
+                                        Background="{DynamicResource AccentColor}" Foreground="White"
+                                        Padding="10,4"/>
                                 </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -117,12 +176,22 @@
                 </DataGrid.Columns>
             </DataGrid>
 
-            <TextBlock Text="{Binding TieuDeLichHomNay}" FontWeight="Bold" FontSize="16" Foreground="#27AE60" Margin="0,20,0,10" />
+            <StackPanel Orientation="Horizontal" Margin="0,20,0,10">
+                <TextBlock Text="&#xE8BF;" FontFamily="Segoe MDL2 Assets" FontSize="15"
+                           Foreground="{DynamicResource SuccessColor}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBlock Text="{Binding TieuDeLichHomNay}" Style="{StaticResource SectionHeader}"
+                           Foreground="{DynamicResource SuccessColor}" Margin="0"/>
+            </StackPanel>
 
             <ItemsControl ItemsSource="{Binding LichHocHomNay}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Background="{DynamicResource CardBackground}" CornerRadius="5" Padding="10" Margin="0,0,0,5" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
+                        <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="12,10"
+                                Margin="0,0,0,6"
+                                BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#000000" Opacity="0.04" BlurRadius="8" ShadowDepth="1"/>
+                            </Border.Effect>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -132,14 +201,19 @@
                                     <TextBlock Text="{Binding TenTask}" FontWeight="Bold" Foreground="{DynamicResource PrimaryText}"/>
                                     <TextBlock Text="{Binding TenMon}" FontSize="12" Foreground="{DynamicResource SecondaryText}"/>
                                 </StackPanel>
-                                <TextBlock Grid.Column="1" Text="{Binding ThoiGianHienThi}" FontWeight="Bold" Foreground="#E67E22" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{Binding ThoiGianHienThi}" FontWeight="Bold" Foreground="{DynamicResource WarningColor}" VerticalAlignment="Center"/>
                             </Grid>
                         </Border>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <TextBlock Text="📈 TIẾN ĐỘ THỜI GIAN HỌC" FontWeight="Bold" FontSize="16" Foreground="#2980B9" Margin="0,20,0,10" />
+            <StackPanel Orientation="Horizontal" Margin="0,20,0,10">
+                <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="15"
+                           Foreground="{DynamicResource AccentColor}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBlock Text="TIẾN ĐỘ THỜI GIAN HỌC" Style="{StaticResource SectionHeader}"
+                           Foreground="{DynamicResource AccentColor}" Margin="0"/>
+            </StackPanel>
 
             <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="10" Margin="0,0,0,20" Height="250">
                 <lvc:CartesianChart Series="{Binding BieuDoThoiGian}" XAxes="{Binding TrucXThoiGian}" LegendPosition="Right" />
