@@ -1,5 +1,6 @@
 ﻿using Microsoft.Toolkit.Uwp.Notifications;
 using SmartStudyPlanner.Data;
+using SmartStudyPlanner.Services;
 using System;
 using System.Windows;
 using System.Windows.Threading;
@@ -63,8 +64,8 @@ namespace SmartStudyPlanner
 
         private async void BackgroundTimer_Tick(object sender, EventArgs e)
         {
-            // ĐÃ SỬA LỖI 1: Bỏ lệnh using, chỉ khởi tạo biến bình thường
-            var repo = new StudyRepository();
+            var repo = ServiceLocator.Get<IStudyRepository>();
+            var decisionEngine = ServiceLocator.Get<IDecisionEngine>();
 
             var danhSachHocKy = await repo.LayDanhSachHocKyAsync();
             int soTaskKhanCap = 0;
@@ -77,8 +78,7 @@ namespace SmartStudyPlanner
                     {
                         if (task.TrangThai != "Hoàn thành")
                         {
-                            // Kêu AI tính điểm ngầm luôn
-                            double diem = Services.DecisionEngine.CalculatePriority(task, mon);
+                            double diem = decisionEngine.CalculatePriority(task, mon);
                             if (diem >= 80) soTaskKhanCap++;
                         }
                     }

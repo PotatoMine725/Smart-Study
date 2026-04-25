@@ -1,5 +1,6 @@
-﻿using System.Windows;
+using System.Windows;
 using SmartStudyPlanner.Data;
+using SmartStudyPlanner.Services;
 
 namespace SmartStudyPlanner
 {
@@ -16,6 +17,12 @@ namespace SmartStudyPlanner
                 // Lệnh ma thuật: Nếu file .db chưa tồn tại, nó sẽ tự động tạo mới dựa trên AppDbContext!
                 db.Database.EnsureCreated();
             }
+
+            // KHỞI TẠO DI CONTAINER
+            // Đây là điểm duy nhất toàn app cấu hình dependency injection.
+            // Mọi service đăng ký ở đây đều được resolve qua ServiceLocator.Get<T>()
+            // hoặc qua constructor injection khi ViewModel được tạo thủ công.
+            ServiceLocator.Configure();
         }
     }
-}
+}

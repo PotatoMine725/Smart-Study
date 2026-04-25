@@ -1,4 +1,4 @@
-﻿<Page x:Class="SmartStudyPlanner.DashboardPage"
+<Page x:Class="SmartStudyPlanner.DashboardPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
@@ -58,7 +58,7 @@
 
             <TextBlock Text="🔥 TOP 5 DEADLINE KHẨN CẤP NHẤT" FontWeight="Bold" FontSize="16" Foreground="#E74C3C" Margin="0,0,0,10" />
 
-            <DataGrid Height="250" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" ItemsSource="{Binding Top5Task}"
+            <DataGrid Height="260" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" ItemsSource="{Binding Top5Task}"
                       Background="{DynamicResource CardBackground}" Foreground="{DynamicResource PrimaryText}">
                 <DataGrid.Resources>
                     <Style TargetType="DataGridColumnHeader">
@@ -88,15 +88,16 @@
                 </DataGrid.RowStyle>
 
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Môn Học" Binding="{Binding TenMonHoc}" Width="150" FontWeight="Bold"/>
+                    <DataGridTextColumn Header="Môn Học" Binding="{Binding TenMonHoc}" Width="130" FontWeight="Bold"/>
                     <DataGridTextColumn Header="Tên Bài Tập" Binding="{Binding TenTask}" Width="*" />
-                    <DataGridTextColumn Header="Hạn Chót" Binding="{Binding HanChot, StringFormat=dd/MM/yyyy}" Width="100" />
-                    <DataGridTextColumn Header="Đã học" Binding="{Binding TaskGoc.ThoiGianDaHoc, StringFormat={}{0} phút}" Width="80" Foreground="Gray" FontWeight="Bold"/>
-                    <DataGridTextColumn Header="Điểm Ưu Tiên" Binding="{Binding DiemUuTien}" Width="100" />
-                    <DataGridTextColumn Header="Mức Độ" Binding="{Binding MucDoCanhBao}" Width="100" />
-                    <DataGridTextColumn Header="Cần học thêm" Binding="{Binding ThoiGianGoiY}" Width="140" FontWeight="Bold" Foreground="#16A085"/>
+                    <DataGridTextColumn Header="Hạn Chót" Binding="{Binding HanChot, StringFormat=dd/MM/yyyy}" Width="90" />
+                    <DataGridTextColumn Header="Đã học" Binding="{Binding TaskGoc.ThoiGianDaHoc, StringFormat={}{0} phút}" Width="75" Foreground="Gray" FontWeight="Bold"/>
+                    <DataGridTextColumn Header="Điểm ƯT" Binding="{Binding DiemUuTien}" Width="75" />
+                    <DataGridTextColumn Header="Mức Độ" Binding="{Binding MucDoCanhBao}" Width="85" />
+                    <DataGridTextColumn Header="Rủi Ro" Binding="{Binding MucDoRuiRo}" Width="130" FontWeight="Bold"/>
+                    <DataGridTextColumn Header="Cần học thêm" Binding="{Binding ThoiGianGoiY}" Width="120" FontWeight="Bold" Foreground="#16A085"/>
 
-                    <DataGridTemplateColumn Header="Thao tác" Width="200">
+                    <DataGridTemplateColumn Header="Thao tác" Width="185">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal">
@@ -145,4 +146,5 @@
             </Border>
         </StackPanel>
     </ScrollViewer>
+
 </Page>
