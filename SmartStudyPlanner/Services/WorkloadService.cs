@@ -1,4 +1,4 @@
-﻿using SmartStudyPlanner.Models;
+using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services.Strategies;
 using System;
 using System.Collections.Generic;
@@ -7,35 +7,21 @@ using System.Linq;
 
 namespace SmartStudyPlanner.Services
 {
-    // Chuyển 2 class phụ trợ sang đây để dùng chung
-    public class ScheduledTask
-    {
-        public string TenTask { get; set; }
-        public string TenMon { get; set; }
-        public int SoPhut { get; set; }
-        public string ThoiGianHienThi => $"{SoPhut} phút";
-    }
-
-    public class ScheduleDay
-    {
-        public DateTime Date { get; set; }
-        public string DisplayName { get; set; }
-        public int TotalMinutes { get; set; }
-        public string HeaderText => $"{DisplayName} (Tổng: {TotalMinutes / 60}h {TotalMinutes % 60}p)";
-        public List<ScheduledTask> Tasks { get; set; } = new List<ScheduledTask>();
-    }
-
+    /// <summary>
+    /// Static facade giữ nguyên để tương thích ngược với các call sites cũ.
+    /// ScheduledTask và ScheduleDay đã chuyển sang SmartStudyPlanner.Models.
+    /// Logic thực tế đã chuyển sang WorkloadServiceImpl (instance-based, injectable).
+    /// Không thêm logic mới vào đây — hãy thêm vào IWorkloadService / WorkloadServiceImpl.
+    /// </summary>
     public static class WorkloadService
     {
-        // Lưu thiết lập Capacity vào file text nhỏ để không bị "trôi tuột"
         private static readonly string FilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "capacity.txt");
-
         private static IClock _clock = new SystemClock();
 
         public static double GetCapacity()
         {
             if (File.Exists(FilePath) && double.TryParse(File.ReadAllText(FilePath), out double val)) return val;
-            return 3.0; // Mặc định 3 tiếng nếu chưa từng cài đặt
+            return 3.0;
         }
 
         public static void SaveCapacity(double capacity)
@@ -43,7 +29,6 @@ namespace SmartStudyPlanner.Services
             File.WriteAllText(FilePath, capacity.ToString());
         }
 
-        // Bưng nguyên cái thuật toán Least Load + Splitting từ ViewModel sang đây
         public static List<ScheduleDay> GenerateSchedule(HocKy hocKy, double capacityHours)
         {
             int capacityMinutes = (int)(capacityHours * 60);
