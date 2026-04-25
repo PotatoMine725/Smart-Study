@@ -12,7 +12,7 @@ namespace SmartStudyPlanner.ViewModels
     {
         // Biến lưu trữ gốc
         public HocKy HocKyHienTai { get; set; }
-        private MonHoc _monDangSua = null;
+        private MonHoc? _monDangSua;
 
         // Repository để tương tác với dữ liệu (nếu cần)
         private readonly IStudyRepository _repository = new StudyRepository();
