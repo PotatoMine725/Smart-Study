@@ -14,7 +14,7 @@ namespace SmartStudyPlanner.ViewModels
     {
         public HocKy HocKyHienTai { get; set; }
         public MonHoc MonHocHienTai { get; set; }
-        private StudyTask _taskDangSua = null;
+        private StudyTask? _taskDangSua;
 
         // Repository để tương tác với dữ liệu (nếu cần)
         private readonly IStudyRepository _repository;

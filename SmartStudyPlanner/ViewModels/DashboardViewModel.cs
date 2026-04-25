@@ -1,47 +1,44 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Toolkit.Uwp.Notifications;
-// THÊM 3 THƯ VIỆN NÀY CHO BIỂU ĐỒ
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
+using Microsoft.Toolkit.Uwp.Notifications;
 using SkiaSharp;
 using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
+using SmartStudyPlanner.Services.Pipeline;
 using SmartStudyPlanner.Services.RiskAnalyzer;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Windows;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace SmartStudyPlanner.ViewModels
 {
     public partial class DashboardViewModel : ObservableObject
     {
-        private HocKy _hocKyHienTai;
-        private static bool _daThongBao = false; // Biến static để nhớ là đã báo rồi
         private readonly IStudyRepository _repository;
         private readonly IDecisionEngine _decisionEngine;
         private readonly IWorkloadService _workloadService;
         private readonly IRiskAnalyzer _riskAnalyzer;
+        private readonly IPipelineOrchestrator _pipelineOrchestrator;
+        private HocKy _hocKyHienTai;
+        private static bool _daThongBao;
 
         [ObservableProperty] private string tieuDe;
         [ObservableProperty] private string thongKe;
-        [ObservableProperty] private ObservableCollection<TaskDashboardItem> top5Task;
-
-        // --- BIẾN MỚI CHO BIỂU ĐỒ ---
-        [ObservableProperty] private ISeries[] bieuDoTrangThai; // Biểu đồ tròn
-        [ObservableProperty] private ISeries[] bieuDoMonHoc;    // Biểu đồ cột
-        [ObservableProperty] private Axis[] trucXMonHoc;        // Tên các môn học ở đáy biểu đồ cột
-        // --- BIẾN MỚI CHO BIỂU ĐỒ SO SÁNH THỜI GIAN ---
+        [ObservableProperty] private ObservableCollection<TaskDashboardItem> top5Task = new();
+        [ObservableProperty] private ISeries[] bieuDoTrangThai;
+        [ObservableProperty] private ISeries[] bieuDoMonHoc;
+        [ObservableProperty] private Axis[] trucXMonHoc;
         [ObservableProperty] private ISeries[] bieuDoThoiGian;
         [ObservableProperty] private Axis[] trucXThoiGian;
-
         [ObservableProperty] private string chuoiStreak;
-        [ObservableProperty] private ObservableCollection<Models.ScheduledTask> lichHocHomNay = new ObservableCollection<Models.ScheduledTask>();
+        [ObservableProperty] private ObservableCollection<ScheduledTask> lichHocHomNay = new();
         [ObservableProperty] private string tieuDeLichHomNay;
 
         public Action<HocKy> OnNavigateToMonHoc { get; set; }
@@ -49,19 +46,22 @@ namespace SmartStudyPlanner.ViewModels
 
         public DashboardViewModel(HocKy hocKy)
             : this(hocKy,
-                   ServiceLocator.Get<IStudyRepository>(),
-                   ServiceLocator.Get<IDecisionEngine>(),
-                   ServiceLocator.Get<IWorkloadService>(),
-                   ServiceLocator.Get<IRiskAnalyzer>()) { }
+                ServiceLocator.Get<IStudyRepository>(),
+                ServiceLocator.Get<IDecisionEngine>(),
+                ServiceLocator.Get<IWorkloadService>(),
+                ServiceLocator.Get<IRiskAnalyzer>(),
+                ServiceLocator.Get<IPipelineOrchestrator>())
+        {
+        }
 
-        public DashboardViewModel(HocKy hocKy, IStudyRepository repository, IDecisionEngine decisionEngine, IWorkloadService workloadService, IRiskAnalyzer riskAnalyzer)
+        public DashboardViewModel(HocKy hocKy, IStudyRepository repository, IDecisionEngine decisionEngine, IWorkloadService workloadService, IRiskAnalyzer riskAnalyzer, IPipelineOrchestrator pipelineOrchestrator)
         {
             _hocKyHienTai = hocKy;
             _repository = repository;
             _decisionEngine = decisionEngine;
             _workloadService = workloadService;
             _riskAnalyzer = riskAnalyzer;
-            Top5Task = new ObservableCollection<TaskDashboardItem>();
+            _pipelineOrchestrator = pipelineOrchestrator;
             LoadDuLieuDashboard();
         }
 
@@ -69,191 +69,191 @@ namespace SmartStudyPlanner.ViewModels
         {
             TieuDe = $"TỔNG QUAN - {_hocKyHienTai.Ten.ToUpper()}";
 
+            var pipelineResult = _pipelineOrchestrator.Execute(new PipelineContext
+            {
+                Semester = _hocKyHienTai,
+                ReferenceTime = DateTimeOffset.Now,
+                Settings = new PipelineUserSettings
+                {
+                    EnableRiskAssessment = true,
+                    EnableAdaptation = true,
+                    CapacityHours = _workloadService.GetCapacity()
+                }
+            });
+
+            var summary = BuildDashboardSummary(pipelineResult.Schedule.FirstOrDefault());
+            ApplySummary(summary);
+            ApplyCharts(summary);
+            ApplySchedule(summary.ScheduleDay);
+            ApplyStreak();
+            RaiseNotification(summary.TopTasks);
+        }
+
+        private DashboardSummary BuildDashboardSummary(ScheduleDay? todaySchedule)
+        {
             int tongSoMon = _hocKyHienTai.DanhSachMonHoc.Count;
-            List<TaskDashboardItem> tatCaTask = new List<TaskDashboardItem>();
-
-            // Biến đếm cho biểu đồ tròn
+            var topTasks = new List<TaskDashboardItem>();
+            var monLabels = new List<string>();
+            var taskCounts = new List<int>();
+            var expectedMinutes = new List<double>();
+            var actualMinutes = new List<double>();
             int countKhanCap = 0, countChuY = 0, countAnToan = 0, countDaXong = 0;
-
-            // Biến mảng cho biểu đồ cột khối lượng bài tập
-            List<string> tenCacMon = new List<string>();
-            List<int> soTaskCacMon = new List<int>();
-
-            // Biến mảng cho biểu đồ so sánh thời gian (TÍNH NĂNG MỚI)
-            List<double> thoiGianKyVong = new List<double>();
-            List<double> thoiGianThucTe = new List<double>();
 
             foreach (var mon in _hocKyHienTai.DanhSachMonHoc)
             {
-                // 🔥 SỬA LỖI UX: Cắt ngắn tên môn học nếu dài hơn 15 ký tự
-                string tenMonNganGon = mon.TenMonHoc.Length > 15
-                                     ? mon.TenMonHoc.Substring(0, 12) + "..."
-                                     : mon.TenMonHoc;
-                tenCacMon.Add(tenMonNganGon); // Đưa tên đã cắt ngắn vào trục X của biểu đồ
+                monLabels.Add(TruncateLabel(mon.TenMonHoc));
 
-                int taskCuaMon = 0;
-                double tongKyVongMon = 0;
-                double tongThucTeMon = 0;
+                int taskCount = 0;
+                double expected = 0;
+                double actual = 0;
 
                 foreach (var task in mon.DanhSachTask)
                 {
-                    taskCuaMon++;
+                    taskCount++;
                     task.DiemUuTien = _decisionEngine.CalculatePriority(task, mon);
+                    expected += _decisionEngine.CalculateRawSuggestedMinutes(task);
+                    actual += task.ThoiGianDaHoc;
 
-                    // 🔥 THU THẬP DỮ LIỆU THỜI GIAN CHO BIỂU ĐỒ MỚI
-                    tongKyVongMon += _decisionEngine.CalculateRawSuggestedMinutes(task);
-                    tongThucTeMon += task.ThoiGianDaHoc;
-
-                    string mucDo = "An toàn";
-                    if (task.TrangThai == "Hoàn thành")
-                    {
-                        mucDo = "Đã xong";
-                        countDaXong++;
-                    }
-                    else if (task.DiemUuTien >= 80)
-                    {
-                        mucDo = "Khẩn cấp";
-                        countKhanCap++;
-                    }
-                    else if (task.DiemUuTien >= 50)
-                    {
-                        mucDo = "Chú ý";
-                        countChuY++;
-                    }
-                    else
-                    {
-                        countAnToan++;
-                    }
+                    var warningLevel = GetWarningLevel(task);
+                    if (task.TrangThai == "Hoàn thành") countDaXong++;
+                    else if (task.DiemUuTien >= 80) countKhanCap++;
+                    else if (task.DiemUuTien >= 50) countChuY++;
+                    else countAnToan++;
 
                     if (task.TrangThai != "Hoàn thành")
                     {
                         var risk = _riskAnalyzer.Assess(task, mon);
-                        tatCaTask.Add(new TaskDashboardItem
+                        topTasks.Add(new TaskDashboardItem
                         {
-                            TenMonHoc    = mon.TenMonHoc,
-                            TenTask      = task.TenTask,
-                            HanChot      = task.HanChot,
-                            DiemUuTien   = task.DiemUuTien,
-                            MucDoCanhBao = mucDo,
+                            TenMonHoc = mon.TenMonHoc,
+                            TenTask = task.TenTask,
+                            HanChot = task.HanChot,
+                            DiemUuTien = task.DiemUuTien,
+                            MucDoCanhBao = warningLevel,
                             ThoiGianGoiY = _decisionEngine.SuggestStudyTime(task),
-                            TaskGoc      = task,
-                            MonHocGoc    = mon,
-                            MucDoRuiRo   = risk.DisplayLabel,
-                            RiskScore    = risk.Score
+                            TaskGoc = task,
+                            MonHocGoc = mon,
+                            MucDoRuiRo = risk.DisplayLabel,
+                            RiskScore = risk.Score
                         });
                     }
                 }
 
-                soTaskCacMon.Add(taskCuaMon);
-                thoiGianKyVong.Add(tongKyVongMon);
-                thoiGianThucTe.Add(tongThucTeMon);
+                taskCounts.Add(taskCount);
+                expectedMinutes.Add(expected);
+                actualMinutes.Add(actual);
             }
 
-            ThongKe = $"Bạn đang quản lý {tongSoMon} môn học và có {tatCaTask.Count} deadline chưa hoàn thành.";
+            var top5 = topTasks.OrderByDescending(t => t.DiemUuTien).Take(5).ToList();
+            return new DashboardSummary(
+                tongSoMon,
+                topTasks.Count,
+                top5,
+                monLabels,
+                taskCounts,
+                expectedMinutes,
+                actualMinutes,
+                countKhanCap,
+                countChuY,
+                countAnToan,
+                countDaXong,
+                todaySchedule);
+        }
 
-            // ĐÃ SỬA THÀNH KHÔNG DẤU
-            var top5KhanCap = tatCaTask.OrderByDescending(t => t.DiemUuTien).Take(5).ToList();
+        private void ApplySummary(DashboardSummary summary)
+        {
+            ThongKe = $"Bạn đang quản lý {summary.TotalSubjects} môn học và có {summary.TotalOpenTasks} deadline chưa hoàn thành.";
             Top5Task.Clear();
-            foreach (var item in top5KhanCap) Top5Task.Add(item);
+            foreach (var item in summary.TopTasks) Top5Task.Add(item);
+        }
 
-            // --- VẼ BIỂU ĐỒ TRÒN (Tô màu chuẩn hệ thống) ---
+        private void ApplyCharts(DashboardSummary summary)
+        {
             BieuDoTrangThai = new ISeries[]
             {
-                new PieSeries<int> { Values = new int[] { countKhanCap }, Name = "Khẩn cấp", Fill = new SolidColorPaint(SKColors.Crimson) },
-                new PieSeries<int> { Values = new int[] { countChuY }, Name = "Chú ý", Fill = new SolidColorPaint(SKColors.Orange) },
-                new PieSeries<int> { Values = new int[] { countAnToan }, Name = "An toàn", Fill = new SolidColorPaint(SKColors.MediumSeaGreen) },
-                new PieSeries<int> { Values = new int[] { countDaXong }, Name = "Đã xong", Fill = new SolidColorPaint(SKColors.Gray) }
+                new PieSeries<int> { Values = new[] { summary.UrgentCount }, Name = "Khẩn cấp", Fill = new SolidColorPaint(SKColors.Crimson) },
+                new PieSeries<int> { Values = new[] { summary.AttentionCount }, Name = "Chú ý", Fill = new SolidColorPaint(SKColors.Orange) },
+                new PieSeries<int> { Values = new[] { summary.SafeCount }, Name = "An toàn", Fill = new SolidColorPaint(SKColors.MediumSeaGreen) },
+                new PieSeries<int> { Values = new[] { summary.CompletedCount }, Name = "Đã xong", Fill = new SolidColorPaint(SKColors.Gray) }
             };
 
-            // --- VẼ BIỂU ĐỒ CỘT (Khối lượng bài tập) ---
             BieuDoMonHoc = new ISeries[]
             {
-                new ColumnSeries<int>
-                {
-                    Values = soTaskCacMon.ToArray(),
-                    Name = "Số bài tập",
-                    Fill = new SolidColorPaint(SKColors.CornflowerBlue)
-                }
+                new ColumnSeries<int> { Values = summary.TaskCounts.ToArray(), Name = "Số bài tập", Fill = new SolidColorPaint(SKColors.CornflowerBlue) }
             };
+            TrucXMonHoc = new[] { new Axis { Labels = summary.SubjectLabels.ToArray(), LabelsRotation = 15 } };
 
-            TrucXMonHoc = new Axis[]
-            {
-                new Axis { Labels = tenCacMon.ToArray(), LabelsRotation = 15 } // Xoay chữ nhẹ cho khỏi đè nhau
-            };
-
-            // --- 🔥 VẼ BIỂU ĐỒ SO SÁNH THỜI GIAN (TÍNH NĂNG MỚI) ---
             BieuDoThoiGian = new ISeries[]
             {
-                new ColumnSeries<double>
-                {
-                    Values = thoiGianKyVong.ToArray(),
-                    Name = "Kỳ vọng (phút)",
-                    Fill = new SolidColorPaint(SKColors.CornflowerBlue)
-                },
-                new ColumnSeries<double>
-                {
-                    Values = thoiGianThucTe.ToArray(),
-                    Name = "Thực tế đã học (phút)",
-                    Fill = new SolidColorPaint(SKColors.MediumSeaGreen)
-                }
+                new ColumnSeries<double> { Values = summary.ExpectedMinutes.ToArray(), Name = "Kỳ vọng (phút)", Fill = new SolidColorPaint(SKColors.CornflowerBlue) },
+                new ColumnSeries<double> { Values = summary.ActualMinutes.ToArray(), Name = "Thực tế đã học (phút)", Fill = new SolidColorPaint(SKColors.MediumSeaGreen) }
             };
-            TrucXThoiGian = new Axis[] { new Axis { Labels = tenCacMon.ToArray(), LabelsRotation = 15 } };
+            TrucXThoiGian = new[] { new Axis { Labels = summary.SubjectLabels.ToArray(), LabelsRotation = 15 } };
+        }
 
-            // --- CẬP NHẬT NGỌN LỬA STREAK ---
-            var dataStreak = Services.StreakManager.GetCurrentStreak();
-            ChuoiStreak = $"🔥 {dataStreak.StreakCount} Ngày";
-
-            // --- KẾ HOẠCH HỌC TẬP HÔM NAY (TỪ BALANCER) ---
-            double currentCap = _workloadService.GetCapacity();
-            var fullSchedule = _workloadService.GenerateSchedule(_hocKyHienTai, currentCap);
-            var todaySchedule = fullSchedule.FirstOrDefault(); // Rút đúng cái ngày "Hôm nay" ra
-
+        private void ApplySchedule(ScheduleDay? todaySchedule)
+        {
             LichHocHomNay.Clear();
-            if (todaySchedule != null && todaySchedule.Tasks.Count > 0)
+            if (todaySchedule?.Tasks.Count > 0)
             {
-                foreach (var t in todaySchedule.Tasks) LichHocHomNay.Add(t);
-                TieuDeLichHomNay = $"🎯 KẾ HOẠCH HỌC TẬP HÔM NAY ({todaySchedule.TotalMinutes} phút / {currentCap * 60} phút)";
+                foreach (var task in todaySchedule.Tasks) LichHocHomNay.Add(task);
+                TieuDeLichHomNay = $"🎯 KẾ HOẠCH HỌC TẬP HÔM NAY ({todaySchedule.TotalMinutes} phút)";
             }
             else
             {
                 TieuDeLichHomNay = "🎯 KẾ HOẠCH HỌC TẬP HÔM NAY (Tuyệt vời, bạn không có deadline nào!)";
             }
+        }
 
-            // --- HỆ THỐNG WINDOWS TOAST NOTIFICATION ---
-            if (!_daThongBao)
+        private void ApplyStreak()
+        {
+            var dataStreak = Services.StreakManager.GetCurrentStreak();
+            ChuoiStreak = $"🔥 {dataStreak.StreakCount} Ngày";
+        }
+
+        private void RaiseNotification(IReadOnlyList<TaskDashboardItem> topTasks)
+        {
+            if (_daThongBao) return;
+
+            int urgentCount = topTasks.Count(t => t.MucDoCanhBao == "Khẩn cấp");
+            if (urgentCount > 0)
             {
-                // ĐÃ SỬA TÊN BIẾN
-                int soTaskKhanCap = top5KhanCap.Count(t => t.MucDoCanhBao == "Khẩn cấp");
-
-                if (soTaskKhanCap > 0)
-                {
-                    // Lắp ráp và bắn thông báo ra Desktop
-                    new ToastContentBuilder()
-                        .AddText("🔥 CẢNH BÁO DEADLINE!")
-                        .AddText($"Bạn đang có {soTaskKhanCap} bài tập KHẨN CẤP cần xử lý ngay lập tức!")
-                        .AddText("Hãy kiểm tra Smart Study Planner để xem gợi ý lịch học.")
-                        .AddAudio(new Uri("ms-winsoundevent:Notification.Default"))
-                        .Show();
-
-                    _daThongBao = true;
-                }
-                else if (tatCaTask.Count > 0)
-                {
-                    new ToastContentBuilder()
-                        .AddText("✅ Mọi thứ đang trong tầm kiểm soát!")
-                        .AddText($"Bạn có {tatCaTask.Count} bài tập, nhưng chưa có gì quá hạn.")
-                        .Show();
-
-                    _daThongBao = true;
-                }
+                new ToastContentBuilder()
+                    .AddText("🔥 CẢNH BÁO DEADLINE!")
+                    .AddText($"Bạn đang có {urgentCount} bài tập KHẨN CẤP cần xử lý ngay lập tức!")
+                    .AddText("Hãy kiểm tra Smart Study Planner để xem gợi ý lịch học.")
+                    .AddAudio(new Uri("ms-winsoundevent:Notification.Default"))
+                    .Show();
+                _daThongBao = true;
             }
+            else if (topTasks.Count > 0)
+            {
+                new ToastContentBuilder()
+                    .AddText("✅ Mọi thứ đang trong tầm kiểm soát!")
+                    .AddText($"Bạn có {topTasks.Count} bài tập, nhưng chưa có gì quá hạn.")
+                    .Show();
+                _daThongBao = true;
+            }
+        }
+
+        private static string GetWarningLevel(StudyTask task)
+        {
+            if (task.TrangThai == "Hoàn thành") return "Đã xong";
+            if (task.DiemUuTien >= 80) return "Khẩn cấp";
+            if (task.DiemUuTien >= 50) return "Chú ý";
+            return "An toàn";
+        }
+
+        private static string TruncateLabel(string label)
+        {
+            return label.Length > 15 ? label[..12] + "..." : label;
         }
 
         [RelayCommand]
         private void MoQuanLyMonHoc() => OnNavigateToMonHoc?.Invoke(_hocKyHienTai);
 
         [RelayCommand]
-        private async Task LuuDuLieu() // Đổi từ void sang async Task
+        private async Task LuuDuLieu()
         {
             await _repository.LuuHocKyAsync(_hocKyHienTai);
             System.Windows.MessageBox.Show("Đã lưu tiến trình thành công!", "Save Game", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -262,42 +262,45 @@ namespace SmartStudyPlanner.ViewModels
         [RelayCommand]
         private void DiToiTask(TaskDashboardItem taskDuocChon)
         {
-            if (taskDuocChon != null)
-            {
-                MonHoc monHocCanTim = _hocKyHienTai.DanhSachMonHoc.FirstOrDefault(m => m.TenMonHoc == taskDuocChon.TenMonHoc);
-                if (monHocCanTim != null) OnNavigateToTask?.Invoke(_hocKyHienTai, monHocCanTim);
-            }
+            if (taskDuocChon == null) return;
+            MonHoc? monHocCanTim = _hocKyHienTai.DanhSachMonHoc.FirstOrDefault(m => m.TenMonHoc == taskDuocChon.TenMonHoc);
+            if (monHocCanTim != null) OnNavigateToTask?.Invoke(_hocKyHienTai, monHocCanTim);
         }
 
         [RelayCommand]
         private async Task MoFocusMode(TaskDashboardItem taskDuocChon)
         {
-            if (taskDuocChon != null)
-            {
-                var focusWin = new Views.FocusWindow(taskDuocChon);
-                focusWin.ShowDialog(); // App sẽ dừng ở dòng này chờ đến khi cửa sổ đóng
-
-                // KHI CỬA SỔ ĐÓNG, TỰ ĐỘNG LƯU DATABASE NGAY LẬP TỨC
-                await _repository.LuuHocKyAsync(_hocKyHienTai);
-
-                // Tải lại bảng xếp hạng
-                LoadDuLieuDashboard();
-            }
+            if (taskDuocChon == null) return;
+            var focusWin = new Views.FocusWindow(taskDuocChon);
+            focusWin.ShowDialog();
+            await _repository.LuuHocKyAsync(_hocKyHienTai);
+            LoadDuLieuDashboard();
         }
 
         [RelayCommand]
         private void MoWorkloadBalancer()
         {
             var win = new Views.WorkloadBalancerWindow(_hocKyHienTai);
-            win.Owner = System.Windows.Application.Current.MainWindow; // Làm mờ cửa sổ chính
+            win.Owner = System.Windows.Application.Current.MainWindow;
             win.ShowDialog();
             LoadDuLieuDashboard();
         }
 
         [RelayCommand]
-        private void ToggleTheme()
-        {
-            Services.ThemeManager.ToggleTheme();
-        }
+        private void ToggleTheme() => Services.ThemeManager.ToggleTheme();
+
+        private sealed record DashboardSummary(
+            int TotalSubjects,
+            int TotalOpenTasks,
+            IReadOnlyList<TaskDashboardItem> TopTasks,
+            IReadOnlyList<string> SubjectLabels,
+            IReadOnlyList<int> TaskCounts,
+            IReadOnlyList<double> ExpectedMinutes,
+            IReadOnlyList<double> ActualMinutes,
+            int UrgentCount,
+            int AttentionCount,
+            int SafeCount,
+            int CompletedCount,
+            ScheduleDay? ScheduleDay);
     }
 }
