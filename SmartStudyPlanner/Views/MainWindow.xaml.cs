@@ -21,6 +21,7 @@ namespace SmartStudyPlanner
         private DispatcherTimer _backgroundTimer;
         private bool _thucSuMuonTat = false;
         private HocKy? _currentHocKy;
+        private WorkloadBalancerWindow? _workloadWindow;
 
         public MainWindow()
         {
@@ -157,7 +158,7 @@ namespace SmartStudyPlanner
         {
             foreach (var btn in new[] { NavDashboard, NavMonHoc, NavWorkload })
             {
-                btn.SetResourceReference(BackgroundProperty, "Transparent");
+                btn.ClearValue(BackgroundProperty);
                 var sp = btn.Content as StackPanel;
                 if (sp == null) continue;
                 foreach (var tb in sp.Children.OfType<TextBlock>())
@@ -187,9 +188,13 @@ namespace SmartStudyPlanner
         private void NavWorkload_Click(object sender, RoutedEventArgs e)
         {
             if (_currentHocKy == null) return;
-            SetActiveNav(NavWorkload);
-            var win = new WorkloadBalancerWindow(_currentHocKy);
-            win.Show();
+            if (_workloadWindow == null || !_workloadWindow.IsLoaded)
+            {
+                _workloadWindow = new WorkloadBalancerWindow(_currentHocKy);
+                _workloadWindow.Show();
+            }
+            else
+                _workloadWindow.Activate();
         }
 
         private void BtnLuu_Click(object sender, RoutedEventArgs e)
@@ -203,7 +208,13 @@ namespace SmartStudyPlanner
         {
             if (MainFrame.Content is DashboardPage dp &&
                 dp.DataContext is DashboardViewModel vm)
+            {
                 vm.ToggleThemeCommand.Execute(null);
+                // Update icon: sun for dark mode (switch to light), moon for light mode (switch to dark)
+                var mergedDicts = System.Windows.Application.Current.Resources.MergedDictionaries;
+                bool isDark = mergedDicts.Any(d => d.Source?.OriginalString.Contains("DarkTheme") == true);
+                ThemeIcon.Text = isDark ? "" : ""; // moon vs. brightness/sun
+            }
         }
     }
 }
