@@ -9,13 +9,59 @@
         <StackPanel Margin="20">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
                 <TextBlock Text="{Binding TieuDe}" FontWeight="Bold" FontSize="22" Foreground="{DynamicResource PrimaryText}" Margin="0,0,20,0" VerticalAlignment="Center" />
-
-                <Border Background="{DynamicResource WarningBackground}" BorderBrush="{DynamicResource WarningColor}" BorderThickness="1" CornerRadius="12" Padding="15,4">
-                    <TextBlock Text="{Binding ChuoiStreak}" FontWeight="Bold" FontSize="16" Foreground="{DynamicResource WarningColor}" VerticalAlignment="Center" ToolTip="Chuỗi ngày duy trì học tập liên tục!" />
-                </Border>
             </StackPanel>
 
-            <TextBlock Text="{Binding ThongKe}" FontSize="14" Foreground="{DynamicResource SecondaryText}" HorizontalAlignment="Center" Margin="0,0,0,20" />
+            <Grid Margin="0,0,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Card 1: Task hôm nay -->
+                <Border Grid.Column="0" Background="{DynamicResource StatCardBackground}"
+                        CornerRadius="10" Padding="16,14"
+                        BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="&#xE8A1;" FontFamily="Segoe MDL2 Assets" FontSize="20"
+                                   Foreground="{DynamicResource AccentColor}" Margin="0,0,0,6"/>
+                        <TextBlock Text="{Binding SoTaskHomNay}" FontSize="28" FontWeight="Bold"
+                                   Foreground="{DynamicResource PrimaryText}"/>
+                        <TextBlock Text="Task hôm nay" FontSize="12"
+                                   Foreground="{DynamicResource SecondaryText}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Card 2: Tỉ lệ hoàn thành -->
+                <Border Grid.Column="2" Background="{DynamicResource StatCardBackground}"
+                        CornerRadius="10" Padding="16,14"
+                        BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="&#xE930;" FontFamily="Segoe MDL2 Assets" FontSize="20"
+                                   Foreground="{DynamicResource SuccessColor}" Margin="0,0,0,6"/>
+                        <TextBlock Text="{Binding TyLeHoanThanhText}" FontSize="28" FontWeight="Bold"
+                                   Foreground="{DynamicResource PrimaryText}"/>
+                        <TextBlock Text="Hoàn thành (Top 5)" FontSize="12"
+                                   Foreground="{DynamicResource SecondaryText}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Card 3: Streak -->
+                <Border Grid.Column="4" Background="{DynamicResource StatCardBackground}"
+                        CornerRadius="10" Padding="16,14"
+                        BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="&#xE734;" FontFamily="Segoe MDL2 Assets" FontSize="20"
+                                   Foreground="{DynamicResource WarningColor}" Margin="0,0,0,6"/>
+                        <TextBlock Text="{Binding ChuoiStreak}" FontSize="20" FontWeight="Bold"
+                                   Foreground="{DynamicResource PrimaryText}"/>
+                        <TextBlock Text="Streak duy trì" FontSize="12"
+                                   Foreground="{DynamicResource SecondaryText}"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
 
 <Grid Height="220" Margin="0,0,0,20">
                 <Grid.ColumnDefinitions>
