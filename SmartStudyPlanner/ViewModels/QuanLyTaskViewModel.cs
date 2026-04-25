@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Models;
@@ -17,7 +17,8 @@ namespace SmartStudyPlanner.ViewModels
         private StudyTask _taskDangSua = null;
 
         // Repository để tương tác với dữ liệu (nếu cần)
-        private readonly IStudyRepository _repository = new StudyRepository();
+        private readonly IStudyRepository _repository;
+        private readonly IDecisionEngine _decisionEngine;
 
         // 1. DỮ LIỆU HIỂN THỊ (BINDING)
         [ObservableProperty]
@@ -49,9 +50,14 @@ namespace SmartStudyPlanner.ViewModels
         public Action OnRefreshGrid { get; set; }
 
         public QuanLyTaskViewModel(HocKy hocKy, MonHoc monHoc)
+            : this(hocKy, monHoc, ServiceLocator.Get<IStudyRepository>(), ServiceLocator.Get<IDecisionEngine>()) { }
+
+        public QuanLyTaskViewModel(HocKy hocKy, MonHoc monHoc, IStudyRepository repository, IDecisionEngine decisionEngine)
         {
             HocKyHienTai = hocKy;
             MonHocHienTai = monHoc;
+            _repository = repository;
+            _decisionEngine = decisionEngine;
             TieuDe = $"QUẢN LÝ DEADLINE - MÔN {MonHocHienTai.TenMonHoc.ToUpper()}";
 
             TinhDiemVaSapXep();
@@ -62,7 +68,7 @@ namespace SmartStudyPlanner.ViewModels
         {
             foreach (var task in MonHocHienTai.DanhSachTask)
             {
-                task.DiemUuTien = DecisionEngine.CalculatePriority(task, MonHocHienTai);
+                task.DiemUuTien = _decisionEngine.CalculatePriority(task, MonHocHienTai);
 
                 if (task.TrangThai == "Hoàn thành") task.MucDoCanhBao = "Đã xong";
                 else if (task.DiemUuTien >= 80) task.MucDoCanhBao = "Khẩn cấp";

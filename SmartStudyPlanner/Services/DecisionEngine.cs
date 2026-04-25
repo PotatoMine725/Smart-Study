@@ -22,8 +22,15 @@ namespace SmartStudyPlanner.Services
         }
     }
 
+    /// <summary>
+    /// Static facade giữ nguyên để tương thích ngược với 7 call sites hiện tại.
+    /// Mọi logic thực tế đã chuyển sang DecisionEngineService (instance-based, injectable).
+    /// Không thêm logic mới vào đây — hãy thêm vào IDecisionEngine / DecisionEngineService.
+    /// </summary>
     public static class DecisionEngine
     {
+        // Config vẫn được giữ ở đây vì một số ViewModel đọc trực tiếp HorizonDays.
+        // DecisionEngineService nhận config qua cfgAccessor lambda nên luôn đồng bộ.
         public static WeightConfig Config { get; set; } = new WeightConfig();
 
         private static readonly ITaskTypeWeightProvider _taskTypeProvider = new DefaultTaskTypeWeightProvider();
@@ -94,3 +101,4 @@ namespace SmartStudyPlanner.Services
         }
     }
 }
+
