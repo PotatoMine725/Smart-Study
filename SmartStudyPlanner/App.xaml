@@ -8,6 +8,46 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="pack://application:,,,/Themes/LightTheme.xaml"/>
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- Badge brushes — static, không đổi theo theme -->
+            <SolidColorBrush x:Key="BadgeDanger"  Color="#DC2626"/>
+            <SolidColorBrush x:Key="BadgeWarning" Color="#D97706"/>
+            <SolidColorBrush x:Key="BadgeSuccess" Color="#16A34A"/>
+            <SolidColorBrush x:Key="BadgeNeutral" Color="#64748B"/>
+
+            <!-- Global Button base style — xóa default Windows chrome -->
+            <Style TargetType="Button">
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Cursor"          Value="Hand"/>
+                <Setter Property="FontFamily"      Value="Segoe UI"/>
+                <Setter Property="FontSize"        Value="13"/>
+                <Setter Property="Padding"         Value="14,8"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="border"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="6"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Opacity" Value="0.85"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="border" Property="Opacity" Value="0.70"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="border" Property="Opacity" Value="0.38"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
