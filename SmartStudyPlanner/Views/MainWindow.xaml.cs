@@ -1,8 +1,13 @@
-﻿using Microsoft.Toolkit.Uwp.Notifications;
+using Microsoft.Toolkit.Uwp.Notifications;
 using SmartStudyPlanner.Data;
+using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
+using SmartStudyPlanner.ViewModels;
+using SmartStudyPlanner.Views;
 using System;
+using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Threading;
 
 // Sử dụng alias để phân biệt các hàm của WPF và Windows Forms
@@ -15,10 +20,13 @@ namespace SmartStudyPlanner
         private WinForms.NotifyIcon _notifyIcon;
         private DispatcherTimer _backgroundTimer;
         private bool _thucSuMuonTat = false;
+        private HocKy? _currentHocKy;
+
         public MainWindow()
         {
             InitializeComponent();
             this.Loaded += MainWindow_Loaded;
+            MainFrame.Navigated += MainFrame_Navigated;
 
             // 1. Cài đặt System Tray (Khay hệ thống)
             SetupSystemTray();
@@ -30,6 +38,12 @@ namespace SmartStudyPlanner
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             MainFrame.Navigate(new SetupPage());
+        }
+
+        private void MainFrame_Navigated(object sender, System.Windows.Navigation.NavigationEventArgs e)
+        {
+            if (e.Content is DashboardPage dp)
+                _currentHocKy = dp.HocKy;
         }
 
         private void SetupSystemTray()
@@ -135,6 +149,61 @@ namespace SmartStudyPlanner
 
             // ĐÃ SỬA LỖI 2: Chỉ định rõ Application của thằng WPF
             System.Windows.Application.Current.Shutdown();
+        }
+
+        // ── Sidebar Navigation ──
+
+        private void SetActiveNav(System.Windows.Controls.Button active)
+        {
+            foreach (var btn in new[] { NavDashboard, NavMonHoc, NavWorkload })
+            {
+                btn.SetResourceReference(BackgroundProperty, "Transparent");
+                var sp = btn.Content as StackPanel;
+                if (sp == null) continue;
+                foreach (var tb in sp.Children.OfType<TextBlock>())
+                    tb.SetResourceReference(TextBlock.ForegroundProperty, "SidebarText");
+            }
+            active.SetResourceReference(BackgroundProperty, "SidebarActiveBackground");
+            var activeSp = active.Content as StackPanel;
+            if (activeSp != null)
+                foreach (var tb in activeSp.Children.OfType<TextBlock>())
+                    tb.SetResourceReference(TextBlock.ForegroundProperty, "SidebarActiveText");
+        }
+
+        private void NavDashboard_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentHocKy == null) return;
+            SetActiveNav(NavDashboard);
+            MainFrame.Navigate(new DashboardPage(_currentHocKy));
+        }
+
+        private void NavMonHoc_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentHocKy == null) return;
+            SetActiveNav(NavMonHoc);
+            MainFrame.Navigate(new QuanLyMonHocPage(_currentHocKy));
+        }
+
+        private void NavWorkload_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentHocKy == null) return;
+            SetActiveNav(NavWorkload);
+            var win = new WorkloadBalancerWindow(_currentHocKy);
+            win.Show();
+        }
+
+        private void BtnLuu_Click(object sender, RoutedEventArgs e)
+        {
+            if (MainFrame.Content is DashboardPage dp &&
+                dp.DataContext is DashboardViewModel vm)
+                vm.LuuDuLieuCommand.Execute(null);
+        }
+
+        private void BtnTheme_Click(object sender, RoutedEventArgs e)
+        {
+            if (MainFrame.Content is DashboardPage dp &&
+                dp.DataContext is DashboardViewModel vm)
+                vm.ToggleThemeCommand.Execute(null);
         }
     }
 }
