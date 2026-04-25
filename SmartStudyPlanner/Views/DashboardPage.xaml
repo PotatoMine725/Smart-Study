@@ -65,7 +65,33 @@
                     <DataGridTextColumn Header="Hạn Chót" Binding="{Binding HanChot, StringFormat=dd/MM/yyyy}" Width="90" />
                     <DataGridTextColumn Header="Đã học" Binding="{Binding TaskGoc.ThoiGianDaHoc, StringFormat={}{0} phút}" Width="75" Foreground="{DynamicResource SecondaryText}" FontWeight="Bold"/>
                     <DataGridTextColumn Header="Điểm ƯT" Binding="{Binding DiemUuTien}" Width="75" />
-                    <DataGridTextColumn Header="Mức Độ" Binding="{Binding MucDoCanhBao}" Width="85" />
+                    <DataGridTemplateColumn Header="Mức Độ" Width="100">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border CornerRadius="4" Padding="8,3"
+                                        HorizontalAlignment="Left" Margin="4,2">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="{StaticResource BadgeNeutral}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding MucDoCanhBao}" Value="Khẩn cấp">
+                                                    <Setter Property="Background" Value="{StaticResource BadgeDanger}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding MucDoCanhBao}" Value="Chú ý">
+                                                    <Setter Property="Background" Value="{StaticResource BadgeWarning}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding MucDoCanhBao}" Value="An toàn">
+                                                    <Setter Property="Background" Value="{StaticResource BadgeSuccess}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding MucDoCanhBao}" Foreground="White"
+                                               FontSize="11" FontWeight="SemiBold"/>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                     <DataGridTextColumn Header="Rủi Ro" Binding="{Binding MucDoRuiRo}" Width="130" FontWeight="Bold"/>
                     <DataGridTextColumn Header="Cần học thêm" Binding="{Binding ThoiGianGoiY}" Width="120" FontWeight="Bold" Foreground="{DynamicResource SuccessColor}"/>
 
