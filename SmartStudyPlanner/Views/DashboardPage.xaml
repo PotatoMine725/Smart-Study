@@ -4,6 +4,14 @@
       xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
       Title="Dashboard" Loaded="Page_Loaded"
       Background="{DynamicResource AppBackground}">
+    <Page.Resources>
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="FontSize"     Value="14"/>
+            <Setter Property="FontWeight"   Value="SemiBold"/>
+            <Setter Property="Foreground"   Value="{DynamicResource PrimaryText}"/>
+            <Setter Property="Margin"       Value="0,20,0,10"/>
+        </Style>
+    </Page.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
 
         <StackPanel Margin="20">
@@ -84,7 +92,12 @@
                 </StackPanel>
             </Grid>
 
-            <TextBlock Text="🔥 TOP 5 DEADLINE KHẨN CẤP NHẤT" FontWeight="Bold" FontSize="16" Foreground="{DynamicResource DangerColor}" Margin="0,0,0,10" />
+            <StackPanel Orientation="Horizontal" Margin="0,20,0,10">
+                <TextBlock Text="&#xEA6C;" FontFamily="Segoe MDL2 Assets" FontSize="15"
+                           Foreground="{DynamicResource DangerColor}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBlock Text="TOP 5 DEADLINE KHẨN CẤP NHẤT" Style="{StaticResource SectionHeader}"
+                           Foreground="{DynamicResource DangerColor}" Margin="0"/>
+            </StackPanel>
 
             <DataGrid Height="260" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" ItemsSource="{Binding Top5Task}"
                       Background="{DynamicResource CardBackground}" Foreground="{DynamicResource PrimaryText}">
@@ -163,12 +176,22 @@
                 </DataGrid.Columns>
             </DataGrid>
 
-            <TextBlock Text="{Binding TieuDeLichHomNay}" FontWeight="Bold" FontSize="16" Foreground="{DynamicResource SuccessColor}" Margin="0,20,0,10" />
+            <StackPanel Orientation="Horizontal" Margin="0,20,0,10">
+                <TextBlock Text="&#xE8BF;" FontFamily="Segoe MDL2 Assets" FontSize="15"
+                           Foreground="{DynamicResource SuccessColor}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBlock Text="{Binding TieuDeLichHomNay}" Style="{StaticResource SectionHeader}"
+                           Foreground="{DynamicResource SuccessColor}" Margin="0"/>
+            </StackPanel>
 
             <ItemsControl ItemsSource="{Binding LichHocHomNay}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Background="{DynamicResource CardBackground}" CornerRadius="5" Padding="10" Margin="0,0,0,5" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
+                        <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="12,10"
+                                Margin="0,0,0,6"
+                                BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#000000" Opacity="0.04" BlurRadius="8" ShadowDepth="1"/>
+                            </Border.Effect>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -185,7 +208,12 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <TextBlock Text="📈 TIẾN ĐỘ THỜI GIAN HỌC" FontWeight="Bold" FontSize="16" Foreground="{DynamicResource AccentColor}" Margin="0,20,0,10" />
+            <StackPanel Orientation="Horizontal" Margin="0,20,0,10">
+                <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="15"
+                           Foreground="{DynamicResource AccentColor}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBlock Text="TIẾN ĐỘ THỜI GIAN HỌC" Style="{StaticResource SectionHeader}"
+                           Foreground="{DynamicResource AccentColor}" Margin="0"/>
+            </StackPanel>
 
             <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="10" Margin="0,0,0,20" Height="250">
                 <lvc:CartesianChart Series="{Binding BieuDoThoiGian}" XAxes="{Binding TrucXThoiGian}" LegendPosition="Right" />
