@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__code-review-graph__get_architecture_overview_tool",
+      "mcp__code-review-graph__semantic_search_nodes_tool",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "code-review-graph"
+  ],
+  "enabledPlugins": {
+    "skill-creator@claude-plugins-official": true
+  }
+}

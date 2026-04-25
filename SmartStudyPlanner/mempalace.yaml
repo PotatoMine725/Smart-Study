@@ -1,0 +1,39 @@
+wing: smartstudyplanner
+rooms:
+- name: data
+  description: Files from Data/
+  keywords:
+  - data
+  - data
+- name: backend
+  description: Files from Models/
+  keywords:
+  - backend
+  - models
+- name: properties
+  description: Files from Properties/
+  keywords:
+  - properties
+  - properties
+- name: themes
+  description: Files from Themes/
+  keywords:
+  - themes
+  - themes
+- name: viewmodels
+  description: Files from ViewModels/
+  keywords:
+  - viewmodels
+  - viewmodels
+- name: frontend
+  description: Files from Views/
+  keywords:
+  - frontend
+  - views
+- name: general
+  description: Files that don't fit other rooms
+  keywords: []
+- name: services
+  description: engines and rule-based logic, ML in the future
+  keywords:
+  - services
