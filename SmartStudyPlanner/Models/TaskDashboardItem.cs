@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace SmartStudyPlanner.Models
 {
@@ -14,5 +14,9 @@ namespace SmartStudyPlanner.Models
         public string ThoiGianGoiY { get; set; }
         public StudyTask TaskGoc { get; set; }
         public MonHoc MonHocGoc { get; set; }
+
+        // Risk Analyzer fields (Module 4)
+        public string MucDoRuiRo { get; set; } = "—";
+        public double RiskScore { get; set; } = 0.0;
     }
-}
+}

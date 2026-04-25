@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Toolkit.Uwp.Notifications;
 // THÊM 3 THƯ VIỆN NÀY CHO BIỂU ĐỒ
@@ -9,6 +9,7 @@ using SkiaSharp;
 using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
+using SmartStudyPlanner.Services.RiskAnalyzer;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -22,7 +23,10 @@ namespace SmartStudyPlanner.ViewModels
     {
         private HocKy _hocKyHienTai;
         private static bool _daThongBao = false; // Biến static để nhớ là đã báo rồi
-        private readonly IStudyRepository _repository = new StudyRepository();
+        private readonly IStudyRepository _repository;
+        private readonly IDecisionEngine _decisionEngine;
+        private readonly IWorkloadService _workloadService;
+        private readonly IRiskAnalyzer _riskAnalyzer;
 
         [ObservableProperty] private string tieuDe;
         [ObservableProperty] private string thongKe;
@@ -37,15 +41,26 @@ namespace SmartStudyPlanner.ViewModels
         [ObservableProperty] private Axis[] trucXThoiGian;
 
         [ObservableProperty] private string chuoiStreak;
-        [ObservableProperty] private ObservableCollection<Services.ScheduledTask> lichHocHomNay = new ObservableCollection<Services.ScheduledTask>();
+        [ObservableProperty] private ObservableCollection<Models.ScheduledTask> lichHocHomNay = new ObservableCollection<Models.ScheduledTask>();
         [ObservableProperty] private string tieuDeLichHomNay;
 
         public Action<HocKy> OnNavigateToMonHoc { get; set; }
         public Action<HocKy, MonHoc> OnNavigateToTask { get; set; }
 
         public DashboardViewModel(HocKy hocKy)
+            : this(hocKy,
+                   ServiceLocator.Get<IStudyRepository>(),
+                   ServiceLocator.Get<IDecisionEngine>(),
+                   ServiceLocator.Get<IWorkloadService>(),
+                   ServiceLocator.Get<IRiskAnalyzer>()) { }
+
+        public DashboardViewModel(HocKy hocKy, IStudyRepository repository, IDecisionEngine decisionEngine, IWorkloadService workloadService, IRiskAnalyzer riskAnalyzer)
         {
             _hocKyHienTai = hocKy;
+            _repository = repository;
+            _decisionEngine = decisionEngine;
+            _workloadService = workloadService;
+            _riskAnalyzer = riskAnalyzer;
             Top5Task = new ObservableCollection<TaskDashboardItem>();
             LoadDuLieuDashboard();
         }
@@ -83,10 +98,10 @@ namespace SmartStudyPlanner.ViewModels
                 foreach (var task in mon.DanhSachTask)
                 {
                     taskCuaMon++;
-                    task.DiemUuTien = DecisionEngine.CalculatePriority(task, mon);
+                    task.DiemUuTien = _decisionEngine.CalculatePriority(task, mon);
 
                     // 🔥 THU THẬP DỮ LIỆU THỜI GIAN CHO BIỂU ĐỒ MỚI
-                    tongKyVongMon += DecisionEngine.CalculateRawSuggestedMinutes(task);
+                    tongKyVongMon += _decisionEngine.CalculateRawSuggestedMinutes(task);
                     tongThucTeMon += task.ThoiGianDaHoc;
 
                     string mucDo = "An toàn";
@@ -112,16 +127,19 @@ namespace SmartStudyPlanner.ViewModels
 
                     if (task.TrangThai != "Hoàn thành")
                     {
+                        var risk = _riskAnalyzer.Assess(task, mon);
                         tatCaTask.Add(new TaskDashboardItem
                         {
-                            TenMonHoc = mon.TenMonHoc,
-                            TenTask = task.TenTask,
-                            HanChot = task.HanChot,
-                            DiemUuTien = task.DiemUuTien,
+                            TenMonHoc    = mon.TenMonHoc,
+                            TenTask      = task.TenTask,
+                            HanChot      = task.HanChot,
+                            DiemUuTien   = task.DiemUuTien,
                             MucDoCanhBao = mucDo,
-                            ThoiGianGoiY = DecisionEngine.SuggestStudyTime(task),
-                            TaskGoc = task,
-                            MonHocGoc = mon
+                            ThoiGianGoiY = _decisionEngine.SuggestStudyTime(task),
+                            TaskGoc      = task,
+                            MonHocGoc    = mon,
+                            MucDoRuiRo   = risk.DisplayLabel,
+                            RiskScore    = risk.Score
                         });
                     }
                 }
@@ -186,8 +204,8 @@ namespace SmartStudyPlanner.ViewModels
             ChuoiStreak = $"🔥 {dataStreak.StreakCount} Ngày";
 
             // --- KẾ HOẠCH HỌC TẬP HÔM NAY (TỪ BALANCER) ---
-            double currentCap = Services.WorkloadService.GetCapacity();
-            var fullSchedule = Services.WorkloadService.GenerateSchedule(_hocKyHienTai, currentCap);
+            double currentCap = _workloadService.GetCapacity();
+            var fullSchedule = _workloadService.GenerateSchedule(_hocKyHienTai, currentCap);
             var todaySchedule = fullSchedule.FirstOrDefault(); // Rút đúng cái ngày "Hôm nay" ra
 
             LichHocHomNay.Clear();
