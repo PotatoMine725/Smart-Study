@@ -106,7 +106,7 @@
                                     <TextBlock Text="{Binding TenTask}" FontWeight="Bold" Foreground="{DynamicResource PrimaryText}"/>
                                     <TextBlock Text="{Binding TenMon}" FontSize="12" Foreground="{DynamicResource SecondaryText}"/>
                                 </StackPanel>
-                                <TextBlock Grid.Column="1" Text="{Binding ThoiGianHienThi}" FontWeight="Bold" Foreground="#E67E22" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{Binding ThoiGianHienThi}" FontWeight="Bold" Foreground="{DynamicResource WarningColor}" VerticalAlignment="Center"/>
                             </Grid>
                         </Border>
                     </DataTemplate>

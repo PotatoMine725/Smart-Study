@@ -17,6 +17,7 @@
 
             <!-- Global Button base style — xóa default Windows chrome -->
             <Style TargetType="Button">
+                <Setter Property="Background"      Value="{DynamicResource SurfaceHover}"/>
                 <Setter Property="BorderThickness" Value="0"/>
                 <Setter Property="Cursor"          Value="Hand"/>
                 <Setter Property="FontFamily"      Value="Segoe UI"/>
