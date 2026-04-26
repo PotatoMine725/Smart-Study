@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services.Analytics;
+using SmartStudyPlanner.Tests.Helpers;
+using SmartStudyPlanner.ViewModels;
 using Xunit;
 
 namespace SmartStudyPlanner.Tests
@@ -88,6 +90,24 @@ namespace SmartStudyPlanner.Tests
             Assert.Equal(0.5, insights[0].CompletionRate, precision: 2);
             Assert.Equal("Toán", insights[0].SubjectName);
             Assert.Equal(1, insights[0].CompletedTaskCount);
+        }
+        [Fact]
+        public void FocusViewModel_WritesStudyLog_OnHoanThanh()
+        {
+            var task = new StudyTask("Test", DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2);
+            var item = new TaskDashboardItem { TaskGoc = task, TenTask = "Test", TenMonHoc = "Toán" };
+            var repo = new FakeStudyRepository();
+            var vm   = new FocusViewModel(item, repo);
+
+            vm.SimulateStudySeconds(300); // 5 minutes
+            vm.HoanThanhCommand.Execute(null);
+
+            Assert.Single(repo.AddedLogs);
+            Assert.Equal(task.MaTask, repo.AddedLogs[0].MaTask);
+            Assert.Equal(5, repo.AddedLogs[0].SoPhutHoc);
+            Assert.True(repo.AddedLogs[0].DaHoanThanh);
+            Assert.Equal(DateTime.Today, task.NgayHoanThanh);
+            Assert.Equal(StudyTaskStatus.HoanThanh, task.TrangThai);
         }
     }
 }

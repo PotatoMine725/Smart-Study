@@ -77,5 +77,25 @@ namespace SmartStudyPlanner.Data
                          .ToListAsync();
             }
         }
+
+        public async Task AddStudyLogAsync(StudyLog log)
+        {
+            using var db = new AppDbContext();
+            db.StudyLogs.Add(log);
+            await db.SaveChangesAsync();
+        }
+
+        public async Task<List<StudyLog>> GetStudyLogsAsync(HocKy hocKy)
+        {
+            using var db = new AppDbContext();
+            var taskIds = hocKy.DanhSachMonHoc
+                .SelectMany(m => m.DanhSachTask)
+                .Select(t => t.MaTask)
+                .ToHashSet();
+            return await db.StudyLogs
+                .Where(l => taskIds.Contains(l.MaTask))
+                .OrderBy(l => l.NgayHoc)
+                .ToListAsync();
+        }
     }
 }

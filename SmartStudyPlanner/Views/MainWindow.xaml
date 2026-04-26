@@ -97,6 +97,17 @@
                                        Foreground="{DynamicResource SidebarText}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
+
+                    <Button x:Name="NavAnalytics" Click="NavAnalytics_Click"
+                            Background="Transparent" HorizontalContentAlignment="Left"
+                            Padding="12,10" Margin="0,2">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="16"
+                                       Foreground="{DynamicResource SidebarIconColor}" Width="24"/>
+                            <TextBlock Text="Analytics" FontSize="13"
+                                       Foreground="{DynamicResource SidebarText}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
 
             </DockPanel>
