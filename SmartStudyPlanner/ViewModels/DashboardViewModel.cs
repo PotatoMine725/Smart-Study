@@ -40,8 +40,11 @@ namespace SmartStudyPlanner.ViewModels
         [ObservableProperty] private string chuoiStreak;
         [ObservableProperty] private ObservableCollection<ScheduledTask> lichHocHomNay = new();
         [ObservableProperty] private string tieuDeLichHomNay;
+        [ObservableProperty] private ObservableCollection<AdaptationSuggestion> adaptationItems = new();
 
         public int SoTaskHomNay => LichHocHomNay?.Count ?? 0;
+
+        public bool HasAdaptations => AdaptationItems.Count > 0;
 
         public string TyLeHoanThanhText
         {
@@ -78,6 +81,12 @@ namespace SmartStudyPlanner.ViewModels
             LoadDuLieuDashboard();
         }
 
+        private void ApplyAdaptations(IReadOnlyList<AdaptationSuggestion> adaptations)
+        {
+            AdaptationItems.Clear();
+            foreach (var a in adaptations) AdaptationItems.Add(a);
+        }
+
         public void LoadDuLieuDashboard()
         {
             TieuDe = $"TỔNG QUAN - {_hocKyHienTai.Ten.ToUpper()}";
@@ -98,10 +107,12 @@ namespace SmartStudyPlanner.ViewModels
             ApplySummary(summary);
             ApplyCharts(summary);
             ApplySchedule(summary.ScheduleDay);
+            ApplyAdaptations(pipelineResult.Adaptations);
             ApplyStreak();
             RaiseNotification(summary.TopTasks);
             OnPropertyChanged(nameof(SoTaskHomNay));
             OnPropertyChanged(nameof(TyLeHoanThanhText));
+            OnPropertyChanged(nameof(HasAdaptations));
         }
 
         private DashboardSummary BuildDashboardSummary(PipelineExecutionResult pipelineResult)
