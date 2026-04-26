@@ -42,7 +42,7 @@ namespace SmartStudyPlanner.Services.Strategies
         public bool TryApply(StudyTask task, double daysLeft, WeightConfig cfg, out double score)
         {
             score = 0;
-            if (task.TrangThai == "Hoàn thành") { score = 0.0; return true; }
+            if (task.TrangThai == StudyTaskStatus.HoanThanh) { score = 0.0; return true; }
             return false;
         }
     }

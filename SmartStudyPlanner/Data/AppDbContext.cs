@@ -13,6 +13,7 @@ namespace SmartStudyPlanner.Data
         public DbSet<HocKy> HocKys { get; set; }
         public DbSet<MonHoc> MonHocs { get; set; }
         public DbSet<StudyTask> StudyTasks { get; set; }
+        public DbSet<StudyLog> StudyLogs { get; set; }
 
         // 2. CẤU HÌNH ĐƯỜNG DẪN LƯU FILE SQLITE
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

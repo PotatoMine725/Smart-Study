@@ -45,7 +45,7 @@ namespace SmartStudyPlanner.Services
 
             foreach (var mon in hocKy.DanhSachMonHoc)
             {
-                foreach (var task in mon.DanhSachTask.Where(t => t.TrangThai != "Hoàn thành"))
+                foreach (var task in mon.DanhSachTask.Where(t => t.TrangThai != StudyTaskStatus.HoanThanh))
                 {
                     task.DiemUuTien = _decisionEngine.CalculatePriority(task, mon);
                     tatCaTask.Add(task);

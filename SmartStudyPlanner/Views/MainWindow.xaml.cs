@@ -45,6 +45,8 @@ namespace SmartStudyPlanner
         {
             if (e.Content is DashboardPage dp)
                 _currentHocKy = dp.HocKy;
+            else if (e.Content is AnalyticsPage ap)
+                _currentHocKy = ap.HocKy;
         }
 
         private void SetupSystemTray()
@@ -91,7 +93,7 @@ namespace SmartStudyPlanner
                 {
                     foreach (var task in mon.DanhSachTask)
                     {
-                        if (task.TrangThai != "Hoàn thành")
+                        if (task.TrangThai != StudyTaskStatus.HoanThanh)
                         {
                             double diem = decisionEngine.CalculatePriority(task, mon);
                             if (diem >= 80) soTaskKhanCap++;
@@ -156,7 +158,7 @@ namespace SmartStudyPlanner
 
         private void SetActiveNav(System.Windows.Controls.Button active)
         {
-            foreach (var btn in new[] { NavDashboard, NavMonHoc, NavWorkload })
+            foreach (var btn in new[] { NavDashboard, NavMonHoc, NavWorkload, NavAnalytics })
             {
                 btn.ClearValue(BackgroundProperty);
                 var sp = btn.Content as StackPanel;
@@ -195,6 +197,13 @@ namespace SmartStudyPlanner
             }
             else
                 _workloadWindow.Activate();
+        }
+
+        private void NavAnalytics_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentHocKy == null) return;
+            SetActiveNav(NavAnalytics);
+            MainFrame.Navigate(new AnalyticsPage(_currentHocKy));
         }
 
         private void BtnLuu_Click(object sender, RoutedEventArgs e)

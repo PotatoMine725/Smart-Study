@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using SmartStudyPlanner.Data;
+using SmartStudyPlanner.Services.Analytics;
 using SmartStudyPlanner.Services.Pipeline;
 using SmartStudyPlanner.Services.Pipeline.Stages;
 using SmartStudyPlanner.Services.RiskAnalyzer;
@@ -43,6 +44,7 @@ namespace SmartStudyPlanner.Services
             services.AddSingleton<IPipelineStage, AssessRiskStage>();
             services.AddSingleton<IPipelineStage, AdaptStage>();
             services.AddSingleton<IPipelineOrchestrator, PipelineOrchestrator>();
+            services.AddSingleton<IStudyAnalytics, StudyAnalyticsService>();
 
             return services.BuildServiceProvider();
         }

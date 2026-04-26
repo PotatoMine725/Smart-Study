@@ -218,6 +218,50 @@
             <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="10" Margin="0,0,0,20" Height="250">
                 <lvc:CartesianChart Series="{Binding BieuDoThoiGian}" XAxes="{Binding TrucXThoiGian}" LegendPosition="Right" />
             </Border>
+
+            <!-- Adaptations — collapsed when no suggestions -->
+            <StackPanel Orientation="Horizontal" Margin="0,20,0,10">
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasAdaptations}" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+                <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="15"
+                           Foreground="{DynamicResource AccentColor}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBlock Text="GỢI Ý THÍCH NGHI" Style="{StaticResource SectionHeader}"
+                           Foreground="{DynamicResource AccentColor}" Margin="0"/>
+            </StackPanel>
+
+            <ItemsControl ItemsSource="{Binding AdaptationItems}" Margin="0,0,0,10">
+                <ItemsControl.Style>
+                    <Style TargetType="ItemsControl">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasAdaptations}" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ItemsControl.Style>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="12,10"
+                                Margin="0,0,0,6" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE8CA;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                           Foreground="{DynamicResource AccentColor}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <TextBlock Text="{Binding Message}" FontSize="13" Foreground="{DynamicResource PrimaryText}"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </StackPanel>
     </ScrollViewer>
 

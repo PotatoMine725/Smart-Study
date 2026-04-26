@@ -11,5 +11,7 @@ namespace SmartStudyPlanner.Data
         Task<HocKy> DocHocKyAsync();
         Task<List<HocKy>> LayDanhSachHocKyAsync();
         Task LuuHocKyAsync(HocKy hocKy);
+        Task AddStudyLogAsync(StudyLog log);
+        Task<List<StudyLog>> GetStudyLogsAsync(HocKy hocKy);
     }
 }

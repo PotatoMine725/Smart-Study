@@ -11,7 +11,7 @@ namespace SmartStudyPlanner.Services.Pipeline.Stages
     /// </summary>
     public sealed class AdaptStage : IPipelineStage
     {
-        private const int AssumedSemesterDays = 120;
+        private const int FallbackSemesterDays = 120;
 
         public PipelineStageType StageType => PipelineStageType.Adapt;
         public int Order => (int)StageType;
@@ -32,7 +32,10 @@ namespace SmartStudyPlanner.Services.Pipeline.Stages
                 var start = semester.NgayBatDau.Date;
                 var today = context.ReferenceTime.Date;
                 var daysPassed = Math.Max(0, (today - start).Days);
-                var totalDays = Math.Max(1, AssumedSemesterDays);
+                var end = semester.NgayKetThuc != default
+                    ? semester.NgayKetThuc.Date
+                    : start.AddDays(FallbackSemesterDays);
+                var totalDays = Math.Max(1, (end - start).Days);
                 var expectedProgress = (double)daysPassed / totalDays;
 
                 foreach (var mon in semester.DanhSachMonHoc)
@@ -40,7 +43,7 @@ namespace SmartStudyPlanner.Services.Pipeline.Stages
                     var taskCount = mon.DanhSachTask.Count;
                     if (taskCount == 0) continue;
 
-                    var completed = mon.DanhSachTask.Count(t => t.TrangThai == "Hoàn thành");
+                    var completed = mon.DanhSachTask.Count(t => t.TrangThai == StudyTaskStatus.HoanThanh);
                     var progress = (double)completed / taskCount;
 
                     if (progress + 0.05 < expectedProgress)

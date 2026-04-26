@@ -40,8 +40,11 @@ namespace SmartStudyPlanner.ViewModels
         [ObservableProperty] private string chuoiStreak;
         [ObservableProperty] private ObservableCollection<ScheduledTask> lichHocHomNay = new();
         [ObservableProperty] private string tieuDeLichHomNay;
+        [ObservableProperty] private ObservableCollection<AdaptationSuggestion> adaptationItems = new();
 
         public int SoTaskHomNay => LichHocHomNay?.Count ?? 0;
+
+        public bool HasAdaptations => AdaptationItems.Count > 0;
 
         public string TyLeHoanThanhText
         {
@@ -78,6 +81,12 @@ namespace SmartStudyPlanner.ViewModels
             LoadDuLieuDashboard();
         }
 
+        private void ApplyAdaptations(IReadOnlyList<AdaptationSuggestion> adaptations)
+        {
+            AdaptationItems.Clear();
+            foreach (var a in adaptations) AdaptationItems.Add(a);
+        }
+
         public void LoadDuLieuDashboard()
         {
             TieuDe = $"TỔNG QUAN - {_hocKyHienTai.Ten.ToUpper()}";
@@ -94,18 +103,23 @@ namespace SmartStudyPlanner.ViewModels
                 }
             });
 
-            var summary = BuildDashboardSummary(pipelineResult.Schedule.FirstOrDefault());
+            var summary = BuildDashboardSummary(pipelineResult);
             ApplySummary(summary);
             ApplyCharts(summary);
             ApplySchedule(summary.ScheduleDay);
+            ApplyAdaptations(pipelineResult.Adaptations);
             ApplyStreak();
             RaiseNotification(summary.TopTasks);
             OnPropertyChanged(nameof(SoTaskHomNay));
             OnPropertyChanged(nameof(TyLeHoanThanhText));
+            OnPropertyChanged(nameof(HasAdaptations));
         }
 
-        private DashboardSummary BuildDashboardSummary(ScheduleDay? todaySchedule)
+        private DashboardSummary BuildDashboardSummary(PipelineExecutionResult pipelineResult)
         {
+            var todaySchedule = pipelineResult.Schedule.FirstOrDefault();
+            var riskById = pipelineResult.RiskReport.ToDictionary(r => r.TaskId);
+
             int tongSoMon = _hocKyHienTai.DanhSachMonHoc.Count;
             var topTasks = new List<TaskDashboardItem>();
             var monLabels = new List<string>();
@@ -125,19 +139,20 @@ namespace SmartStudyPlanner.ViewModels
                 foreach (var task in mon.DanhSachTask)
                 {
                     taskCount++;
-                    task.DiemUuTien = _decisionEngine.CalculatePriority(task, mon);
                     expected += _decisionEngine.CalculateRawSuggestedMinutes(task);
                     actual += task.ThoiGianDaHoc;
 
                     var warningLevel = GetWarningLevel(task);
-                    if (task.TrangThai == "Hoàn thành") countDaXong++;
+                    if (task.TrangThai == StudyTaskStatus.HoanThanh) countDaXong++;
                     else if (task.DiemUuTien >= 80) countKhanCap++;
                     else if (task.DiemUuTien >= 50) countChuY++;
                     else countAnToan++;
 
-                    if (task.TrangThai != "Hoàn thành")
+                    if (task.TrangThai != StudyTaskStatus.HoanThanh)
                     {
-                        var risk = _riskAnalyzer.Assess(task, mon);
+                        var risk = riskById.TryGetValue(task.MaTask, out var cached)
+                            ? cached
+                            : _riskAnalyzer.Assess(task, mon); // fallback: pipeline was skipped
                         topTasks.Add(new TaskDashboardItem
                         {
                             TenMonHoc = mon.TenMonHoc,
@@ -253,7 +268,7 @@ namespace SmartStudyPlanner.ViewModels
 
         private static string GetWarningLevel(StudyTask task)
         {
-            if (task.TrangThai == "Hoàn thành") return "Đã xong";
+            if (task.TrangThai == StudyTaskStatus.HoanThanh) return "Đã xong";
             if (task.DiemUuTien >= 80) return "Khẩn cấp";
             if (task.DiemUuTien >= 50) return "Chú ý";
             return "An toàn";

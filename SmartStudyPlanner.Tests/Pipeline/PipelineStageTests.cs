@@ -127,6 +127,34 @@ namespace SmartStudyPlanner.Tests.Pipeline
         }
 
         [Fact]
+        public void AdaptStage_Uses_NgayKetThuc_WhenSet()
+        {
+            // 10-day semester; today is day 5 → expectedProgress = 50%
+            // 0 tasks completed out of 4 → progress = 0% → below threshold → suggestion generated
+            var start = new DateTime(2026, 1, 1);
+            var hocKy = new HocKy("HK-Test", start);
+            hocKy.NgayKetThuc = start.AddDays(10);
+
+            var mon = new MonHoc("CNTT", 3) { MaHocKy = hocKy.MaHocKy };
+            for (int i = 0; i < 4; i++)
+                mon.DanhSachTask.Add(new StudyTask($"T{i}", start.AddDays(15), LoaiCongViec.BaiTapVeNha, 1));
+            hocKy.DanhSachMonHoc.Add(mon);
+
+            var ctx = new PipelineContext
+            {
+                Semester = hocKy,
+                ReferenceTime = new DateTimeOffset(new DateTime(2026, 1, 6)) // day 5
+            };
+            var stage = new AdaptStage();
+
+            var result = stage.Execute(ctx);
+
+            Assert.True(result.Success);
+            Assert.NotEmpty(ctx.Adaptations!);
+            Assert.Contains(ctx.Adaptations!, a => a.RuleKey == "progress_below_expected");
+        }
+
+        [Fact]
         public void PipelineOrchestrator_RunsStagesInOrder()
         {
             var orchestrator = new PipelineOrchestrator(new IPipelineStage[]
@@ -153,6 +181,36 @@ namespace SmartStudyPlanner.Tests.Pipeline
             Assert.NotNull(ctx.ParsedInput);
             Assert.NotEmpty(ctx.Schedule!);
             Assert.NotEmpty(ctx.RiskReport!);
+        }
+
+        [Fact]
+        public void AssessRiskStage_SetsTaskId_OnEveryAssessment()
+        {
+            var start = new DateTime(2026, 1, 1);
+            var hocKy = new HocKy("HK-Test", start);
+            var mon = new MonHoc("Toán", 3) { MaHocKy = hocKy.MaHocKy };
+            var t1 = new StudyTask("Bài 1", start.AddDays(7), LoaiCongViec.BaiTapVeNha, 2);
+            var t2 = new StudyTask("Bài 2", start.AddDays(3), LoaiCongViec.KiemTraThuongXuyen, 3);
+            mon.DanhSachTask.Add(t1);
+            mon.DanhSachTask.Add(t2);
+            hocKy.DanhSachMonHoc.Add(mon);
+
+            var riskAnalyzer = ServiceLocator.Get<IRiskAnalyzer>();
+            var stage = new AssessRiskStage(riskAnalyzer);
+            var ctx = new PipelineContext
+            {
+                Semester = hocKy,
+                Settings = new PipelineUserSettings { EnableRiskAssessment = true },
+                ReferenceTime = DateTimeOffset.Now
+            };
+
+            stage.Execute(ctx);
+
+            Assert.NotNull(ctx.RiskReport);
+            Assert.Equal(2, ctx.RiskReport!.Count);
+            Assert.All(ctx.RiskReport, r => Assert.NotEqual(Guid.Empty, r.TaskId));
+            Assert.Contains(ctx.RiskReport, r => r.TaskId == t1.MaTask);
+            Assert.Contains(ctx.RiskReport, r => r.TaskId == t2.MaTask);
         }
 
         private static HocKy BuildSemester()

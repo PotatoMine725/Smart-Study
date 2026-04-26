@@ -20,7 +20,7 @@ namespace SmartStudyPlanner.Services.RiskAnalyzer
     {
         public double Score(StudyTask task, MonHoc mon, IClock clock)
         {
-            if (task.TrangThai == "Hoàn thành") return 0.0;
+            if (task.TrangThai == StudyTaskStatus.HoanThanh) return 0.0;
 
             double daysLeft = (task.HanChot.Date - clock.Now.Date).TotalDays;
             if (daysLeft < 0) return 1.0;          // Đã quá hạn → cực kỳ nguy hiểm
@@ -42,7 +42,7 @@ namespace SmartStudyPlanner.Services.RiskAnalyzer
 
         public double Score(StudyTask task, MonHoc mon, IClock clock)
         {
-            if (task.TrangThai == "Hoàn thành") return 0.0;
+            if (task.TrangThai == StudyTaskStatus.HoanThanh) return 0.0;
 
             int suggested = _engine.CalculateRawSuggestedMinutes(task);
             if (suggested <= 0) return 0.0;
@@ -63,7 +63,7 @@ namespace SmartStudyPlanner.Services.RiskAnalyzer
 
         public double Score(StudyTask task, MonHoc mon, IClock clock)
         {
-            if (task.TrangThai == "Hoàn thành") return 0.0;
+            if (task.TrangThai == StudyTaskStatus.HoanThanh) return 0.0;
 
             int clamped = System.Math.Max(1, System.Math.Min(MaxDifficulty, task.DoKho));
             return (clamped - 1) / (double)(MaxDifficulty - 1); // [0, 1]

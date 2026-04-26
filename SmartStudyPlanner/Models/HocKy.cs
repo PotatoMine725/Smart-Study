@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SmartStudyPlanner.Models
 {
@@ -11,6 +12,9 @@ namespace SmartStudyPlanner.Models
 
         public string Ten { get; set; }
         public DateTime NgayBatDau { get; set; }
+
+        [NotMapped]
+        public DateTime NgayKetThuc { get; set; }
 
         public ObservableCollection<MonHoc> DanhSachMonHoc { get; set; }
 
@@ -25,6 +29,7 @@ namespace SmartStudyPlanner.Models
             MaHocKy = Guid.NewGuid();
             Ten = ten;
             NgayBatDau = ngayBatDau;
+            NgayKetThuc = ngayBatDau.AddDays(120);
             DanhSachMonHoc = new ObservableCollection<MonHoc>();
         }
     }

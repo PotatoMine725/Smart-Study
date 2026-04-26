@@ -54,7 +54,7 @@ namespace SmartStudyPlanner.Services
 
         public int CalculateRawSuggestedMinutes(StudyTask task)
         {
-            if (task.TrangThai == "Hoàn thành" || task.DiemUuTien <= 0) return 0;
+            if (task.TrangThai == StudyTaskStatus.HoanThanh || task.DiemUuTien <= 0) return 0;
 
             double baseMinutes = (task.DiemUuTien / 100.0) * 120.0;
             double difficultyBonus = (task.DoKho / 5.0) * 60.0;
