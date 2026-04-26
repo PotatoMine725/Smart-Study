@@ -44,7 +44,16 @@ namespace SmartStudyPlanner.Services.Pipeline.Stages
                 foreach (var task in mon.DanhSachTask)
                 {
                     if (task.TrangThai == StudyTaskStatus.HoanThanh) continue;
-                    assessments.Add(_riskAnalyzer.Assess(task, mon));
+                    var r = _riskAnalyzer.Assess(task, mon);
+                    assessments.Add(new RiskAssessment
+                    {
+                        TaskId                = task.MaTask,
+                        Score                 = r.Score,
+                        Level                 = r.Level,
+                        DeadlineUrgencyScore  = r.DeadlineUrgencyScore,
+                        ProgressGapScore      = r.ProgressGapScore,
+                        PerformanceDropScore  = r.PerformanceDropScore
+                    });
                 }
             }
 

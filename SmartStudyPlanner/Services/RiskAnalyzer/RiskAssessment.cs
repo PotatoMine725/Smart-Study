@@ -3,6 +3,9 @@ namespace SmartStudyPlanner.Services.RiskAnalyzer
     /// <summary>Kết quả đánh giá rủi ro của một task.</summary>
     public class RiskAssessment
     {
+        /// <summary>Id của task được đánh giá — dùng để tra cứu kết quả pipeline.</summary>
+        public Guid TaskId { get; init; }
+
         /// <summary>Điểm rủi ro tổng hợp [0.0, 1.0].</summary>
         public double Score { get; init; }
 

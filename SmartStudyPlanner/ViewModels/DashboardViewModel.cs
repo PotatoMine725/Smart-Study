@@ -94,7 +94,7 @@ namespace SmartStudyPlanner.ViewModels
                 }
             });
 
-            var summary = BuildDashboardSummary(pipelineResult.Schedule.FirstOrDefault());
+            var summary = BuildDashboardSummary(pipelineResult);
             ApplySummary(summary);
             ApplyCharts(summary);
             ApplySchedule(summary.ScheduleDay);
@@ -104,8 +104,11 @@ namespace SmartStudyPlanner.ViewModels
             OnPropertyChanged(nameof(TyLeHoanThanhText));
         }
 
-        private DashboardSummary BuildDashboardSummary(ScheduleDay? todaySchedule)
+        private DashboardSummary BuildDashboardSummary(PipelineExecutionResult pipelineResult)
         {
+            var todaySchedule = pipelineResult.Schedule.FirstOrDefault();
+            var riskById = pipelineResult.RiskReport.ToDictionary(r => r.TaskId);
+
             int tongSoMon = _hocKyHienTai.DanhSachMonHoc.Count;
             var topTasks = new List<TaskDashboardItem>();
             var monLabels = new List<string>();
@@ -125,7 +128,6 @@ namespace SmartStudyPlanner.ViewModels
                 foreach (var task in mon.DanhSachTask)
                 {
                     taskCount++;
-                    task.DiemUuTien = _decisionEngine.CalculatePriority(task, mon);
                     expected += _decisionEngine.CalculateRawSuggestedMinutes(task);
                     actual += task.ThoiGianDaHoc;
 
@@ -137,7 +139,9 @@ namespace SmartStudyPlanner.ViewModels
 
                     if (task.TrangThai != StudyTaskStatus.HoanThanh)
                     {
-                        var risk = _riskAnalyzer.Assess(task, mon);
+                        var risk = riskById.TryGetValue(task.MaTask, out var cached)
+                            ? cached
+                            : _riskAnalyzer.Assess(task, mon); // fallback: pipeline was skipped
                         topTasks.Add(new TaskDashboardItem
                         {
                             TenMonHoc = mon.TenMonHoc,
