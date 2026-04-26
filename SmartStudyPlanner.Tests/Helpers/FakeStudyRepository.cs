@@ -20,5 +20,14 @@ namespace SmartStudyPlanner.Tests.Helpers
         }
 
         public Task<List<StudyLog>> GetStudyLogsAsync(HocKy hocKy) => Task.FromResult(new List<StudyLog>());
+
+        // M6.1 stubs
+        public Task<TaskEditorBundle?> GetTaskEditorBundleAsync(Guid taskId) => Task.FromResult<TaskEditorBundle?>(null);
+        public Task UpsertTaskNoteAsync(Guid taskId, string? content) => Task.CompletedTask;
+        public Task<List<TaskReferenceLink>> GetTaskReferenceLinksAsync(Guid taskId) => Task.FromResult(new List<TaskReferenceLink>());
+        public Task AddTaskReferenceLinkAsync(TaskReferenceLink link) => Task.CompletedTask;
+        public Task UpdateTaskReferenceLinkAsync(TaskReferenceLink link) => Task.CompletedTask;
+        public Task DeleteTaskReferenceLinkAsync(Guid linkId) => Task.CompletedTask;
+        public Task SaveTaskEditorBundleAsync(TaskEditorBundle bundle) => Task.CompletedTask;
     }
 }
