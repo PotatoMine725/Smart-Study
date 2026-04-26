@@ -4,6 +4,7 @@
       Title="Quản Lý Bài Tập / Deadline"
       Background="{DynamicResource AppBackground}">
 
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel Margin="20">
         <Button Content="⬅ Quay lại Môn Học" HorizontalAlignment="Left" Background="Transparent" BorderBrush="Transparent" Foreground="#3498DB" FontWeight="Bold" Cursor="Hand" Margin="0,0,0,10"
                 Command="{Binding QuayLaiCommand}"/>
@@ -137,5 +138,144 @@
                 </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
+        <!-- Zone 2: Ghi Chú -->
+        <GroupBox Margin="0,16,0,0" Padding="10">
+            <GroupBox.Header>
+                <TextBlock Text="Ghi Chú" FontWeight="Bold" Foreground="#8E44AD"/>
+            </GroupBox.Header>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <TextBox Grid.Row="0"
+                         Text="{Binding NoteContent, UpdateSourceTrigger=PropertyChanged}"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         MinHeight="80"
+                         MaxHeight="200"
+                         VerticalScrollBarVisibility="Auto"
+                         Padding="6"
+                         Background="{DynamicResource CardBackground}"
+                         Foreground="{DynamicResource PrimaryText}"/>
+                <Button Grid.Row="1"
+                        Content="Xóa ghi chú"
+                        Command="{Binding ClearNoteCommand}"
+                        HorizontalAlignment="Left"
+                        Margin="0,6,0,0"
+                        Padding="10,3"/>
+            </Grid>
+        </GroupBox>
+
+        <!-- Zone 3: Liên Kết Học Tập -->
+        <GroupBox Margin="0,12,0,16" Padding="10">
+            <GroupBox.Header>
+                <TextBlock Text="Liên Kết Học Tập" FontWeight="Bold" Foreground="#8E44AD"/>
+            </GroupBox.Header>
+            <StackPanel>
+                <!-- Input row -->
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0"
+                             Text="{Binding NewLinkTitle, UpdateSourceTrigger=PropertyChanged}"
+                             Height="30" Padding="5" VerticalContentAlignment="Center"
+                             Margin="0,0,6,0">
+                        <TextBox.Style>
+                            <Style TargetType="TextBox">
+                                <Style.Triggers>
+                                    <Trigger Property="Text" Value="">
+                                        <Setter Property="Background">
+                                            <Setter.Value>
+                                                <VisualBrush Stretch="None" AlignmentX="Left">
+                                                    <VisualBrush.Visual>
+                                                        <TextBlock Text="Tiêu đề (tùy chọn)" Foreground="Gray" Margin="6,0"/>
+                                                    </VisualBrush.Visual>
+                                                </VisualBrush>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+                    <TextBox Grid.Column="1"
+                             Text="{Binding NewLinkUrl, UpdateSourceTrigger=PropertyChanged}"
+                             Height="30" Padding="5" VerticalContentAlignment="Center"
+                             Margin="0,0,6,0">
+                        <TextBox.Style>
+                            <Style TargetType="TextBox">
+                                <Style.Triggers>
+                                    <Trigger Property="Text" Value="">
+                                        <Setter Property="Background">
+                                            <Setter.Value>
+                                                <VisualBrush Stretch="None" AlignmentX="Left">
+                                                    <VisualBrush.Visual>
+                                                        <TextBlock Text="URL" Foreground="Gray" Margin="6,0"/>
+                                                    </VisualBrush.Visual>
+                                                </VisualBrush>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+                    <Button Grid.Column="2"
+                            Content="+ Thêm"
+                            Command="{Binding AddLinkCommand}"
+                            Height="30" Padding="10,0"
+                            Background="#8E44AD" Foreground="White"
+                            FontWeight="Bold" Cursor="Hand"/>
+                </Grid>
+
+                <!-- Link list -->
+                <ItemsControl ItemsSource="{Binding StudyLinks}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border BorderBrush="{DynamicResource BorderColor}"
+                                    BorderThickness="0,0,0,1"
+                                    Padding="4,7">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Title}"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource PrimaryText}"/>
+                                        <TextBlock Text="{Binding Url}"
+                                                   Foreground="#0078D4"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   FontSize="11"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Content="Mở"
+                                            Command="{Binding DataContext.OpenLinkCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"
+                                            Padding="8,2" Margin="6,0,0,0" Cursor="Hand"
+                                            Background="#3498DB" Foreground="White"/>
+                                    <Button Grid.Column="2" Content="Sao chép"
+                                            Command="{Binding DataContext.CopyLinkCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"
+                                            Padding="8,2" Margin="6,0,0,0" Cursor="Hand"/>
+                                    <Button Grid.Column="3" Content="Xóa"
+                                            Command="{Binding DataContext.RemoveLinkCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"
+                                            Padding="8,2" Margin="6,0,0,0" Cursor="Hand"
+                                            Background="#E74C3C" Foreground="White"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </GroupBox>
     </StackPanel>
+    </ScrollViewer>
 </Page>

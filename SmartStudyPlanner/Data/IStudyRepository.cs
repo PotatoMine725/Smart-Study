@@ -13,5 +13,14 @@ namespace SmartStudyPlanner.Data
         Task LuuHocKyAsync(HocKy hocKy);
         Task AddStudyLogAsync(StudyLog log);
         Task<List<StudyLog>> GetStudyLogsAsync(HocKy hocKy);
+
+        // M6.1 — Task Notes & Study Links
+        Task<TaskEditorBundle?> GetTaskEditorBundleAsync(Guid taskId);
+        Task UpsertTaskNoteAsync(Guid taskId, string? content);
+        Task<List<TaskReferenceLink>> GetTaskReferenceLinksAsync(Guid taskId);
+        Task AddTaskReferenceLinkAsync(TaskReferenceLink link);
+        Task UpdateTaskReferenceLinkAsync(TaskReferenceLink link);
+        Task DeleteTaskReferenceLinkAsync(Guid linkId);
+        Task SaveTaskEditorBundleAsync(TaskEditorBundle bundle);
     }
 }

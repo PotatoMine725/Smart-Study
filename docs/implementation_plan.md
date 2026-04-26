@@ -1,41 +1,60 @@
 # Smart Study Planner — Kế hoạch Phát triển v1.6 → v2.0
 
 > **Phân tích dựa trên:** GitNexus (461 symbols, 1,469 relationships, 36 execution flows) + code-review-graph
-> **Cập nhật mới nhất:** 2026-04-25 — verify lại trạng thái thực tế trên branch `progress`.
+> **Cập nhật mới nhất:** 2026-04-26 — M1→M6 + M5-TDs + M6.1 hoàn tất, PR #34–#37 đã merge vào `dev`. M6.1 PR pending. M7 next.
 
 ---
 
 ## 0. Status Snapshot (2026-04-25)
 
-### Trạng thái commit
+### Trạng thái hiện tại
 
-- HEAD branch `progress` đang ở `281d78f` (87 unit tests cho Decision Engine + SmartParser strategies).
-- **Toàn bộ code M1 → M4 nằm trong working tree, CHƯA commit.** Cần tách 4 commit theo concern trước khi đi tiếp:
-  1. `chore: bootstrap DI container via ServiceLocator` (M1)
-  2. `refactor: extract IDecisionEngine + DecisionEngineService instance` (M2)
-  3. `refactor: extract IWorkloadService + WorkloadServiceImpl with IDecisionEngine injection` (M3)
-  4. `feat: add RiskAnalyzer strategy + integrate vào DashboardViewModel` (M4)
+- **PR #34** (`progress → dev`) đã merged lúc 04:12 UTC 2026-04-25.
+- Branch `dev` chứa toàn bộ M1 → M4.6 (8 commits + 1 merge commit).
+- **PR #35** (`feat(M5): add pipeline orchestrator and integrate dashboard flow → dev`) đã merge.
+- **PR #36** (`feat(ui): UI/UX upgrade — sidebar navigation, dark mode fix, stat cards, badge column → dev`) đã merge.
+- **PR #37** (`feat(M6): Study Analytics & Insights — StudyLog, AnalyticsPage, sidebar nav → dev`) đã merge.
+- Tests: **119/119 pass** | Build: **0 error**.
+- **M5 Pipeline Orchestrator** đã hoàn thành và được merge sang `dev` qua PR #35.
+- **UI/UX Upgrade** đã hoàn thành (PR #36): sidebar navigation, stat cards, badge columns, token theming, section icons.
+- **Study Analytics & Insights** đã hoàn thành (PR #37): StudyLog, AnalyticsPage, sidebar nav, analytics service.
+- Plan chi tiết M5 debt + M6: `docs/superpowers/plans/2026-04-25-m5-debt-m6-analytics.md`
 
-### Verify từng module
+### Những gì đã hoàn thành (v1.6 phase 1)
 
-| Module | Code | Tests | DI wire-up | UI | Trạng thái |
-|---|---|---|---|---|---|
-| **M1** DI Container | `Services/ServiceLocator.cs`, `App.OnStartup` gọi `Configure()` | — | ✅ | n/a | Done — uncommitted |
-| **M2** DecisionEngine refactor | `IDecisionEngine.cs`, `DecisionEngineService.cs` (inject `ITaskTypeWeightProvider` + `IClock`) | tests cũ pass | ✅ Singleton | n/a | Done — uncommitted |
-| **M3** WorkloadService refactor | `IWorkloadService.cs`, `WorkloadServiceImpl.cs` (inject `IDecisionEngine` + `IClock`), `Models/ScheduleModels.cs` | cần thêm tests integration | ✅ Singleton | `DashboardViewModel` đã inject | Done — uncommitted |
-| **M4** RiskAnalyzer | `Services/RiskAnalyzer/` (5 file: `IRiskAnalyzer`, `RiskAnalyzerService`, `IRiskComponent` (3 component inline), `RiskAssessment`, `RiskLevel`) | `RiskAnalyzerTests.cs` (10 case) | ✅ Singleton | ⚠️ `TaskDashboardItem.RiskScore` có data, **DashboardPage.xaml CHƯA bind** | Done logic — UI thiếu |
+| Module | Mô tả | Commit |
+|---|---|---|
+| M1+M2 | `ServiceLocator` DI root + `IDecisionEngine` / `DecisionEngineService` | `1cfe438` |
+| M3 | `IWorkloadService` / `WorkloadServiceImpl` + `ScheduleModels.cs` | `45cbbb3` |
+| M4 | `RiskAnalyzer/` strategy engine, 110 tests, Dashboard UI cột "Rủi Ro" | `7b5d7d3` |
+| M4.6 | Xoá static facades (`DecisionEngine.cs`, `WorkloadService.cs`), tách `WeightConfig.cs`, migrate `MainWindow.xaml.cs` | `af673d2` |
 
-### Test counter (chính xác)
+**Kiến trúc Services sau M4.6 — không còn `static class` trong domain:**
+```
+ServiceLocator
+  ├── IStudyRepository   → StudyRepository
+  ├── IClock             → SystemClock
+  ├── ITaskTypeWeightProvider → DefaultTaskTypeWeightProvider
+  ├── IDecisionEngine    → DecisionEngineService
+  ├── IWorkloadService   → WorkloadServiceImpl
+  └── IRiskAnalyzer      → RiskAnalyzerService
+```
 
-- **59 `[Fact]/[Theory]`** trên 7 file (con số "110 tests" trong plan cũ là đếm cả DataRow của `[Theory]` — không sát).
-- Phân bố: `DecisionEngineTests` 6, `PriorityCalculatorTests` 9, `PriorityComponentsTests` 11, `UrgencyRulesTests` 5, `DefaultTaskTypeWeightProviderTests` 2, `SmartParserStrategiesTests` 16, `RiskAnalyzerTests` 10.
+### TODO còn lại
 
-### Gap phát hiện sau verify
-
-1. **Risk UI chưa render** — `TaskDashboardItem.RiskScore` được populate trong `DashboardViewModel` nhưng `DashboardPage.xaml` chưa có cột/badge nào bind vào. Chuỗi "Plan → Execute → Measure" đang đứt ở chỗ user không thấy được output Risk.
-2. **Call sites cũ chưa migrate hết** — Cần verify `QuanLyTaskViewModel`, `WorkloadBalancerViewModel`, `MainWindow.xaml.cs` còn gọi `DecisionEngine.CalculatePriority` static hay đã dùng `ServiceLocator.Get<IDecisionEngine>()`. Nếu còn static thì facade `DecisionEngine.cs` + `WorkloadService.cs` không xoá được.
-3. **`MainWindow.xaml.cs` background timer** — vẫn vi phạm MVVM (background priority recompute nằm code-behind), backlog từ smell #3 trong DecisionEngine_Review.
-4. **NU1904** — `System.Drawing.Common` transitive vulnerability vẫn còn (item N6 trong memory roadmap).
+| # | Việc | Module | Ưu tiên | Ghi chú |
+|---|------|--------|---------|---------|
+| 1 | Pipeline Orchestrator — 5 stages, `PipelineContext`, `IPipelineStage` | **M5** | ✅ Hoàn thành | Merged PR #35 |
+| 2 | Extract `StudyTaskStatus` constants (7 magic strings) | **M5-TD1** | ✅ Hoàn thành | Verified 2026-04-26 |
+| 3 | `HocKy.NgayKetThuc [NotMapped]` + fix `AdaptStage` semester duration | **M5-TD2** | ✅ Hoàn thành | Verified 2026-04-26 |
+| 4 | Wire `RiskReport` vào `BuildDashboardSummary`, xóa duplicate computation | **M5-TD3** | ✅ Hoàn thành | Verified 2026-04-26 |
+| 5 | Surface `Adaptations` lên Dashboard UI | **M5-TD4** | ✅ Hoàn thành | Verified 2026-04-26 |
+| 6 | Study Analytics — `StudyLog`, `IStudyAnalytics`, `AnalyticsPage.xaml`, 3 charts | **M6** | ✅ Hoàn thành | Merged PR #37 (updated 2026-04-26 19:07 +07:00) |
+| 6.1 | Task Notes & Study Links — `TaskNote`, `TaskReferenceLink`, 3-zone editor UI | **M6.1** | ✅ Hoàn thành | 141 tests pass, PR pending merge to `dev` |
+| 7 | ML Engine — TextClassifier, StudyTimePredictor, WeightOptimizer | **M7** | 🔴 Cao | Phụ thuộc M5+M6, cần training data tiếng Việt |
+| 8 | Fix NU1904 `System.Drawing.Common` vulnerability | **N6** | 🟡 Trung | Độc lập, ~30 phút |
+| 9 | Tách `BackgroundTimer_Tick` → `MainWindowViewModel` | **Bonus** | 🟢 Thấp | MVVM cleanup |
+| 10 | Re-index GitNexus sau M5 | **Tooling** | ✅ Hoàn thành | Re-indexed 2026-04-25 |
 
 ---
 
@@ -386,107 +405,239 @@ graph TD
 
 ### Module 5: Pipeline Orchestrator
 
-**Mục tiêu**: Implement luồng `Plan → Execute → Measure → Adapt → Re-plan` theo README §1.
+**Trạng thái**: ✅ **HOÀN THÀNH** (`865ca47`) — xem PR #35.
 
-> [!IMPORTANT]
-> Module này là **core architecture** mới, cần thiết kế kỹ. Nó orchestrate toàn bộ engine pipeline thay vì để ViewModel gọi trực tiếp.
+**Kiến trúc đã triển khai:**
+```
+Services/Pipeline/
+├── IPipelineOrchestrator.cs      ✅
+├── PipelineOrchestrator.cs       ✅
+├── PipelineContext.cs            ✅  (Semester, Settings, ReferenceTime, RiskReport, Adaptations)
+├── IPipelineStage.cs             ✅
+├── PipelineExecutionResult.cs    ✅
+└── Stages/
+    ├── ParseInputStage.cs        ✅
+    ├── PrioritizeStage.cs        ✅
+    ├── BalanceWorkloadStage.cs   ✅
+    ├── AssessRiskStage.cs        ✅
+    └── AdaptStage.cs             ✅  (rule-based: progress_below_expected, reduce_workload, increase_priority)
+```
 
-#### Các bước
+`DashboardViewModel.LoadDuLieuDashboard()` gọi `IPipelineOrchestrator.ExecuteAsync()` → nhận `PipelineExecutionResult` → gọi `BuildDashboardSummary(result)`.
 
-1. **Tạo `Services/Pipeline/`** directory:
-   ```
-   IPipelineOrchestrator.cs        — interface chính
-   PipelineOrchestrator.cs         — implementation
-   PipelineContext.cs              — shared state giữa các stage
-   IPipelineStage.cs               — interface cho mỗi bước
-   Stages/
-     ParseInputStage.cs            — SmartParser wrapper
-     PrioritizeStage.cs            — DecisionEngine wrapper
-     BalanceWorkloadStage.cs       — WorkloadService wrapper
-     AssessRiskStage.cs            — RiskAnalyzer wrapper
-     AdaptStage.cs                 — Rule-based adaptation (từ README §4.4)
-   ```
+---
 
-2. **Pipeline flow**:
-   ```
-   PipelineContext ctx = new(hocKy, userSettings);
-   await orchestrator.ExecuteAsync(ctx);
-   // ctx.Schedule, ctx.RiskReport, ctx.Adaptations now populated
-   ```
+### Module 5 — Technical Debt (🔲 Pending)
 
-3. **Adaptive Logic** (Rule-based MVP từ README §4.4):
-   ```csharp
-   If Progress < ExpectedProgress   → increase priority
-   If MilestoneScore > EntryScore   → reduce workload
-   If subject skipped multiple times → increase priority weight
-   ExpectedProgress = DaysPassed / TotalDays
-   ```
+> **Plan chi tiết**: `docs/superpowers/plans/2026-04-25-m5-debt-m6-analytics.md` — Tasks TD-1 → TD-4.
+> Branch mục tiêu: `feat/m5-pipeline-orchestrator` (PR #36 đang mở).
 
-4. **Tích hợp**: `DashboardViewModel.LoadDuLieuDashboard()` gọi orchestrator thay vì gọi từng service riêng lẻ
+| Task | Mô tả | Effort |
+|------|-------|--------|
+| **TD-1** | Extract `StudyTaskStatus` constants — xóa 7 magic string `"Hoàn thành"` / `"Chưa làm"` | ~20 phút |
+| **TD-2** | Thêm `HocKy.NgayKetThuc [NotMapped]` + fix `AdaptStage.AssumedSemesterDays=120` → dùng real end date | ~30 phút |
+| **TD-3** | Wire `pipelineResult.RiskReport` vào `BuildDashboardSummary` → loại bỏ duplicate priority+risk computation | ~45 phút |
+| **TD-4** | Surface `pipelineResult.Adaptations` lên Dashboard UI (collapsible "GỢI Ý THÍCH NGHI" section) | ~30 phút |
 
-#### Files ảnh hưởng
-- `Services/Pipeline/` — [NEW] toàn bộ
-- `ViewModels/DashboardViewModel.cs` — refactor `LoadDuLieuDashboard`
-- `App.xaml.cs` — register pipeline services
+#### TD-1: Extract StudyTaskStatus Constants
 
-#### Verification
-- Unit tests cho từng `IPipelineStage`
-- Integration test cho full pipeline
-- Dashboard vẫn hiển thị đúng sau refactor
+**Files:**
+- Create: `SmartStudyPlanner/Models/StudyTaskStatus.cs`
+- Modify: `StudyTask.cs:44`, `PrioritizeStage.cs:48,54`, `AssessRiskStage.cs:46`, `AdaptStage.cs:43`, `DashboardViewModel.cs:133,138,255`, `FocusViewModel.cs:104`, `MainWindow.xaml.cs:94`
+
+```csharp
+// Models/StudyTaskStatus.cs
+public static class StudyTaskStatus
+{
+    public const string ChuaLam   = "Chưa làm";
+    public const string HoanThanh = "Hoàn thành";
+}
+```
+
+**Verification**: `dotnet test` → `119 passed`
+
+#### TD-2: HocKy.NgayKetThuc [NotMapped]
+
+**Files:** `Models/HocKy.cs`, `Services/Pipeline/Stages/AdaptStage.cs`, `SmartStudyPlanner.Tests/PipelineStageTests.cs`
+
+```csharp
+// HocKy.cs — thêm sau NgayBatDau
+[NotMapped] public DateTime NgayKetThuc { get; set; }
+// constructor: NgayKetThuc = ngayBatDau.AddDays(120); // default fallback
+
+// AdaptStage.cs — thay AssumedSemesterDays=120
+private const int FallbackSemesterDays = 120;
+var end      = semester.NgayKetThuc != default ? semester.NgayKetThuc.Date : start.AddDays(FallbackSemesterDays);
+var totalDays = Math.Max(1, (end - start).Days);
+```
+
+**New test** (target 120 passed):
+```csharp
+[Fact]
+public void AdaptStage_Uses_NgayKetThuc_WhenSet()
+{
+    var start = new DateTime(2026, 1, 1);
+    var hocKy = new HocKy("HK-Test", start) { NgayKetThuc = start.AddDays(10) };
+    // ... 4 tasks, ctx.ReferenceTime = day 5 → expectedProgress=50%, 0 done → suggestion generated
+    Assert.Contains(ctx.Adaptations!, a => a.RuleKey == "progress_below_expected");
+}
+```
+
+#### TD-3: Eliminate Duplicate Pipeline Computation
+
+**Files:** `Services/RiskAnalyzer/RiskAssessment.cs`, `Services/Pipeline/Stages/AssessRiskStage.cs`, `ViewModels/DashboardViewModel.cs`, `Tests/PipelineStageTests.cs`
+
+1. Thêm `public Guid TaskId { get; init; }` vào `RiskAssessment`
+2. `AssessRiskStage` set `TaskId = task.MaTask` khi tạo assessment
+3. `BuildDashboardSummary(PipelineExecutionResult result)`:
+   - Xóa dòng `task.DiemUuTien = _decisionEngine.CalculatePriority(...)` (PrioritizeStage đã set)
+   - Thay `_riskAnalyzer.Assess(task, mon)` bằng lookup: `riskById.TryGetValue(task.MaTask, out var cached) ? cached : _riskAnalyzer.Assess(task, mon)`
+
+**Verification**: `dotnet test` → `121 passed`
+
+#### TD-4: Surface Adaptations trên Dashboard UI
+
+**Files:** `ViewModels/DashboardViewModel.cs`, `Views/DashboardPage.xaml`
+
+```csharp
+// DashboardViewModel.cs
+[ObservableProperty] private ObservableCollection<AdaptationSuggestion> adaptationItems = new();
+public bool HasAdaptations => AdaptationItems.Count > 0;
+// Sau ApplySchedule(): ApplyAdaptations(pipelineResult.Adaptations); OnPropertyChanged(nameof(HasAdaptations));
+```
+
+XAML: collapsible `ItemsControl` với `DataTrigger Binding="{Binding HasAdaptations}" Value="False" → Collapsed`, icon `&#xE8CA;` + `{Binding Message}` per item.
+
+**Verification**: `dotnet test` → `121 passed`; UI hiển thị suggestions khi `AdaptStage` trigger rule.
 
 ---
 
 ### Module 6: Study Analytics & Insights
 
-**Mục tiêu**: Thêm module phân tích dữ liệu học tập, cung cấp insights cho người dùng.
+**Trạng thái**: ✅ **HOÀN THÀNH** (merged PR #37 vào `dev`)
 
-> [!NOTE]
-> Module cuối cùng, phụ thuộc vào tất cả module trước. Đây là tính năng "wow factor" cho v2.0.
+> **Plan chi tiết**: `docs/superpowers/plans/2026-04-25-m5-debt-m6-analytics.md` — Tasks M6-1 → M6-6.
+> **Tech Stack bổ sung**: `LiveChartsCore.SkiaSharpView.WPF` (đã có trong project).
 
-#### Các bước
+#### File Map M6
 
-1. **Tạo `Services/Analytics/`** directory:
-   ```
-   IStudyAnalytics.cs              — interface
-   StudyAnalyticsService.cs        — implementation
-   Models/
-     WeeklyReport.cs               — DTO báo cáo tuần
-     SubjectInsight.cs             — phân tích theo môn
-     StudyPattern.cs               — pattern detection
-     ProductivityScore.cs          — điểm năng suất
-   ```
+| Action | Path |
+|--------|------|
+| Create | `Models/StudyLog.cs` |
+| Modify | `Models/StudyTask.cs` — thêm `NgayHoanThanh DateTime?` |
+| Modify | `Data/IStudyRepository.cs` + `StudyRepository.cs` — thêm `AddStudyLogAsync`, `GetStudyLogsAsync` |
+| Modify | `Data/AppDbContext.cs` — thêm `DbSet<StudyLog> StudyLogs` |
+| Create | `Services/Analytics/IStudyAnalytics.cs` |
+| Create | `Services/Analytics/StudyAnalyticsService.cs` |
+| Create | `Services/Analytics/Models/WeeklyReport.cs` |
+| Create | `Services/Analytics/Models/SubjectInsight.cs` |
+| Create | `Services/Analytics/Models/ProductivityScore.cs` |
+| Modify | `ViewModels/FocusViewModel.cs` — inject `IStudyRepository`, write log on complete |
+| Create | `ViewModels/AnalyticsViewModel.cs` |
+| Create | `Views/AnalyticsPage.xaml` + `.xaml.cs` |
+| Modify | `Views/MainWindow.xaml` + `.cs` — thêm `NavAnalytics` sidebar button |
+| Modify | `App.xaml.cs` — register `IStudyAnalytics` |
+| Create | `SmartStudyPlanner.Tests/AnalyticsServiceTests.cs` |
 
-2. **Metrics cần tính**:
-   - Tổng thời gian học / tuần, xu hướng tăng/giảm
-   - Tỷ lệ hoàn thành deadline
-   - Subject với risk cao nhất
-   - Productivity score = f(completion_rate, time_efficiency, streak)
-   - Study pattern detection (morning/afternoon/evening learner)
+#### M6-1: StudyLog Entity + NgayHoanThanh + DB Registration
 
-3. **Tạo `AnalyticsPage.xaml`** [NEW]:
-   - Biểu đồ trend theo tuần
-   - Radar chart theo môn học
-   - Productivity score card
-   - Recommendations dựa trên data
+**Status**: ✅ Hoàn thành
 
-4. **Mở rộng `StudyTask`**:
-   - Thêm `NgayHoanThanh` (DateTime?) — khi nào hoàn thành
-   - Thêm `SoLanBoQua` (int) — tracking subject skipping
+```csharp
+// Models/StudyLog.cs
+public class StudyLog
+{
+    [Key] public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid MaTask       { get; set; }
+    public DateTime NgayHoc  { get; set; }
+    public int SoPhutHoc     { get; set; }
+    public int SoPhutDuKien  { get; set; }
+    public bool DaHoanThanh  { get; set; }
+    public string? GhiChu    { get; set; }
+}
+```
 
-5. **Navigation**: Thêm button "Analytics" trên MainWindow sidebar
+`StudyTask.cs`: thêm `public DateTime? NgayHoanThanh { get; set; }` (nullable, EnsureCreated không break).
+`AppDbContext`: thêm `public DbSet<StudyLog> StudyLogs { get; set; }`.
 
-#### Files ảnh hưởng
-- `Services/Analytics/` — [NEW] toàn bộ
-- `Views/AnalyticsPage.xaml` + `.cs` — [NEW]
-- `ViewModels/AnalyticsViewModel.cs` — [NEW]
-- `Models/StudyTask.cs` — thêm properties
-- `Views/MainWindow.xaml.cs` — thêm navigation
-- `Data/AppDbContext.cs` — migration nếu cần
+**Verification**: `dotnet test` → `123 passed`
 
-#### Verification
-- Unit tests cho analytics calculations
-- UI hiển thị charts đúng
-- Data accuracy validation
+#### M6-2: IStudyAnalytics + StudyAnalyticsService
+
+**Status**: ✅ Hoàn thành
+
+**Interface:**
+```csharp
+public interface IStudyAnalytics
+{
+    WeeklyReport        ComputeWeeklyMinutes(IEnumerable<StudyLog> logs, DateTime referenceDate);
+    List<SubjectInsight> ComputeSubjectInsights(HocKy hocKy, IEnumerable<StudyLog> logs);
+    ProductivityScore   ComputeProductivityScore(double completionRate, int streakDays, double timeEfficiency);
+}
+```
+
+**Công thức ProductivityScore**: `completionRate×50 + (min(streak,30)/30)×30 + timeEfficiency×20` capped [0, 100].
+
+**WeeklyReport**: 7 entries (day-6 → today), `DayLabels` + `MinutesPerDay`.
+
+**SubjectInsight**: per-subject `{ SubjectName, TotalTaskCount, CompletedTaskCount, CompletionRate, TotalStudyMinutes }`.
+
+**ProductivityScore.Label**: `≥85="Xuất sắc"`, `≥70="Tốt"`, `≥50="Trung bình"`, `≥30="Cần cải thiện"`, else `"Chưa có dữ liệu"`.
+
+**Verification**: 4 unit tests, `dotnet test` → `127 passed`
+
+#### M6-3: Hook StudyLog vào FocusViewModel
+
+**Status**: ✅ Hoàn thành
+
+`IStudyRepository` thêm 2 methods:
+```csharp
+Task AddStudyLogAsync(StudyLog log);
+Task<List<StudyLog>> GetStudyLogsAsync(HocKy hocKy);
+```
+
+`FocusViewModel`: delegating constructor `(TaskDashboardItem task) : this(task, ServiceLocator.Get<IStudyRepository>())`.
+`LuuThoiGianThucTe(bool daHoanThanh)` → ghi `StudyLog` async (fire-and-forget).
+`HoanThanh()` → set `task.NgayHoanThanh = DateTime.Today`.
+
+**Verification**: `FakeStudyRepository` mock + test `FocusViewModel_WritesStudyLog_OnHoanThanh` → `128 passed`
+
+#### M6-4: AnalyticsViewModel + DI Registration
+
+**Status**: ✅ Hoàn thành
+
+`App.xaml.cs`: `services.AddSingleton<IStudyAnalytics, StudyAnalyticsService>()`.
+
+`AnalyticsViewModel`:
+- Fields: `HocKy _hocKy`, `IStudyRepository _repository`, `IStudyAnalytics _analytics`
+- ObservableProperties: `ISeries[] WeeklyChartSeries`, `Axis[] WeeklyChartXAxes`, `ISeries[] SubjectChartSeries`, `Axis[] SubjectChartXAxes`, `int ProductivityValue`, `string ProductivityLabel`, `ObservableCollection<SubjectInsight> SubjectInsights`
+- `public async Task LoadAsync()` — gọi `GetStudyLogsAsync` → `ComputeWeeklyMinutes` → `ComputeSubjectInsights` → `ComputeProductivityScore`
+
+#### M6-5: AnalyticsPage.xaml — 3 LiveCharts2 Charts
+
+**Status**: ✅ Hoàn thành
+
+**Layout** (ScrollViewer > StackPanel):
+1. **Header**: "PHÂN TÍCH HỌC TẬP" + `{Binding TrangThai}`
+2. **Productivity Score Card**: icon `&#xE9D9;`, `{Binding ProductivityValue} điểm`, `{Binding ProductivityLabel}`
+3. **Weekly Bar Chart** (`CartesianChart`, height 220): `Series={Binding WeeklyChartSeries}`, `XAxes={Binding WeeklyChartXAxes}` — ColumnSeries màu CornflowerBlue
+4. **Subject Bar Chart** (`CartesianChart`, height 220): completion rate per subject — ColumnSeries màu MediumSeaGreen
+5. **Details DataGrid**: columns `Môn Học | Tổng Task | Đã xong | Tỉ lệ HT | Giờ đã học`
+
+`AnalyticsPage.xaml.cs`: `Loaded += async (_, _) => await _vm.LoadAsync()`; expose `public HocKy HocKy => _vm.HocKy`.
+
+#### M6-6: Sidebar Navigation
+
+**Status**: ✅ Hoàn thành
+
+`MainWindow.xaml`: thêm `NavAnalytics` button (icon `&#xE9D9;`, text "Analytics") sau `NavWorkload`.
+
+`MainWindow.xaml.cs`:
+- `SetActiveNav`: thêm `NavAnalytics` vào array
+- `NavAnalytics_Click`: `MainFrame.Navigate(new AnalyticsPage(_currentHocKy))`
+- `MainFrame_Navigated`: `else if (e.Content is AnalyticsPage ap) _currentHocKy = ap.HocKy`
+
+**Final Verification**: `dotnet test` → `128 passed`; mở app → sidebar "Analytics" → trang hiển thị 3 charts đúng dữ liệu.
 
 ---
 
@@ -645,11 +796,11 @@ graph LR
     M1 --> M3[M3: WorkloadService ✅]
     M2 --> M3
     M2 --> M4[M4: Risk Analyzer ✅ logic]
-    M4 --> M45[M4.5: Risk UI + commit split 🔲]
-    M45 --> M46[M4.6: Migrate call sites + drop facade 🔲]
+    M4 --> M45[M4.5: Risk UI + commit split ✅]
+    M45 --> M46[M4.6: Migrate call sites + drop facade ✅]
     M3 --> M46
-    M46 --> M5[M5: Pipeline 🔲]
-    M5 --> M6[M6: Analytics 🔲]
+    M46 --> M5[M5: Pipeline ✅]
+    M5 --> M6[M6: Analytics ✅]
     M6 --> M7[M7: ML Engine 🔲]
     M2 -.->|"ML replaces formula"| M7
     M5 -.->|"Adapt stage calls ML"| M7
@@ -660,8 +811,8 @@ graph LR
     style M4 fill:#4CAF50,color:white
     style M45 fill:#4CAF50,color:white
     style M46 fill:#4CAF50,color:white
-    style M5 fill:#F44336,color:white
-    style M6 fill:#9C27B0,color:white
+    style M5 fill:#4CAF50,color:white
+    style M6 fill:#4CAF50,color:white
     style M7 fill:#FF5722,color:white
 ```
 
@@ -675,17 +826,19 @@ graph LR
 | M4: Risk Analyzer (logic + tests) | ✅ Done — uncommitted, **UI thiếu** | 2h | — |
 | **M4.5**: Render Risk + tách 4 commit M1-M4 | ✅ Done (`c74db6b`…`be8a06e`) | 1.5h | — |
 | **M4.6**: Migrate call sites + xoá facade static | ✅ Done (`af673d2`) | 1.5h | — |
-| M5: Pipeline Orchestrator | 🔲 **Next** | 5-6h | 🔴 Cao |
-| M6: Study Analytics | 🔲 | 5-6h | 🟡 Trung |
+| M5: Pipeline Orchestrator | ✅ Done (`865ca47`) | 5-6h | — |
+| M5 Technical Debt (TD-1→4) | 🔲 **Next** (branch `feat/m5-pipeline-orchestrator`) | ~2h | 🟡 Thấp |
+| M6: Study Analytics | 🔲 Sau khi TD merge | 5-6h | 🟡 Trung |
+| M6.1: Task notes & study links (DB split + rich UX) | 🔲 | 4-6h | 🟠 Trung-Cao |
 | M7: ML Engine (5 phases) | 🔲 | 11-16h | 🔴 Cao (data dependency) |
 | Backlog N6: upgrade `System.Drawing.Common` (NU1904) | 🔲 | 30 phút | 🟢 Thấp |
-| **Tổng còn lại** | | **~25-33h** | |
+| **Tổng còn lại** | | **~27-37h** | |
 
 ### Thứ tự đề xuất
 
 ```
-[M4.5 ✅] → [M4.6 ✅] → M5 → M6 → M7
-                          └─ N6 chen vào lúc nào cũng được (độc lập)
+[M4.5 ✅] → [M4.6 ✅] → [M5 ✅] → M6 → M6.1 (DB split + rich UX) → M7
+                                                   └─ N6 chen vào lúc nào cũng được (độc lập)
 ```
 
 **Kết quả sau M4.6**: Không còn `static class` nào trong Services layer.
@@ -711,9 +864,15 @@ graph LR
 > 2. ~~Pipeline sync/async~~ → Sync MVP, async khi có ML inference
 > 3. ~~Analytics DB migration~~ → Dùng `StudyLog` table riêng, vẫn `EnsureCreated`
 > 4. ~~Ngôn ngữ code~~ → Giữ tiếng Việt cho domain names, tiếng Anh cho technical names
+5. ~~Task notes & study links scope~~ → M6.1 sẽ tách bảng DB, UI phân vùng rõ, parser nhập nhanh không điền notes/links
 
 > [!IMPORTANT]
 > **Câu hỏi mới cho Module 7 (ML):**
 > 1. **Training data cho Text Classifier**: Bạn có thể tạo ~500 câu tiếng Việt mẫu dạng "Nộp báo cáo AI thứ 6" + nhãn `{ TaskType, Difficulty }` không? Hoặc muốn tôi sinh mock data?
 > 2. **Retrain frequency**: WeightConfig Optimizer nên retrain khi nào — mỗi lần mở app, mỗi tuần, hay sau mỗi N tasks hoàn thành?
 > 3. **Feature flag**: Muốn dùng boolean flag đơn giản (`EnableMLPrediction = true/false`) hay settings UI cho user tự bật/tắt từng model?
+
+> **Câu hỏi mới cho M6.1 (Task notes & study links):**
+> 4. **Storage model**: Chốt theo phương án B — tách bảng DB cho `TaskNote` và `TaskReferenceLink`.
+> 5. **Input behavior**: Parser nhập nhanh chỉ fill core task fields, tuyệt đối không đụng notes/links.
+> 6. **UX layout**: Ưu tiên tách riêng note và link; nếu không khả thi thì dùng rich text document với layout phân dòng giống bảng để tối ưu UX.
