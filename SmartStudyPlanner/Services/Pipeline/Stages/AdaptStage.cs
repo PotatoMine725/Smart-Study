@@ -40,7 +40,7 @@ namespace SmartStudyPlanner.Services.Pipeline.Stages
                     var taskCount = mon.DanhSachTask.Count;
                     if (taskCount == 0) continue;
 
-                    var completed = mon.DanhSachTask.Count(t => t.TrangThai == "Hoàn thành");
+                    var completed = mon.DanhSachTask.Count(t => t.TrangThai == StudyTaskStatus.HoanThanh);
                     var progress = (double)completed / taskCount;
 
                     if (progress + 0.05 < expectedProgress)

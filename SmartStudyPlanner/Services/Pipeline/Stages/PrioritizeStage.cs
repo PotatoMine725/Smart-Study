@@ -45,13 +45,13 @@ namespace SmartStudyPlanner.Services.Pipeline.Stages
             {
                 foreach (var task in mon.DanhSachTask)
                 {
-                    if (task.TrangThai == "Hoàn thành") continue;
+                    if (task.TrangThai == StudyTaskStatus.HoanThanh) continue;
                     task.DiemUuTien = _decisionEngine.CalculatePriority(task, mon);
                 }
             }
 
             var prioritizedTasks = semester.DanhSachMonHoc
-                .SelectMany(m => m.DanhSachTask.Where(t => t.TrangThai != "Hoàn thành"))
+                .SelectMany(m => m.DanhSachTask.Where(t => t.TrangThai != StudyTaskStatus.HoanThanh))
                 .OrderByDescending(t => t.DiemUuTien)
                 .ToArray();
 

@@ -41,7 +41,7 @@ namespace SmartStudyPlanner.Models
             HanChot = hanChot;
             LoaiTask = loaiTask;
             DoKho = doKho;
-            TrangThai = "Chưa làm";
+            TrangThai = StudyTaskStatus.ChuaLam;
         }     
     }
 }

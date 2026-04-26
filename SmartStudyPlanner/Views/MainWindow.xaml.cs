@@ -91,7 +91,7 @@ namespace SmartStudyPlanner
                 {
                     foreach (var task in mon.DanhSachTask)
                     {
-                        if (task.TrangThai != "Hoàn thành")
+                        if (task.TrangThai != StudyTaskStatus.HoanThanh)
                         {
                             double diem = decisionEngine.CalculatePriority(task, mon);
                             if (diem >= 80) soTaskKhanCap++;

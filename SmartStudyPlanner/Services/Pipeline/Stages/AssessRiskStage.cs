@@ -43,7 +43,7 @@ namespace SmartStudyPlanner.Services.Pipeline.Stages
             {
                 foreach (var task in mon.DanhSachTask)
                 {
-                    if (task.TrangThai == "Hoàn thành") continue;
+                    if (task.TrangThai == StudyTaskStatus.HoanThanh) continue;
                     assessments.Add(_riskAnalyzer.Assess(task, mon));
                 }
             }

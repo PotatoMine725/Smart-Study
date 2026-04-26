@@ -101,7 +101,7 @@ namespace SmartStudyPlanner.ViewModels
             LuuThoiGianThucTe();
 
             // Tự động đánh dấu Hoàn thành cho rảnh tay
-            TaskHienTai.TaskGoc.TrangThai = "Hoàn thành";
+            TaskHienTai.TaskGoc.TrangThai = StudyTaskStatus.HoanThanh;
 
             OnKetThuc?.Invoke();
         }

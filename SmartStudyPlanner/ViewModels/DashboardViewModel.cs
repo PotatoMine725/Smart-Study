@@ -130,12 +130,12 @@ namespace SmartStudyPlanner.ViewModels
                     actual += task.ThoiGianDaHoc;
 
                     var warningLevel = GetWarningLevel(task);
-                    if (task.TrangThai == "Hoàn thành") countDaXong++;
+                    if (task.TrangThai == StudyTaskStatus.HoanThanh) countDaXong++;
                     else if (task.DiemUuTien >= 80) countKhanCap++;
                     else if (task.DiemUuTien >= 50) countChuY++;
                     else countAnToan++;
 
-                    if (task.TrangThai != "Hoàn thành")
+                    if (task.TrangThai != StudyTaskStatus.HoanThanh)
                     {
                         var risk = _riskAnalyzer.Assess(task, mon);
                         topTasks.Add(new TaskDashboardItem
@@ -253,7 +253,7 @@ namespace SmartStudyPlanner.ViewModels
 
         private static string GetWarningLevel(StudyTask task)
         {
-            if (task.TrangThai == "Hoàn thành") return "Đã xong";
+            if (task.TrangThai == StudyTaskStatus.HoanThanh) return "Đã xong";
             if (task.DiemUuTien >= 80) return "Khẩn cấp";
             if (task.DiemUuTien >= 50) return "Chú ý";
             return "An toàn";

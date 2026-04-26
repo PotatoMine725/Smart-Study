@@ -70,7 +70,7 @@ namespace SmartStudyPlanner.ViewModels
             {
                 task.DiemUuTien = _decisionEngine.CalculatePriority(task, MonHocHienTai);
 
-                if (task.TrangThai == "Hoàn thành") task.MucDoCanhBao = "Đã xong";
+                if (task.TrangThai == StudyTaskStatus.HoanThanh) task.MucDoCanhBao = "Đã xong";
                 else if (task.DiemUuTien >= 80) task.MucDoCanhBao = "Khẩn cấp";
                 else if (task.DiemUuTien >= 50) task.MucDoCanhBao = "Chú ý";
                 else task.MucDoCanhBao = "An toàn";
@@ -104,9 +104,9 @@ namespace SmartStudyPlanner.ViewModels
         [RelayCommand]
         private async Task HoanThanhTask(StudyTask taskDaXong)
         {
-            if (taskDaXong != null && taskDaXong.TrangThai != "Hoàn thành")
+            if (taskDaXong != null && taskDaXong.TrangThai != StudyTaskStatus.HoanThanh)
             {
-                taskDaXong.TrangThai = "Hoàn thành";
+                taskDaXong.TrangThai = StudyTaskStatus.HoanThanh;
                 TinhDiemVaSapXep();
                 OnRefreshGrid?.Invoke();
                 await _repository.LuuHocKyAsync(HocKyHienTai); // Lưu DB không giật lag
