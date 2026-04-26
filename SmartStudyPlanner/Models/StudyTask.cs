@@ -28,6 +28,7 @@ namespace SmartStudyPlanner.Models
         public int DoKho { get; set; }
 
         public int ThoiGianDaHoc { get; set; } = 0;
+        public DateTime? NgayHoanThanh { get; set; }
 
         public StudyTask()
         {
