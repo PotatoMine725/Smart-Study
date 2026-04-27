@@ -98,6 +98,15 @@ namespace SmartStudyPlanner.Data
                 .ToListAsync();
         }
 
+        public async Task<List<StudyLog>> GetStudyLogsSinceAsync(DateTime sinceUtc, CancellationToken ct = default)
+        {
+            using var db = new AppDbContext();
+            return await db.StudyLogs
+                .Where(l => l.CreatedAtUtc >= sinceUtc && !l.IsDeleted)
+                .OrderBy(l => l.CreatedAtUtc)
+                .ToListAsync(ct);
+        }
+
         // M6.1 — Task Notes & Study Links
 
         public async Task<TaskEditorBundle?> GetTaskEditorBundleAsync(Guid taskId)

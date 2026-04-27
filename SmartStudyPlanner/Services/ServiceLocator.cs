@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Services.Analytics;
+using SmartStudyPlanner.Services.ML;
 using SmartStudyPlanner.Services.Pipeline;
 using SmartStudyPlanner.Services.Pipeline.Stages;
 using SmartStudyPlanner.Services.RiskAnalyzer;
@@ -37,6 +38,10 @@ namespace SmartStudyPlanner.Services
             services.AddSingleton<IDecisionEngine, DecisionEngineService>();
             services.AddSingleton<IWorkloadService, WorkloadServiceImpl>();
             services.AddSingleton<IRiskAnalyzer, RiskAnalyzerService>();
+
+            services.AddSingleton<IModelStorageProvider, LocalModelStorageProvider>();
+            services.AddSingleton<IMLModelManager, MLModelManager>();
+            services.AddSingleton<IStudyTimePredictor, StudyTimePredictorService>();
 
             services.AddSingleton<IPipelineStage, ParseInputStage>();
             services.AddSingleton<IPipelineStage, PrioritizeStage>();

@@ -829,7 +829,7 @@ graph LR
 | M5: Pipeline Orchestrator | ✅ Done (`865ca47`) | 5-6h | — |
 | M5 Technical Debt (TD-1→4) | 🔲 **Next** (branch `feat/m5-pipeline-orchestrator`) | ~2h | 🟡 Thấp |
 | M6: Study Analytics | 🔲 Sau khi TD merge | 5-6h | 🟡 Trung |
-| M6.1: Task notes & study links (DB split + rich UX) | 🔲 | 4-6h | 🟠 Trung-Cao |
+| M6.1: Task notes & study links (DB split + rich UX) | ✅ Done (`M6.1`) | 4-6h | 🟠 Trung-Cao |
 | M7: ML Engine (5 phases) | 🔲 | 11-16h | 🔴 Cao (data dependency) |
 | Backlog N6: upgrade `System.Drawing.Common` (NU1904) | 🔲 | 30 phút | 🟢 Thấp |
 | **Tổng còn lại** | | **~27-37h** | |
@@ -837,7 +837,7 @@ graph LR
 ### Thứ tự đề xuất
 
 ```
-[M4.5 ✅] → [M4.6 ✅] → [M5 ✅] → M6 → M6.1 (DB split + rich UX) → M7
+[M4.5 ✅] → [M4.6 ✅] → [M5 ✅] → M6 → M6.1 ✅ (DB split + rich UX) → M7
                                                    └─ N6 chen vào lúc nào cũng được (độc lập)
 ```
 
@@ -864,7 +864,7 @@ graph LR
 > 2. ~~Pipeline sync/async~~ → Sync MVP, async khi có ML inference
 > 3. ~~Analytics DB migration~~ → Dùng `StudyLog` table riêng, vẫn `EnsureCreated`
 > 4. ~~Ngôn ngữ code~~ → Giữ tiếng Việt cho domain names, tiếng Anh cho technical names
-5. ~~Task notes & study links scope~~ → M6.1 sẽ tách bảng DB, UI phân vùng rõ, parser nhập nhanh không điền notes/links
+5. ~~Task notes & study links scope~~ → M6.1 đã hoàn thành theo phương án B: tách bảng DB, UI phân vùng rõ, parser nhập nhanh không điền notes/links
 
 > [!IMPORTANT]
 > **Câu hỏi mới cho Module 7 (ML):**
@@ -872,7 +872,7 @@ graph LR
 > 2. **Retrain frequency**: WeightConfig Optimizer nên retrain khi nào — mỗi lần mở app, mỗi tuần, hay sau mỗi N tasks hoàn thành?
 > 3. **Feature flag**: Muốn dùng boolean flag đơn giản (`EnableMLPrediction = true/false`) hay settings UI cho user tự bật/tắt từng model?
 
-> **Câu hỏi mới cho M6.1 (Task notes & study links):**
-> 4. **Storage model**: Chốt theo phương án B — tách bảng DB cho `TaskNote` và `TaskReferenceLink`.
-> 5. **Input behavior**: Parser nhập nhanh chỉ fill core task fields, tuyệt đối không đụng notes/links.
-> 6. **UX layout**: Ưu tiên tách riêng note và link; nếu không khả thi thì dùng rich text document với layout phân dòng giống bảng để tối ưu UX.
+> **M6.1 (Task notes & study links) — kết luận đã hoàn thành:**
+> - Storage model: phương án B, tách bảng DB cho `TaskNote` và `TaskReferenceLink`.
+> - Input behavior: parser nhập nhanh chỉ fill core task fields, tuyệt đối không đụng notes/links.
+> - UX layout: ưu tiên tách riêng note và link; nếu không khả thi thì dùng rich text document với layout phân dòng giống bảng để tối ưu UX.
