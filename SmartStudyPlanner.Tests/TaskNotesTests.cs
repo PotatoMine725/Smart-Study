@@ -296,5 +296,6 @@ namespace SmartStudyPlanner.Tests
         public double CalculatePriority(StudyTask task, MonHoc monHoc) => 0;
         public int CalculateRawSuggestedMinutes(StudyTask task) => 0;
         public string SuggestStudyTime(StudyTask task) => "0 phút";
+        public int PredictStudyMinutes(StudyTask task, MonHoc monHoc, out bool isMlPrediction) { isMlPrediction = false; return 0; }
     }
 }
