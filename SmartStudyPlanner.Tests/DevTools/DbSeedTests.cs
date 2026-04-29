@@ -28,25 +28,20 @@ namespace SmartStudyPlanner.Tests.DevTools
         private static string GetAppDbPath()
         {
             var dir = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
-            while (dir != null && !dir.GetFiles("*.sln").Any())
+            while (dir != null)
+            {
+                var appBinDir = Path.Combine(dir.FullName, "SmartStudyPlanner", "bin");
+                if (Directory.Exists(appBinDir))
+                {
+                    var dbFiles = Directory.GetFiles(appBinDir, "SmartStudyData.db", SearchOption.AllDirectories);
+                    if (dbFiles.Any())
+                        return dbFiles.OrderByDescending(f => new FileInfo(f).LastWriteTime).First();
+                }
                 dir = dir.Parent;
-
-            if (dir == null)
-                throw new InvalidOperationException(
-                    "Cannot locate solution root from: " + AppDomain.CurrentDomain.BaseDirectory);
-
-            var appBinDir = Path.Combine(dir.FullName, "SmartStudyPlanner", "bin");
-            if (!Directory.Exists(appBinDir))
-                throw new InvalidOperationException(
-                    $"App bin dir not found: {appBinDir}. Build the SmartStudyPlanner project first.");
-
-            var dbFiles = Directory.GetFiles(appBinDir, "SmartStudyData.db", SearchOption.AllDirectories);
-            if (!dbFiles.Any())
-                throw new InvalidOperationException(
-                    "SmartStudyData.db not found inside SmartStudyPlanner/bin/. " +
-                    "Run the app at least once to create the database.");
-
-            return dbFiles.OrderByDescending(f => new FileInfo(f).LastWriteTime).First();
+            }
+            throw new InvalidOperationException(
+                "SmartStudyData.db not found inside SmartStudyPlanner/bin/. " +
+                "Run the app at least once to create the database.");
         }
 
         // ── Artifact cleanup ─────────────────────────────────────────
