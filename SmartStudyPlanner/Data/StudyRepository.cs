@@ -77,5 +77,133 @@ namespace SmartStudyPlanner.Data
                          .ToListAsync();
             }
         }
+
+        public async Task AddStudyLogAsync(StudyLog log)
+        {
+            using var db = new AppDbContext();
+            db.StudyLogs.Add(log);
+            await db.SaveChangesAsync();
+        }
+
+        public async Task<List<StudyLog>> GetStudyLogsAsync(HocKy hocKy)
+        {
+            using var db = new AppDbContext();
+            var taskIds = hocKy.DanhSachMonHoc
+                .SelectMany(m => m.DanhSachTask)
+                .Select(t => t.MaTask)
+                .ToHashSet();
+            return await db.StudyLogs
+                .Where(l => taskIds.Contains(l.MaTask))
+                .OrderBy(l => l.NgayHoc)
+                .ToListAsync();
+        }
+
+        public async Task<List<StudyLog>> GetStudyLogsSinceAsync(DateTime sinceUtc, CancellationToken ct = default)
+        {
+            using var db = new AppDbContext();
+            return await db.StudyLogs
+                .Where(l => l.CreatedAtUtc >= sinceUtc && !l.IsDeleted)
+                .OrderBy(l => l.CreatedAtUtc)
+                .ToListAsync(ct);
+        }
+
+        // M6.1 — Task Notes & Study Links
+
+        public async Task<TaskEditorBundle?> GetTaskEditorBundleAsync(Guid taskId)
+        {
+            using var db = new AppDbContext();
+            var task = await db.StudyTasks.FindAsync(taskId);
+            if (task is null) return null;
+            var note = await db.TaskNotes.FirstOrDefaultAsync(n => n.MaTask == taskId);
+            var links = await db.TaskReferenceLinks
+                .Where(l => l.MaTask == taskId)
+                .OrderBy(l => l.SortOrder)
+                .ToListAsync();
+            return new TaskEditorBundle { Task = task, Note = note, Links = links };
+        }
+
+        public async Task UpsertTaskNoteAsync(Guid taskId, string? content)
+        {
+            using var db = new AppDbContext();
+            var note = await db.TaskNotes.FirstOrDefaultAsync(n => n.MaTask == taskId);
+            if (note is null)
+                db.TaskNotes.Add(new TaskNote { MaTask = taskId, Content = content });
+            else
+            {
+                note.Content = content;
+                note.UpdatedAtUtc = DateTime.UtcNow;
+            }
+            await db.SaveChangesAsync();
+        }
+
+        public Task<List<TaskReferenceLink>> GetTaskReferenceLinksAsync(Guid taskId)
+        {
+            using var db = new AppDbContext();
+            return db.TaskReferenceLinks
+                .Where(l => l.MaTask == taskId)
+                .OrderBy(l => l.SortOrder)
+                .ToListAsync();
+        }
+
+        public async Task AddTaskReferenceLinkAsync(TaskReferenceLink link)
+        {
+            using var db = new AppDbContext();
+            db.TaskReferenceLinks.Add(link);
+            await db.SaveChangesAsync();
+        }
+
+        public async Task UpdateTaskReferenceLinkAsync(TaskReferenceLink link)
+        {
+            using var db = new AppDbContext();
+            db.TaskReferenceLinks.Update(link);
+            await db.SaveChangesAsync();
+        }
+
+        public async Task DeleteTaskReferenceLinkAsync(Guid linkId)
+        {
+            using var db = new AppDbContext();
+            var link = await db.TaskReferenceLinks.FindAsync(linkId);
+            if (link is not null)
+            {
+                db.TaskReferenceLinks.Remove(link);
+                await db.SaveChangesAsync();
+            }
+        }
+
+        public async Task SaveTaskEditorBundleAsync(TaskEditorBundle bundle)
+        {
+            using var db = new AppDbContext();
+            db.StudyTasks.Update(bundle.Task);
+
+            if (bundle.Note is not null)
+            {
+                var existing = await db.TaskNotes.FirstOrDefaultAsync(n => n.MaTask == bundle.Task.MaTask);
+                if (existing is null)
+                    db.TaskNotes.Add(new TaskNote { MaTask = bundle.Task.MaTask, Content = bundle.Note.Content });
+                else
+                {
+                    existing.Content = bundle.Note.Content;
+                    existing.UpdatedAtUtc = DateTime.UtcNow;
+                }
+            }
+
+            var existingLinks = await db.TaskReferenceLinks
+                .Where(l => l.MaTask == bundle.Task.MaTask)
+                .ToListAsync();
+            var incomingIds = bundle.Links.Select(l => l.Id).ToHashSet();
+            var existingIds = existingLinks.Select(l => l.Id).ToHashSet();
+
+            db.TaskReferenceLinks.RemoveRange(existingLinks.Where(l => !incomingIds.Contains(l.Id)));
+
+            foreach (var link in bundle.Links)
+            {
+                if (existingIds.Contains(link.Id))
+                    db.TaskReferenceLinks.Update(link);
+                else
+                    db.TaskReferenceLinks.Add(link);
+            }
+
+            await db.SaveChangesAsync();
+        }
     }
 }

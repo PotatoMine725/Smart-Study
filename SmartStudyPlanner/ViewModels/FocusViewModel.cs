@@ -1,6 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Models;
+using SmartStudyPlanner.Services;
 using System;
 using System.Windows.Threading;
 
@@ -15,6 +17,8 @@ namespace SmartStudyPlanner.ViewModels
         // BIẾN MỚI: Đếm tổng số giây THỰC TẾ đã ngồi học
         private int _tongGiayDaHoc = 0;
 
+        private readonly IStudyRepository _repository;
+
         public TaskDashboardItem TaskHienTai { get; set; }
 
         [ObservableProperty] private string tieuDeTask;
@@ -26,8 +30,12 @@ namespace SmartStudyPlanner.ViewModels
         public Action OnKetThuc { get; set; }
 
         public FocusViewModel(TaskDashboardItem task)
+            : this(task, ServiceLocator.Get<IStudyRepository>()) { }
+
+        public FocusViewModel(TaskDashboardItem task, IStudyRepository repository)
         {
             TaskHienTai = task;
+            _repository = repository;
             TieuDeTask = $"Đang Focus: {task.TenTask} ({task.TenMonHoc})";
 
             ThietLapPomodoro(true);
@@ -36,6 +44,8 @@ namespace SmartStudyPlanner.ViewModels
             _timer.Interval = TimeSpan.FromSeconds(1);
             _timer.Tick += Timer_Tick;
         }
+
+        public void SimulateStudySeconds(int seconds) => _tongGiayDaHoc += seconds;
 
         private void ThietLapPomodoro(bool laHoc)
         {
@@ -79,16 +89,23 @@ namespace SmartStudyPlanner.ViewModels
         }
 
         // --- CÁC HÀM XỬ LÝ KẾT THÚC VÀ LƯU DỮ LIỆU ---
-        private void LuuThoiGianThucTe()
+        private void LuuThoiGianThucTe(bool daHoanThanh)
         {
             int phutDaHoc = _tongGiayDaHoc / 60;
             if (phutDaHoc > 0)
             {
-                // Cộng dồn vào task gốc (để nếu học nhiều lần thì vẫn cộng dồn)
                 TaskHienTai.TaskGoc.ThoiGianDaHoc += phutDaHoc;
-                // 🔥 KÍCH HOẠT STREAK
                 Services.StreakManager.UpdateStreak();
             }
+
+            _ = _repository.AddStudyLogAsync(new StudyLog
+            {
+                MaTask       = TaskHienTai.TaskGoc.MaTask,
+                NgayHoc      = DateTime.Today,
+                SoPhutHoc    = phutDaHoc,
+                SoPhutDuKien = 0,
+                DaHoanThanh  = daHoanThanh
+            });
         }
 
         [RelayCommand] private void BatDau() => _timer.Start();
@@ -98,20 +115,17 @@ namespace SmartStudyPlanner.ViewModels
         private void HoanThanh()
         {
             _timer.Stop();
-            LuuThoiGianThucTe();
-
-            // Tự động đánh dấu Hoàn thành cho rảnh tay
-            TaskHienTai.TaskGoc.TrangThai = "Hoàn thành";
-
+            LuuThoiGianThucTe(true);
+            TaskHienTai.TaskGoc.NgayHoanThanh = DateTime.Today;
+            TaskHienTai.TaskGoc.TrangThai = StudyTaskStatus.HoanThanh;
             OnKetThuc?.Invoke();
         }
 
-        // LỆNH MỚI: Chỉ lưu thời gian, không đánh dấu hoàn thành
         [RelayCommand]
         private void ThoatKhanCap()
         {
             _timer.Stop();
-            LuuThoiGianThucTe();
+            LuuThoiGianThucTe(false);
             OnKetThuc?.Invoke();
         }
     }

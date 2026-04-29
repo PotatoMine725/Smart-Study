@@ -1,95 +1,154 @@
 ﻿using System;
-using Xunit;
+using System.Threading;
+using System.Threading.Tasks;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
+using SmartStudyPlanner.Services.ML;
+using SmartStudyPlanner.Services.Strategies;
+using SmartStudyPlanner.Tests.Helpers;
+using Xunit;
 
 namespace SmartStudyPlanner.Tests
 {
     public class DecisionEngineTests
     {
-        // 1. TEST LỖI NULL (Bảo vệ app khỏi Crash)
+        private sealed class NullStudyTimePredictor : IStudyTimePredictor
+        {
+            public bool IsReady => false;
+            public Task<StudyTimePredictionResult> PredictAsync(StudyTask task, MonHoc monHoc, CancellationToken ct = default)
+                => Task.FromResult(new StudyTimePredictionResult(0, false, 0f));
+        }
+
+        private static DecisionEngineService BuildSut(WeightConfig? config = null, DateTime? now = null)
+        {
+            var clock = new FakeClock(now ?? new DateTime(2026, 4, 11, 9, 0, 0));
+            return new DecisionEngineService(new DefaultTaskTypeWeightProvider(), clock, new NullStudyTimePredictor(), config);
+        }
+
         [Fact]
         public void CalculatePriority_TaskHoacMonHocNull_TraVe0()
         {
+            var sut = BuildSut();
             var monHocMock = new MonHoc("Toán", 3);
             var taskMock = new StudyTask("BT", DateTime.Now, LoaiCongViec.BaiTapVeNha, 3);
 
-            Assert.Equal(0.0, DecisionEngine.CalculatePriority(null, monHocMock));
-            Assert.Equal(0.0, DecisionEngine.CalculatePriority(taskMock, null));
-            Assert.Equal(0.0, DecisionEngine.CalculatePriority(null, null));
+            Assert.Equal(0.0, sut.CalculatePriority(null, monHocMock));
+            Assert.Equal(0.0, sut.CalculatePriority(taskMock, null));
+            Assert.Equal(0.0, sut.CalculatePriority(null, null));
         }
 
-        // 2. TEST LỖI DẤU PHẨY ĐỘNG (Trễ hạn)
         [Fact]
-        public void CalculatePriority_TaskQuaHan_TraVe100()
+        public void CalculatePriority_TaskQuaHan_UuTienCaoHonTaskTrongTuongLai()
         {
+            var sut = BuildSut();
             var monHoc = new MonHoc("Lý", 2);
-            var task = new StudyTask("Trễ hạn", DateTime.Now.AddDays(-2), LoaiCongViec.ThiCuoiKy, 5);
+            var overdueTask = new StudyTask("Trễ hạn", DateTime.Now.AddDays(-2), LoaiCongViec.ThiCuoiKy, 5);
+            var futureTask = new StudyTask("Tương lai", DateTime.Now.AddDays(10), LoaiCongViec.ThiCuoiKy, 5);
 
-            double score = DecisionEngine.CalculatePriority(task, monHoc);
-            Assert.Equal(100.0, score); // Phải réo còi 100 điểm
+            double overdueScore = sut.CalculatePriority(overdueTask, monHoc);
+            double futureScore = sut.CalculatePriority(futureTask, monHoc);
+
+            Assert.True(overdueScore > futureScore);
+            Assert.InRange(overdueScore, 0.0, 100.0);
         }
 
-        // 3. TEST HẠN CHÓT TRONG NGÀY HÔM NAY
         [Fact]
-        public void CalculatePriority_TaskToiHanHomNay_TraVe95()
+        public void CalculatePriority_TaskToiHanHomNay_CaoHonTaskXaHon()
         {
+            var sut = BuildSut();
             var monHoc = new MonHoc("Hóa", 2);
+            var todayTask = new StudyTask("Hôm nay", DateTime.Now, LoaiCongViec.BaiTapVeNha, 2);
+            var futureTask = new StudyTask("Xa hơn", DateTime.Now.AddDays(5), LoaiCongViec.BaiTapVeNha, 2);
 
-            // SỬA Ở ĐÂY: Dùng DateTime.Now thay vì AddHours(5) để đảm bảo mãi mãi nằm trong ngày hôm nay
-            var task = new StudyTask("Hôm nay", DateTime.Now, LoaiCongViec.BaiTapVeNha, 2);
+            double todayScore = sut.CalculatePriority(todayTask, monHoc);
+            double futureScore = sut.CalculatePriority(futureTask, monHoc);
 
-            double score = DecisionEngine.CalculatePriority(task, monHoc);
-            Assert.Equal(95.0, score);
+            Assert.True(todayScore > futureScore);
         }
 
-        // 4. TEST TẦNG VETO (Nhiệm vụ đã xong)
         [Fact]
         public void CalculatePriority_TaskDaHoanThanh_TraVe0()
         {
+            var sut = BuildSut();
             var monHoc = new MonHoc("Sinh", 2);
             var task = new StudyTask("Đã xong", DateTime.Now.AddDays(5), LoaiCongViec.ThiGiuaKy, 3)
             {
                 TrangThai = "Hoàn thành"
             };
 
-            double score = DecisionEngine.CalculatePriority(task, monHoc);
+            double score = sut.CalculatePriority(task, monHoc);
             Assert.Equal(0.0, score);
         }
 
-        // 5. TEST VÙNG CHẾT 31-60 NGÀY
         [Fact]
         public void CalculatePriority_TaskTrongVung31Den60Ngay_LonHon0()
         {
+            var sut = BuildSut();
             var monHoc = new MonHoc("Toán", 3);
             var task = new StudyTask("Bài tập 45 ngày", DateTime.Now.AddDays(45), LoaiCongViec.BaiTapVeNha, 3);
 
-            double score = DecisionEngine.CalculatePriority(task, monHoc);
-            // Ngày xưa vùng này bị âm điểm, giờ phải lớn hơn 0
+            double score = sut.CalculatePriority(task, monHoc);
             Assert.True(score > 0.0);
         }
 
-        // 6. TEST BẢO MẬT CONFIG (Trọng số sai)
         [Fact]
         public void CalculatePriority_WeightConfigBiLoi_TuDongSuaLoi()
         {
-            // Cố tình phá hỏng Config (Tổng các hệ số > 1.0)
-            DecisionEngine.Config = new WeightConfig
+            var sut = BuildSut(new WeightConfig
             {
                 TimeWeight = 0.9,
                 TaskTypeWeight = 0.9,
                 CreditWeight = 0.9,
                 DifficultyWeight = 0.9
-            };
+            });
 
             var monHoc = new MonHoc("Toán", 3);
             var task = new StudyTask("BT", DateTime.Now.AddDays(10), LoaiCongViec.BaiTapVeNha, 3);
 
-            // Chạy AI
-            double score = DecisionEngine.CalculatePriority(task, monHoc);
+            _ = sut.CalculatePriority(task, monHoc);
 
-            // Sau khi chạy hàm Calculate, AI phải tự động phát hiện lỗi và reset Config về chuẩn
-            Assert.True(DecisionEngine.Config.IsValid());
+            Assert.True(sut.Config.IsValid());
+        }
+
+        [Fact]
+        public void CalculateRawSuggestedMinutes_DaHoanThanh_TraVe0()
+        {
+            var sut = BuildSut();
+            var task = new StudyTask("Xong", DateTime.Now.AddDays(1), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                TrangThai = "Hoàn thành",
+                DiemUuTien = 80
+            };
+
+            Assert.Equal(0, sut.CalculateRawSuggestedMinutes(task));
+        }
+
+        [Fact]
+        public void SuggestStudyTime_ConLaiItHon60Phut_TraVeGioPhutHoacGio()
+        {
+            var sut = BuildSut();
+            var task = new StudyTask("Task", DateTime.Now.AddDays(1), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                DiemUuTien = 50,
+                ThoiGianDaHoc = 30
+            };
+
+            var text = sut.SuggestStudyTime(task);
+
+            Assert.True(text.Contains("h") || text.Contains("phút"));
+        }
+
+        [Fact]
+        public void SuggestStudyTime_DaDatMucTieu_TraVeThongBaoHoanThanh()
+        {
+            var sut = BuildSut();
+            var task = new StudyTask("Task", DateTime.Now.AddDays(1), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                DiemUuTien = 10,
+                ThoiGianDaHoc = 500
+            };
+
+            Assert.Equal("Đã đạt mục tiêu 🎉", sut.SuggestStudyTime(task));
         }
     }
 }

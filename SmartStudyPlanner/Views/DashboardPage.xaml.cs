@@ -9,10 +9,12 @@ namespace SmartStudyPlanner
     public partial class DashboardPage : Page
     {
         private DashboardViewModel _viewModel;
+        public HocKy HocKy { get; }
 
         public DashboardPage(HocKy hocKy)
         {
             InitializeComponent();
+            HocKy = hocKy;
 
             // 1. Tạo "Bộ não"
             _viewModel = new DashboardViewModel(hocKy);

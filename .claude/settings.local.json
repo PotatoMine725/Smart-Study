@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__code-review-graph__get_architecture_overview_tool",
+      "mcp__code-review-graph__semantic_search_nodes_tool",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git *)",
+      "Bash(dotnet build *)",
+      "mcp__plugin_context-mode_context-mode__ctx_execute_file",
+      "mcp__code-review-graph__detect_changes_tool",
+      "mcp__plugin_context-mode_context-mode__ctx_execute",
+      "mcp__plugin_context-mode_context-mode__ctx_batch_execute",
+      "Bash(npx gitnexus *)",
+      "Bash(dotnet test *)",
+      "Bash(xargs grep *)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "code-review-graph"
+  ],
+  "enabledPlugins": {
+    "skill-creator@claude-plugins-official": true
+  }
+}

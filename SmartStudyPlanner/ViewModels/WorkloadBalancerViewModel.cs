@@ -1,31 +1,38 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SmartStudyPlanner.Models;
-using SmartStudyPlanner.Services; // Nhúng thư viện Dịch vụ vừa tạo
+using SmartStudyPlanner.Services;
 using System.Collections.ObjectModel;
 
 namespace SmartStudyPlanner.ViewModels
 {
     public partial class WorkloadBalancerViewModel : ObservableObject
     {
-        private HocKy _hocKy;
+        private readonly HocKy _hocKy;
+        private readonly IWorkloadService _workloadService;
 
         [ObservableProperty] private double capacityHours;
-        [ObservableProperty] private ObservableCollection<ScheduleDay> schedule = new ObservableCollection<ScheduleDay>();
+        [ObservableProperty] private ObservableCollection<ScheduleDay> schedule = new();
 
+        // Constructor mặc định — resolve từ DI
         public WorkloadBalancerViewModel(HocKy hocKy)
+            : this(hocKy, ServiceLocator.Get<IWorkloadService>()) { }
+
+        // Constructor có injection — dùng cho unit test
+        public WorkloadBalancerViewModel(HocKy hocKy, IWorkloadService workloadService)
         {
             _hocKy = hocKy;
-            CapacityHours = WorkloadService.GetCapacity(); // Lấy lại số lần trước đã lưu
+            _workloadService = workloadService;
+            CapacityHours = _workloadService.GetCapacity();
             GenerateSchedule();
         }
 
         [RelayCommand]
         private void GenerateSchedule()
         {
-            WorkloadService.SaveCapacity(CapacityHours); // Lưu lại mỗi khi bấm nút
+            _workloadService.SaveCapacity(CapacityHours);
 
-            var generatedList = WorkloadService.GenerateSchedule(_hocKy, CapacityHours);
+            var generatedList = _workloadService.GenerateSchedule(_hocKy, CapacityHours);
 
             Schedule.Clear();
             foreach (var day in generatedList)
@@ -33,7 +40,9 @@ namespace SmartStudyPlanner.ViewModels
                 if (day.Tasks.Count > 0) Schedule.Add(day);
             }
 
-            System.Windows.MessageBox.Show($"Thuật toán đã xếp lại lịch thành công với giới hạn:\n{CapacityHours} giờ/ngày!", "Workload Balancer");
+            System.Windows.MessageBox.Show(
+                $"Thuật toán đã xếp lại lịch thành công với giới hạn:\n{CapacityHours} giờ/ngày!",
+                "Workload Balancer");
         }
     }
 }

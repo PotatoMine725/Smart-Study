@@ -80,3 +80,4 @@ _ReSharper*/
 project.lock.json
 project.fragment.lock.json
 artifacts/
+.gitnexus

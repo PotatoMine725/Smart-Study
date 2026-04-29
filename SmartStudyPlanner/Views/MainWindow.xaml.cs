@@ -1,7 +1,13 @@
-﻿using Microsoft.Toolkit.Uwp.Notifications;
+using Microsoft.Toolkit.Uwp.Notifications;
 using SmartStudyPlanner.Data;
+using SmartStudyPlanner.Models;
+using SmartStudyPlanner.Services;
+using SmartStudyPlanner.ViewModels;
+using SmartStudyPlanner.Views;
 using System;
+using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Threading;
 
 // Sử dụng alias để phân biệt các hàm của WPF và Windows Forms
@@ -14,10 +20,14 @@ namespace SmartStudyPlanner
         private WinForms.NotifyIcon _notifyIcon;
         private DispatcherTimer _backgroundTimer;
         private bool _thucSuMuonTat = false;
+        private HocKy? _currentHocKy;
+        private WorkloadBalancerWindow? _workloadWindow;
+
         public MainWindow()
         {
             InitializeComponent();
             this.Loaded += MainWindow_Loaded;
+            MainFrame.Navigated += MainFrame_Navigated;
 
             // 1. Cài đặt System Tray (Khay hệ thống)
             SetupSystemTray();
@@ -29,6 +39,14 @@ namespace SmartStudyPlanner
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             MainFrame.Navigate(new SetupPage());
+        }
+
+        private void MainFrame_Navigated(object sender, System.Windows.Navigation.NavigationEventArgs e)
+        {
+            if (e.Content is DashboardPage dp)
+                _currentHocKy = dp.HocKy;
+            else if (e.Content is AnalyticsPage ap)
+                _currentHocKy = ap.HocKy;
         }
 
         private void SetupSystemTray()
@@ -63,8 +81,8 @@ namespace SmartStudyPlanner
 
         private async void BackgroundTimer_Tick(object sender, EventArgs e)
         {
-            // ĐÃ SỬA LỖI 1: Bỏ lệnh using, chỉ khởi tạo biến bình thường
-            var repo = new StudyRepository();
+            var repo = ServiceLocator.Get<IStudyRepository>();
+            var decisionEngine = ServiceLocator.Get<IDecisionEngine>();
 
             var danhSachHocKy = await repo.LayDanhSachHocKyAsync();
             int soTaskKhanCap = 0;
@@ -75,10 +93,9 @@ namespace SmartStudyPlanner
                 {
                     foreach (var task in mon.DanhSachTask)
                     {
-                        if (task.TrangThai != "Hoàn thành")
+                        if (task.TrangThai != StudyTaskStatus.HoanThanh)
                         {
-                            // Kêu AI tính điểm ngầm luôn
-                            double diem = Services.DecisionEngine.CalculatePriority(task, mon);
+                            double diem = decisionEngine.CalculatePriority(task, mon);
                             if (diem >= 80) soTaskKhanCap++;
                         }
                     }
@@ -135,6 +152,75 @@ namespace SmartStudyPlanner
 
             // ĐÃ SỬA LỖI 2: Chỉ định rõ Application của thằng WPF
             System.Windows.Application.Current.Shutdown();
+        }
+
+        // ── Sidebar Navigation ──
+
+        private void SetActiveNav(System.Windows.Controls.Button active)
+        {
+            foreach (var btn in new[] { NavDashboard, NavMonHoc, NavWorkload, NavAnalytics })
+            {
+                btn.ClearValue(BackgroundProperty);
+                var sp = btn.Content as StackPanel;
+                if (sp == null) continue;
+                foreach (var tb in sp.Children.OfType<TextBlock>())
+                    tb.SetResourceReference(TextBlock.ForegroundProperty, "SidebarText");
+            }
+            active.SetResourceReference(BackgroundProperty, "SidebarActiveBackground");
+            var activeSp = active.Content as StackPanel;
+            if (activeSp != null)
+                foreach (var tb in activeSp.Children.OfType<TextBlock>())
+                    tb.SetResourceReference(TextBlock.ForegroundProperty, "SidebarActiveText");
+        }
+
+        private void NavDashboard_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentHocKy == null) return;
+            SetActiveNav(NavDashboard);
+            MainFrame.Navigate(new DashboardPage(_currentHocKy));
+        }
+
+        private void NavMonHoc_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentHocKy == null) return;
+            SetActiveNav(NavMonHoc);
+            MainFrame.Navigate(new QuanLyMonHocPage(_currentHocKy));
+        }
+
+        private void NavWorkload_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentHocKy == null) return;
+            if (_workloadWindow == null || !_workloadWindow.IsLoaded)
+            {
+                _workloadWindow = new WorkloadBalancerWindow(_currentHocKy);
+                _workloadWindow.Show();
+            }
+            else
+                _workloadWindow.Activate();
+        }
+
+        private void NavAnalytics_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentHocKy == null) return;
+            SetActiveNav(NavAnalytics);
+            MainFrame.Navigate(new AnalyticsPage(_currentHocKy));
+        }
+
+        private void BtnLuu_Click(object sender, RoutedEventArgs e)
+        {
+            if (MainFrame.Content is DashboardPage dp &&
+                dp.DataContext is DashboardViewModel vm)
+                vm.LuuDuLieuCommand.Execute(null);
+        }
+
+        private void BtnTheme_Click(object sender, RoutedEventArgs e)
+        {
+            ThemeManager.ToggleTheme();
+
+            // Update icon: sun for dark mode (switch to light), moon for light mode (switch to dark)
+            var mergedDicts = System.Windows.Application.Current.Resources.MergedDictionaries;
+            bool isDark = mergedDicts.Any(d => d.Source?.OriginalString.Contains("DarkTheme") == true);
+            ThemeIcon.Text = isDark ? "" : ""; // moon vs. brightness/sun
         }
     }
 }

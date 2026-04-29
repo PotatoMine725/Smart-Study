@@ -1,0 +1,104 @@
+<Page x:Class="SmartStudyPlanner.AnalyticsPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
+      Title="Analytics" Loaded="Page_Loaded"
+      Background="{DynamicResource AppBackground}">
+    <Page.Resources>
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="FontSize"   Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryText}"/>
+            <Setter Property="Margin"     Value="0,20,0,10"/>
+        </Style>
+    </Page.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
+        <StackPanel Margin="20">
+
+            <!-- Header -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
+                <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="22"
+                           Foreground="{DynamicResource AccentColor}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBlock Text="PHÂN TÍCH HỌC TẬP" FontWeight="Bold" FontSize="22"
+                           Foreground="{DynamicResource PrimaryText}" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Productivity Score Card -->
+            <Border Background="{DynamicResource StatCardBackground}" CornerRadius="10"
+                    Padding="20,16" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1"
+                    Margin="0,0,0,20">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="36"
+                               Foreground="{DynamicResource AccentColor}" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding ProductivityValue}" FontSize="36" FontWeight="Bold"
+                                       Foreground="{DynamicResource PrimaryText}"/>
+                            <TextBlock Text=" điểm" FontSize="20" Foreground="{DynamicResource PrimaryText}"
+                                       VerticalAlignment="Bottom" Margin="4,0,0,4"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding ProductivityLabel}" FontSize="16"
+                                   Foreground="{DynamicResource SecondaryText}"/>
+                        <TextBlock Text="{Binding HasEnoughData, StringFormat=Đủ dữ liệu huấn luyện: {0}}"
+                                   FontSize="12" Foreground="{DynamicResource SecondaryText}" Margin="0,6,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Button Content="Tối ưu AI"
+                    Command="{Binding RetrainModelCommand}"
+                    HorizontalAlignment="Left"
+                    Margin="0,0,0,10"
+                    IsEnabled="{Binding HasEnoughData}">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                        <Setter Property="Background" Value="{DynamicResource AccentColor}"/>
+                        <Setter Property="Foreground" Value="White"/>
+                    </Style>
+                </Button.Style>
+            </Button>
+
+            <!-- Weekly Bar Chart -->
+            <TextBlock Text="Số phút học trong 7 ngày qua" Style="{StaticResource SectionHeader}"/>
+            <Border Background="{DynamicResource StatCardBackground}" CornerRadius="10"
+                    Padding="12" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1"
+                    Margin="0,0,0,4">
+                <lvc:CartesianChart Series="{Binding WeeklyChartSeries}"
+                                    XAxes="{Binding WeeklyChartXAxes}"
+                                    Height="220"/>
+            </Border>
+
+            <!-- Subject Completion Chart -->
+            <TextBlock Text="Tỉ lệ hoàn thành theo môn học (%)" Style="{StaticResource SectionHeader}"/>
+            <Border Background="{DynamicResource StatCardBackground}" CornerRadius="10"
+                    Padding="12" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1"
+                    Margin="0,0,0,4">
+                <lvc:CartesianChart Series="{Binding SubjectChartSeries}"
+                                    XAxes="{Binding SubjectChartXAxes}"
+                                    Height="220"/>
+            </Border>
+
+            <!-- Details DataGrid -->
+            <TextBlock Text="Chi tiết theo môn học" Style="{StaticResource SectionHeader}"/>
+            <DataGrid ItemsSource="{Binding SubjectInsights}"
+                      AutoGenerateColumns="False" IsReadOnly="True"
+                      HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                      Background="{DynamicResource StatCardBackground}"
+                      Foreground="{DynamicResource PrimaryText}"
+                      BorderThickness="1" BorderBrush="{DynamicResource BorderColor}"
+                      RowBackground="Transparent" AlternatingRowBackground="Transparent"
+                      Margin="0,0,0,20">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Môn học"    Binding="{Binding SubjectName}"    Width="*"/>
+                    <DataGridTextColumn Header="Tổng task"  Binding="{Binding TotalTaskCount}" Width="90"/>
+                    <DataGridTextColumn Header="Đã xong"    Binding="{Binding CompletedTaskCount}" Width="90"/>
+                    <DataGridTextColumn Header="Tỉ lệ HT"
+                                        Binding="{Binding CompletionRate, StringFormat={}{0:P0}}" Width="90"/>
+                    <DataGridTextColumn Header="Phút đã học" Binding="{Binding TotalStudyMinutes}" Width="100"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>
