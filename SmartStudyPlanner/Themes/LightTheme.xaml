@@ -28,10 +28,12 @@
     <SolidColorBrush x:Key="SuccessBackground"     Color="#DCFCE7"/>
 
     <!-- Sidebar (dark sidebar on light theme — intentional) -->
-    <SolidColorBrush x:Key="SidebarBackground"     Color="#1E293B"/>
-    <SolidColorBrush x:Key="SidebarBorder"         Color="#334155"/>
-    <SolidColorBrush x:Key="SidebarText"           Color="#94A3B8"/>
+    <SolidColorBrush x:Key="SidebarBackground"       Color="#1E293B"/>
+    <SolidColorBrush x:Key="SidebarBorder"           Color="#334155"/>
+    <SolidColorBrush x:Key="SidebarText"             Color="#CBD5E1"/>
     <SolidColorBrush x:Key="SidebarActiveBackground" Color="#334155"/>
-    <SolidColorBrush x:Key="SidebarActiveText"     Color="#F1F5F9"/>
-    <SolidColorBrush x:Key="SidebarIconColor"      Color="#64748B"/>
+    <SolidColorBrush x:Key="SidebarActiveText"       Color="#F1F5F9"/>
+    <SolidColorBrush x:Key="SidebarIconColor"        Color="#94A3B8"/>
+    <SolidColorBrush x:Key="SidebarHoverBackground"  Color="#2D3F57"/>
+    <SolidColorBrush x:Key="SidebarHoverText"        Color="#E2E8F0"/>
 </ResourceDictionary>
