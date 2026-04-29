@@ -15,6 +15,7 @@ namespace SmartStudyPlanner.Tests.DevTools
     {
         // ── DB path helpers ──────────────────────────────────────────
 
+        // Close the app before running — SQLite write locks conflict.
         private static AppDbContext CreateContext()
         {
             var dbPath = GetAppDbPath();
@@ -66,6 +67,7 @@ namespace SmartStudyPlanner.Tests.DevTools
 
         // ── Main seed test ───────────────────────────────────────────
 
+        // WARNING: re-running appends MonHoc/Tasks/Logs — 2nd run gives 360+ logs. See plan Notes.
         [Fact]
         public async Task Seed_180StudyLogs_ForMlPipelineVerification()
         {
