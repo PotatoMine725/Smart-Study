@@ -16,6 +16,9 @@ namespace SmartStudyPlanner.Models
         [NotMapped]
         public DateTime NgayKetThuc { get; set; }
 
+        [NotMapped]
+        public bool IsNgayKetThucAuto { get; set; } = true;
+
         public ObservableCollection<MonHoc> DanhSachMonHoc { get; set; }
 
         public HocKy()
@@ -29,8 +32,8 @@ namespace SmartStudyPlanner.Models
             MaHocKy = Guid.NewGuid();
             Ten = ten;
             NgayBatDau = ngayBatDau;
-            NgayKetThuc = ngayBatDau.AddDays(120);
+            NgayKetThuc = ngayBatDau.AddDays(150);
+            IsNgayKetThucAuto = true;
             DanhSachMonHoc = new ObservableCollection<MonHoc>();
-        }
-    }
+        }    }
 }

@@ -2,7 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status:** ✅ completed
+
 **Goal:** Add a DB-split `TaskNote` (1-1) and `TaskReferenceLink` (1-N) aggregate to the task management screen, with a clear 3-zone editor UI, strict parser isolation, and cascade delete from the parent task.
+
+> **Note:** This feature is implemented and can be skipped for future planning unless a follow-up scope is added.
 
 **Architecture:**
 - Two new EF entities in separate DB tables, mapped via Fluent API FK + cascade delete.

@@ -215,15 +215,12 @@ namespace SmartStudyPlanner
 
         private void BtnTheme_Click(object sender, RoutedEventArgs e)
         {
-            if (MainFrame.Content is DashboardPage dp &&
-                dp.DataContext is DashboardViewModel vm)
-            {
-                vm.ToggleThemeCommand.Execute(null);
-                // Update icon: sun for dark mode (switch to light), moon for light mode (switch to dark)
-                var mergedDicts = System.Windows.Application.Current.Resources.MergedDictionaries;
-                bool isDark = mergedDicts.Any(d => d.Source?.OriginalString.Contains("DarkTheme") == true);
-                ThemeIcon.Text = isDark ? "" : ""; // moon vs. brightness/sun
-            }
+            ThemeManager.ToggleTheme();
+
+            // Update icon: sun for dark mode (switch to light), moon for light mode (switch to dark)
+            var mergedDicts = System.Windows.Application.Current.Resources.MergedDictionaries;
+            bool isDark = mergedDicts.Any(d => d.Source?.OriginalString.Contains("DarkTheme") == true);
+            ThemeIcon.Text = isDark ? "" : ""; // moon vs. brightness/sun
         }
     }
 }

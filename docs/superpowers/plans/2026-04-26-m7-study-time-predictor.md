@@ -1,5 +1,7 @@
 # M7 — Study Time Predictor Implementation Plan
 
+> **Status:** ✅ Hoàn thành
+>
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add an offline-first ML-powered study time predictor using ML.NET FastTree regression, with silent fallback to the existing formula, subtle `*` UI indicator, and a manual retrain button in Analytics.
@@ -26,6 +28,10 @@
 - [x] Task 12: `AnalyticsViewModel` — `_allLogs`, `RetrainModelCommand`, `HasEnoughData`
 - [x] Task 13: `AnalyticsPage` XAML — nút "Tối ưu AI" + `InverseBoolToVisibilityConverter`
 - [x] Task 14: Final verification (R² ≥ 0.50) + push branch + open PR (cần 1, 7, 8, 11 xong trước)
+
+**Status:** hoàn thành và đã đồng bộ với codebase.
+
+> **Skip note:** feature is done; can be skipped unless a follow-up scope is added.
 
 ---
 

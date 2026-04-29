@@ -2,6 +2,7 @@
 
 > **Behavior-aware planning system for college students**
 > Version: 1.5.0 | Stack: .NET 10, C#, WPF, SQLite + EF Core
+> **Docs status:** M5 ✅ | M6 ✅ | M6.1 ✅ | M7 ✅ | DEV-RESET ✅ | M8 planned
 
 ---
 
@@ -9,9 +10,9 @@
 
 Smart Study Planner is a **closed-loop decision system** — not a CRUD app — that:
 
-- Converts raw deadlines into balanced, actionable study schedules
-- Adapts based on user behavior and performance
-- Prevents overload, procrastination, and inefficient study patterns
+- Converts raw deadlines into balanced, actionable study schedules ✅
+- Adapts based on user behavior and performance ✅
+- Prevents overload, procrastination, and inefficient study patterns ✅
 
 **Core loop:**
 ```
@@ -59,7 +60,7 @@ User Input → Parser Engine → Decision Engine → Planner Engine → Balancer
 | **MVVM Strictness** | ViewModels own no UI logic; Views own no business logic |
 | **Determinism** | All planner output must be predictable and reproducible |
 | **Testability** | Every core feature needs unit tests; system time must be mockable via `IClock` |
-| **Local-First** | All scheduling is processed locally before any cloud sync is considered |
+| **Local-First** | All scheduling is processed locally before any cloud sync is considered ✅ |
 | **Dependency Isolation** | All engines depend on interfaces only — `new DecisionEngine()` ❌ |
 | **Pure Functions** | Planner logic: no DB calls, no `DateTime.Now`, no `Random()`, no side effects |
 
@@ -98,7 +99,7 @@ If performance improves → decrease competency weight
 ```
 WeightConfig: TimeWeight=0.40, TaskTypeWeight=0.30, CreditWeight=0.20, DifficultyWeight=0.10
 ```
-Task type coefficients: ThiCuoiKy=1.0, DoAnCuoiKy=0.8, ThiGiuaKy=0.6, KiemTraThuongXuyen=0.3, BaiTapVeNha=0.1
+Task type coefficients: ThiCuoiKy=1.0, DoAnCuoiKy=0.8, ThiGiuaKy=0.6, KiemTraThuongXuyen=0.3, BaiTapVeNha=0.1 ✅
 
 ### 4.2 Balancer Algorithm (WorkloadService)
 
@@ -114,6 +115,7 @@ Step 4 — Task splitting: if a task doesn't fit in one day's remaining capacity
 ```
 Risk = DeadlineUrgency * 0.5 + ProgressGap * 0.3 + PerformanceDrop * 0.2
 ```
+✅
 
 ### 4.4 Adaptive Logic (Edge ML — MVP)
 
@@ -125,40 +127,45 @@ If subject skipped multiple times → increase priority weight
 
 ExpectedProgress = DaysPassed / TotalDays
 ```
+✅
 
 ---
 
 ## 5. Current Implementation Status (v1.5.0)
 
 **Working:**
-- Basic CRUD for Subjects (`MonHoc`) and Tasks (`StudyTask`)
-- Rule-based priority scoring with WeightConfig
-- Workload balancing with task splitting across 7 days
-- SmartParser for natural-language deadline input
-- Pomodoro-based FocusMode with time tracking
-- Streak tracking, Toast notifications, System Tray background worker
-- Light/Dark theme toggle
-- Dashboard with LiveCharts visualizations
+- Basic CRUD for Subjects (`MonHoc`) and Tasks (`StudyTask`) ✅
+- Rule-based priority scoring with WeightConfig ✅
+- Workload balancing with task splitting across 7 days ✅
+- SmartParser for natural-language deadline input ✅
+- Pomodoro-based FocusMode with time tracking ✅
+- Streak tracking, Toast notifications, System Tray background worker ✅
+- Light/Dark theme toggle ✅
+- Dashboard with LiveCharts visualizations ✅
 
 **Missing (planned for v1.6+):**
-- Machine Learning integration
-- Cloud sync and mobile platforms
-- Pipeline Orchestrator
-- Study Analytics
+- Machine Learning integration ⏳ (M7 done; M8 planned)
+- Cloud sync and mobile platforms ⏳
+- Pipeline Orchestrator ✅
+- Study Analytics ✅
+- Task notes & study links ✅
+- Dev reset is opt-in via `DEV_RESET_DB=1` ✅
+- Theme toggle now works from every page ✅
+- Semester end date auto-suggests 150 days and is editable ✅
 
 ---
 
 ## 6. Technical Debt — Must fix before v1.6
 
 ### 6.1 Decoupling & Dependency Injection
-- [ ] Convert `DecisionEngine` and `WorkloadService` from `static` to instance-based classes
-- [ ] Create `IDecisionEngine` and `IWorkloadService` interfaces
-- [ ] Register services via DI in `App.xaml.cs`
+- [x] Convert `DecisionEngine` and `WorkloadService` from `static` to instance-based classes ✅
+- [x] Create `IDecisionEngine` and `IWorkloadService` interfaces ✅
+- [x] Register services via DI in `App.xaml.cs` ✅
 
 ### 6.2 Strategy Pattern for Decision Engine
-- [ ] Isolate task-type weights (Exam vs. Homework) into separate strategy classes
-- [ ] Separate Time Urgency, Credit Weight, and Difficulty into independent classes implementing a shared interface
-- [ ] Replace `DateTime.Now` with an `IClock` interface for deterministic testing
+- [x] Isolate task-type weights (Exam vs. Homework) into separate strategy classes ✅
+- [x] Separate Time Urgency, Credit Weight, and Difficulty into independent classes implementing a shared interface ✅
+- [x] Replace `DateTime.Now` with an `IClock` interface for deterministic testing ✅
 
 ---
 
@@ -167,10 +174,10 @@ ExpectedProgress = DaysPassed / TotalDays
 | Agent | Responsibility | Scope |
 |---|---|---|
 | **Planner Agent** | Orchestration | Coordinates engine pipeline |
-| **Decision Agent** | Priority scoring | `DecisionEngine.cs` |
-| **Balancer Agent** | Time distribution | `WorkloadService.cs` |
-| **Parser Agent** | Input interpretation | `SmartParser.cs` |
-| **ML Agent** | Adaptive learning | Future `AdaptiveEngine` |
+| **Decision Agent** | Priority scoring | `DecisionEngine.cs` ✅ |
+| **Balancer Agent** | Time distribution | `WorkloadService.cs` ✅ |
+| **Parser Agent** | Input interpretation | `SmartParser.cs` ✅ |
+| **ML Agent** | Adaptive learning | `MLModelManager`, `StudyTimePredictorService` ✅ / M8 planned |
 
 ---
 
@@ -228,7 +235,14 @@ Every change to Planner, Decision Engine, or Balancer **must** include correspon
 
 | Phase | Feature |
 |---|---|
-| **v1.6** | DI refactor, Strategy pattern, IClock injection, full test coverage |
-| **v2.0** | Pipeline Orchestrator, Edge ML integration |
-| **v3.0** | Mobile (iOS/Android hybrid), Cloud sync |
-| **Future** | Study Analytics, habit tracking, workload insights |
+| **v1.6** | DI refactor, Strategy pattern, IClock injection, full test coverage ✅ |
+| **v2.0** | Pipeline Orchestrator ✅, Study Analytics ✅, Task notes & study links ✅, M7 StudyTimePredictor ✅, M8 ML suite planned |
+| **v3.0** | Mobile (iOS/Android hybrid), Cloud sync ⏳ |
+| **Future** | Study Analytics follow-ups, habit tracking, workload insights, M8 rollout |
+
+**Status summary:**
+- M5 Pipeline Orchestrator ✅
+- M6 Study Analytics ✅
+- M6.1 Task notes & study links ✅
+- M7 StudyTimePredictor ✅
+- M8 ML suite expansion 🟨 planned

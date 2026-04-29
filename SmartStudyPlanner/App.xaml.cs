@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using System.Windows;
+using Microsoft.EntityFrameworkCore;
 using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Services.ML;
@@ -14,9 +15,15 @@ namespace SmartStudyPlanner
             base.OnStartup(e);
 
             // KÍCH HOẠT DATABASE
+            // Mặc định giữ dữ liệu học kỳ/task qua các lần mở app.
+            // Nếu cần clean reset dev, có thể bật bằng biến môi trường DEV_RESET_DB=1.
             using (var db = new AppDbContext())
             {
-                // Lệnh ma thuật: Nếu file .db chưa tồn tại, nó sẽ tự động tạo mới dựa trên AppDbContext!
+                if (System.Environment.GetEnvironmentVariable("DEV_RESET_DB") == "1")
+                {
+                    db.Database.EnsureDeleted();
+                }
+
                 db.Database.EnsureCreated();
             }
 
@@ -40,4 +47,4 @@ namespace SmartStudyPlanner
             });
         }
     }
-}
+}

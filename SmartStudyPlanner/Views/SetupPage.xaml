@@ -41,7 +41,15 @@
             <TextBox Text="{Binding TenHocKy, UpdateSourceTrigger=PropertyChanged}" Height="35" Margin="0,0,0,15" Foreground="{DynamicResource PrimaryText}" Padding="5" VerticalContentAlignment="Center" FontSize="14"/>
 
             <TextBlock Text="Ngày Bắt Đầu:" Margin="0,0,0,5"/>
-            <DatePicker SelectedDate="{Binding NgayBatDau}" Height="35" Margin="0,0,0,20" Foreground="{DynamicResource PrimaryText}" VerticalContentAlignment="Center" FontSize="14"/>
+            <DatePicker SelectedDate="{Binding NgayBatDau}" Height="35" Margin="0,0,0,15" Foreground="{DynamicResource PrimaryText}" VerticalContentAlignment="Center" FontSize="14"/>
+
+            <TextBlock Text="Ngày Kết Thúc (mặc định +150 ngày):" Margin="0,0,0,5"/>
+            <DatePicker SelectedDate="{Binding NgayKetThuc}" Height="35" Margin="0,0,0,10" Foreground="{DynamicResource PrimaryText}" VerticalContentAlignment="Center" FontSize="14"/>
+            <TextBlock Text="{Binding IsNgayKetThucAuto, StringFormat=Tự động: {0}}" Foreground="{DynamicResource SecondaryText}" FontSize="12" Margin="0,0,0,10"/>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
+                <Button Content="Tự động tính lại" Command="{Binding TuDongTinhLaiCommand}" Width="140" Height="32" Margin="0,0,8,0" Background="#95A5A6" Foreground="White" FontWeight="Bold" Cursor="Hand"/>
+            </StackPanel>
 
             <Button Content="TẠO MỚI VÀ BẮT ĐẦU" Command="{Binding TaoHocKyCommand}" Height="40" Background="#2980B9" Foreground="White" FontWeight="Bold" FontSize="14" Cursor="Hand"/>
         </StackPanel>
