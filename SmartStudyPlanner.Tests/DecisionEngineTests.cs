@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
+using SmartStudyPlanner.Services.ML;
 using SmartStudyPlanner.Services.Strategies;
 using SmartStudyPlanner.Tests.Helpers;
 using Xunit;
@@ -9,10 +12,17 @@ namespace SmartStudyPlanner.Tests
 {
     public class DecisionEngineTests
     {
+        private sealed class NullStudyTimePredictor : IStudyTimePredictor
+        {
+            public bool IsReady => false;
+            public Task<StudyTimePredictionResult> PredictAsync(StudyTask task, MonHoc monHoc, CancellationToken ct = default)
+                => Task.FromResult(new StudyTimePredictionResult(0, false, 0f));
+        }
+
         private static DecisionEngineService BuildSut(WeightConfig? config = null, DateTime? now = null)
         {
             var clock = new FakeClock(now ?? new DateTime(2026, 4, 11, 9, 0, 0));
-            return new DecisionEngineService(new DefaultTaskTypeWeightProvider(), clock, config);
+            return new DecisionEngineService(new DefaultTaskTypeWeightProvider(), clock, new NullStudyTimePredictor(), config);
         }
 
         [Fact]

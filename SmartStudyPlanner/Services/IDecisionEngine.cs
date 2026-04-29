@@ -19,5 +19,8 @@ namespace SmartStudyPlanner.Services
 
         /// <summary>Chuỗi gợi ý thời gian còn lại (đã trừ ThoiGianDaHoc) cho DataGrid.</summary>
         string SuggestStudyTime(StudyTask task);
+
+        /// <summary>Trả về phút học dự đoán với ngữ cảnh môn học nếu ML predictor sẵn sàng.</summary>
+        int PredictStudyMinutes(StudyTask task, MonHoc monHoc, out bool isMlPrediction);
     }
 }

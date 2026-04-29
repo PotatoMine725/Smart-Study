@@ -15,6 +15,9 @@ namespace SmartStudyPlanner.Models
         public StudyTask TaskGoc { get; set; }
         public MonHoc MonHocGoc { get; set; }
 
+        // M7 — ML prediction marker
+        public bool IsMLPrediction { get; set; }
+
         // Risk Analyzer fields (Module 4)
         public string MucDoRuiRo { get; set; } = "—";
         public double RiskScore { get; set; } = 0.0;

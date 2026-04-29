@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SmartStudyPlanner.Models;
+using SmartStudyPlanner.Services.ML;
 using SmartStudyPlanner.Services.Strategies;
 
 namespace SmartStudyPlanner.Services
@@ -12,6 +13,7 @@ namespace SmartStudyPlanner.Services
     public class DecisionEngineService : IDecisionEngine
     {
         private readonly PriorityCalculator _calculator;
+        private readonly IStudyTimePredictor _studyTimePredictor;
         private WeightConfig _config;
 
         public WeightConfig Config => _config;
@@ -19,9 +21,11 @@ namespace SmartStudyPlanner.Services
         public DecisionEngineService(
             ITaskTypeWeightProvider taskTypeProvider,
             IClock clock,
+            IStudyTimePredictor studyTimePredictor,
             WeightConfig? initialConfig = null)
         {
             _config = initialConfig ?? new WeightConfig();
+            _studyTimePredictor = studyTimePredictor;
 
             _calculator = new PriorityCalculator(
                 cfgAccessor: () => _config,
@@ -76,6 +80,13 @@ namespace SmartStudyPlanner.Services
             int hours = remainingMinutes / 60;
             int mins = remainingMinutes % 60;
             return mins > 0 ? $"{hours}h {mins}p" : $"{hours}h";
+        }
+
+        public int PredictStudyMinutes(StudyTask task, MonHoc monHoc, out bool isMlPrediction)
+        {
+            var result = _studyTimePredictor.PredictAsync(task, monHoc).GetAwaiter().GetResult();
+            isMlPrediction = result.IsMLPrediction;
+            return result.Minutes;
         }
     }
 }

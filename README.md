@@ -1,234 +1,99 @@
-# Smart Study Planner — Agent README
+# 📚 Smart-Study
 
-> **Behavior-aware planning system for college students**
-> Version: 1.5.0 | Stack: .NET 10, C#, WPF, SQLite + EF Core
+> **Intelligent Task Scheduling & Workload Management for College Students**
 
----
+Stop juggling deadlines. Let Smart-Study orchestrate your academic workflow.
 
-## 1. Project Vision
+## 🎯 What is Smart-Study?
 
-Smart Study Planner is a **closed-loop decision system** — not a CRUD app — that:
+Smart-Study is an intelligent task management system designed specifically for college students who struggle with scheduling and workload distribution. It's not just another to-do list—it's a **personal study assistant** that automatically converts your deadlines into actionable, balanced schedules using advanced decision-making algorithms and machine learning.
 
-- Converts raw deadlines into balanced, actionable study schedules
-- Adapts based on user behavior and performance
-- Prevents overload, procrastination, and inefficient study patterns
+Instead of manually breaking down projects and managing competing deadlines, Smart-Study does the heavy lifting for you.
 
-**Core loop:**
-```
-Plan → Execute → Measure → Adapt → Re-plan
-```
+## ✨ Key Features
 
----
+### 🔄 **Automated Planning**
+- Converts deadlines into structured tasks and schedules automatically
+- Intelligent deadline parsing—just tell it when assignments are due
+- Automatically breaks down large projects into manageable milestones
 
-## 2. Architecture
+### ⚖️ **Intelligent Workload Balancing**
+- Distributes tasks efficiently based on difficulty, time requirements, and deadlines
+- Prevents burnout by spreading work evenly across your calendar
+- Adaptive scheduling that respects your capacity
 
-The system follows a **Layered + MVVM hybrid**:
+### 🧠 **Personalized Adaptation**
+- Continuously learns from your behavior and performance
+- Adjusts plans in real-time based on how you actually work
+- Gets smarter the more you use it
 
-```
-Presentation Layer  (WPF Views + ViewModels — no business logic)
-        ↓
-Application Layer   (StudyPlanService, AssessmentService, ProgressService)
-        ↓
-Domain Layer        (DecisionEngine, PlannerEngine, BalancerEngine, RiskAnalyzer, AdaptiveEngine)
-        ↓
-Infrastructure      (SQLite via EF Core, Repository pattern, File storage, Notifications)
-```
+### 🔮 **Advanced Decision Engine** (Coming Soon)
+- Machine learning integration for predictive scheduling
+- Edge ML for offline capability and privacy-first design
 
-**Core engine pipeline:**
-```
-User Input → Parser Engine → Decision Engine → Planner Engine → Balancer Engine → Schedule Output
-                                                                                        ↓
-                                                               Re-planning ← Adaptive/ML Engine ← User Progress
-```
+## 🛠️ Technology Stack
 
-### Layer responsibilities
+- **Language**: C#
+- **.NET Framework**: .NET 10
+- **Database**: SQLite with Entity Framework Core
+- **Architecture**: Advanced pipeline system with:
+  - Decision Engine (task prioritization & urgency assessment)
+  - Time Parsing Engine (deadline interpretation)
+  - Edge Machine Learning (adaptive learning algorithms)
 
-| Layer | What it does | What it must NOT do |
-|---|---|---|
-| Presentation | Data binding, UI events | Contain business logic |
-| Application | Orchestrate use cases | Access DB directly |
-| Domain | All intelligence & scoring | Call UI or DB |
-| Infrastructure | Persistence, notifications | Contain scheduling logic |
+## 🚀 Project Status
 
----
+**Current Phase**: Active Development (Proof of Concept)
 
-## 3. Key Design Principles
+This is a personal project currently in active development. The core scheduling and balancing algorithms are being refined, and the foundation is being built for future ML integration.
 
-| Principle | Rule |
-|---|---|
-| **MVVM Strictness** | ViewModels own no UI logic; Views own no business logic |
-| **Determinism** | All planner output must be predictable and reproducible |
-| **Testability** | Every core feature needs unit tests; system time must be mockable via `IClock` |
-| **Local-First** | All scheduling is processed locally before any cloud sync is considered |
-| **Dependency Isolation** | All engines depend on interfaces only — `new DecisionEngine()` ❌ |
-| **Pure Functions** | Planner logic: no DB calls, no `DateTime.Now`, no `Random()`, no side effects |
+### What's Working:
+- Basic task input and deadline parsing
+- Workload balancing calculations
+- Decision engine for task urgency assessment
 
----
+### What's Coming:
+- Mobile platform (iOS/Android)
+- Hybrid architecture (online + offline synchronization)
+- Full machine learning integration
+- Cloud synchronization
 
-## 4. Algorithms
+## 📖 How to Use (PoC)
 
-### 4.1 Priority Formula (Decision Engine)
+*Documentation for the proof of concept will be added soon. For now, this is primarily a development project.*
 
-```
-Priority =
-    w1 * DeadlineUrgency     +
-    w2 * CompetencyGap       +
-    w3 * ProgressGap         +
-    w4 * Difficulty          +
-    w5 * TaskWeight          +
-    w6 * ConsistencyPenalty
-```
+## 🎓 Who Is This For?
 
-**Supporting metrics:**
-```
-DeadlineUrgency = 1 / (DaysLeft + 1)
-CompetencyGap   = 1 - (Score / 100)
-ProgressGap     = 1 - ProgressPercent
-Consistency     = StudyDays / 7
-```
+Perfect for college students who:
+- Have multiple competing deadlines
+- Struggle with time management
+- Want to optimize their study schedule
+- Don't have time to manually plan their workload
 
-**Dynamic weight adjustment:**
-```
-If Deadline < 3 days   → increase urgency weight
-If user procrastinates → increase penalty weight
-If performance improves → decrease competency weight
-```
+## 🚀 Roadmap
 
-**Current implementation** (`DecisionEngine.cs`):
-```
-WeightConfig: TimeWeight=0.40, TaskTypeWeight=0.30, CreditWeight=0.20, DifficultyWeight=0.10
-```
-Task type coefficients: ThiCuoiKy=1.0, DoAnCuoiKy=0.8, ThiGiuaKy=0.6, KiemTraThuongXuyen=0.3, BaiTapVeNha=0.1
+- [ ] Mobile application (hybrid framework)
+- [ ] Cloud synchronization
+- [ ] Advanced ML-powered recommendations
+- [ ] Study habit analytics and insights
+- [ ] Collaborative scheduling (study groups)
+- [ ] Integration with calendar apps
 
-### 4.2 Balancer Algorithm (WorkloadService)
+## 💡 What Makes Smart-Study Different
 
-Step 1 — Sort tasks `DESC` by priority  
-Step 2 — Greedy allocation: assign each task to the day with lowest current load  
-Step 3 — Constraints: max hours/day (user-configured), no excessive same-subject repetition  
-Step 4 — Task splitting: if a task doesn't fit in one day's remaining capacity, split it across days
+Unlike generic task managers, Smart-Study uses **sophisticated computational pipelines** to understand the nuances of academic workload:
+- **Decision Engine**: Evaluates task urgency considering difficulty, deadlines, and dependencies
+- **Time Parsing**: Intelligently interprets natural language deadlines ("due next Friday", "midterm in 3 weeks")
+- **Workload Optimization**: Uses algorithms to ensure balanced, sustainable study schedules
 
-**Future (v2+):** `Minimize Σ(dayLoad − avgLoad)²`
+## 📝 License
 
-### 4.3 Risk Detection
+To be determined.
 
-```
-Risk = DeadlineUrgency * 0.5 + ProgressGap * 0.3 + PerformanceDrop * 0.2
-```
+## 👋 Contributing
 
-### 4.4 Adaptive Logic (Edge ML — MVP)
-
-Rule-based, no deep learning:
-```
-If Progress < ExpectedProgress   → increase priority
-If MilestoneScore > EntryScore   → reduce workload
-If subject skipped multiple times → increase priority weight
-
-ExpectedProgress = DaysPassed / TotalDays
-```
+This is currently a personal project. However, if you're interested in the concept or want to discuss the architecture, feel free to reach out!
 
 ---
 
-## 5. Current Implementation Status (v1.5.0)
-
-**Working:**
-- Basic CRUD for Subjects (`MonHoc`) and Tasks (`StudyTask`)
-- Rule-based priority scoring with WeightConfig
-- Workload balancing with task splitting across 7 days
-- SmartParser for natural-language deadline input
-- Pomodoro-based FocusMode with time tracking
-- Streak tracking, Toast notifications, System Tray background worker
-- Light/Dark theme toggle
-- Dashboard with LiveCharts visualizations
-
-**Missing (planned for v1.6+):**
-- Machine Learning integration
-- Cloud sync and mobile platforms
-- Pipeline Orchestrator
-- Study Analytics
-
----
-
-## 6. Technical Debt — Must fix before v1.6
-
-### 6.1 Decoupling & Dependency Injection
-- [ ] Convert `DecisionEngine` and `WorkloadService` from `static` to instance-based classes
-- [ ] Create `IDecisionEngine` and `IWorkloadService` interfaces
-- [ ] Register services via DI in `App.xaml.cs`
-
-### 6.2 Strategy Pattern for Decision Engine
-- [ ] Isolate task-type weights (Exam vs. Homework) into separate strategy classes
-- [ ] Separate Time Urgency, Credit Weight, and Difficulty into independent classes implementing a shared interface
-- [ ] Replace `DateTime.Now` with an `IClock` interface for deterministic testing
-
----
-
-## 7. Agent Responsibility Split
-
-| Agent | Responsibility | Scope |
-|---|---|---|
-| **Planner Agent** | Orchestration | Coordinates engine pipeline |
-| **Decision Agent** | Priority scoring | `DecisionEngine.cs` |
-| **Balancer Agent** | Time distribution | `WorkloadService.cs` |
-| **Parser Agent** | Input interpretation | `SmartParser.cs` |
-| **ML Agent** | Adaptive learning | Future `AdaptiveEngine` |
-
----
-
-## 8. Agent Execution Rules (MANDATORY)
-
-### Allowed
-- Refactor code structure
-- Extract interfaces and apply dependency injection
-- Optimize algorithms
-- Add non-invasive logging
-- Add or update unit tests
-
-### Forbidden
-Agents **MUST NOT**:
-- Modify the priority formula, risk calculation, or balancer logic without explicit instruction
-- Rewrite entire modules without documented reasoning
-- Merge unrelated responsibilities into a single class
-- Introduce threading into core planner logic
-- Add external libraries for core logic
-- Inject UI logic into the domain layer
-- Use `DateTime.Now`, `Random()`, or DB calls inside algorithm logic
-- Use `new DecisionEngine()` or `new WorkloadService()` — depend on interfaces only
-
-### Test-first enforcement
-Every change to Planner, Decision Engine, or Balancer **must** include corresponding unit test updates and edge case coverage.
-
----
-
-## 9. Reference Files
-
-| File | Purpose |
-|---|---|
-| `Services/DecisionEngine.cs` | Priority calculation, WeightConfig, study time suggestion |
-| `Services/WorkloadService.cs` | 7-day schedule generation with task splitting |
-| `Services/SmartParser.cs` | NLP-style deadline parsing from free text |
-| `Services/StreakManager.cs` | Daily study streak persistence |
-| `Services/ThemeManager.cs` | Light/Dark theme switching |
-| `Data/AppDbContext.cs` | EF Core SQLite context with cascade delete |
-| `Data/StudyRepository.cs` | Async repository with transaction safety |
-| `Data/IStudyRepository.cs` | Repository contract |
-| `Models/HocKy.cs` | Semester model (root aggregate) |
-| `Models/MonHoc.cs` | Subject model |
-| `Models/StudyTask.cs` | Task model with priority, difficulty, status |
-| `Models/TaskDashboardItem.cs` | Display-only DTO for dashboard |
-| `ViewModels/DashboardViewModel.cs` | Main dashboard logic, charts, streak, schedule |
-| `ViewModels/FocusViewModel.cs` | Pomodoro timer + time tracking |
-| `ViewModels/QuanLyMonHocViewModel.cs` | Subject CRUD |
-| `ViewModels/QuanLyTaskViewModel.cs` | Task CRUD + SmartParser integration |
-| `ViewModels/WorkloadBalancerViewModel.cs` | Balancer UI |
-| `ViewModels/SetupViewModel.cs` | Semester setup / load from DB |
-
----
-
-## 10. Development Roadmap
-
-| Phase | Feature |
-|---|---|
-| **v1.6** | DI refactor, Strategy pattern, IClock injection, full test coverage |
-| **v2.0** | Pipeline Orchestrator, Edge ML integration |
-| **v3.0** | Mobile (iOS/Android hybrid), Cloud sync |
-| **Future** | Study Analytics, habit tracking, workload insights |
+**Smart-Study**: Because your GPA deserves more than a sticky note. 📚✨

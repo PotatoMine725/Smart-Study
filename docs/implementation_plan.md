@@ -1,11 +1,11 @@
 # Smart Study Planner — Kế hoạch Phát triển v1.6 → v2.0
 
 > **Phân tích dựa trên:** GitNexus (461 symbols, 1,469 relationships, 36 execution flows) + code-review-graph
-> **Cập nhật mới nhất:** 2026-04-26 — M1→M6 + M5-TDs + M6.1 hoàn tất, PR #34–#37 đã merge vào `dev`. M6.1 PR pending. M7 next.
+> **Cập nhật mới nhất:** 2026-04-26 — M1→M7 hoàn tất, PR #34–#37 đã merge vào `dev`. M6.1/M7 docs đã đồng bộ.
 
 ---
 
-## 0. Status Snapshot (2026-04-25)
+## 0. Status Snapshot (2026-04-26)
 
 ### Trạng thái hiện tại
 
@@ -14,6 +14,11 @@
 - **PR #35** (`feat(M5): add pipeline orchestrator and integrate dashboard flow → dev`) đã merge.
 - **PR #36** (`feat(ui): UI/UX upgrade — sidebar navigation, dark mode fix, stat cards, badge column → dev`) đã merge.
 - **PR #37** (`feat(M6): Study Analytics & Insights — StudyLog, AnalyticsPage, sidebar nav → dev`) đã merge.
+- **M6.1** (`Task Notes & Study Links`) đã hoàn thành; PR merge đang chờ cập nhật trạng thái trong docs nhưng codebase đã triển khai xong.
+- **M7** (`Study Time Predictor`) đã hoàn thành và review đã lưu trong `docs/superpowers/reviews/2026-04-26-m7-code-review.md`.
+- **DEV-RESET** đã được chuyển sang chế độ opt-in qua `DEV_RESET_DB=1`; DB giữ lại mặc định giữa các lần mở app.
+- **Theme toggle** đã được hook lại ở shell cấp cao để hoạt động trên mọi trang (MainWindow gọi thẳng `ThemeManager.ToggleTheme()`).
+- **Semester end date** hiện tự suy 150 ngày và cho phép user override sau (SetupViewModel + SetupPage đã expose field này).
 - Tests: **119/119 pass** | Build: **0 error**.
 - **M5 Pipeline Orchestrator** đã hoàn thành và được merge sang `dev` qua PR #35.
 - **UI/UX Upgrade** đã hoàn thành (PR #36): sidebar navigation, stat cards, badge columns, token theming, section icons.
@@ -50,11 +55,16 @@ ServiceLocator
 | 4 | Wire `RiskReport` vào `BuildDashboardSummary`, xóa duplicate computation | **M5-TD3** | ✅ Hoàn thành | Verified 2026-04-26 |
 | 5 | Surface `Adaptations` lên Dashboard UI | **M5-TD4** | ✅ Hoàn thành | Verified 2026-04-26 |
 | 6 | Study Analytics — `StudyLog`, `IStudyAnalytics`, `AnalyticsPage.xaml`, 3 charts | **M6** | ✅ Hoàn thành | Merged PR #37 (updated 2026-04-26 19:07 +07:00) |
-| 6.1 | Task Notes & Study Links — `TaskNote`, `TaskReferenceLink`, 3-zone editor UI | **M6.1** | ✅ Hoàn thành | 141 tests pass, PR pending merge to `dev` |
-| 7 | ML Engine — TextClassifier, StudyTimePredictor, WeightOptimizer | **M7** | 🔴 Cao | Phụ thuộc M5+M6, cần training data tiếng Việt |
-| 8 | Fix NU1904 `System.Drawing.Common` vulnerability | **N6** | 🟡 Trung | Độc lập, ~30 phút |
+| 6.1 | Task Notes & Study Links — `TaskNote`, `TaskReferenceLink`, 3-zone editor UI | **M6.1** | ✅ Hoàn thành | 141 tests pass |
+| 7 | ML Engine — `StudyTimePredictor` offline-first MVP | **M7** | ✅ Hoàn thành | Docs + review đồng bộ; see `docs/superpowers/reviews/2026-04-26-m7-code-review.md` |
+| 8 | M8-A: Text Classifier for `SmartParser` | **M8-A** | 🔲 Planned | See `docs/superpowers/specs/2026-04-26-m8-ml-suite-expansion.md` |
+| 9 | M8-B: Weight Optimizer for `WeightConfig` replacement | **M8-B** | 🔲 Planned | Threshold: >=0.75 auto-suggest, 0.60-0.75 review, <0.60 manual |
+| 8 | Dev Reset — clean slate DB + ML artifacts | **DEV-RESET** | ✅ Planned | Dev-only baseline reset, then reseed + retrain |
+| 9 | Fix NU1904 `System.Drawing.Common` vulnerability | **N6** | 🟡 Trung | Độc lập, ~30 phút |
 | 9 | Tách `BackgroundTimer_Tick` → `MainWindowViewModel` | **Bonus** | 🟢 Thấp | MVVM cleanup |
 | 10 | Re-index GitNexus sau M5 | **Tooling** | ✅ Hoàn thành | Re-indexed 2026-04-25 |
+| 11 | Dev clean reset (DB + ML artifacts) | **DEV-RESET** | ✅ Hoàn thành | Clean slate reset executed; see `docs/superpowers/reports/2026-04-26-dev-reset-clean-slate-report.md` |
+| 12 | Dev startup keeps DB persistence by default; clean reset opt-in via `DEV_RESET_DB=1` | **DEV-RESET** | ✅ Hoàn thành | Avoids losing semester data on restart; clean reset remains available when needed |
 
 ---
 
@@ -829,16 +839,16 @@ graph LR
 | M5: Pipeline Orchestrator | ✅ Done (`865ca47`) | 5-6h | — |
 | M5 Technical Debt (TD-1→4) | 🔲 **Next** (branch `feat/m5-pipeline-orchestrator`) | ~2h | 🟡 Thấp |
 | M6: Study Analytics | 🔲 Sau khi TD merge | 5-6h | 🟡 Trung |
-| M6.1: Task notes & study links (DB split + rich UX) | 🔲 | 4-6h | 🟠 Trung-Cao |
-| M7: ML Engine (5 phases) | 🔲 | 11-16h | 🔴 Cao (data dependency) |
+| M6.1: Task notes & study links (DB split + rich UX) | ✅ Done (`M6.1`) | 4-6h | 🟠 Trung-Cao |
+| M7: ML Engine (5 phases) | ✅ Done | 11-16h | 🔴 Cao (data dependency) |
 | Backlog N6: upgrade `System.Drawing.Common` (NU1904) | 🔲 | 30 phút | 🟢 Thấp |
 | **Tổng còn lại** | | **~27-37h** | |
 
 ### Thứ tự đề xuất
 
 ```
-[M4.5 ✅] → [M4.6 ✅] → [M5 ✅] → M6 → M6.1 (DB split + rich UX) → M7
-                                                   └─ N6 chen vào lúc nào cũng được (độc lập)
+[M4.5 ✅] → [M4.6 ✅] → [M5 ✅] → M6 ✅ → M6.1 ✅ → M7 ✅ → DEV-RESET ✅ → M8 planned
+                                            └─ N6 chen vào lúc nào cũng được (độc lập)
 ```
 
 **Kết quả sau M4.6**: Không còn `static class` nào trong Services layer.
@@ -864,7 +874,7 @@ graph LR
 > 2. ~~Pipeline sync/async~~ → Sync MVP, async khi có ML inference
 > 3. ~~Analytics DB migration~~ → Dùng `StudyLog` table riêng, vẫn `EnsureCreated`
 > 4. ~~Ngôn ngữ code~~ → Giữ tiếng Việt cho domain names, tiếng Anh cho technical names
-5. ~~Task notes & study links scope~~ → M6.1 sẽ tách bảng DB, UI phân vùng rõ, parser nhập nhanh không điền notes/links
+5. ~~Task notes & study links scope~~ → M6.1 đã hoàn thành theo phương án B: tách bảng DB, UI phân vùng rõ, parser nhập nhanh không điền notes/links
 
 > [!IMPORTANT]
 > **Câu hỏi mới cho Module 7 (ML):**
@@ -872,7 +882,7 @@ graph LR
 > 2. **Retrain frequency**: WeightConfig Optimizer nên retrain khi nào — mỗi lần mở app, mỗi tuần, hay sau mỗi N tasks hoàn thành?
 > 3. **Feature flag**: Muốn dùng boolean flag đơn giản (`EnableMLPrediction = true/false`) hay settings UI cho user tự bật/tắt từng model?
 
-> **Câu hỏi mới cho M6.1 (Task notes & study links):**
-> 4. **Storage model**: Chốt theo phương án B — tách bảng DB cho `TaskNote` và `TaskReferenceLink`.
-> 5. **Input behavior**: Parser nhập nhanh chỉ fill core task fields, tuyệt đối không đụng notes/links.
-> 6. **UX layout**: Ưu tiên tách riêng note và link; nếu không khả thi thì dùng rich text document với layout phân dòng giống bảng để tối ưu UX.
+> **M6.1 (Task notes & study links) — kết luận đã hoàn thành:**
+> - Storage model: phương án B, tách bảng DB cho `TaskNote` và `TaskReferenceLink`.
+> - Input behavior: parser nhập nhanh chỉ fill core task fields, tuyệt đối không đụng notes/links.
+> - UX layout: ưu tiên tách riêng note và link; nếu không khả thi thì dùng rich text document với layout phân dòng giống bảng để tối ưu UX.

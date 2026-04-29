@@ -40,9 +40,24 @@
                         </StackPanel>
                         <TextBlock Text="{Binding ProductivityLabel}" FontSize="16"
                                    Foreground="{DynamicResource SecondaryText}"/>
+                        <TextBlock Text="{Binding HasEnoughData, StringFormat=Đủ dữ liệu huấn luyện: {0}}"
+                                   FontSize="12" Foreground="{DynamicResource SecondaryText}" Margin="0,6,0,0"/>
                     </StackPanel>
                 </StackPanel>
             </Border>
+
+            <Button Content="Tối ưu AI"
+                    Command="{Binding RetrainModelCommand}"
+                    HorizontalAlignment="Left"
+                    Margin="0,0,0,10"
+                    IsEnabled="{Binding HasEnoughData}">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                        <Setter Property="Background" Value="{DynamicResource AccentColor}"/>
+                        <Setter Property="Foreground" Value="White"/>
+                    </Style>
+                </Button.Style>
+            </Button>
 
             <!-- Weekly Bar Chart -->
             <TextBlock Text="Số phút học trong 7 ngày qua" Style="{StaticResource SectionHeader}"/>
