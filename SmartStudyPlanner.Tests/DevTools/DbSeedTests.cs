@@ -104,6 +104,7 @@ namespace SmartStudyPlanner.Tests.DevTools
                         doKho: doKho)
                     {
                         MaMonHoc = mon.MaMonHoc,
+                        MucDoCanhBao = "An toàn",
                     });
                 }
             }
