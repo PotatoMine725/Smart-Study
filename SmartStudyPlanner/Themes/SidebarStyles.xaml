@@ -11,12 +11,14 @@
         <Setter Property="Cursor"                     Value="Hand"/>
         <Setter Property="FontFamily"                 Value="Segoe UI"/>
         <Setter Property="FontSize"                   Value="13"/>
+        <Setter Property="FocusVisualStyle"           Value="{x:Null}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ToggleButton">
                     <Border x:Name="Root"
                             Background="{TemplateBinding Background}"
-                            CornerRadius="6">
+                            CornerRadius="6"
+                            ClipToBounds="True">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="3"/>
@@ -32,7 +34,7 @@
 
                             <ContentPresenter Grid.Column="1"
                                               Margin="{TemplateBinding Padding}"
-                                              HorizontalAlignment="Left"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               VerticalAlignment="Center"/>
                         </Grid>
                     </Border>
