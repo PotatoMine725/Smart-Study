@@ -1,6 +1,8 @@
-﻿using System.Threading.Tasks;
-using SmartStudyPlanner.Models;
+﻿using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using SmartStudyPlanner.Models;
 
 namespace SmartStudyPlanner.Data
 {
@@ -13,5 +15,15 @@ namespace SmartStudyPlanner.Data
         Task LuuHocKyAsync(HocKy hocKy);
         Task AddStudyLogAsync(StudyLog log);
         Task<List<StudyLog>> GetStudyLogsAsync(HocKy hocKy);
+        Task<List<StudyLog>> GetStudyLogsSinceAsync(DateTime sinceUtc, CancellationToken ct = default);
+
+        // M6.1 — Task Notes & Study Links
+        Task<TaskEditorBundle?> GetTaskEditorBundleAsync(Guid taskId);
+        Task UpsertTaskNoteAsync(Guid taskId, string? content);
+        Task<List<TaskReferenceLink>> GetTaskReferenceLinksAsync(Guid taskId);
+        Task AddTaskReferenceLinkAsync(TaskReferenceLink link);
+        Task UpdateTaskReferenceLinkAsync(TaskReferenceLink link);
+        Task DeleteTaskReferenceLinkAsync(Guid linkId);
+        Task SaveTaskEditorBundleAsync(TaskEditorBundle bundle);
     }
 }

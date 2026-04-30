@@ -8,20 +8,23 @@ namespace SmartStudyPlanner.Data
     // BẮT BUỘC phải kế thừa từ DbContext của Entity Framework
     public class AppDbContext : DbContext
     {
+        public AppDbContext() { }
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
         // 1. KHAI BÁO CÁC BẢNG TRONG DATABASE
         // Mỗi DbSet đại diện cho một Bảng (Table) trong CSDL SQLite
         public DbSet<HocKy> HocKys { get; set; }
         public DbSet<MonHoc> MonHocs { get; set; }
         public DbSet<StudyTask> StudyTasks { get; set; }
         public DbSet<StudyLog> StudyLogs { get; set; }
+        public DbSet<TaskNote> TaskNotes => Set<TaskNote>();
+        public DbSet<TaskReferenceLink> TaskReferenceLinks => Set<TaskReferenceLink>();
 
         // 2. CẤU HÌNH ĐƯỜNG DẪN LƯU FILE SQLITE
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            // Tự động tìm thư mục chứa file .exe đang chạy
+            if (optionsBuilder.IsConfigured) return;
             string dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SmartStudyData.db");
-
-            // Bảo EF Core dùng SQLite và lưu file ở đường dẫn trên
             optionsBuilder.UseSqlite($"Data Source={dbPath}");
         }
 
@@ -41,6 +44,27 @@ namespace SmartStudyPlanner.Data
                 .WithOne()
                 .HasForeignKey(t => t.MaMonHoc)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // TaskNote: 1-1 với StudyTask, cascade delete
+            modelBuilder.Entity<TaskNote>(b =>
+            {
+                b.HasKey(n => n.Id);
+                b.HasIndex(n => n.MaTask).IsUnique();
+                b.HasOne<StudyTask>()
+                 .WithOne()
+                 .HasForeignKey<TaskNote>(n => n.MaTask)
+                 .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // TaskReferenceLink: 1-N với StudyTask, cascade delete
+            modelBuilder.Entity<TaskReferenceLink>(b =>
+            {
+                b.HasKey(l => l.Id);
+                b.HasOne<StudyTask>()
+                 .WithMany()
+                 .HasForeignKey(l => l.MaTask)
+                 .OnDelete(DeleteBehavior.Cascade);
+            });
         }
     }
 }

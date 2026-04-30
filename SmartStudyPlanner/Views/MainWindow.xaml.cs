@@ -8,6 +8,7 @@ using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Threading;
 
 // Sử dụng alias để phân biệt các hàm của WPF và Windows Forms
@@ -156,21 +157,11 @@ namespace SmartStudyPlanner
 
         // ── Sidebar Navigation ──
 
-        private void SetActiveNav(System.Windows.Controls.Button active)
+        private void SetActiveNav(ToggleButton active)
         {
             foreach (var btn in new[] { NavDashboard, NavMonHoc, NavWorkload, NavAnalytics })
-            {
-                btn.ClearValue(BackgroundProperty);
-                var sp = btn.Content as StackPanel;
-                if (sp == null) continue;
-                foreach (var tb in sp.Children.OfType<TextBlock>())
-                    tb.SetResourceReference(TextBlock.ForegroundProperty, "SidebarText");
-            }
-            active.SetResourceReference(BackgroundProperty, "SidebarActiveBackground");
-            var activeSp = active.Content as StackPanel;
-            if (activeSp != null)
-                foreach (var tb in activeSp.Children.OfType<TextBlock>())
-                    tb.SetResourceReference(TextBlock.ForegroundProperty, "SidebarActiveText");
+                btn.IsChecked = false;
+            active.IsChecked = true;
         }
 
         private void NavDashboard_Click(object sender, RoutedEventArgs e)
@@ -189,6 +180,7 @@ namespace SmartStudyPlanner
 
         private void NavWorkload_Click(object sender, RoutedEventArgs e)
         {
+            NavWorkload.IsChecked = false;   // opens a window, not a nav page — don't show as active
             if (_currentHocKy == null) return;
             if (_workloadWindow == null || !_workloadWindow.IsLoaded)
             {
@@ -215,15 +207,12 @@ namespace SmartStudyPlanner
 
         private void BtnTheme_Click(object sender, RoutedEventArgs e)
         {
-            if (MainFrame.Content is DashboardPage dp &&
-                dp.DataContext is DashboardViewModel vm)
-            {
-                vm.ToggleThemeCommand.Execute(null);
-                // Update icon: sun for dark mode (switch to light), moon for light mode (switch to dark)
-                var mergedDicts = System.Windows.Application.Current.Resources.MergedDictionaries;
-                bool isDark = mergedDicts.Any(d => d.Source?.OriginalString.Contains("DarkTheme") == true);
-                ThemeIcon.Text = isDark ? "" : ""; // moon vs. brightness/sun
-            }
+            ThemeManager.ToggleTheme();
+
+            // Update icon: sun for dark mode (switch to light), moon for light mode (switch to dark)
+            var mergedDicts = System.Windows.Application.Current.Resources.MergedDictionaries;
+            bool isDark = mergedDicts.Any(d => d.Source?.OriginalString.Contains("DarkTheme") == true);
+            ThemeIcon.Text = isDark ? "" : ""; // moon vs. brightness/sun
         }
     }
 }

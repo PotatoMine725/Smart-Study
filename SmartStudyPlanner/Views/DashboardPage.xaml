@@ -5,6 +5,7 @@
       Title="Dashboard" Loaded="Page_Loaded"
       Background="{DynamicResource AppBackground}">
     <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <Style x:Key="SectionHeader" TargetType="TextBlock">
             <Setter Property="FontSize"     Value="14"/>
             <Setter Property="FontWeight"   Value="SemiBold"/>
@@ -152,7 +153,28 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
                     <DataGridTextColumn Header="Rủi Ro" Binding="{Binding MucDoRuiRo}" Width="130" FontWeight="Bold"/>
-                    <DataGridTextColumn Header="Cần học thêm" Binding="{Binding ThoiGianGoiY}" Width="120" FontWeight="Bold" Foreground="{DynamicResource SuccessColor}"/>
+                    <DataGridTemplateColumn Header="Cần học thêm" Width="120">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding ThoiGianGoiY}"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource SuccessColor}"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text=" *"
+                                               Foreground="{DynamicResource AccentColor}"
+                                               FontSize="11"
+                                               VerticalAlignment="Center"
+                                               Visibility="{Binding IsMLPrediction,
+                                                   Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <TextBlock.ToolTip>
+                                            <ToolTip Content="Dự đoán bằng AI — dựa trên lịch sử học của bạn"/>
+                                        </TextBlock.ToolTip>
+                                    </TextBlock>
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
 
                     <DataGridTemplateColumn Header="Thao tác" Width="185">
                         <DataGridTemplateColumn.CellTemplate>

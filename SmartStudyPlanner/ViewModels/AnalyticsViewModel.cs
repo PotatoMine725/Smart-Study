@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
@@ -8,7 +9,9 @@ using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Services.Analytics;
 using SmartStudyPlanner.Services.Analytics.Models;
+using SmartStudyPlanner.Services.ML;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -20,6 +23,7 @@ namespace SmartStudyPlanner.ViewModels
         private readonly HocKy _hocKy;
         private readonly IStudyRepository _repository;
         private readonly IStudyAnalytics _analytics;
+        private List<StudyLog> _allLogs = new();
 
         public HocKy HocKy => _hocKy;
 
@@ -30,6 +34,8 @@ namespace SmartStudyPlanner.ViewModels
         [ObservableProperty] private int productivityValue;
         [ObservableProperty] private string productivityLabel = "Chưa có dữ liệu";
         [ObservableProperty] private ObservableCollection<SubjectInsight> subjectInsights = new();
+        [ObservableProperty] private bool isRetraining;
+        [ObservableProperty] private bool hasEnoughData;
 
         public AnalyticsViewModel(HocKy hocKy)
             : this(hocKy, ServiceLocator.Get<IStudyRepository>(), ServiceLocator.Get<IStudyAnalytics>()) { }
@@ -43,9 +49,10 @@ namespace SmartStudyPlanner.ViewModels
 
         public async Task LoadAsync()
         {
-            var logs = await _repository.GetStudyLogsAsync(_hocKy);
+            _allLogs = await _repository.GetStudyLogsAsync(_hocKy);
+            HasEnoughData = _allLogs.Count >= 50;
 
-            var weekly = _analytics.ComputeWeeklyMinutes(logs, DateTime.Today);
+            var weekly = _analytics.ComputeWeeklyMinutes(_allLogs, DateTime.Today);
             WeeklyChartSeries = new ISeries[]
             {
                 new ColumnSeries<int>
@@ -57,7 +64,7 @@ namespace SmartStudyPlanner.ViewModels
             };
             WeeklyChartXAxes = new[] { new Axis { Labels = weekly.DayLabels.ToArray(), LabelsRotation = 15 } };
 
-            var insights = _analytics.ComputeSubjectInsights(_hocKy, logs);
+            var insights = _analytics.ComputeSubjectInsights(_hocKy, _allLogs);
             SubjectInsights = new ObservableCollection<SubjectInsight>(insights);
             SubjectChartSeries = new ISeries[]
             {
@@ -74,12 +81,29 @@ namespace SmartStudyPlanner.ViewModels
             int completedTasks = insights.Sum(x => x.CompletedTaskCount);
             double completionRate = totalTasks == 0 ? 0.0 : (double)completedTasks / totalTasks;
             int    streakDays     = StreakManager.GetCurrentStreak().StreakCount;
-            double timeEfficiency = logs.Count == 0 ? 0.0
-                : logs.Count(l => l.DaHoanThanh) / (double)logs.Count;
+            double timeEfficiency = _allLogs.Count == 0 ? 0.0
+                : _allLogs.Count(l => l.DaHoanThanh) / (double)_allLogs.Count;
 
             var score = _analytics.ComputeProductivityScore(completionRate, streakDays, timeEfficiency);
             ProductivityValue = score.Value;
             ProductivityLabel = score.Label;
+        }
+
+        [RelayCommand]
+        private async Task RetrainModel()
+        {
+            if (IsRetraining || !HasEnoughData) return;
+            IsRetraining = true;
+            try
+            {
+                var predictor = ServiceLocator.Get<IMLModelManager>();
+                var data = SeedDataGenerator.Generate();
+                await predictor.RetrainAsync(data);
+            }
+            finally
+            {
+                IsRetraining = false;
+            }
         }
     }
 }

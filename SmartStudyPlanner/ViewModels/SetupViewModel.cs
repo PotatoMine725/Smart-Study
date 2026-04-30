@@ -19,6 +19,11 @@ namespace SmartStudyPlanner.ViewModels
         [ObservableProperty]
         private DateTime? ngayBatDau = DateTime.Now;
 
+        [ObservableProperty]
+        private DateTime? ngayKetThuc;
+
+        [ObservableProperty]
+        private bool isNgayKetThucAuto = true;
         // DANH SÁCH HỌC KỲ CŨ ĐỂ CHỌN
         [ObservableProperty]
         private ObservableCollection<HocKy> danhSachHocKyCu = new ObservableCollection<HocKy>();
@@ -34,6 +39,7 @@ namespace SmartStudyPlanner.ViewModels
         public SetupViewModel()
         {
             TaiDanhSachHocKy();
+            CapNhatNgayKetThucMacDinh();
         }
 
         private async void TaiDanhSachHocKy()
@@ -51,16 +57,33 @@ namespace SmartStudyPlanner.ViewModels
             }
         }
 
+        private void CapNhatNgayKetThucMacDinh()
+        {
+            if (NgayBatDau.HasValue)
+            {
+                if (IsNgayKetThucAuto || NgayKetThuc == null)
+                {
+                    NgayKetThuc = NgayBatDau.Value.AddDays(150);
+                    IsNgayKetThucAuto = true;
+                }
+            }
+        }
+
         [RelayCommand]
         private async Task TaoHocKy()
         {
-            if (string.IsNullOrWhiteSpace(TenHocKy) || NgayBatDau == null)
+            if (string.IsNullOrWhiteSpace(TenHocKy) || NgayBatDau == null || NgayKetThuc == null)
             {
-                System.Windows.MessageBox.Show("Vui lòng nhập đầy đủ tên học kỳ và ngày bắt đầu", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Windows.MessageBox.Show("Vui lòng nhập đầy đủ tên học kỳ, ngày bắt đầu và ngày kết thúc", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            HocKy hocKyMoi = new HocKy(TenHocKy, NgayBatDau.Value);
+            HocKy hocKyMoi = new HocKy(TenHocKy, NgayBatDau.Value)
+            {
+                NgayKetThuc = NgayKetThuc.Value,
+                IsNgayKetThucAuto = IsNgayKetThucAuto
+            };
+
             await _repository.LuuHocKyAsync(hocKyMoi); // Lưu DB ngay lập tức
 
             OnSetupCompleted?.Invoke(hocKyMoi);
@@ -73,6 +96,27 @@ namespace SmartStudyPlanner.ViewModels
             {
                 OnSetupCompleted?.Invoke(HocKyDuocChon);
             }
+        }
+
+        partial void OnNgayBatDauChanged(DateTime? value)
+        {
+            if (IsNgayKetThucAuto)
+                CapNhatNgayKetThucMacDinh();
+        }
+
+        partial void OnNgayKetThucChanged(DateTime? value)
+        {
+            if (value.HasValue && NgayBatDau.HasValue)
+            {
+                IsNgayKetThucAuto = value.Value.Date == NgayBatDau.Value.AddDays(150).Date;
+            }
+        }
+
+        [RelayCommand]
+        private void TuDongTinhLai()
+        {
+            IsNgayKetThucAuto = true;
+            CapNhatNgayKetThucMacDinh();
         }
     }
 }

@@ -28,10 +28,12 @@
     <SolidColorBrush x:Key="SuccessBackground"     Color="#022C0D"/>
 
     <!-- Sidebar -->
-    <SolidColorBrush x:Key="SidebarBackground"     Color="#020617"/>
-    <SolidColorBrush x:Key="SidebarBorder"         Color="#1E293B"/>
-    <SolidColorBrush x:Key="SidebarText"           Color="#475569"/>
+    <SolidColorBrush x:Key="SidebarBackground"       Color="#020617"/>
+    <SolidColorBrush x:Key="SidebarBorder"           Color="#1E293B"/>
+    <SolidColorBrush x:Key="SidebarText"             Color="#94A3B8"/>
     <SolidColorBrush x:Key="SidebarActiveBackground" Color="#1E293B"/>
-    <SolidColorBrush x:Key="SidebarActiveText"     Color="#F8FAFC"/>
-    <SolidColorBrush x:Key="SidebarIconColor"      Color="#475569"/>
+    <SolidColorBrush x:Key="SidebarActiveText"       Color="#F8FAFC"/>
+    <SolidColorBrush x:Key="SidebarIconColor"        Color="#64748B"/>
+    <SolidColorBrush x:Key="SidebarHoverBackground"  Color="#0F172A"/>
+    <SolidColorBrush x:Key="SidebarHoverText"        Color="#E2E8F0"/>
 </ResourceDictionary>

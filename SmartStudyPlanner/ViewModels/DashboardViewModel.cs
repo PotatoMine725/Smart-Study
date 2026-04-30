@@ -153,6 +153,8 @@ namespace SmartStudyPlanner.ViewModels
                         var risk = riskById.TryGetValue(task.MaTask, out var cached)
                             ? cached
                             : _riskAnalyzer.Assess(task, mon); // fallback: pipeline was skipped
+                        bool isMl;
+                        var predictedMinutes = _decisionEngine.PredictStudyMinutes(task, mon, out isMl);
                         topTasks.Add(new TaskDashboardItem
                         {
                             TenMonHoc = mon.TenMonHoc,
@@ -160,9 +162,10 @@ namespace SmartStudyPlanner.ViewModels
                             HanChot = task.HanChot,
                             DiemUuTien = task.DiemUuTien,
                             MucDoCanhBao = warningLevel,
-                            ThoiGianGoiY = _decisionEngine.SuggestStudyTime(task),
+                            ThoiGianGoiY = isMl ? $"{predictedMinutes} phút" : _decisionEngine.SuggestStudyTime(task),
                             TaskGoc = task,
                             MonHocGoc = mon,
+                            IsMLPrediction = isMl,
                             MucDoRuiRo = risk.DisplayLabel,
                             RiskScore = risk.Score
                         });

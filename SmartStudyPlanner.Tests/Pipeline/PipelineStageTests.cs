@@ -22,6 +22,7 @@ namespace SmartStudyPlanner.Tests.Pipeline
             public double CalculatePriority(StudyTask task, MonHoc monHoc) => task.DoKho + monHoc.SoTinChi;
             public int CalculateRawSuggestedMinutes(StudyTask task) => 120;
             public string SuggestStudyTime(StudyTask task) => "2 giờ";
+            public int PredictStudyMinutes(StudyTask task, MonHoc monHoc, out bool isMlPrediction) { isMlPrediction = false; return 0; }
         }
 
         private sealed class StubRiskAnalyzer : IRiskAnalyzer
