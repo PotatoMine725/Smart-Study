@@ -36,6 +36,7 @@ namespace SmartStudyPlanner.ViewModels
         [ObservableProperty] private ObservableCollection<SubjectInsight> subjectInsights = new();
         [ObservableProperty] private bool isRetraining;
         [ObservableProperty] private bool hasEnoughData;
+        [ObservableProperty] private ObservableCollection<HeatCell> heatmapCells = new();
 
         public AnalyticsViewModel(HocKy hocKy)
             : this(hocKy, ServiceLocator.Get<IStudyRepository>(), ServiceLocator.Get<IStudyAnalytics>()) { }
@@ -87,6 +88,39 @@ namespace SmartStudyPlanner.ViewModels
             var score = _analytics.ComputeProductivityScore(completionRate, streakDays, timeEfficiency);
             ProductivityValue = score.Value;
             ProductivityLabel = score.Label;
+
+            BuildHeatmap(_allLogs);
+        }
+
+        private void BuildHeatmap(List<StudyLog> logs)
+        {
+            var byDate = logs
+                .GroupBy(l => l.NgayHoc.Date)
+                .ToDictionary(g => g.Key, g => g.Sum(l => l.SoPhutHoc));
+
+            // Align to the Monday 51 full weeks before the current week's Monday
+            var today = DateTime.Today;
+            int daysToMonday = ((int)today.DayOfWeek + 6) % 7; // 0=Mon,...,6=Sun
+            var thisMonday = today.AddDays(-daysToMonday);
+            var startDate = thisMonday.AddDays(-51 * 7);
+
+            // UniformGrid Rows=7 is row-major: row 0 = all Mondays, row 1 = all Tuesdays, etc.
+            var cells = new ObservableCollection<HeatCell>();
+            for (int row = 0; row < 7; row++)
+            {
+                for (int col = 0; col < 52; col++)
+                {
+                    var date = startDate.AddDays(col * 7 + row);
+                    int minutes = byDate.TryGetValue(date, out int m) ? m : 0;
+                    int level = minutes == 0 ? 0
+                              : minutes <= 30  ? 1
+                              : minutes <= 60  ? 2
+                              : minutes <= 120 ? 3
+                              : 4;
+                    cells.Add(new HeatCell(date, minutes, level));
+                }
+            }
+            HeatmapCells = cells;
         }
 
         [RelayCommand]

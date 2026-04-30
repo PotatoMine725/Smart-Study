@@ -2,9 +2,11 @@
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
+      xmlns:conv="clr-namespace:SmartStudyPlanner.Converters"
       Title="Analytics" Loaded="Page_Loaded"
       Background="{DynamicResource AppBackground}">
     <Page.Resources>
+        <conv:HeatLevelToBrushConverter x:Key="HeatBrush"/>
         <Style x:Key="SectionHeader" TargetType="TextBlock">
             <Setter Property="FontSize"   Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -67,6 +69,61 @@
                 <lvc:CartesianChart Series="{Binding WeeklyChartSeries}"
                                     XAxes="{Binding WeeklyChartXAxes}"
                                     Height="220"/>
+            </Border>
+
+            <!-- Study Activity Heatmap -->
+            <TextBlock Text="Hoạt động học tập (52 tuần qua)" Style="{StaticResource SectionHeader}"/>
+            <Border Background="{DynamicResource StatCardBackground}" CornerRadius="10"
+                    Padding="12" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1"
+                    Margin="0,0,0,4">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="24"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Day-of-week labels: Mon / Wed / Fri -->
+                        <StackPanel Grid.Column="0" VerticalAlignment="Top" Margin="0,1,0,0">
+                            <TextBlock Text="T2" FontSize="9" Foreground="{DynamicResource SecondaryText}" Height="14"/>
+                            <TextBlock Height="14"/>
+                            <TextBlock Text="T4" FontSize="9" Foreground="{DynamicResource SecondaryText}" Height="14"/>
+                            <TextBlock Height="14"/>
+                            <TextBlock Text="T6" FontSize="9" Foreground="{DynamicResource SecondaryText}" Height="14"/>
+                            <TextBlock Height="14"/>
+                            <TextBlock Height="14"/>
+                        </StackPanel>
+
+                        <!-- 52 × 7 cell grid -->
+                        <ItemsControl Grid.Column="1" ItemsSource="{Binding HeatmapCells}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Rows="7" Columns="52"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Width="12" Height="12" Margin="1" CornerRadius="2"
+                                            Background="{Binding Level, Converter={StaticResource HeatBrush}}"
+                                            ToolTip="{Binding Tooltip}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+
+                    <!-- Legend -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,4,0">
+                        <TextBlock Text="Ít" FontSize="10" Foreground="{DynamicResource SecondaryText}"
+                                   VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <Border Width="12" Height="12" CornerRadius="2" Background="#EBEDF0" Margin="1"/>
+                        <Border Width="12" Height="12" CornerRadius="2" Background="#9BE9A8" Margin="1"/>
+                        <Border Width="12" Height="12" CornerRadius="2" Background="#40C463" Margin="1"/>
+                        <Border Width="12" Height="12" CornerRadius="2" Background="#30A14E" Margin="1"/>
+                        <Border Width="12" Height="12" CornerRadius="2" Background="#216E39" Margin="1"/>
+                        <TextBlock Text="Nhiều" FontSize="10" Foreground="{DynamicResource SecondaryText}"
+                                   VerticalAlignment="Center" Margin="4,0,0,0"/>
+                    </StackPanel>
+                </StackPanel>
             </Border>
 
             <!-- Subject Completion Chart -->
