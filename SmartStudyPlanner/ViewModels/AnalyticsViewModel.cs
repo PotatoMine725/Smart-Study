@@ -10,6 +10,7 @@ using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Services.Analytics;
 using SmartStudyPlanner.Services.Analytics.Models;
 using SmartStudyPlanner.Services.ML;
+using SmartStudyPlanner.Services.Telemetry;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -23,6 +24,7 @@ namespace SmartStudyPlanner.ViewModels
         private readonly HocKy _hocKy;
         private readonly IStudyRepository _repository;
         private readonly IStudyAnalytics _analytics;
+        private readonly IStudyTelemetry _telemetry;
         private List<StudyLog> _allLogs = new();
 
         public HocKy HocKy => _hocKy;
@@ -37,23 +39,81 @@ namespace SmartStudyPlanner.ViewModels
         [ObservableProperty] private bool isRetraining;
         [ObservableProperty] private bool hasEnoughData;
         [ObservableProperty] private ObservableCollection<HeatCell> heatmapCells = new();
+        [ObservableProperty] private bool isLoading;
+        [ObservableProperty] private bool hasData;
+        [ObservableProperty] private bool hasError;
+        [ObservableProperty] private string emptyStateMessage = "Chưa có dữ liệu học tập.";
+        [ObservableProperty] private int selectedRangeDays = 30;
+        [ObservableProperty] private string selectedSubject = "Tất cả";
+        [ObservableProperty] private ObservableCollection<int> rangeOptions = new() { 7, 30, 90 };
+        [ObservableProperty] private ObservableCollection<string> subjectOptions = new() { "Tất cả" };
+        [ObservableProperty] private string weeklyNarrative = string.Empty;
+        [ObservableProperty] private string recommendedNextAction = string.Empty;
 
         public AnalyticsViewModel(HocKy hocKy)
-            : this(hocKy, ServiceLocator.Get<IStudyRepository>(), ServiceLocator.Get<IStudyAnalytics>()) { }
+            : this(hocKy, ServiceLocator.Get<IStudyRepository>(), ServiceLocator.Get<IStudyAnalytics>(), ServiceLocator.Get<IStudyTelemetry>()) { }
 
-        public AnalyticsViewModel(HocKy hocKy, IStudyRepository repository, IStudyAnalytics analytics)
+        public AnalyticsViewModel(HocKy hocKy, IStudyRepository repository, IStudyAnalytics analytics, IStudyTelemetry telemetry)
         {
             _hocKy = hocKy;
             _repository = repository;
             _analytics = analytics;
+            _telemetry = telemetry;
         }
 
         public async Task LoadAsync()
         {
-            _allLogs = await _repository.GetStudyLogsAsync(_hocKy);
-            HasEnoughData = _allLogs.Count >= 50;
+            try
+            {
+                IsLoading = true;
+                HasError = false;
+                _allLogs = await _repository.GetStudyLogsAsync(_hocKy);
+                HasEnoughData = _allLogs.Count >= 50;
+                SubjectOptions = new ObservableCollection<string>(new[] { "Tất cả" }
+                    .Concat(_hocKy.DanhSachMonHoc.Select(m => m.TenMonHoc).OrderBy(x => x)));
+                ApplyFilters();
+                _telemetry.Track("analytics_open", new Dictionary<string, string> { ["semester"] = _hocKy.Ten });
+            }
+            catch
+            {
+                HasError = true;
+                HasData = false;
+                EmptyStateMessage = "Không thể tải analytics. Hãy thử lại.";
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
 
-            var weekly = _analytics.ComputeWeeklyMinutes(_allLogs, DateTime.Today);
+        partial void OnSelectedRangeDaysChanged(int value) => ApplyFilters();
+        partial void OnSelectedSubjectChanged(string value) => ApplyFilters();
+
+        private void ApplyFilters()
+        {
+            if (_allLogs.Count == 0)
+            {
+                HasData = false;
+                EmptyStateMessage = "Bạn chưa có log học tập để phân tích.";
+                return;
+            }
+
+            var from = DateTime.Today.AddDays(-Math.Max(1, SelectedRangeDays) + 1);
+            var taskById = _hocKy.DanhSachMonHoc
+                .SelectMany(m => m.DanhSachTask.Select(t => new { t.MaTask, Mon = m.TenMonHoc }))
+                .ToDictionary(x => x.MaTask, x => x.Mon);
+            var filtered = _allLogs
+                .Where(l => l.NgayHoc.Date >= from)
+                .Where(l => SelectedSubject == "Tất cả" || (taskById.TryGetValue(l.MaTask, out var mon) && mon == SelectedSubject))
+                .ToList();
+
+            HasData = filtered.Count > 0;
+            EmptyStateMessage = HasData
+                ? string.Empty
+                : "Không có dữ liệu cho bộ lọc hiện tại.";
+            if (!HasData) return;
+
+            var weekly = _analytics.ComputeWeeklyMinutes(filtered, DateTime.Today);
             WeeklyChartSeries = new ISeries[]
             {
                 new ColumnSeries<int>
@@ -65,7 +125,7 @@ namespace SmartStudyPlanner.ViewModels
             };
             WeeklyChartXAxes = new[] { new Axis { Labels = weekly.DayLabels.ToArray(), LabelsRotation = 15 } };
 
-            var insights = _analytics.ComputeSubjectInsights(_hocKy, _allLogs);
+            var insights = _analytics.ComputeSubjectInsights(_hocKy, filtered);
             SubjectInsights = new ObservableCollection<SubjectInsight>(insights);
             SubjectChartSeries = new ISeries[]
             {
@@ -82,14 +142,38 @@ namespace SmartStudyPlanner.ViewModels
             int completedTasks = insights.Sum(x => x.CompletedTaskCount);
             double completionRate = totalTasks == 0 ? 0.0 : (double)completedTasks / totalTasks;
             int    streakDays     = StreakManager.GetCurrentStreak().StreakCount;
-            double timeEfficiency = _allLogs.Count == 0 ? 0.0
-                : _allLogs.Count(l => l.DaHoanThanh) / (double)_allLogs.Count;
+            double timeEfficiency = filtered.Count == 0 ? 0.0
+                : filtered.Count(l => l.DaHoanThanh) / (double)filtered.Count;
 
             var score = _analytics.ComputeProductivityScore(completionRate, streakDays, timeEfficiency);
             ProductivityValue = score.Value;
             ProductivityLabel = score.Label;
 
-            BuildHeatmap(_allLogs);
+            BuildHeatmap(filtered);
+            BuildNarrative(filtered, insights);
+            _telemetry.Track("analytics_filter_changed", new Dictionary<string, string>
+            {
+                ["range_days"] = SelectedRangeDays.ToString(),
+                ["subject"] = SelectedSubject
+            });
+        }
+
+        private void BuildNarrative(List<StudyLog> filtered, List<SubjectInsight> insights)
+        {
+            var current7 = filtered.Where(l => l.NgayHoc.Date >= DateTime.Today.AddDays(-6)).Sum(l => l.SoPhutHoc);
+            var prev7 = filtered.Where(l => l.NgayHoc.Date >= DateTime.Today.AddDays(-13) && l.NgayHoc.Date < DateTime.Today.AddDays(-6)).Sum(l => l.SoPhutHoc);
+            var delta = current7 - prev7;
+            var trend = delta >= 0 ? $"tăng {delta} phút" : $"giảm {Math.Abs(delta)} phút";
+            WeeklyNarrative = $"Tuần này bạn học {current7} phút, so với tuần trước {trend}.";
+
+            var weakest = insights
+                .Where(i => i.TotalTaskCount > 0)
+                .OrderBy(i => i.CompletionRate)
+                .ThenByDescending(i => i.TotalTaskCount)
+                .FirstOrDefault();
+            RecommendedNextAction = weakest == null
+                ? "Tiếp tục duy trì nhịp học hiện tại."
+                : $"Môn cần ưu tiên: {weakest.SubjectName}. Gợi ý: thêm 45-60 phút trong 3 ngày tới.";
         }
 
         private void BuildHeatmap(List<StudyLog> logs)

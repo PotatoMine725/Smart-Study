@@ -10,6 +10,7 @@ using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Services.Pipeline;
 using SmartStudyPlanner.Services.RiskAnalyzer;
+using SmartStudyPlanner.Services.Telemetry;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -26,6 +27,7 @@ namespace SmartStudyPlanner.ViewModels
         private readonly IWorkloadService _workloadService;
         private readonly IRiskAnalyzer _riskAnalyzer;
         private readonly IPipelineOrchestrator _pipelineOrchestrator;
+        private readonly IStudyTelemetry _telemetry;
         private HocKy _hocKyHienTai;
         private static bool _daThongBao;
 
@@ -41,6 +43,10 @@ namespace SmartStudyPlanner.ViewModels
         [ObservableProperty] private ObservableCollection<ScheduledTask> lichHocHomNay = new();
         [ObservableProperty] private string tieuDeLichHomNay;
         [ObservableProperty] private ObservableCollection<AdaptationSuggestion> adaptationItems = new();
+        [ObservableProperty] private bool isLoading;
+        [ObservableProperty] private bool hasData;
+        [ObservableProperty] private bool hasError;
+        [ObservableProperty] private string emptyStateMessage = "Chưa có dữ liệu để hiển thị.";
 
         public int SoTaskHomNay => LichHocHomNay?.Count ?? 0;
 
@@ -66,11 +72,12 @@ namespace SmartStudyPlanner.ViewModels
                 ServiceLocator.Get<IDecisionEngine>(),
                 ServiceLocator.Get<IWorkloadService>(),
                 ServiceLocator.Get<IRiskAnalyzer>(),
-                ServiceLocator.Get<IPipelineOrchestrator>())
+                ServiceLocator.Get<IPipelineOrchestrator>(),
+                ServiceLocator.Get<IStudyTelemetry>())
         {
         }
 
-        public DashboardViewModel(HocKy hocKy, IStudyRepository repository, IDecisionEngine decisionEngine, IWorkloadService workloadService, IRiskAnalyzer riskAnalyzer, IPipelineOrchestrator pipelineOrchestrator)
+        public DashboardViewModel(HocKy hocKy, IStudyRepository repository, IDecisionEngine decisionEngine, IWorkloadService workloadService, IRiskAnalyzer riskAnalyzer, IPipelineOrchestrator pipelineOrchestrator, IStudyTelemetry telemetry)
         {
             _hocKyHienTai = hocKy;
             _repository = repository;
@@ -78,6 +85,7 @@ namespace SmartStudyPlanner.ViewModels
             _workloadService = workloadService;
             _riskAnalyzer = riskAnalyzer;
             _pipelineOrchestrator = pipelineOrchestrator;
+            _telemetry = telemetry;
             LoadDuLieuDashboard();
         }
 
@@ -89,30 +97,51 @@ namespace SmartStudyPlanner.ViewModels
 
         public void LoadDuLieuDashboard()
         {
-            TieuDe = $"TỔNG QUAN - {_hocKyHienTai.Ten.ToUpper()}";
-
-            var pipelineResult = _pipelineOrchestrator.Execute(new PipelineContext
+            try
             {
-                Semester = _hocKyHienTai,
-                ReferenceTime = DateTimeOffset.Now,
-                Settings = new PipelineUserSettings
-                {
-                    EnableRiskAssessment = true,
-                    EnableAdaptation = true,
-                    CapacityHours = _workloadService.GetCapacity()
-                }
-            });
+                IsLoading = true;
+                HasError = false;
+                EmptyStateMessage = "Chưa có dữ liệu để hiển thị.";
+                TieuDe = $"TỔNG QUAN - {_hocKyHienTai.Ten.ToUpper()}";
+                _telemetry.Track("dashboard_open", new Dictionary<string, string> { ["semester"] = _hocKyHienTai.Ten });
 
-            var summary = BuildDashboardSummary(pipelineResult);
-            ApplySummary(summary);
-            ApplyCharts(summary);
-            ApplySchedule(summary.ScheduleDay);
-            ApplyAdaptations(pipelineResult.Adaptations);
-            ApplyStreak();
-            RaiseNotification(summary.TopTasks);
-            OnPropertyChanged(nameof(SoTaskHomNay));
-            OnPropertyChanged(nameof(TyLeHoanThanhText));
-            OnPropertyChanged(nameof(HasAdaptations));
+                var pipelineResult = _pipelineOrchestrator.Execute(new PipelineContext
+                {
+                    Semester = _hocKyHienTai,
+                    ReferenceTime = DateTimeOffset.Now,
+                    Settings = new PipelineUserSettings
+                    {
+                        EnableRiskAssessment = true,
+                        EnableAdaptation = true,
+                        CapacityHours = _workloadService.GetCapacity()
+                    }
+                });
+
+                var summary = BuildDashboardSummary(pipelineResult);
+                ApplySummary(summary);
+                ApplyCharts(summary);
+                ApplySchedule(summary.ScheduleDay);
+                ApplyAdaptations(pipelineResult.Adaptations);
+                ApplyStreak();
+                RaiseNotification(summary.TopTasks);
+
+                HasData = summary.TopTasks.Count > 0 || summary.ScheduleDay?.Tasks.Count > 0;
+                if (!HasData)
+                    EmptyStateMessage = "Bạn chưa có task hoạt động. Hãy thêm task mới ở màn Môn học & Bài tập.";
+            }
+            catch
+            {
+                HasError = true;
+                HasData = false;
+                EmptyStateMessage = "Không thể tải dữ liệu dashboard. Hãy thử mở lại trang.";
+            }
+            finally
+            {
+                IsLoading = false;
+                OnPropertyChanged(nameof(SoTaskHomNay));
+                OnPropertyChanged(nameof(TyLeHoanThanhText));
+                OnPropertyChanged(nameof(HasAdaptations));
+            }
         }
 
         private DashboardSummary BuildDashboardSummary(PipelineExecutionResult pipelineResult)
@@ -234,7 +263,7 @@ namespace SmartStudyPlanner.ViewModels
             }
             else
             {
-                TieuDeLichHomNay = "🎯 KẾ HOẠCH HỌC TẬP HÔM NAY (Tuyệt vời, bạn không có deadline nào!)";
+                TieuDeLichHomNay = "🎯 KẾ HOẠCH HỌC TẬP HÔM NAY (Không có lịch học tự động hôm nay)";
             }
         }
 
@@ -288,6 +317,7 @@ namespace SmartStudyPlanner.ViewModels
         [RelayCommand]
         private async Task LuuDuLieu()
         {
+            _telemetry.Track("dashboard_click_save");
             await _repository.LuuHocKyAsync(_hocKyHienTai);
             System.Windows.MessageBox.Show("Đã lưu tiến trình thành công!", "Save Game", MessageBoxButton.OK, MessageBoxImage.Information);
         }
@@ -296,6 +326,7 @@ namespace SmartStudyPlanner.ViewModels
         private void DiToiTask(TaskDashboardItem taskDuocChon)
         {
             if (taskDuocChon == null) return;
+            _telemetry.Track("dashboard_click_goto_task", new Dictionary<string, string> { ["task"] = taskDuocChon.TenTask });
             MonHoc? monHocCanTim = _hocKyHienTai.DanhSachMonHoc.FirstOrDefault(m => m.TenMonHoc == taskDuocChon.TenMonHoc);
             if (monHocCanTim != null) OnNavigateToTask?.Invoke(_hocKyHienTai, monHocCanTim);
         }
@@ -304,6 +335,7 @@ namespace SmartStudyPlanner.ViewModels
         private async Task MoFocusMode(TaskDashboardItem taskDuocChon)
         {
             if (taskDuocChon == null) return;
+            _telemetry.Track("focus_start", new Dictionary<string, string> { ["task"] = taskDuocChon.TenTask });
             var focusWin = new Views.FocusWindow(taskDuocChon);
             focusWin.ShowDialog();
             await _repository.LuuHocKyAsync(_hocKyHienTai);

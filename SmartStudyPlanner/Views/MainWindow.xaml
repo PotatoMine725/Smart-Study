@@ -31,6 +31,9 @@
                                    Foreground="{DynamicResource SidebarActiveText}"/>
                         <TextBlock Text="Planner" FontSize="13"
                                    Foreground="{DynamicResource SidebarText}"/>
+                        <TextBlock x:Name="CurrentContextText" Text="Chưa chọn học kỳ"
+                                   FontSize="11" Margin="0,8,0,0"
+                                   Foreground="{DynamicResource SidebarIconColor}"/>
                     </StackPanel>
                 </Border>
 
@@ -80,6 +83,11 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE9CE;" FontFamily="Segoe MDL2 Assets" FontSize="16" Width="24"/>
                             <TextBlock Text="Cân Bằng Tải" FontSize="13" VerticalAlignment="Center"/>
+                            <Border x:Name="WorkloadOpenBadge"
+                                    Background="{DynamicResource SuccessColor}" Visibility="Collapsed"
+                                    CornerRadius="6" Margin="8,0,0,0" Padding="4,1">
+                                <TextBlock Text="Mở" Foreground="White" FontSize="10"/>
+                            </Border>
                         </StackPanel>
                     </ToggleButton>
 

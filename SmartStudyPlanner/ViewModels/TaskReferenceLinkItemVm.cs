@@ -12,6 +12,15 @@ public partial class TaskReferenceLinkItemVm : ObservableObject
     [ObservableProperty] private string _url = string.Empty;
     [ObservableProperty] private string? _category;
     public int SortOrder { get; set; }
+    public string DomainHost
+    {
+        get
+        {
+            if (Uri.TryCreate(Url, UriKind.Absolute, out var uri))
+                return uri.Host;
+            return "Liên kết không hợp lệ";
+        }
+    }
 
     public TaskReferenceLink ToModel() => new()
     {
@@ -33,4 +42,6 @@ public partial class TaskReferenceLinkItemVm : ObservableObject
         Category = m.Category,
         SortOrder = m.SortOrder,
     };
+
+    partial void OnUrlChanged(string value) => OnPropertyChanged(nameof(DomainHost));
 }

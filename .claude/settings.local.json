@@ -16,7 +16,9 @@
       "Bash(xargs grep *)",
       "Bash(gh pr create --title 'feat\\(dev\\): ML retrain post-reset — DbSeedTests + pipeline verification' --body ' *)",
       "Bash(gh pr *)",
-      "mcp__code-review-graph__build_or_update_graph_tool"
+      "mcp__code-review-graph__build_or_update_graph_tool",
+      "mcp__plugin_context-mode_context-mode__ctx_upgrade",
+      "Bash(node *)"
     ]
   },
   "enableAllProjectMcpServers": true,

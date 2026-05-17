@@ -6,6 +6,7 @@ using SmartStudyPlanner.Services.Pipeline;
 using SmartStudyPlanner.Services.Pipeline.Stages;
 using SmartStudyPlanner.Services.RiskAnalyzer;
 using SmartStudyPlanner.Services.Strategies;
+using SmartStudyPlanner.Services.Telemetry;
 
 namespace SmartStudyPlanner.Services
 {
@@ -50,6 +51,7 @@ namespace SmartStudyPlanner.Services
             services.AddSingleton<IPipelineStage, AdaptStage>();
             services.AddSingleton<IPipelineOrchestrator, PipelineOrchestrator>();
             services.AddSingleton<IStudyAnalytics, StudyAnalyticsService>();
+            services.AddSingleton<IStudyTelemetry, DebugStudyTelemetry>();
 
             return services.BuildServiceProvider();
         }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Windows;
 
 namespace SmartStudyPlanner.Services
@@ -11,16 +12,31 @@ namespace SmartStudyPlanner.Services
         {
             IsDarkMode = !IsDarkMode;
 
-            // SỬ DỤNG ĐƯỜNG DẪN PACK URI TUYỆT ĐỐI
             string themeFile = IsDarkMode
                 ? "pack://application:,,,/Themes/DarkTheme.xaml"
                 : "pack://application:,,,/Themes/LightTheme.xaml";
 
-            System.Windows.Application.Current.Resources.MergedDictionaries.Clear();
+            var appResources = System.Windows.Application.Current.Resources;
+            var merged = appResources.MergedDictionaries;
 
-            // Đổi UriKind.Relative thành UriKind.Absolute
-            var newDict = new ResourceDictionary() { Source = new Uri(themeFile, UriKind.Absolute) };
-            System.Windows.Application.Current.Resources.MergedDictionaries.Add(newDict);
+            // Chỉ thay dictionary theme, giữ nguyên SidebarStyles/CommonStyles để tránh crash StaticResource khi navigate.
+            var existingTheme = merged.FirstOrDefault(d =>
+                d.Source != null &&
+                (d.Source.OriginalString.Contains("LightTheme.xaml", StringComparison.OrdinalIgnoreCase) ||
+                 d.Source.OriginalString.Contains("DarkTheme.xaml", StringComparison.OrdinalIgnoreCase)));
+
+            var newThemeDict = new ResourceDictionary { Source = new Uri(themeFile, UriKind.Absolute) };
+
+            if (existingTheme != null)
+            {
+                var idx = merged.IndexOf(existingTheme);
+                merged.RemoveAt(idx);
+                merged.Insert(idx, newThemeDict);
+            }
+            else
+            {
+                merged.Insert(0, newThemeDict);
+            }
         }
     }
 }
