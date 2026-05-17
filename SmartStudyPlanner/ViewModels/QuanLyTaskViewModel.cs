@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
+using SmartStudyPlanner.Services.Telemetry;
 using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -21,6 +22,7 @@ namespace SmartStudyPlanner.ViewModels
 
         private readonly IStudyRepository _repository;
         private readonly IDecisionEngine _decisionEngine;
+        private readonly IStudyTelemetry _telemetry;
 
         // 1. DỮ LIỆU HIỂN THỊ (BINDING)
         [ObservableProperty]
@@ -46,6 +48,11 @@ namespace SmartStudyPlanner.ViewModels
 
         [ObservableProperty]
         private string vanBanNhapNhanh;
+        [ObservableProperty] private bool isLoading;
+        [ObservableProperty] private bool hasData = true;
+        [ObservableProperty] private bool hasError;
+        [ObservableProperty] private string emptyStateMessage = "Chưa có task nào cho môn học này.";
+        [ObservableProperty] private string quickInputHint = "Parser chỉ tự điền thông tin cốt lõi. Hãy thêm Notes/Links ở các vùng bên dưới.";
 
         // M6.1 — Notes & Links
         [ObservableProperty]
@@ -64,17 +71,21 @@ namespace SmartStudyPlanner.ViewModels
         public Action OnRefreshGrid { get; set; }
 
         public QuanLyTaskViewModel(HocKy hocKy, MonHoc monHoc)
-            : this(hocKy, monHoc, ServiceLocator.Get<IStudyRepository>(), ServiceLocator.Get<IDecisionEngine>()) { }
-
+            : this(hocKy, monHoc, ServiceLocator.Get<IStudyRepository>(), ServiceLocator.Get<IDecisionEngine>(), ServiceLocator.Get<IStudyTelemetry>()) { }
         public QuanLyTaskViewModel(HocKy hocKy, MonHoc monHoc, IStudyRepository repository, IDecisionEngine decisionEngine)
+            : this(hocKy, monHoc, repository, decisionEngine, new NullStudyTelemetry()) { }
+
+        public QuanLyTaskViewModel(HocKy hocKy, MonHoc monHoc, IStudyRepository repository, IDecisionEngine decisionEngine, IStudyTelemetry telemetry)
         {
             HocKyHienTai = hocKy;
             MonHocHienTai = monHoc;
             _repository = repository;
             _decisionEngine = decisionEngine;
+            _telemetry = telemetry;
             TieuDe = $"QUẢN LÝ DEADLINE - MÔN {MonHocHienTai.TenMonHoc.ToUpper()}";
 
             TinhDiemVaSapXep();
+            HasData = MonHocHienTai.DanhSachTask.Count > 0;
         }
 
         private void TinhDiemVaSapXep()
@@ -108,6 +119,7 @@ namespace SmartStudyPlanner.ViewModels
                 {
                     MonHocHienTai.DanhSachTask.Remove(taskCanXoa);
                     await _repository.LuuHocKyAsync(HocKyHienTai);
+                    HasData = MonHocHienTai.DanhSachTask.Count > 0;
                 }
             }
         }
@@ -131,6 +143,7 @@ namespace SmartStudyPlanner.ViewModels
 
             _taskDangSua = taskCanSua;
             _editingTaskId = taskCanSua.MaTask;
+            _telemetry.Track("task_click_edit", new System.Collections.Generic.Dictionary<string, string> { ["task"] = taskCanSua.TenTask });
 
             TenTask = _taskDangSua.TenTask;
             HanChot = _taskDangSua.HanChot;
@@ -168,6 +181,7 @@ namespace SmartStudyPlanner.ViewModels
             {
                 savedTask = new StudyTask(TenTask, HanChot.Value, loaiTask, doKhoInt);
                 MonHocHienTai.DanhSachTask.Add(savedTask);
+                _telemetry.Track("task_add");
             }
             else
             {
@@ -180,11 +194,13 @@ namespace SmartStudyPlanner.ViewModels
                 _taskDangSua = null;
                 TextNutThem = "Thêm Deadline";
                 MauNutThem = "#9B59B6";
+                _telemetry.Track("task_update");
             }
 
             TinhDiemVaSapXep();
             OnRefreshGrid?.Invoke();
             await _repository.LuuHocKyAsync(HocKyHienTai);
+            HasData = MonHocHienTai.DanhSachTask.Count > 0;
 
             // Save notes & links (for both new and existing tasks)
             var taskId = _editingTaskId ?? savedTask.MaTask;
@@ -237,6 +253,7 @@ namespace SmartStudyPlanner.ViewModels
 
             TextNutThem = "Lưu Deadline (Hãy kiểm tra lại)";
             MauNutThem = "#E67E22";
+            QuickInputHint = "Đã điền nhanh xong. Tiếp theo: bổ sung ghi chú và link học tập bên dưới (nếu cần).";
 
             VanBanNhapNhanh = string.Empty;
         }
@@ -247,13 +264,22 @@ namespace SmartStudyPlanner.ViewModels
         private void AddLink()
         {
             if (string.IsNullOrWhiteSpace(NewLinkUrl)) return;
+            if (!Uri.TryCreate(NewLinkUrl, UriKind.Absolute, out var uri) ||
+                (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+            {
+                System.Windows.MessageBox.Show("URL chưa hợp lệ. Vui lòng nhập link bắt đầu bằng http:// hoặc https://", "URL không hợp lệ",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             StudyLinks.Add(new TaskReferenceLinkItemVm
             {
                 MaTask = _editingTaskId ?? Guid.Empty,
-                Title = string.IsNullOrWhiteSpace(NewLinkTitle) ? NewLinkUrl : NewLinkTitle,
-                Url = NewLinkUrl,
+                Title = string.IsNullOrWhiteSpace(NewLinkTitle) ? uri.Host : NewLinkTitle,
+                Url = uri.OriginalString,
                 SortOrder = StudyLinks.Count,
             });
+            _telemetry.Track("task_add_link");
             NewLinkTitle = string.Empty;
             NewLinkUrl = string.Empty;
         }
@@ -277,5 +303,10 @@ namespace SmartStudyPlanner.ViewModels
 
         [RelayCommand]
         private void ClearNote() => NoteContent = null;
+
+        private sealed class NullStudyTelemetry : IStudyTelemetry
+        {
+            public void Track(string eventName, System.Collections.Generic.IDictionary<string, string>? properties = null) { }
+        }
     }
 }
