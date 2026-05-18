@@ -1,4 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
+using SmartStudyPlanner.Core.Parsing.Contracts;
+using SmartStudyPlanner.Core.Parsing.Orchestrators;
 using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Services.Analytics;
 using SmartStudyPlanner.Services.ML;
@@ -43,6 +45,9 @@ namespace SmartStudyPlanner.Services
             services.AddSingleton<IModelStorageProvider, LocalModelStorageProvider>();
             services.AddSingleton<IMLModelManager, MLModelManager>();
             services.AddSingleton<IStudyTimePredictor, StudyTimePredictorService>();
+
+            services.AddSingleton<IParsingOrchestrator>(sp =>
+                new ParsingOrchestrator(sp.GetRequiredService<IClock>()));
 
             services.AddSingleton<IPipelineStage, ParseInputStage>();
             services.AddSingleton<IPipelineStage, PrioritizeStage>();

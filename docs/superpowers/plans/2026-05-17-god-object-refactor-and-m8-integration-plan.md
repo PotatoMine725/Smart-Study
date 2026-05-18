@@ -3,7 +3,26 @@
 
 > **Goal:** hoàn tất việc tách các god object còn lại (`DecisionEngineService`, `SmartParser`) vào `Core/*` theo mô hình facade/adapter đã được nghiệm thu ở phase Risk (2026-05-12), sau đó mở contracts `Core/ML` + repository abstraction để M8-A (Text Classifier) và M8-B (Weight Optimizer) land an toàn.
 
-> **Status:** confirmed by user 2026-05-17 — sẵn sàng triển khai theo từng slice.
+> **Status:** in-progress — 3/8 slice đã ship (xem Progress log §0).
+
+---
+
+## 0. Progress log
+
+| Slice | Trạng thái | Commit | Ngày | Ghi chú |
+|---|---|---|---|---|
+| 1 — Core contracts | ✅ Done | `5ece84c` | 2026-05-17 | 12 file contract; build/test xanh; fix using namespace `WeightConfig` ở `Services` |
+| 2 — Split `DecisionEngineService` | ✅ Done | `3b176fb` | 2026-05-17 | 4 file Core + 9 test mới; facade 42 dòng; ServiceLocator không cần đổi |
+| 3 — Parsing orchestrator + SmartParser DI | ✅ Done | TBD | 2026-05-18 | 4 file Core/Parsing + 5 test mới; SmartParser static delegate vào default `ParsingOrchestrator`; `IParsingOrchestrator` đã register ở `ServiceLocator` |
+| 4 — Repository abstractions | ⏸ Pending | — | — | Bắt buộc trước Slice 7 |
+| 5 — M8-A A1+A2 schema/service | ⏸ Pending | — | — | |
+| 6 — M8-A A3+A4+A5 integration | ⏸ Pending | — | — | |
+| 7 — M8-B B1+B2+B3 optimizer | ⏸ Pending | — | — | |
+| 8 — M8-B B4+B5 UI/harden | ⏸ Pending | — | — | |
+
+**Test baseline:** 138 → **147** (Slice 2) → **152** (Slice 3). Build/test xanh sau mỗi slice.
+
+**GitNexus snapshot sau Slice 2:** 1.842 nodes, 4.392 edges, 65 clusters, 101 flows.
 
 > **Tham chiếu:**
 > - `docs/superpowers/plans/2026-05-12-core-modularization-refactor-plan.md`
@@ -36,7 +55,7 @@
 
 ## 3. Sequence (8 slices, mỗi slice = 1 commit shippable)
 
-### Slice 1 — Core contracts (no behavior change)
+### Slice 1 — Core contracts (no behavior change) — ✅ DONE (commit `5ece84c`, 2026-05-17)
 **Goal:** tạo namespace + interface skeletons cho Scheduling, Parsing, ML để các slice sau có chỗ implement.
 
 **Tạo mới:**
@@ -59,8 +78,16 @@
 
 ---
 
-### Slice 2 — Split `DecisionEngineService` → `Core/Scheduling`
+### Slice 2 — Split `DecisionEngineService` → `Core/Scheduling` — ✅ DONE (commit `3b176fb`, 2026-05-17)
 **Goal:** rút logic ra leaf classes, biến `DecisionEngineService` thành facade adapter (mirror Risk pattern).
+
+**Actual outcome:**
+- 4 file mới đã tạo đúng plan.
+- `DecisionEngineService` rút từ 92 → 42 dòng (mục tiêu ~30, thực tế giữ thêm doc-comment + giữ chữ ký ctor đầy đủ).
+- **Không cần sửa `ServiceLocator.cs`** — facade giữ nguyên ctor signature nên DI wiring không đổi.
+- Tests: thêm `RawMinutesCalculatorTests` (4) + `StudyTimeSuggestionEngineTests` (5) = 9 test mới. `DecisionEngineTests` giữ nguyên, tất cả pass.
+- Verify: build xanh, **147/147** pass (138 baseline + 9 mới), 0 regression.
+- Pre-edit impact: `LOW` risk — chỉ ảnh hưởng `DecisionEngineTests` (depth 1–2).
 
 **Tạo mới:**
 - `Core/Scheduling/Evaluators/PriorityEvaluator.cs` ← `CalculatePriority` (wrap `PriorityCalculator`)
@@ -78,8 +105,17 @@
 
 ---
 
-### Slice 3 — Parsing orchestrator + `SmartParser` instance/DI conversion
+### Slice 3 — Parsing orchestrator + `SmartParser` instance/DI conversion — ✅ DONE (2026-05-18)
 **Goal:** mở chỗ chèn cho M8-A ngay trong `Core/Parsing`.
+
+**Actual outcome:**
+- 3 file engine/orchestrator + 1 test file (5 test mới) tạo đúng plan.
+- `SmartParser` static giữ chữ ký `Parse(string)` cũ, delegate vào default `ParsingOrchestrator(SystemClock())` — không cần đổi `QuanLyTaskViewModel.cs:246`.
+- `ServiceLocator` register `IParsingOrchestrator` cho consumer M8-A.
+- Pre-edit impact: `SmartParser` LOW (0 caller class-level, 1 call site method-level đúng như doc).
+- `detect-changes` post-edit: MEDIUM risk, 5 flows ảnh hưởng — toàn bộ là `BuildProvider` + `PhanTichNhapNhanh → Parse` đúng scope.
+- Tests: thêm `ParsingOrchestratorTests` (5) → 147 → **152** pass, 0 regression (bao gồm `PhanTichNhapNhanh_DoesNotModifyNoteOrLinks` đi qua static path).
+- **Deviation:** plan ghi "delegate vào singleton DI", thực tế dùng static default instance. Lý do: test `PhanTichNhapNhanh_DoesNotModifyNoteOrLinks` đi qua `SmartParser.Parse` mà không boot `ServiceLocator` → tránh phụ thuộc circular. Functionally equivalent (cùng `SystemClock`, không classifier).
 
 **Tạo mới:**
 - `Core/Parsing/Engines/RuleBasedTimeParsingEngine.cs` (wrap `DefaultDeadlineKeywordParser`)
@@ -175,4 +211,13 @@ Theo plan `2026-04-26-m8-ml-suite-expansion.md`:
 
 ## 6. Immediate next action
 
-Khởi động **Slice 1** ngay sau khi user xác nhận tiếp: tạo các file contract trong `Core/Scheduling/Contracts`, `Core/Parsing/Contracts`, `Core/ML/Contracts` + 1 commit `refactor(core): introduce scheduling/parsing/ml contracts (no behavior change)`.
+**Slice 3 — Parsing orchestrator + `SmartParser` instance/DI conversion.**
+
+Trước khi sửa code:
+1. `npx gitnexus analyze` (nếu index stale)
+2. `npx gitnexus impact SmartParser --direction upstream --repo Smart-Study` — verify call sites của `Parse(string)`, đặc biệt `QuanLyTaskViewModel.cs:175`
+3. Báo blast radius cho user; nếu HIGH/CRITICAL → confirm trước khi proceed
+
+Sau đó: tạo `Core/Parsing/Engines/*` + `Core/Parsing/Orchestrators/ParsingOrchestrator.cs`, convert `Services/SmartParser` thành facade delegate vào singleton DI, đăng ký `IParsingOrchestrator` ở `ServiceLocator`, thêm `ParsingOrchestratorTests`.
+
+Commit: `refactor(parsing): introduce ParsingOrchestrator + convert SmartParser to instance facade`.
