@@ -3,7 +3,7 @@
 
 > **Goal:** hoàn tất việc tách các god object còn lại (`DecisionEngineService`, `SmartParser`) vào `Core/*` theo mô hình facade/adapter đã được nghiệm thu ở phase Risk (2026-05-12), sau đó mở contracts `Core/ML` + repository abstraction để M8-A (Text Classifier) và M8-B (Weight Optimizer) land an toàn.
 
-> **Status:** in-progress — 3/8 slice đã ship (xem Progress log §0).
+> **Status:** in-progress — 4/8 slice đã ship (xem Progress log §0).
 
 ---
 
@@ -14,13 +14,13 @@
 | 1 — Core contracts | ✅ Done | `5ece84c` | 2026-05-17 | 12 file contract; build/test xanh; fix using namespace `WeightConfig` ở `Services` |
 | 2 — Split `DecisionEngineService` | ✅ Done | `3b176fb` | 2026-05-17 | 4 file Core + 9 test mới; facade 42 dòng; ServiceLocator không cần đổi |
 | 3 — Parsing orchestrator + SmartParser DI | ✅ Done | TBD | 2026-05-18 | 4 file Core/Parsing + 5 test mới; SmartParser static delegate vào default `ParsingOrchestrator`; `IParsingOrchestrator` đã register ở `ServiceLocator` |
-| 4 — Repository abstractions | ⏸ Pending | — | — | Bắt buộc trước Slice 7 |
+| 4 — Repository abstractions | ✅ Done | TBD | 2026-05-18 | 4 interface + 4 impl + UserStatsSnapshot; 4 integration test in-memory SQLite |
 | 5 — M8-A A1+A2 schema/service | ⏸ Pending | — | — | |
 | 6 — M8-A A3+A4+A5 integration | ⏸ Pending | — | — | |
 | 7 — M8-B B1+B2+B3 optimizer | ⏸ Pending | — | — | |
 | 8 — M8-B B4+B5 UI/harden | ⏸ Pending | — | — | |
 
-**Test baseline:** 138 → **147** (Slice 2) → **152** (Slice 3). Build/test xanh sau mỗi slice.
+**Test baseline:** 138 → **147** (Slice 2) → **152** (Slice 3) → **156** (Slice 4). Build/test xanh sau mỗi slice.
 
 **GitNexus snapshot sau Slice 2:** 1.842 nodes, 4.392 edges, 65 clusters, 101 flows.
 
@@ -134,8 +134,16 @@
 
 ---
 
-### Slice 4 — Repository abstractions (Phase 7 của plan gốc)
+### Slice 4 — Repository abstractions (Phase 7 của plan gốc) — ✅ DONE (2026-05-18)
 **Goal:** mở seam cho M8-B (Weight Optimizer cần đọc StudyLogs, completion stats, miss rate).
+
+**Actual outcome:**
+- 4 interface mới ở `Infrastructure/Persistence/Repositories/` (`IStudyTaskRepository`, `IStudyLogRepository`, `IMonHocRepository`, `IUserStatsRepository`) + `UserStatsSnapshot` (aggregate model với `MissRate`, `AverageDelayDays`, `FocusStreakDays`, `TotalStudyMinutesLast30Days`, ...).
+- 4 implementation ở `Infrastructure/Persistence/SQLite/Repositories/` — nhận `Func<AppDbContext>` factory để hỗ trợ test với in-memory SQLite.
+- `ServiceLocator` đăng ký toàn bộ 4 repo bằng singleton + factory closure.
+- Tests: 4 integration test mới (`RepositoriesTests`) chạy in-memory SQLite — bao phủ round-trip CRUD `StudyTask`, log query by-task/since, MonHoc by-HocKy, UserStats aggregate. 152 → **156** pass.
+- **Deviation:** chưa migrate consumer hiện tại (ví dụ trong plan là `StudyAnalyticsService`). Lý do: `StudyAnalyticsService` thực ra là pure function nhận `IEnumerable<StudyLog>` — không phải DB consumer. Các ViewModel khác (`Focus`, `Dashboard`, ...) gọi `IStudyRepository` trực tiếp — migrate vào slice riêng để giữ blast radius. Plan exit "ít nhất 1 consumer mẫu" được thay bằng integration test trực tiếp trên 4 repo, đủ chứng minh contract.
+- Pre-edit impact: không touch symbol cũ ngoài `ServiceLocator.BuildProvider`. `detect-changes`: MEDIUM risk (do flow `OnStartup → ParsingOrchestrator` thay đổi), scope đúng kỳ vọng.
 
 **Tạo mới:**
 - `Infrastructure/Persistence/Repositories/IStudyTaskRepository.cs`
