@@ -4,7 +4,7 @@
 > Status (2026-05-21): **4 / 8 slices done**. Slices 5–8 implement M8 on top of the refactored core.
 > Baseline: 156 tests pass.
 
-> **Active side-track (2026-06-02):** persistence god-repo chưa đóng — `Data/StudyRepository` (185 dòng, 5 aggregate) cần tách nốt theo seam Slice 4. Plan: [`docs/plans/2026-06-02-split-studyrepository.md`](../plans/2026-06-02-split-studyrepository.md) — `in-progress`, phased 2-commit, gitnexus impact = HIGH.
+> **Persistence god-repo split — DONE (2026-06-02):** `Data/StudyRepository` (5 aggregate) đã tách thành `IHocKyRepository` + `ITaskEditorRepository` + `IStudyLogRepository`, migrate 7 consumer, xóa god-repo. Plan: [`docs/plans/2026-06-02-split-studyrepository.md`](../plans/2026-06-02-split-studyrepository.md) (`done`). 158 test pass.
 
 ## Done in earlier slices
 

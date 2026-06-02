@@ -6,7 +6,7 @@ Hoàn tất tầng persistence của god-object refactor: `Data/StudyRepository`
 
 ## Status
 
-`in-progress` — approved 2026-06-02. Chưa ship slice nào.
+`done` — 2026-06-02. **Slice A** (repo mới + DI + tests, 156→158) và **Slice B** (migrate 7 consumer + xóa god-repo + dead-code) đã ship. Build sạch, 158 test pass, 0 reference tới `IStudyRepository`/`StudyRepository`.
 
 ## Context — vì sao làm
 
