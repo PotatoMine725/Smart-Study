@@ -7,7 +7,7 @@ using SmartStudyPlanner.Models;
 namespace SmartStudyPlanner.Infrastructure.Persistence.Repositories
 {
     /// <summary>
-    /// Port cho StudyLog. Replacement dần cho <see cref="Data.IStudyRepository"/> log methods.
+    /// Port cho StudyLog. Replacement cho các log method của StudyRepository cũ.
     /// </summary>
     public interface IStudyLogRepository
     {

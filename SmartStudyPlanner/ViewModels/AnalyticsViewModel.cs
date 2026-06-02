@@ -4,7 +4,7 @@ using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
 using SkiaSharp;
-using SmartStudyPlanner.Data;
+using SmartStudyPlanner.Infrastructure.Persistence.Repositories;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Services.Analytics;
@@ -22,7 +22,7 @@ namespace SmartStudyPlanner.ViewModels
     public partial class AnalyticsViewModel : ObservableObject
     {
         private readonly HocKy _hocKy;
-        private readonly IStudyRepository _repository;
+        private readonly IStudyLogRepository _studyLogRepository;
         private readonly IStudyAnalytics _analytics;
         private readonly IStudyTelemetry _telemetry;
         private List<StudyLog> _allLogs = new();
@@ -51,12 +51,12 @@ namespace SmartStudyPlanner.ViewModels
         [ObservableProperty] private string recommendedNextAction = string.Empty;
 
         public AnalyticsViewModel(HocKy hocKy)
-            : this(hocKy, ServiceLocator.Get<IStudyRepository>(), ServiceLocator.Get<IStudyAnalytics>(), ServiceLocator.Get<IStudyTelemetry>()) { }
+            : this(hocKy, ServiceLocator.Get<IStudyLogRepository>(), ServiceLocator.Get<IStudyAnalytics>(), ServiceLocator.Get<IStudyTelemetry>()) { }
 
-        public AnalyticsViewModel(HocKy hocKy, IStudyRepository repository, IStudyAnalytics analytics, IStudyTelemetry telemetry)
+        public AnalyticsViewModel(HocKy hocKy, IStudyLogRepository studyLogRepository, IStudyAnalytics analytics, IStudyTelemetry telemetry)
         {
             _hocKy = hocKy;
-            _repository = repository;
+            _studyLogRepository = studyLogRepository;
             _analytics = analytics;
             _telemetry = telemetry;
         }
@@ -67,7 +67,7 @@ namespace SmartStudyPlanner.ViewModels
             {
                 IsLoading = true;
                 HasError = false;
-                _allLogs = await _repository.GetStudyLogsAsync(_hocKy);
+                _allLogs = await _studyLogRepository.GetForHocKyAsync(_hocKy);
                 HasEnoughData = _allLogs.Count >= 50;
                 SubjectOptions = new ObservableCollection<string>(new[] { "Tất cả" }
                     .Concat(_hocKy.DanhSachMonHoc.Select(m => m.TenMonHoc).OrderBy(x => x)));

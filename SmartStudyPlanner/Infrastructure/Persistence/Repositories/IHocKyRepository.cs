@@ -7,7 +7,7 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.Repositories
 {
     /// <summary>
     /// Port cho HocKy aggregate root (load/save toàn cây học kỳ).
-    /// Thay thế các method học kỳ của <see cref="Data.IStudyRepository"/>.
+    /// Thay thế các method học kỳ của StudyRepository cũ.
     /// </summary>
     public interface IHocKyRepository
     {

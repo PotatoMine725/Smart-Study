@@ -1,6 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using SmartStudyPlanner.Data;
+using SmartStudyPlanner.Infrastructure.Persistence.Repositories;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Services.Telemetry;
@@ -20,7 +20,8 @@ namespace SmartStudyPlanner.ViewModels
         private StudyTask? _taskDangSua;
         private Guid? _editingTaskId;
 
-        private readonly IStudyRepository _repository;
+        private readonly IHocKyRepository _hocKyRepository;
+        private readonly ITaskEditorRepository _taskEditorRepository;
         private readonly IDecisionEngine _decisionEngine;
         private readonly IStudyTelemetry _telemetry;
 
@@ -71,15 +72,16 @@ namespace SmartStudyPlanner.ViewModels
         public Action OnRefreshGrid { get; set; }
 
         public QuanLyTaskViewModel(HocKy hocKy, MonHoc monHoc)
-            : this(hocKy, monHoc, ServiceLocator.Get<IStudyRepository>(), ServiceLocator.Get<IDecisionEngine>(), ServiceLocator.Get<IStudyTelemetry>()) { }
-        public QuanLyTaskViewModel(HocKy hocKy, MonHoc monHoc, IStudyRepository repository, IDecisionEngine decisionEngine)
-            : this(hocKy, monHoc, repository, decisionEngine, new NullStudyTelemetry()) { }
+            : this(hocKy, monHoc, ServiceLocator.Get<IHocKyRepository>(), ServiceLocator.Get<ITaskEditorRepository>(), ServiceLocator.Get<IDecisionEngine>(), ServiceLocator.Get<IStudyTelemetry>()) { }
+        public QuanLyTaskViewModel(HocKy hocKy, MonHoc monHoc, IHocKyRepository hocKyRepository, ITaskEditorRepository taskEditorRepository, IDecisionEngine decisionEngine)
+            : this(hocKy, monHoc, hocKyRepository, taskEditorRepository, decisionEngine, new NullStudyTelemetry()) { }
 
-        public QuanLyTaskViewModel(HocKy hocKy, MonHoc monHoc, IStudyRepository repository, IDecisionEngine decisionEngine, IStudyTelemetry telemetry)
+        public QuanLyTaskViewModel(HocKy hocKy, MonHoc monHoc, IHocKyRepository hocKyRepository, ITaskEditorRepository taskEditorRepository, IDecisionEngine decisionEngine, IStudyTelemetry telemetry)
         {
             HocKyHienTai = hocKy;
             MonHocHienTai = monHoc;
-            _repository = repository;
+            _hocKyRepository = hocKyRepository;
+            _taskEditorRepository = taskEditorRepository;
             _decisionEngine = decisionEngine;
             _telemetry = telemetry;
             TieuDe = $"QUẢN LÝ DEADLINE - MÔN {MonHocHienTai.TenMonHoc.ToUpper()}";
@@ -118,7 +120,7 @@ namespace SmartStudyPlanner.ViewModels
                 if (System.Windows.MessageBox.Show($"Xóa bài tập '{taskCanXoa.TenTask}'?", "Xác nhận", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                 {
                     MonHocHienTai.DanhSachTask.Remove(taskCanXoa);
-                    await _repository.LuuHocKyAsync(HocKyHienTai);
+                    await _hocKyRepository.LuuHocKyAsync(HocKyHienTai);
                     HasData = MonHocHienTai.DanhSachTask.Count > 0;
                 }
             }
@@ -132,7 +134,7 @@ namespace SmartStudyPlanner.ViewModels
                 taskDaXong.TrangThai = StudyTaskStatus.HoanThanh;
                 TinhDiemVaSapXep();
                 OnRefreshGrid?.Invoke();
-                await _repository.LuuHocKyAsync(HocKyHienTai);
+                await _hocKyRepository.LuuHocKyAsync(HocKyHienTai);
             }
         }
 
@@ -154,7 +156,7 @@ namespace SmartStudyPlanner.ViewModels
             MauNutThem = "#3498DB";
 
             // Load notes & links for the task being edited
-            var bundle = await _repository.GetTaskEditorBundleAsync(taskCanSua.MaTask);
+            var bundle = await _taskEditorRepository.GetBundleAsync(taskCanSua.MaTask);
             NoteContent = bundle?.Note?.Content;
             StudyLinks.Clear();
             if (bundle?.Links is { Count: > 0 } links)
@@ -199,7 +201,7 @@ namespace SmartStudyPlanner.ViewModels
 
             TinhDiemVaSapXep();
             OnRefreshGrid?.Invoke();
-            await _repository.LuuHocKyAsync(HocKyHienTai);
+            await _hocKyRepository.LuuHocKyAsync(HocKyHienTai);
             HasData = MonHocHienTai.DanhSachTask.Count > 0;
 
             // Save notes & links (for both new and existing tasks)
@@ -207,23 +209,23 @@ namespace SmartStudyPlanner.ViewModels
             _editingTaskId = null;
             if (!string.IsNullOrEmpty(NoteContent) || StudyLinks.Count > 0)
             {
-                await _repository.UpsertTaskNoteAsync(taskId, NoteContent);
+                await _taskEditorRepository.UpsertNoteAsync(taskId, NoteContent);
                 foreach (var (vm, i) in StudyLinks.Select((vm, i) => (vm, i)))
                 {
                     vm.SortOrder = i;
                     vm.MaTask = taskId;
                 }
-                var existingLinks = await _repository.GetTaskReferenceLinksAsync(taskId);
+                var existingLinks = await _taskEditorRepository.GetLinksAsync(taskId);
                 var incomingIds = StudyLinks.Select(vm => vm.Id).ToHashSet();
                 foreach (var dead in existingLinks.Where(l => !incomingIds.Contains(l.Id)))
-                    await _repository.DeleteTaskReferenceLinkAsync(dead.Id);
+                    await _taskEditorRepository.DeleteLinkAsync(dead.Id);
                 foreach (var vm in StudyLinks)
                 {
                     var model = vm.ToModel();
                     if (existingLinks.Any(l => l.Id == vm.Id))
-                        await _repository.UpdateTaskReferenceLinkAsync(model);
+                        await _taskEditorRepository.UpdateLinkAsync(model);
                     else
-                        await _repository.AddTaskReferenceLinkAsync(model);
+                        await _taskEditorRepository.AddLinkAsync(model);
                 }
             }
 

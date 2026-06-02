@@ -1,6 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using SmartStudyPlanner.Data;
+using SmartStudyPlanner.Infrastructure.Persistence.Repositories;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Services.Telemetry;
@@ -18,7 +18,7 @@ namespace SmartStudyPlanner.ViewModels
         // BIẾN MỚI: Đếm tổng số giây THỰC TẾ đã ngồi học
         private int _tongGiayDaHoc = 0;
 
-        private readonly IStudyRepository _repository;
+        private readonly IStudyLogRepository _studyLogRepository;
         private readonly IStudyTelemetry _telemetry;
 
         public TaskDashboardItem TaskHienTai { get; set; }
@@ -32,14 +32,14 @@ namespace SmartStudyPlanner.ViewModels
         public Action OnKetThuc { get; set; }
 
         public FocusViewModel(TaskDashboardItem task)
-            : this(task, ServiceLocator.Get<IStudyRepository>(), ServiceLocator.Get<IStudyTelemetry>()) { }
-        public FocusViewModel(TaskDashboardItem task, IStudyRepository repository)
-            : this(task, repository, new NullStudyTelemetry()) { }
+            : this(task, ServiceLocator.Get<IStudyLogRepository>(), ServiceLocator.Get<IStudyTelemetry>()) { }
+        public FocusViewModel(TaskDashboardItem task, IStudyLogRepository studyLogRepository)
+            : this(task, studyLogRepository, new NullStudyTelemetry()) { }
 
-        public FocusViewModel(TaskDashboardItem task, IStudyRepository repository, IStudyTelemetry telemetry)
+        public FocusViewModel(TaskDashboardItem task, IStudyLogRepository studyLogRepository, IStudyTelemetry telemetry)
         {
             TaskHienTai = task;
-            _repository = repository;
+            _studyLogRepository = studyLogRepository;
             _telemetry = telemetry;
             TieuDeTask = $"Đang Focus: {task.TenTask} ({task.TenMonHoc})";
 
@@ -103,7 +103,7 @@ namespace SmartStudyPlanner.ViewModels
                 Services.StreakManager.UpdateStreak();
             }
 
-            _ = _repository.AddStudyLogAsync(new StudyLog
+            _ = _studyLogRepository.AddAsync(new StudyLog
             {
                 MaTask       = TaskHienTai.TaskGoc.MaTask,
                 NgayHoc      = DateTime.Today,

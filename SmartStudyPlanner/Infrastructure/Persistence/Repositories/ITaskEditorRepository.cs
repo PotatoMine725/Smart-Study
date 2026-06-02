@@ -8,7 +8,7 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.Repositories
 {
     /// <summary>
     /// Port cho M6.1 — TaskNote + TaskReferenceLink (di chuyển cùng nhau qua <see cref="TaskEditorBundle"/>).
-    /// Thay thế các method editor của <see cref="Data.IStudyRepository"/>.
+    /// Thay thế các method editor của StudyRepository cũ.
     /// </summary>
     public interface ITaskEditorRepository
     {

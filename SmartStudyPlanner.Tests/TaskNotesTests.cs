@@ -215,9 +215,10 @@ namespace SmartStudyPlanner.Tests
             var hocKy = new HocKy("HK", DateTime.Today);
             var monHoc = new MonHoc("MH", 3) { MaHocKy = hocKy.MaHocKy };
             hocKy.DanhSachMonHoc.Add(monHoc);
-            var repo = new FakeStudyRepository();
+            var hocKyRepo = new FakeHocKyRepository();
+            var taskEditorRepo = new FakeTaskEditorRepository();
             var engine = new FakeDecisionEngine();
-            return new QuanLyTaskViewModel(hocKy, monHoc, repo, engine);
+            return new QuanLyTaskViewModel(hocKy, monHoc, hocKyRepo, taskEditorRepo, engine);
         }
 
         [Fact]

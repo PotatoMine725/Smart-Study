@@ -6,6 +6,7 @@ using LiveChartsCore.SkiaSharpView.Painting;
 using Microsoft.Toolkit.Uwp.Notifications;
 using SkiaSharp;
 using SmartStudyPlanner.Data;
+using SmartStudyPlanner.Infrastructure.Persistence.Repositories;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Services.Pipeline;
@@ -22,7 +23,7 @@ namespace SmartStudyPlanner.ViewModels
 {
     public partial class DashboardViewModel : ObservableObject
     {
-        private readonly IStudyRepository _repository;
+        private readonly IHocKyRepository _hocKyRepository;
         private readonly IDecisionEngine _decisionEngine;
         private readonly IWorkloadService _workloadService;
         private readonly IRiskAnalyzer _riskAnalyzer;
@@ -68,7 +69,7 @@ namespace SmartStudyPlanner.ViewModels
 
         public DashboardViewModel(HocKy hocKy)
             : this(hocKy,
-                ServiceLocator.Get<IStudyRepository>(),
+                ServiceLocator.Get<IHocKyRepository>(),
                 ServiceLocator.Get<IDecisionEngine>(),
                 ServiceLocator.Get<IWorkloadService>(),
                 ServiceLocator.Get<IRiskAnalyzer>(),
@@ -77,10 +78,10 @@ namespace SmartStudyPlanner.ViewModels
         {
         }
 
-        public DashboardViewModel(HocKy hocKy, IStudyRepository repository, IDecisionEngine decisionEngine, IWorkloadService workloadService, IRiskAnalyzer riskAnalyzer, IPipelineOrchestrator pipelineOrchestrator, IStudyTelemetry telemetry)
+        public DashboardViewModel(HocKy hocKy, IHocKyRepository hocKyRepository, IDecisionEngine decisionEngine, IWorkloadService workloadService, IRiskAnalyzer riskAnalyzer, IPipelineOrchestrator pipelineOrchestrator, IStudyTelemetry telemetry)
         {
             _hocKyHienTai = hocKy;
-            _repository = repository;
+            _hocKyRepository = hocKyRepository;
             _decisionEngine = decisionEngine;
             _workloadService = workloadService;
             _riskAnalyzer = riskAnalyzer;
@@ -318,7 +319,7 @@ namespace SmartStudyPlanner.ViewModels
         private async Task LuuDuLieu()
         {
             _telemetry.Track("dashboard_click_save");
-            await _repository.LuuHocKyAsync(_hocKyHienTai);
+            await _hocKyRepository.LuuHocKyAsync(_hocKyHienTai);
             System.Windows.MessageBox.Show("Đã lưu tiến trình thành công!", "Save Game", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
@@ -338,7 +339,7 @@ namespace SmartStudyPlanner.ViewModels
             _telemetry.Track("focus_start", new Dictionary<string, string> { ["task"] = taskDuocChon.TenTask });
             var focusWin = new Views.FocusWindow(taskDuocChon);
             focusWin.ShowDialog();
-            await _repository.LuuHocKyAsync(_hocKyHienTai);
+            await _hocKyRepository.LuuHocKyAsync(_hocKyHienTai);
             LoadDuLieuDashboard();
         }
 

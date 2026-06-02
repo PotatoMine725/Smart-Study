@@ -1,5 +1,6 @@
 using Microsoft.Toolkit.Uwp.Notifications;
 using SmartStudyPlanner.Data;
+using SmartStudyPlanner.Infrastructure.Persistence.Repositories;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Services.Telemetry;
@@ -92,7 +93,7 @@ namespace SmartStudyPlanner
 
         private async void BackgroundTimer_Tick(object sender, EventArgs e)
         {
-            var repo = ServiceLocator.Get<IStudyRepository>();
+            var repo = ServiceLocator.Get<IHocKyRepository>();
             var decisionEngine = ServiceLocator.Get<IDecisionEngine>();
 
             var danhSachHocKy = await repo.LayDanhSachHocKyAsync();

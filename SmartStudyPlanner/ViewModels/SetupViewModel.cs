@@ -1,7 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using SmartStudyPlanner.Data;
+using SmartStudyPlanner.Infrastructure.Persistence.Repositories;
 using SmartStudyPlanner.Models;
+using SmartStudyPlanner.Services;
 using System;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
@@ -11,7 +12,7 @@ namespace SmartStudyPlanner.ViewModels
 {
     public partial class SetupViewModel : ObservableObject
     {
-        private readonly IStudyRepository _repository = new StudyRepository();
+        private readonly IHocKyRepository _hocKyRepository = ServiceLocator.Get<IHocKyRepository>();
 
         [ObservableProperty]
         private string tenHocKy;
@@ -44,7 +45,7 @@ namespace SmartStudyPlanner.ViewModels
 
         private async void TaiDanhSachHocKy()
         {
-            var list = await _repository.LayDanhSachHocKyAsync();
+            var list = await _hocKyRepository.LayDanhSachHocKyAsync();
             foreach (var hk in list)
             {
                 DanhSachHocKyCu.Add(hk);
@@ -84,7 +85,7 @@ namespace SmartStudyPlanner.ViewModels
                 IsNgayKetThucAuto = IsNgayKetThucAuto
             };
 
-            await _repository.LuuHocKyAsync(hocKyMoi); // Lưu DB ngay lập tức
+            await _hocKyRepository.LuuHocKyAsync(hocKyMoi); // Lưu DB ngay lập tức
 
             OnSetupCompleted?.Invoke(hocKyMoi);
         }

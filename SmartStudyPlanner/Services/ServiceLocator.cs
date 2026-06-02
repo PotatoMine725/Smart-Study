@@ -36,9 +36,8 @@ namespace SmartStudyPlanner.Services
             var services = new ServiceCollection();
 
             services.AddSingleton<AppDbContext>();
-            services.AddSingleton<IStudyRepository, StudyRepository>();
 
-            // Slice 4 — repository abstractions (seam cho M8-B WeightOptimizer).
+            // Repository abstractions (Slice 4 seam + StudyRepository split).
             // Mỗi repo nhận factory để chỉ instantiate context khi cần (tránh lifecycle conflict với singleton AppDbContext).
             Func<AppDbContext> ctxFactory = () => new AppDbContext();
             services.AddSingleton<IStudyTaskRepository>(_ => new SqliteStudyTaskRepository(ctxFactory));
