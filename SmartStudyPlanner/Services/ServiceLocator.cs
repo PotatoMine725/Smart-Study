@@ -45,6 +45,8 @@ namespace SmartStudyPlanner.Services
             services.AddSingleton<IStudyLogRepository>(_ => new SqliteStudyLogRepository(ctxFactory));
             services.AddSingleton<IMonHocRepository>(_ => new SqliteMonHocRepository(ctxFactory));
             services.AddSingleton<IUserStatsRepository>(_ => new SqliteUserStatsRepository(ctxFactory));
+            services.AddSingleton<IHocKyRepository>(_ => new SqliteHocKyRepository(ctxFactory));
+            services.AddSingleton<ITaskEditorRepository>(_ => new SqliteTaskEditorRepository(ctxFactory));
 
             services.AddSingleton<IClock, SystemClock>();
             services.AddSingleton<ITaskTypeWeightProvider, DefaultTaskTypeWeightProvider>();

@@ -149,5 +149,77 @@ namespace SmartStudyPlanner.Tests.Infrastructure
             Assert.Equal(3, snap.FocusStreakDays);
             Assert.Equal(95, snap.TotalStudyMinutesLast30Days);
         }
+
+        [Fact]
+        public async Task HocKyRepository_LuuVaLayDanhSach_RoundTripVaOverwrite()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+            var repo = new SqliteHocKyRepository(factory);
+
+            var hocKy = new HocKy("HK1", DateTime.Today);
+            var monHoc = new MonHoc("Toán", 3) { MaHocKy = hocKy.MaHocKy };
+            monHoc.DanhSachTask.Add(new StudyTask("T1", DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                MaMonHoc = monHoc.MaMonHoc,
+                MucDoCanhBao = "An toàn",
+            });
+            hocKy.DanhSachMonHoc.Add(monHoc);
+
+            await repo.LuuHocKyAsync(hocKy);
+
+            var loaded = await repo.LayDanhSachHocKyAsync();
+            Assert.Single(loaded);
+            Assert.Single(loaded[0].DanhSachMonHoc);
+            Assert.Single(loaded[0].DanhSachMonHoc[0].DanhSachTask);
+            Assert.Equal("T1", loaded[0].DanhSachMonHoc[0].DanhSachTask[0].TenTask);
+
+            // Overwrite cùng MaHocKy: thêm task thứ 2 → không nhân đôi học kỳ, dữ liệu mới đầy đủ.
+            hocKy.DanhSachMonHoc[0].DanhSachTask.Add(new StudyTask("T2", DateTime.Today.AddDays(5), LoaiCongViec.ThiGiuaKy, 3)
+            {
+                MaMonHoc = monHoc.MaMonHoc,
+                MucDoCanhBao = "An toàn",
+            });
+            await repo.LuuHocKyAsync(hocKy);
+
+            var reloaded = await repo.LayDanhSachHocKyAsync();
+            Assert.Single(reloaded); // không nhân đôi học kỳ
+            Assert.Equal(2, reloaded[0].DanhSachMonHoc[0].DanhSachTask.Count);
+        }
+
+        [Fact]
+        public async Task TaskEditorRepository_NoteUpsert_VaLinkCrud()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+            Guid maTask;
+            using (var ctx = TestDb.Create(conn))
+            {
+                var seeded = await TestDb.SeedTaskAsync(ctx);
+                maTask = seeded.MaTask;
+            }
+
+            var repo = new SqliteTaskEditorRepository(factory);
+
+            // Note: insert rồi update qua cùng entry point.
+            await repo.UpsertNoteAsync(maTask, "ghi chú 1");
+            await repo.UpsertNoteAsync(maTask, "ghi chú 2");
+            var bundle = await repo.GetBundleAsync(maTask);
+            Assert.NotNull(bundle);
+            Assert.Equal("ghi chú 2", bundle!.Note!.Content);
+
+            // Link CRUD.
+            var link = new TaskReferenceLink { MaTask = maTask, Title = "Docs", Url = "https://x", SortOrder = 0 };
+            await repo.AddLinkAsync(link);
+            Assert.Single(await repo.GetLinksAsync(maTask));
+
+            link.Title = "Docs v2";
+            await repo.UpdateLinkAsync(link);
+            var afterUpdate = await repo.GetLinksAsync(maTask);
+            Assert.Equal("Docs v2", afterUpdate[0].Title);
+
+            await repo.DeleteLinkAsync(link.Id);
+            Assert.Empty(await repo.GetLinksAsync(maTask));
+        }
     }
 }
