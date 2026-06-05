@@ -23,4 +23,9 @@
     <PackageReference Include="Verify.CommunityToolkit.Mvvm" Version="1.1.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- M8-A TextClassifier seed dataset: trained at first run when no model exists on disk. -->
+    <EmbeddedResource Include="Services\ML\TextClassifier\seed_intents.csv" />
+  </ItemGroup>
+
 </Project>

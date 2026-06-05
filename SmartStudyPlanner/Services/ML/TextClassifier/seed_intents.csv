@@ -1,0 +1,51 @@
+InputText,TaskName,TaskType,Difficulty,DeadlineHint,Source,LabelVersion
+Làm bài tập chương 3 môn Giải tích,BT Giải tích,BaiTapVeNha,2,3 ngày,seed,v1
+Hoàn thành bài tập về nhà môn Hóa,BT Hóa,BaiTapVeNha,2,2 ngày,seed,v1
+Giải các bài tập trong sách giáo trình,BT giáo trình,BaiTapVeNha,2,1 tuần,seed,v1
+Làm bài tập nhóm môn Lập trình,BT nhóm,BaiTapVeNha,2.5,5 ngày,seed,v1
+Nộp bài tập tuần này môn Vật lý,BT Vật lý,BaiTapVeNha,2,2 ngày,seed,v1
+Làm bài tập trắc nghiệm online môn Tiếng Anh,BT online,BaiTapVeNha,1.5,1 ngày,seed,v1
+Hoàn thành bài tập chương 5 môn Đại số,BT Đại số,BaiTapVeNha,2,4 ngày,seed,v1
+Làm bài tập thực hành môn Lập trình C,BT thực hành,BaiTapVeNha,2.5,3 ngày,seed,v1
+Giải đề bài tập về phương trình vi phân,BT vi phân,BaiTapVeNha,3,1 tuần,seed,v1
+Làm bài tập viết luận môn Triết học,BT Triết,BaiTapVeNha,2,5 ngày,seed,v1
+Ôn bài kiểm tra 15 phút môn Lịch sử,KT Sử,KiemTraThuongXuyen,2,2 ngày,seed,v1
+Chuẩn bị kiểm tra miệng môn Văn,KT miệng,KiemTraThuongXuyen,2,1 ngày,seed,v1
+Kiểm tra thường xuyên môn Toán,KT Toán,KiemTraThuongXuyen,2.5,3 ngày,seed,v1
+Ôn tập cho bài kiểm tra nhỏ môn Hóa,KT nhỏ,KiemTraThuongXuyen,2,2 ngày,seed,v1
+Làm bài kiểm tra trắc nghiệm trên lớp,KT trắc nghiệm,KiemTraThuongXuyen,2,1 ngày,seed,v1
+Chuẩn bị bài kiểm tra 1 tiết môn Vật lý,KT 1 tiết,KiemTraThuongXuyen,2.5,4 ngày,seed,v1
+Ôn cho bài kiểm tra đầu giờ môn Anh,KT đầu giờ,KiemTraThuongXuyen,1.5,1 ngày,seed,v1
+Kiểm tra bài cũ môn Sinh học,KT bài cũ,KiemTraThuongXuyen,2,2 ngày,seed,v1
+Ôn bài quiz tuần môn Kinh tế,Quiz Kinh tế,KiemTraThuongXuyen,2.5,3 ngày,seed,v1
+Chuẩn bị kiểm tra ngắn môn Địa lý,KT ngắn,KiemTraThuongXuyen,2,2 ngày,seed,v1
+Ôn thi giữa kỳ môn Giải tích,Thi GK Giải tích,ThiGiuaKy,3.5,1 tuần,seed,v1
+Chuẩn bị thi giữa kỳ môn Vật lý đại cương,Thi GK Vật lý,ThiGiuaKy,3.5,1 tuần,seed,v1
+Ôn tập kiến thức thi giữa kỳ môn Hóa,Thi GK Hóa,ThiGiuaKy,3.5,2 tuần,seed,v1
+Học bài thi giữa kỳ môn Anh văn,Thi GK Anh,ThiGiuaKy,3,1 tuần,seed,v1
+Ôn thi giữa học kỳ môn Triết học,Thi GK Triết,ThiGiuaKy,3.5,2 tuần,seed,v1
+Chuẩn bị cho kỳ thi giữa kỳ môn Kinh tế,Thi GK Kinh tế,ThiGiuaKy,3.5,1 tuần,seed,v1
+Ôn đề cương thi giữa kỳ môn Đại số,Đề cương GK,ThiGiuaKy,3.5,2 tuần,seed,v1
+Học ôn thi giữa kỳ môn Lập trình hướng đối tượng,Thi GK OOP,ThiGiuaKy,4,1 tuần,seed,v1
+Tổng ôn thi giữa kỳ môn Xác suất thống kê,Thi GK XSTK,ThiGiuaKy,3.5,2 tuần,seed,v1
+Ôn thi giữa kỳ môn Cấu trúc dữ liệu,Thi GK CTDL,ThiGiuaKy,4,1 tuần,seed,v1
+Hoàn thành đồ án cuối kỳ môn Lập trình,Đồ án LT,DoAnCuoiKy,4,3 tuần,seed,v1
+Làm báo cáo đồ án môn Cơ sở dữ liệu,Đồ án CSDL,DoAnCuoiKy,4,2 tuần,seed,v1
+Viết đồ án môn Kỹ thuật phần mềm,Đồ án KTPM,DoAnCuoiKy,4.5,1 tháng,seed,v1
+Hoàn thiện đồ án nhóm cuối kỳ môn Mạng,Đồ án Mạng,DoAnCuoiKy,4,3 tuần,seed,v1
+Làm slide thuyết trình đồ án cuối kỳ,Slide đồ án,DoAnCuoiKy,3.5,2 tuần,seed,v1
+Chuẩn bị bảo vệ đồ án cuối kỳ,Bảo vệ đồ án,DoAnCuoiKy,4,1 tuần,seed,v1
+Code phần backend cho đồ án web,Backend đồ án,DoAnCuoiKy,4.5,3 tuần,seed,v1
+Viết tài liệu đồ án môn Hệ điều hành,Tài liệu đồ án,DoAnCuoiKy,4,2 tuần,seed,v1
+Hoàn thành đồ án thiết kế website bán hàng,Đồ án web,DoAnCuoiKy,4,1 tháng,seed,v1
+Làm đồ án môn Trí tuệ nhân tạo,Đồ án AI,DoAnCuoiKy,4.5,1 tháng,seed,v1
+Ôn thi cuối kỳ môn Vật lý đại cương,Thi CK Vật lý,ThiCuoiKy,4.5,2 tuần,seed,v1
+Học bài thi cuối kỳ môn Giải tích,Thi CK Giải tích,ThiCuoiKy,4.5,2 tuần,seed,v1
+Chuẩn bị thi cuối kỳ môn Hóa đại cương,Thi CK Hóa,ThiCuoiKy,4.5,3 tuần,seed,v1
+Ôn tập toàn bộ kiến thức thi cuối kỳ,Tổng ôn CK,ThiCuoiKy,4.5,2 tuần,seed,v1
+Ôn thi hết môn cuối kỳ môn Triết,Thi CK Triết,ThiCuoiKy,4,2 tuần,seed,v1
+Học ôn thi cuối kỳ môn Lập trình,Thi CK LT,ThiCuoiKy,4.5,2 tuần,seed,v1
+Tổng ôn thi cuối học kỳ môn Toán cao cấp,Thi CK Toán,ThiCuoiKy,4.5,3 tuần,seed,v1
+Ôn đề cương thi cuối kỳ môn Anh văn,Đề cương CK,ThiCuoiKy,4,2 tuần,seed,v1
+Chuẩn bị cho kỳ thi cuối kỳ môn Mạng máy tính,Thi CK Mạng,ThiCuoiKy,4.5,3 tuần,seed,v1
+Ôn thi cuối kỳ môn Kinh tế vĩ mô,Thi CK Kinh tế,ThiCuoiKy,4.5,2 tuần,seed,v1
