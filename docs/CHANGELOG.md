@@ -4,6 +4,14 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
+## 2026-06-05 — M8-A seed upgrade (real data, remap to enum)
+
+| Area | Change | Verification |
+|---|---|---|
+| Services/ML/TextClassifier | Regenerated embedded `seed_intents.csv` from `datasheets/normalized_dataset_m8a_uniform.csv` (50 hand rows → **596**). Remapped datasheet taxonomy → `LoaiCongViec`: `BaiTap → BaiTapVeNha`, dropped `NhacNho`/`OnTap` (no enum home). `TimeExpression → DeadlineHint`, `Difficulty` 1–5. | 166 pass |
+
+Coverage trade-off (per the "remap to enum" decision): seed model now covers **3 of 5** enum classes — `BaiTapVeNha` (216) / `KiemTraThuongXuyen` (188) / `ThiCuoiKy` (192). `ThiGiuaKy` / `DoAnCuoiKy` have no rows — the datasheet labels "đồ án" as BaiTap and "giữa kỳ" as ThiCuoiKy, so re-adding hand rows would contradict the bulk data. Those two intents fall back to the heuristic parser (Slice 6). Importer untouched (minimal blast radius). Validated via round-trip (596 rows, no column shift on comma/emoji fields).
+
 ## 2026-06-05 — Refactor Slice 5 (M8-A TextClassifier scaffold)
 
 | Area | Change | Verification |
