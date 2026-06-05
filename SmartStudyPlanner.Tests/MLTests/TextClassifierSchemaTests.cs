@@ -95,6 +95,9 @@ namespace SmartStudyPlanner.Tests.MLTests
                 Assert.True(second.IsReady);
                 // Loaded the existing model rather than retraining → the zip was not rewritten.
                 Assert.Equal(writtenAt, File.GetLastWriteTimeUtc(zipPath));
+                // "Load if present" must yield a *usable* model, not just a flag flip:
+                // the disk-deserialized model still predicts a valid intent.
+                Assert.NotNull(new TextClassifierService(second).Predict("Ôn thi cuối kỳ môn Vật lý"));
             }
             finally { CleanupDir(dir); }
         }
