@@ -1,10 +1,12 @@
 # Active — God-Object Refactor + M8 Integration (Slices 5–8)
 
 > Originated from `superpowers/plans/2026-05-17-god-object-refactor-and-m8-integration-plan.md`.
-> Status (2026-05-21): **4 / 8 slices done**. Slices 5–8 implement M8 on top of the refactored core.
-> Baseline: 156 tests pass.
+> Status (2026-06-05): **5 / 8 slices done**. Slices 6–8 finish M8 on top of the refactored core.
+> Baseline: 166 tests pass.
 
 > **Persistence god-repo split — DONE (2026-06-02):** `Data/StudyRepository` (5 aggregate) đã tách thành `IHocKyRepository` + `ITaskEditorRepository` + `IStudyLogRepository`, migrate 7 consumer, xóa god-repo. Plan: [`docs/plans/2026-06-02-split-studyrepository.md`](../plans/2026-06-02-split-studyrepository.md) (`done`). 158 test pass.
+
+> **Slice 5 — DONE (2026-06-05):** M8-A TextClassifier scaffold landed standalone (commit `cb49a15`). Schema (`TextClassifier{Input,Output,Prediction}`), `ITextClassifierModelManager` + `TextClassifierModelManager` (own `text_classifier.zip` paths, embedded seed CSV, atomic save), `TextClassifierDatasetImporter` (fail-fast), `TextClassifierService : IIntentClassifierService` (DoKho null this slice), 50-row embedded `seed_intents.csv`, 8 tests. **No consumer wiring** — ServiceLocator/ParsingOrchestrator/SmartParser untouched (deferred to Slice 6). 158 → 166 test pass.
 
 ## Done in earlier slices
 
@@ -15,9 +17,11 @@
 | 3 | `Core/Parsing/{Engines,Orchestrators}` + `SmartParser` static facade | 2026-05-18 |
 | 4 | `Infrastructure/Persistence/{Repositories,SQLite/Repositories}` + `UserStatsSnapshot` | 2026-05-18 |
 
-## Slice 5 — M8-A A1+A2: TextClassifier schema + service
+## Slice 5 — M8-A A1+A2: TextClassifier schema + service ✅ DONE (2026-06-05, `cb49a15`)
 
 Goal: stand up the classifier service + lifecycle without touching `SmartParser` yet.
+
+**Shipped:** all files below created; `IModelStorageProvider` was NOT reused (the M7 provider hardcodes `study_time.zip`) — `TextClassifierModelManager` owns its own paths instead. Added `ITextClassifierModelManager` (not in the original file map) so the service is unit-testable with a stub. Seed delivered as an **embedded** `seed_intents.csv` (50 rows × 5 classes) loaded via manifest-resource stream. Model = multiclass `SdcaMaximumEntropy` on `TaskType`; `DoKho` left null (difficulty = a deferred second model). Seed persists unconditionally (`SeedOnly=true`, no R² gate / no TrainTestSplit on the tiny seed set). 158 → 166 tests.
 
 Files:
 - Create `SmartStudyPlanner/Services/ML/TextClassifier/`
@@ -124,9 +128,9 @@ Tests:
 
 ## Immediate next action
 
-**Slice 5** — start with `TextClassifierSchemaTests` and the schema classes; do not touch `SmartParser` until Slice 6.
+**Slice 6** — wire the classifier into `ParsingOrchestrator`. Register `IIntentClassifierService` (+ a thin `IIntentClassifier` adapter that consults `IMlConfidencePolicy`) in `ServiceLocator`; merge classifier output into the heuristic parse only at confidence `>= 0.60`; surface extracted fields in the task preview; keep offline-first (must run without `text_classifier.zip`). The Slice-5 scaffold (`TextClassifierService`, `TextClassifierModelManager`) is ready to inject.
 
 Pre-edit checklist:
 1. `npx gitnexus analyze` if the index is stale.
-2. `npx gitnexus impact SmartParser --direction upstream --repo Smart-Study` (re-confirm seam unchanged).
-3. Confirm M7 ML files in `Services/ML/*` are untouched.
+2. `npx gitnexus impact SmartParser --direction upstream --repo Smart-Study` (Slice 6 touches the parser seam — confirm blast radius).
+3. Confirm M7 ML files in `Services/ML/*` remain untouched.
