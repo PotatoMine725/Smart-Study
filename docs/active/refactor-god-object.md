@@ -1,8 +1,8 @@
 # Active — God-Object Refactor + M8 Integration (Slices 5–8)
 
 > Originated from `superpowers/plans/2026-05-17-god-object-refactor-and-m8-integration-plan.md`.
-> Status (2026-06-05): **5 / 8 slices done**. Slices 6–8 finish M8 on top of the refactored core.
-> Baseline: 166 tests pass.
+> Status (2026-06-05): **6 / 8 slices done**. Slices 7–8 finish M8-B (Weight Optimizer) on top of the refactored core.
+> Baseline: 178 tests pass.
 
 > **Persistence god-repo split — DONE (2026-06-02):** `Data/StudyRepository` (5 aggregate) đã tách thành `IHocKyRepository` + `ITaskEditorRepository` + `IStudyLogRepository`, migrate 7 consumer, xóa god-repo. Plan: [`docs/plans/2026-06-02-split-studyrepository.md`](../plans/2026-06-02-split-studyrepository.md) (`done`). 158 test pass.
 
@@ -43,9 +43,19 @@ Exit criteria:
 
 Guardrail: do not move any file under `Services/ML/*` that M7 depends on.
 
-## Slice 6 — M8-A A3+A4+A5: parser integration + UX + tests
+## Slice 6 — M8-A A3+A4+A5: parser integration + UX + tests ✅ DONE (2026-06-05)
 
-Goal: wire the classifier into the parser flow already exposed by `ParsingOrchestrator` (Slice 3 reserved the seam via optional `IIntentClassifier`).
+**Shipped:** `DefaultMlConfidencePolicy` (thresholds 0.75/0.60) + `IntentClassifierAdapter`
+(wraps `IIntentClassifierService` + policy, drops below 0.60, try/catch→null for offline-first).
+`ServiceLocator` registers `ITextClassifierModelManager`/`IIntentClassifierService`/`IMlConfidencePolicy`/
+`IIntentClassifier` and injects the adapter into `IParsingOrchestrator`. `App.xaml.cs` warms the
+classifier in the background. `QuanLyTaskViewModel` prefers the DI orchestrator (falls back to static
+`SmartParser` when null, so heuristic-only unit tests stay valid) and surfaces an "AI gợi ý Loại …"
+hint when `Source == MlAugmented`; M6.1 invariant (never touches Note/Links) preserved. **Prereq fix:**
+seed v3 (5-class) — see [m8-text-classifier.md](m8-text-classifier.md) — so the ≥0.60 override no longer
+regresses `ThiGiuaKy`/`DoAnCuoiKy`. 166 → **178** tests. `SmartParser.cs` static facade left untouched.
+
+Goal (original): wire the classifier into the parser flow already exposed by `ParsingOrchestrator` (Slice 3 reserved the seam via optional `IIntentClassifier`).
 
 Wiring:
 - Register `IIntentClassifierService` (and a thin `IIntentClassifier` adapter) in `ServiceLocator`.

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using SmartStudyPlanner.Core.ML.Contracts;
 using SmartStudyPlanner.Core.Parsing.Contracts;
 using SmartStudyPlanner.Core.Parsing.Orchestrators;
 using SmartStudyPlanner.Data;
@@ -58,8 +59,21 @@ namespace SmartStudyPlanner.Services
             services.AddSingleton<IMLModelManager, MLModelManager>();
             services.AddSingleton<IStudyTimePredictor, StudyTimePredictorService>();
 
+            // M8-A TextClassifier (Slice 6 wiring). Manager owns its own text_classifier.zip paths.
+            services.AddSingleton<ITextClassifierModelManager>(_ => new TextClassifierModelManager());
+            services.AddSingleton<IIntentClassifierService, TextClassifierService>();
+            services.AddSingleton<IMlConfidencePolicy, DefaultMlConfidencePolicy>();
+            services.AddSingleton<IIntentClassifier>(sp =>
+                new IntentClassifierAdapter(
+                    sp.GetRequiredService<IIntentClassifierService>(),
+                    sp.GetRequiredService<IMlConfidencePolicy>()));
+
+            // Parser now consumes the classifier through the adapter. Offline-first: if the model is
+            // absent/unloaded the adapter returns null and the orchestrator is byte-equal to heuristic.
             services.AddSingleton<IParsingOrchestrator>(sp =>
-                new ParsingOrchestrator(sp.GetRequiredService<IClock>()));
+                new ParsingOrchestrator(
+                    sp.GetRequiredService<IClock>(),
+                    sp.GetRequiredService<IIntentClassifier>()));
 
             services.AddSingleton<IPipelineStage, ParseInputStage>();
             services.AddSingleton<IPipelineStage, PrioritizeStage>();

@@ -4,13 +4,36 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
-## 2026-06-05 — M8-A seed upgrade (real data, remap to enum)
+## 2026-06-05 — Refactor Slice 6 (M8-A classifier wired into parser)
+
+| Area | Change | Verification |
+|---|---|---|
+| Services/ML | `DefaultMlConfidencePolicy : IMlConfidencePolicy` — hard-coded thresholds (`>=0.75` AutoApply, `0.60–0.75` Review, `<0.60` Reject) | policy boundary tests |
+| Services/ML | `IntentClassifierAdapter : IIntentClassifier` — wraps `IIntentClassifierService` + policy; drops prediction below `0.60` (heuristic wins); try/catch → null (offline-first) | adapter tests |
+| Services/ServiceLocator | Registered `ITextClassifierModelManager`, `IIntentClassifierService`, `IMlConfidencePolicy`, `IIntentClassifier`; `IParsingOrchestrator` now injects the adapter | DI smoke |
+| App.xaml.cs | Background warm-up of `ITextClassifierModelManager.InitializeAsync()` (silent-catch, mirrors M7) | — |
+| ViewModels/QuanLyTaskViewModel | `PhanTichNhapNhanh` prefers DI `IParsingOrchestrator` (ML-augmented), falls back to static `SmartParser`; surfaces "AI gợi ý Loại … (xx%)" in `QuickInputHint` when `Source == MlAugmented`. M6.1 invariant preserved (never touches Note/Links) | VM tests |
+| Tests/MLTests | `IntentClassifierAdapterTests` (10) + `Slice6ParserIntegrationTests` (2) | 166 → **178** pass |
+
+Merge: classifier output overrides the heuristic `Loai` only at confidence `>= 0.60`; deadline still resolved by the existing engine; offline-first (byte-equal heuristic when `text_classifier.zip` absent / model unloaded). Acceptance test asserts "giữa kỳ" → `ThiGiuaKy` and "đồ án cuối kỳ" → `DoAnCuoiKy` through the real seed model (no regression).
+
+## 2026-06-05 — M8-A seed v3 (5-class: real relabel + synthetic)
+
+| Area | Change | Verification |
+|---|---|---|
+| datasheets/normalized_dataset_m8a_uniform.csv | Relabeled real contradictions in-place: 31 "giữa kỳ" rows (were `ThiCuoiKy`/`KiemTra`) → `ThiGiuaKy`; 96 "đồ án/BTL/project" rows (were `BaiTap`/`NhacNho`/`ThiCuoiKy`) → `DoAnCuoiKy`. Added **100** synthetic rows (1000 → 1100). | held-out 96.2% |
+| datasheets/synthetic_v3_giuaky_doan.csv | New provenance file — 101 hand-authored rows simulating VN student behavior (diligent/lazy/abbreviated personas, typos, no-diacritics, slang/emoji, EN↔VI code-switching, varied info density) + contrastive boundary pairs ("đồ án cuối kỳ"↔"thi cuối kỳ"). | — |
+| Services/ML/TextClassifier/seed_intents.csv | Regenerated → **698 rows, all 5 enum classes** (KiemTra 188 / ThiCuoiKy 170 / DoAnCuoiKy 131 / BaiTapVeNha 124 / ThiGiuaKy 85). `LabelVersion=v3`; synthetic rows tagged `Source=synthetic_v3`. | round-trip 0 bad labels |
+
+Root cause fixed: the prior seed (v2, 596 rows) covered only 3/5 classes because the datasheet mis-labeled "giữa kỳ"→ThiCuoiKy and "đồ án"→BaiTap, which made the seed model confidently mis-map those two classes (~1.0 confidence). Stratified 85/15 held-out eval after the fix: **96.2% accuracy**, only **1/106 dangerous miss** (wrong & conf≥0.60, genuinely ambiguous), confidence no longer saturated (ambiguous rows correctly drop below 0.60 so the merge gate catches them).
+
+## 2026-06-05 — M8-A seed upgrade (real data, remap to enum) — superseded by seed v3 above
 
 | Area | Change | Verification |
 |---|---|---|
 | Services/ML/TextClassifier | Regenerated embedded `seed_intents.csv` from `datasheets/normalized_dataset_m8a_uniform.csv` (50 hand rows → **596**). Remapped datasheet taxonomy → `LoaiCongViec`: `BaiTap → BaiTapVeNha`, dropped `NhacNho`/`OnTap` (no enum home). `TimeExpression → DeadlineHint`, `Difficulty` 1–5. | 166 pass |
 
-Coverage trade-off (per the "remap to enum" decision): seed model now covers **3 of 5** enum classes — `BaiTapVeNha` (216) / `KiemTraThuongXuyen` (188) / `ThiCuoiKy` (192). `ThiGiuaKy` / `DoAnCuoiKy` have no rows — the datasheet labels "đồ án" as BaiTap and "giữa kỳ" as ThiCuoiKy, so re-adding hand rows would contradict the bulk data. Those two intents fall back to the heuristic parser (Slice 6). Importer untouched (minimal blast radius). Validated via round-trip (596 rows, no column shift on comma/emoji fields).
+Coverage trade-off (per the "remap to enum" decision): seed model covered **3 of 5** enum classes — `BaiTapVeNha` (216) / `KiemTraThuongXuyen` (188) / `ThiCuoiKy` (192). `ThiGiuaKy` / `DoAnCuoiKy` had no rows. **This gap was fixed in seed v3 (above)** by relabeling the contradictions and synthesizing the two classes. Commit `9068e65`.
 
 ## 2026-06-05 — Refactor Slice 5 (M8-A TextClassifier scaffold)
 

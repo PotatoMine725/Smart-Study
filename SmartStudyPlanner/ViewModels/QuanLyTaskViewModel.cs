@@ -1,5 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SmartStudyPlanner.Core.Parsing.Contracts;
+using SmartStudyPlanner.Core.Parsing.Models;
 using SmartStudyPlanner.Infrastructure.Persistence.Repositories;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
@@ -24,6 +26,8 @@ namespace SmartStudyPlanner.ViewModels
         private readonly ITaskEditorRepository _taskEditorRepository;
         private readonly IDecisionEngine _decisionEngine;
         private readonly IStudyTelemetry _telemetry;
+        // M8-A (Slice 6): optional ML-augmented parser. Null in unit tests → static heuristic path.
+        private readonly IParsingOrchestrator? _parsingOrchestrator;
 
         // 1. DỮ LIỆU HIỂN THỊ (BINDING)
         [ObservableProperty]
@@ -72,11 +76,11 @@ namespace SmartStudyPlanner.ViewModels
         public Action OnRefreshGrid { get; set; }
 
         public QuanLyTaskViewModel(HocKy hocKy, MonHoc monHoc)
-            : this(hocKy, monHoc, ServiceLocator.Get<IHocKyRepository>(), ServiceLocator.Get<ITaskEditorRepository>(), ServiceLocator.Get<IDecisionEngine>(), ServiceLocator.Get<IStudyTelemetry>()) { }
+            : this(hocKy, monHoc, ServiceLocator.Get<IHocKyRepository>(), ServiceLocator.Get<ITaskEditorRepository>(), ServiceLocator.Get<IDecisionEngine>(), ServiceLocator.Get<IStudyTelemetry>(), ServiceLocator.Get<IParsingOrchestrator>()) { }
         public QuanLyTaskViewModel(HocKy hocKy, MonHoc monHoc, IHocKyRepository hocKyRepository, ITaskEditorRepository taskEditorRepository, IDecisionEngine decisionEngine)
             : this(hocKy, monHoc, hocKyRepository, taskEditorRepository, decisionEngine, new NullStudyTelemetry()) { }
 
-        public QuanLyTaskViewModel(HocKy hocKy, MonHoc monHoc, IHocKyRepository hocKyRepository, ITaskEditorRepository taskEditorRepository, IDecisionEngine decisionEngine, IStudyTelemetry telemetry)
+        public QuanLyTaskViewModel(HocKy hocKy, MonHoc monHoc, IHocKyRepository hocKyRepository, ITaskEditorRepository taskEditorRepository, IDecisionEngine decisionEngine, IStudyTelemetry telemetry, IParsingOrchestrator? parsingOrchestrator = null)
         {
             HocKyHienTai = hocKy;
             MonHocHienTai = monHoc;
@@ -84,6 +88,7 @@ namespace SmartStudyPlanner.ViewModels
             _taskEditorRepository = taskEditorRepository;
             _decisionEngine = decisionEngine;
             _telemetry = telemetry;
+            _parsingOrchestrator = parsingOrchestrator;
             TieuDe = $"QUẢN LÝ DEADLINE - MÔN {MonHocHienTai.TenMonHoc.ToUpper()}";
 
             TinhDiemVaSapXep();
@@ -245,17 +250,21 @@ namespace SmartStudyPlanner.ViewModels
         {
             if (string.IsNullOrWhiteSpace(VanBanNhapNhanh)) return;
 
-            var ketQua = SmartParser.Parse(VanBanNhapNhanh);
+            // M8-A: prefer the ML-augmented orchestrator when injected; otherwise the heuristic facade.
+            ParseResult? ketQua = _parsingOrchestrator?.Parse(VanBanNhapNhanh);
+            var (tenTask, hanChot, loai, doKho) = ketQua?.ToLegacyTuple() ?? SmartParser.Parse(VanBanNhapNhanh);
 
             // Parser chỉ điền vào core fields — không bao giờ chạm NoteContent/StudyLinks
-            TenTask = ketQua.TenTask;
-            HanChot = ketQua.HanChot;
-            LoaiTaskIndex = (int)ketQua.Loai;
-            DoKho = ketQua.DoKho.ToString();
+            TenTask = tenTask;
+            HanChot = hanChot;
+            LoaiTaskIndex = (int)loai;
+            DoKho = doKho.ToString();
 
             TextNutThem = "Lưu Deadline (Hãy kiểm tra lại)";
             MauNutThem = "#E67E22";
-            QuickInputHint = "Đã điền nhanh xong. Tiếp theo: bổ sung ghi chú và link học tập bên dưới (nếu cần).";
+            QuickInputHint = ketQua is { Source: ParseSource.MlAugmented, Confidence: { } conf }
+                ? $"AI gợi ý Loại: {loai} ({conf:P0}) — hãy kiểm tra lại. Bổ sung ghi chú/link bên dưới nếu cần."
+                : "Đã điền nhanh xong. Tiếp theo: bổ sung ghi chú và link học tập bên dưới (nếu cần).";
 
             VanBanNhapNhanh = string.Empty;
         }

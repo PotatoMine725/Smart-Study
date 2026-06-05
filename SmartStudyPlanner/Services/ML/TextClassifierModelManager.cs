@@ -66,8 +66,17 @@ namespace SmartStudyPlanner.Services.ML
                             _meta = await JsonSerializer.DeserializeAsync<ModelMeta>(ms, cancellationToken: ct) ?? new ModelMeta();
                         }
 
-                        IsReady = true;
-                        return;
+                        // Seed-version gate: a cached SEED-ONLY model trained from an older embedded
+                        // seed is stale (e.g. v2 3-class cache vs v3 5-class seed) → retrain from the
+                        // current seed. User-trained models (SeedOnly == false) are preserved.
+                        bool staleSeed = _meta.SeedOnly &&
+                            !string.Equals(_meta.SeedHash, ComputeSeedHash(), StringComparison.OrdinalIgnoreCase);
+                        if (!staleSeed)
+                        {
+                            IsReady = true;
+                            return;
+                        }
+                        // else fall through to retrain from the new seed below.
                     }
                     catch
                     {
@@ -158,6 +167,7 @@ namespace SmartStudyPlanner.Services.ML
                     LogsUsedCount = data.Count,
                     ModelVersion = _meta.ModelVersion + 1,
                     SeedOnly = seedOnly,
+                    SeedHash = ComputeSeedHash(),
                     DeviceId = DeviceHelper.GetId(),
                     ModelHash = Convert.ToHexString(
                         System.Security.Cryptography.SHA256.HashData(
@@ -207,6 +217,25 @@ namespace SmartStudyPlanner.Services.ML
                 ?? throw new InvalidOperationException($"Could not open embedded resource '{resourceName}'.");
 
             return TextClassifierDatasetImporter.Parse(stream);
+        }
+
+        /// <summary>
+        /// SHA-256 (hex) of the raw embedded seed bytes. Used to detect when the seed shipped in the
+        /// assembly differs from the seed a cached seed-only model was trained on. Returns empty if
+        /// the resource is missing (callers then treat the cache as non-stale to avoid a crash loop).
+        /// </summary>
+        private static string ComputeSeedHash()
+        {
+            var asm = Assembly.GetExecutingAssembly();
+            string? resourceName = asm.GetManifestResourceNames()
+                .FirstOrDefault(n => n.EndsWith(SeedResourceSuffix, StringComparison.OrdinalIgnoreCase));
+            if (resourceName == null) return string.Empty;
+
+            using var stream = asm.GetManifestResourceStream(resourceName);
+            if (stream == null) return string.Empty;
+
+            using var sha = System.Security.Cryptography.SHA256.Create();
+            return Convert.ToHexString(sha.ComputeHash(stream)).ToLowerInvariant();
         }
     }
 }

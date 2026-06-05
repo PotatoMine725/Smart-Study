@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using SmartStudyPlanner.Services.ML;
@@ -98,6 +99,38 @@ namespace SmartStudyPlanner.Tests.MLTests
                 // "Load if present" must yield a *usable* model, not just a flag flip:
                 // the disk-deserialized model still predicts a valid intent.
                 Assert.NotNull(new TextClassifierService(second).Predict("Ôn thi cuối kỳ môn Vật lý"));
+            }
+            finally { CleanupDir(dir); }
+        }
+
+        [Fact]
+        public async Task Manager_RetrainsSeed_WhenCachedSeedHashStale()
+        {
+            string dir = NewTempDir();
+            try
+            {
+                var first = new TextClassifierModelManager(dir);
+                await first.InitializeAsync();
+                string zipPath = Path.Combine(dir, "text_classifier.zip");
+                string metaPath = Path.Combine(dir, "text_classifier_meta.json");
+
+                // Simulate a model cached from an OLDER embedded seed (stale hash, still SeedOnly).
+                var meta = JsonSerializer.Deserialize<ModelMeta>(File.ReadAllText(metaPath))!;
+                Assert.True(meta.SeedOnly);
+                Assert.False(string.IsNullOrEmpty(meta.SeedHash));
+                meta.SeedHash = "stale_hash_0000";
+                File.WriteAllText(metaPath, JsonSerializer.Serialize(meta));
+                var staleWrittenAt = File.GetLastWriteTimeUtc(zipPath);
+
+                var second = new TextClassifierModelManager(dir);
+                await second.InitializeAsync();
+
+                // Stale seed-only cache → retrained: zip rewritten and meta re-stamped with the real seed hash.
+                Assert.True(File.GetLastWriteTimeUtc(zipPath) > staleWrittenAt);
+                var refreshed = JsonSerializer.Deserialize<ModelMeta>(File.ReadAllText(metaPath))!;
+                Assert.NotEqual("stale_hash_0000", refreshed.SeedHash);
+                Assert.True(second.IsReady);
+                Assert.NotNull(new TextClassifierService(second).Predict("Ôn thi giữa kỳ mai"));
             }
             finally { CleanupDir(dir); }
         }
