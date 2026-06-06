@@ -1,8 +1,11 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using SmartStudyPlanner.Data;
+using SmartStudyPlanner.Core.Parsing.Contracts;
+using SmartStudyPlanner.Core.Parsing.Models;
+using SmartStudyPlanner.Infrastructure.Persistence.Repositories;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
+using SmartStudyPlanner.Services.Telemetry;
 using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -19,8 +22,12 @@ namespace SmartStudyPlanner.ViewModels
         private StudyTask? _taskDangSua;
         private Guid? _editingTaskId;
 
-        private readonly IStudyRepository _repository;
+        private readonly IHocKyRepository _hocKyRepository;
+        private readonly ITaskEditorRepository _taskEditorRepository;
         private readonly IDecisionEngine _decisionEngine;
+        private readonly IStudyTelemetry _telemetry;
+        // M8-A (Slice 6): optional ML-augmented parser. Null in unit tests → static heuristic path.
+        private readonly IParsingOrchestrator? _parsingOrchestrator;
 
         // 1. DỮ LIỆU HIỂN THỊ (BINDING)
         [ObservableProperty]
@@ -46,6 +53,11 @@ namespace SmartStudyPlanner.ViewModels
 
         [ObservableProperty]
         private string vanBanNhapNhanh;
+        [ObservableProperty] private bool isLoading;
+        [ObservableProperty] private bool hasData = true;
+        [ObservableProperty] private bool hasError;
+        [ObservableProperty] private string emptyStateMessage = "Chưa có task nào cho môn học này.";
+        [ObservableProperty] private string quickInputHint = "Parser chỉ tự điền thông tin cốt lõi. Hãy thêm Notes/Links ở các vùng bên dưới.";
 
         // M6.1 — Notes & Links
         [ObservableProperty]
@@ -64,17 +76,23 @@ namespace SmartStudyPlanner.ViewModels
         public Action OnRefreshGrid { get; set; }
 
         public QuanLyTaskViewModel(HocKy hocKy, MonHoc monHoc)
-            : this(hocKy, monHoc, ServiceLocator.Get<IStudyRepository>(), ServiceLocator.Get<IDecisionEngine>()) { }
+            : this(hocKy, monHoc, ServiceLocator.Get<IHocKyRepository>(), ServiceLocator.Get<ITaskEditorRepository>(), ServiceLocator.Get<IDecisionEngine>(), ServiceLocator.Get<IStudyTelemetry>(), ServiceLocator.Get<IParsingOrchestrator>()) { }
+        public QuanLyTaskViewModel(HocKy hocKy, MonHoc monHoc, IHocKyRepository hocKyRepository, ITaskEditorRepository taskEditorRepository, IDecisionEngine decisionEngine)
+            : this(hocKy, monHoc, hocKyRepository, taskEditorRepository, decisionEngine, new NullStudyTelemetry()) { }
 
-        public QuanLyTaskViewModel(HocKy hocKy, MonHoc monHoc, IStudyRepository repository, IDecisionEngine decisionEngine)
+        public QuanLyTaskViewModel(HocKy hocKy, MonHoc monHoc, IHocKyRepository hocKyRepository, ITaskEditorRepository taskEditorRepository, IDecisionEngine decisionEngine, IStudyTelemetry telemetry, IParsingOrchestrator? parsingOrchestrator = null)
         {
             HocKyHienTai = hocKy;
             MonHocHienTai = monHoc;
-            _repository = repository;
+            _hocKyRepository = hocKyRepository;
+            _taskEditorRepository = taskEditorRepository;
             _decisionEngine = decisionEngine;
+            _telemetry = telemetry;
+            _parsingOrchestrator = parsingOrchestrator;
             TieuDe = $"QUẢN LÝ DEADLINE - MÔN {MonHocHienTai.TenMonHoc.ToUpper()}";
 
             TinhDiemVaSapXep();
+            HasData = MonHocHienTai.DanhSachTask.Count > 0;
         }
 
         private void TinhDiemVaSapXep()
@@ -107,7 +125,8 @@ namespace SmartStudyPlanner.ViewModels
                 if (System.Windows.MessageBox.Show($"Xóa bài tập '{taskCanXoa.TenTask}'?", "Xác nhận", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                 {
                     MonHocHienTai.DanhSachTask.Remove(taskCanXoa);
-                    await _repository.LuuHocKyAsync(HocKyHienTai);
+                    await _hocKyRepository.LuuHocKyAsync(HocKyHienTai);
+                    HasData = MonHocHienTai.DanhSachTask.Count > 0;
                 }
             }
         }
@@ -120,7 +139,7 @@ namespace SmartStudyPlanner.ViewModels
                 taskDaXong.TrangThai = StudyTaskStatus.HoanThanh;
                 TinhDiemVaSapXep();
                 OnRefreshGrid?.Invoke();
-                await _repository.LuuHocKyAsync(HocKyHienTai);
+                await _hocKyRepository.LuuHocKyAsync(HocKyHienTai);
             }
         }
 
@@ -131,6 +150,7 @@ namespace SmartStudyPlanner.ViewModels
 
             _taskDangSua = taskCanSua;
             _editingTaskId = taskCanSua.MaTask;
+            _telemetry.Track("task_click_edit", new System.Collections.Generic.Dictionary<string, string> { ["task"] = taskCanSua.TenTask });
 
             TenTask = _taskDangSua.TenTask;
             HanChot = _taskDangSua.HanChot;
@@ -141,7 +161,7 @@ namespace SmartStudyPlanner.ViewModels
             MauNutThem = "#3498DB";
 
             // Load notes & links for the task being edited
-            var bundle = await _repository.GetTaskEditorBundleAsync(taskCanSua.MaTask);
+            var bundle = await _taskEditorRepository.GetBundleAsync(taskCanSua.MaTask);
             NoteContent = bundle?.Note?.Content;
             StudyLinks.Clear();
             if (bundle?.Links is { Count: > 0 } links)
@@ -168,6 +188,7 @@ namespace SmartStudyPlanner.ViewModels
             {
                 savedTask = new StudyTask(TenTask, HanChot.Value, loaiTask, doKhoInt);
                 MonHocHienTai.DanhSachTask.Add(savedTask);
+                _telemetry.Track("task_add");
             }
             else
             {
@@ -180,34 +201,36 @@ namespace SmartStudyPlanner.ViewModels
                 _taskDangSua = null;
                 TextNutThem = "Thêm Deadline";
                 MauNutThem = "#9B59B6";
+                _telemetry.Track("task_update");
             }
 
             TinhDiemVaSapXep();
             OnRefreshGrid?.Invoke();
-            await _repository.LuuHocKyAsync(HocKyHienTai);
+            await _hocKyRepository.LuuHocKyAsync(HocKyHienTai);
+            HasData = MonHocHienTai.DanhSachTask.Count > 0;
 
             // Save notes & links (for both new and existing tasks)
             var taskId = _editingTaskId ?? savedTask.MaTask;
             _editingTaskId = null;
             if (!string.IsNullOrEmpty(NoteContent) || StudyLinks.Count > 0)
             {
-                await _repository.UpsertTaskNoteAsync(taskId, NoteContent);
+                await _taskEditorRepository.UpsertNoteAsync(taskId, NoteContent);
                 foreach (var (vm, i) in StudyLinks.Select((vm, i) => (vm, i)))
                 {
                     vm.SortOrder = i;
                     vm.MaTask = taskId;
                 }
-                var existingLinks = await _repository.GetTaskReferenceLinksAsync(taskId);
+                var existingLinks = await _taskEditorRepository.GetLinksAsync(taskId);
                 var incomingIds = StudyLinks.Select(vm => vm.Id).ToHashSet();
                 foreach (var dead in existingLinks.Where(l => !incomingIds.Contains(l.Id)))
-                    await _repository.DeleteTaskReferenceLinkAsync(dead.Id);
+                    await _taskEditorRepository.DeleteLinkAsync(dead.Id);
                 foreach (var vm in StudyLinks)
                 {
                     var model = vm.ToModel();
                     if (existingLinks.Any(l => l.Id == vm.Id))
-                        await _repository.UpdateTaskReferenceLinkAsync(model);
+                        await _taskEditorRepository.UpdateLinkAsync(model);
                     else
-                        await _repository.AddTaskReferenceLinkAsync(model);
+                        await _taskEditorRepository.AddLinkAsync(model);
                 }
             }
 
@@ -227,16 +250,21 @@ namespace SmartStudyPlanner.ViewModels
         {
             if (string.IsNullOrWhiteSpace(VanBanNhapNhanh)) return;
 
-            var ketQua = SmartParser.Parse(VanBanNhapNhanh);
+            // M8-A: prefer the ML-augmented orchestrator when injected; otherwise the heuristic facade.
+            ParseResult? ketQua = _parsingOrchestrator?.Parse(VanBanNhapNhanh);
+            var (tenTask, hanChot, loai, doKho) = ketQua?.ToLegacyTuple() ?? SmartParser.Parse(VanBanNhapNhanh);
 
             // Parser chỉ điền vào core fields — không bao giờ chạm NoteContent/StudyLinks
-            TenTask = ketQua.TenTask;
-            HanChot = ketQua.HanChot;
-            LoaiTaskIndex = (int)ketQua.Loai;
-            DoKho = ketQua.DoKho.ToString();
+            TenTask = tenTask;
+            HanChot = hanChot;
+            LoaiTaskIndex = (int)loai;
+            DoKho = doKho.ToString();
 
             TextNutThem = "Lưu Deadline (Hãy kiểm tra lại)";
             MauNutThem = "#E67E22";
+            QuickInputHint = ketQua is { Source: ParseSource.MlAugmented, Confidence: { } conf }
+                ? $"AI gợi ý Loại: {loai} ({conf:P0}) — hãy kiểm tra lại. Bổ sung ghi chú/link bên dưới nếu cần."
+                : "Đã điền nhanh xong. Tiếp theo: bổ sung ghi chú và link học tập bên dưới (nếu cần).";
 
             VanBanNhapNhanh = string.Empty;
         }
@@ -247,13 +275,22 @@ namespace SmartStudyPlanner.ViewModels
         private void AddLink()
         {
             if (string.IsNullOrWhiteSpace(NewLinkUrl)) return;
+            if (!Uri.TryCreate(NewLinkUrl, UriKind.Absolute, out var uri) ||
+                (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+            {
+                System.Windows.MessageBox.Show("URL chưa hợp lệ. Vui lòng nhập link bắt đầu bằng http:// hoặc https://", "URL không hợp lệ",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             StudyLinks.Add(new TaskReferenceLinkItemVm
             {
                 MaTask = _editingTaskId ?? Guid.Empty,
-                Title = string.IsNullOrWhiteSpace(NewLinkTitle) ? NewLinkUrl : NewLinkTitle,
-                Url = NewLinkUrl,
+                Title = string.IsNullOrWhiteSpace(NewLinkTitle) ? uri.Host : NewLinkTitle,
+                Url = uri.OriginalString,
                 SortOrder = StudyLinks.Count,
             });
+            _telemetry.Track("task_add_link");
             NewLinkTitle = string.Empty;
             NewLinkUrl = string.Empty;
         }
@@ -277,5 +314,10 @@ namespace SmartStudyPlanner.ViewModels
 
         [RelayCommand]
         private void ClearNote() => NoteContent = null;
+
+        private sealed class NullStudyTelemetry : IStudyTelemetry
+        {
+            public void Track(string eventName, System.Collections.Generic.IDictionary<string, string>? properties = null) { }
+        }
     }
 }

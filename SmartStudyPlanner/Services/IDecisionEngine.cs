@@ -1,3 +1,6 @@
+using System.Threading;
+using System.Threading.Tasks;
+using SmartStudyPlanner.Core.ML.Contracts;
 using SmartStudyPlanner.Models;
 
 namespace SmartStudyPlanner.Services
@@ -22,5 +25,11 @@ namespace SmartStudyPlanner.Services
 
         /// <summary>Trả về phút học dự đoán với ngữ cảnh môn học nếu ML predictor sẵn sàng.</summary>
         int PredictStudyMinutes(StudyTask task, MonHoc monHoc, out bool isMlPrediction);
+
+        /// <summary>
+        /// M8-B: đề xuất WeightConfig dựa trên thống kê người dùng (read-only, không tự apply).
+        /// Trả null nếu WeightOptimizer không khả dụng.
+        /// </summary>
+        Task<WeightConfigSuggestion?> SuggestWeightConfigAsync(CancellationToken ct = default);
     }
 }

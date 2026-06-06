@@ -6,15 +6,16 @@
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel Margin="20">
-        <Button Content="⬅ Quay lại Môn Học" HorizontalAlignment="Left" Background="Transparent" BorderBrush="Transparent" Foreground="#3498DB" FontWeight="Bold" Cursor="Hand" Margin="0,0,0,10"
+        <Button Content="⬅ Quay lại Môn Học" HorizontalAlignment="Left" Background="Transparent" BorderBrush="Transparent" Foreground="{DynamicResource AccentColor}" FontWeight="Bold" Cursor="Hand" Margin="0,0,0,10"
                 Command="{Binding QuayLaiCommand}"/>
 
-        <TextBlock Text="{Binding TieuDe}" FontWeight="Bold" FontSize="18" Foreground="#8E44AD" HorizontalAlignment="Center" Margin="0,0,0,20" />
+        <TextBlock Text="{Binding TieuDe}" FontWeight="Bold" FontSize="18" Foreground="{DynamicResource AccentColor}" HorizontalAlignment="Center" Margin="0,0,0,20" />
 
-        <Border Background="{DynamicResource CardBackground}" CornerRadius="8" Padding="15" Margin="0,0,0,20">
+        <Border Style="{StaticResource AppCardBorder}" Padding="15" Margin="0,0,0,20">
             <StackPanel>
-                <TextBlock Text="⚡ Nhập liệu Siêu tốc (Smart Add):" FontWeight="Bold" Foreground="#8E44AD" Margin="0,0,0,5"/>
+                <TextBlock Text="⚡ Nhập liệu Siêu tốc (Smart Add):" FontWeight="Bold" Foreground="{DynamicResource AccentColor}" Margin="0,0,0,5"/>
                 <TextBlock Text="Dán tin nhắn của lớp trưởng vào đây. VD: 'T6 tuần sau nộp btl căng lắm'" FontSize="12" Foreground="{DynamicResource SecondaryText}" Margin="0,0,0,10" TextWrapping="Wrap"/>
+                <TextBlock Text="{Binding QuickInputHint}" FontSize="11" Foreground="{DynamicResource SecondaryText}" Margin="0,0,0,10" TextWrapping="Wrap"/>
 
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -22,7 +23,7 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <TextBox Grid.Column="0" Text="{Binding VanBanNhapNhanh, UpdateSourceTrigger=PropertyChanged}" Height="35" Padding="5" VerticalContentAlignment="Center" Margin="0,0,10,0"/>
-                    <Button Grid.Column="1" Content="Tự điền 🪄" Command="{Binding PhanTichNhapNhanhCommand}" Width="80" Background="#8E44AD" Foreground="White" FontWeight="Bold" Cursor="Hand"/>
+                    <Button Grid.Column="1" Content="Tự điền 🪄" Command="{Binding PhanTichNhapNhanhCommand}" Width="90" Style="{StaticResource AppPrimaryButton}"/>
                 </Grid>
             </StackPanel>
         </Border>
@@ -65,14 +66,28 @@
                      Text="{Binding DoKho, UpdateSourceTrigger=PropertyChanged}"/>
         </Grid>
 
-        <Button Height="35" Width="200" FontWeight="Bold" Foreground="White" Cursor="Hand" Margin="0,0,0,20" 
+        <Button Height="35" Width="220" FontWeight="Bold" Foreground="White" Cursor="Hand" Margin="0,0,0,20" 
                 Content="{Binding TextNutThem}"
                 Background="{Binding MauNutThem}"
                 Command="{Binding ThemTaskCommand}" />
 
+        <Border Margin="0,0,0,12">
+            <Border.Style>
+                <Style TargetType="Border" BasedOn="{StaticResource AppEmptyStateCard}">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding HasData}" Value="False">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <TextBlock Text="{Binding EmptyStateMessage}" Foreground="{DynamicResource SecondaryText}"/>
+        </Border>
+
         <DataGrid x:Name="dgDanhSachTask" Height="220" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
                   ItemsSource="{Binding MonHocHienTai.DanhSachTask}"
-                  Background="{DynamicResource CardBackground}" Foreground="{DynamicResource PrimaryText}">
+                  Background="{DynamicResource CardBackground}" Foreground="{DynamicResource PrimaryText}" Style="{StaticResource AppDataGridBase}">
             <DataGrid.Resources>
                 <Style TargetType="DataGridColumnHeader">
                     <Setter Property="Background" Value="{DynamicResource CardBackground}" />
@@ -87,25 +102,6 @@
                 <Style TargetType="DataGridRow">
                     <Setter Property="Background" Value="{DynamicResource CardBackground}" />
                     <Setter Property="Foreground" Value="{DynamicResource PrimaryText}" />
-
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding MucDoCanhBao}" Value="Khẩn cấp">
-                            <Setter Property="Background" Value="#FFCDD2" />
-                            <Setter Property="Foreground" Value="Black" />
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding MucDoCanhBao}" Value="Chú ý">
-                            <Setter Property="Background" Value="#FFF9C4" />
-                            <Setter Property="Foreground" Value="Black" />
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding MucDoCanhBao}" Value="An toàn">
-                            <Setter Property="Background" Value="#C8E6C9" />
-                            <Setter Property="Foreground" Value="Black" />
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding MucDoCanhBao}" Value="Đã xong">
-                            <Setter Property="Background" Value="#E0E0E0" />
-                            <Setter Property="Foreground" Value="#7F8C8D" />
-                        </DataTrigger>
-                    </Style.Triggers>
                 </Style>
             </DataGrid.RowStyle>
 
@@ -115,21 +111,21 @@
                 <DataGridTextColumn Header="Loại" Binding="{Binding LoaiTask}" Width="120" />
                 <DataGridTextColumn Header="Độ Khó" Binding="{Binding DoKho}" Width="60" />
                 <DataGridTextColumn Header="Trạng Thái" Binding="{Binding TrangThai}" Width="100" />
-                <DataGridTextColumn Header="Điểm Ưu Tiên" Binding="{Binding DiemUuTien}" Width="90" FontWeight="Bold" Foreground="#E74C3C"/>
+                <DataGridTextColumn Header="Điểm Ưu Tiên" Binding="{Binding DiemUuTien}" Width="90" FontWeight="Bold" Foreground="{DynamicResource DangerColor}"/>
 
                 <DataGridTemplateColumn Header="Thao tác" Width="170">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <Button Content="Xong" Background="#2ECC71" Foreground="White" Padding="10,2" Margin="0,0,5,0" Cursor="Hand" 
+                                <Button Content="Xong" Style="{StaticResource AppPrimaryButton}" Padding="10,2" Margin="0,0,5,0" Cursor="Hand" 
                                         Command="{Binding DataContext.HoanThanhTaskCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
                                         CommandParameter="{Binding}" />
 
-                                <Button Content="Sửa" Background="#F1C40F" Foreground="White" Padding="10,2" Margin="0,0,5,0" Cursor="Hand" 
+                                <Button Content="Sửa" Style="{StaticResource AppSecondaryButton}" Padding="10,2" Margin="0,0,5,0" Cursor="Hand" 
                                         Command="{Binding DataContext.SuaTaskCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
                                         CommandParameter="{Binding}" />
 
-                                <Button Content="Xóa" Background="#E74C3C" Foreground="White" Padding="10,2" Cursor="Hand" 
+                                <Button Content="Xóa" Style="{StaticResource AppDangerButton}" Padding="10,2" Cursor="Hand" 
                                         Command="{Binding DataContext.XoaTaskCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
                                         CommandParameter="{Binding}" />
                             </StackPanel>
@@ -141,7 +137,7 @@
         <!-- Zone 2: Ghi Chú -->
         <GroupBox Margin="0,16,0,0" Padding="10">
             <GroupBox.Header>
-                <TextBlock Text="Ghi Chú" FontWeight="Bold" Foreground="#8E44AD"/>
+                <TextBlock Text="Ghi Chú" FontWeight="Bold" Foreground="{DynamicResource AccentColor}"/>
             </GroupBox.Header>
             <Grid>
                 <Grid.RowDefinitions>
@@ -170,7 +166,7 @@
         <!-- Zone 3: Liên Kết Học Tập -->
         <GroupBox Margin="0,12,0,16" Padding="10">
             <GroupBox.Header>
-                <TextBlock Text="Liên Kết Học Tập" FontWeight="Bold" Foreground="#8E44AD"/>
+                <TextBlock Text="Liên Kết Học Tập" FontWeight="Bold" Foreground="{DynamicResource AccentColor}"/>
             </GroupBox.Header>
             <StackPanel>
                 <!-- Input row -->
@@ -228,8 +224,7 @@
                             Content="+ Thêm"
                             Command="{Binding AddLinkCommand}"
                             Height="30" Padding="10,0"
-                            Background="#8E44AD" Foreground="White"
-                            FontWeight="Bold" Cursor="Hand"/>
+                            Style="{StaticResource AppPrimaryButton}"/>
                 </Grid>
 
                 <!-- Link list -->
@@ -251,15 +246,18 @@
                                                    FontWeight="SemiBold"
                                                    Foreground="{DynamicResource PrimaryText}"/>
                                         <TextBlock Text="{Binding Url}"
-                                                   Foreground="#0078D4"
+                                                   Foreground="{DynamicResource AccentText}"
                                                    TextTrimming="CharacterEllipsis"
+                                                   FontSize="11"/>
+                                        <TextBlock Text="{Binding DomainHost}"
+                                                   Foreground="{DynamicResource SecondaryText}"
                                                    FontSize="11"/>
                                     </StackPanel>
                                     <Button Grid.Column="1" Content="Mở"
                                             Command="{Binding DataContext.OpenLinkCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                             CommandParameter="{Binding}"
                                             Padding="8,2" Margin="6,0,0,0" Cursor="Hand"
-                                            Background="#3498DB" Foreground="White"/>
+                                            Style="{StaticResource AppPrimaryButton}"/>
                                     <Button Grid.Column="2" Content="Sao chép"
                                             Command="{Binding DataContext.CopyLinkCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                             CommandParameter="{Binding}"
@@ -268,7 +266,7 @@
                                             Command="{Binding DataContext.RemoveLinkCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                             CommandParameter="{Binding}"
                                             Padding="8,2" Margin="6,0,0,0" Cursor="Hand"
-                                            Background="#E74C3C" Foreground="White"/>
+                                            Style="{StaticResource AppDangerButton}"/>
                                 </Grid>
                             </Border>
                         </DataTemplate>

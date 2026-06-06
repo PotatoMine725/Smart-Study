@@ -215,9 +215,10 @@ namespace SmartStudyPlanner.Tests
             var hocKy = new HocKy("HK", DateTime.Today);
             var monHoc = new MonHoc("MH", 3) { MaHocKy = hocKy.MaHocKy };
             hocKy.DanhSachMonHoc.Add(monHoc);
-            var repo = new FakeStudyRepository();
+            var hocKyRepo = new FakeHocKyRepository();
+            var taskEditorRepo = new FakeTaskEditorRepository();
             var engine = new FakeDecisionEngine();
-            return new QuanLyTaskViewModel(hocKy, monHoc, repo, engine);
+            return new QuanLyTaskViewModel(hocKy, monHoc, hocKyRepo, taskEditorRepo, engine);
         }
 
         [Fact]
@@ -297,5 +298,7 @@ namespace SmartStudyPlanner.Tests
         public int CalculateRawSuggestedMinutes(StudyTask task) => 0;
         public string SuggestStudyTime(StudyTask task) => "0 phút";
         public int PredictStudyMinutes(StudyTask task, MonHoc monHoc, out bool isMlPrediction) { isMlPrediction = false; return 0; }
+        public System.Threading.Tasks.Task<SmartStudyPlanner.Core.ML.Contracts.WeightConfigSuggestion?> SuggestWeightConfigAsync(System.Threading.CancellationToken ct = default)
+            => System.Threading.Tasks.Task.FromResult<SmartStudyPlanner.Core.ML.Contracts.WeightConfigSuggestion?>(null);
     }
 }

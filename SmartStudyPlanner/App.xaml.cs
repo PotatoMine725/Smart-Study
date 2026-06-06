@@ -33,7 +33,7 @@ namespace SmartStudyPlanner
             // hoặc qua constructor injection khi ViewModel được tạo thủ công.
             ServiceLocator.Configure();
 
-            // M7: warm up model manager in background, không block UI startup
+            // M7 + M8-A: warm up model managers in background, không block UI startup
             _ = Task.Run(async () =>
             {
                 try
@@ -43,6 +43,19 @@ namespace SmartStudyPlanner
                 catch
                 {
                     // Silent fallback: ML luôn là enhancement, không được chặn app launch.
+                }
+            });
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    // M8-A: load existing text_classifier.zip or train from embedded seed (offline-first).
+                    await ServiceLocator.Get<ITextClassifierModelManager>().InitializeAsync();
+                }
+                catch
+                {
+                    // Classifier is an enhancement on top of the heuristic parser; never block launch.
                 }
             });
         }

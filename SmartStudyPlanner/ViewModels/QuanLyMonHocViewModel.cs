@@ -1,7 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using SmartStudyPlanner.Data;
+using SmartStudyPlanner.Infrastructure.Persistence.Repositories;
 using SmartStudyPlanner.Models;
+using SmartStudyPlanner.Services;
 using System;
 using System.Windows;
 using System.Threading.Tasks;
@@ -15,7 +16,7 @@ namespace SmartStudyPlanner.ViewModels
         private MonHoc? _monDangSua;
 
         // Repository để tương tác với dữ liệu (nếu cần)
-        private readonly IStudyRepository _repository = new StudyRepository();
+        private readonly IHocKyRepository _hocKyRepository = ServiceLocator.Get<IHocKyRepository>();
 
         // 1. DỮ LIỆU HIỂN THỊ TRÊN UI
         [ObservableProperty]
@@ -82,7 +83,7 @@ namespace SmartStudyPlanner.ViewModels
                 if (System.Windows.MessageBox.Show($"Xóa môn '{monCanXoa.TenMonHoc}'?", "Xác nhận", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                 {
                     HocKyHienTai.DanhSachMonHoc.Remove(monCanXoa);
-                    await _repository.LuuHocKyAsync(HocKyHienTai); // Đã đổi sang Async
+                    await _hocKyRepository.LuuHocKyAsync(HocKyHienTai); // Đã đổi sang Async
                 }
             }
         }
@@ -109,7 +110,7 @@ namespace SmartStudyPlanner.ViewModels
                 MauNutThem = "#2ECC71";
             }
 
-            await _repository.LuuHocKyAsync(HocKyHienTai); // Đã đổi sang Async
+            await _hocKyRepository.LuuHocKyAsync(HocKyHienTai); // Đã đổi sang Async
 
             TenMon = string.Empty;
             SoTinChi = string.Empty;

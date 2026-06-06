@@ -1,8 +1,9 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using SmartStudyPlanner.Data;
+using SmartStudyPlanner.Infrastructure.Persistence.Repositories;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
+using SmartStudyPlanner.Services.Telemetry;
 using System;
 using System.Windows.Threading;
 
@@ -17,7 +18,8 @@ namespace SmartStudyPlanner.ViewModels
         // BIẾN MỚI: Đếm tổng số giây THỰC TẾ đã ngồi học
         private int _tongGiayDaHoc = 0;
 
-        private readonly IStudyRepository _repository;
+        private readonly IStudyLogRepository _studyLogRepository;
+        private readonly IStudyTelemetry _telemetry;
 
         public TaskDashboardItem TaskHienTai { get; set; }
 
@@ -30,12 +32,15 @@ namespace SmartStudyPlanner.ViewModels
         public Action OnKetThuc { get; set; }
 
         public FocusViewModel(TaskDashboardItem task)
-            : this(task, ServiceLocator.Get<IStudyRepository>()) { }
+            : this(task, ServiceLocator.Get<IStudyLogRepository>(), ServiceLocator.Get<IStudyTelemetry>()) { }
+        public FocusViewModel(TaskDashboardItem task, IStudyLogRepository studyLogRepository)
+            : this(task, studyLogRepository, new NullStudyTelemetry()) { }
 
-        public FocusViewModel(TaskDashboardItem task, IStudyRepository repository)
+        public FocusViewModel(TaskDashboardItem task, IStudyLogRepository studyLogRepository, IStudyTelemetry telemetry)
         {
             TaskHienTai = task;
-            _repository = repository;
+            _studyLogRepository = studyLogRepository;
+            _telemetry = telemetry;
             TieuDeTask = $"Đang Focus: {task.TenTask} ({task.TenMonHoc})";
 
             ThietLapPomodoro(true);
@@ -98,7 +103,7 @@ namespace SmartStudyPlanner.ViewModels
                 Services.StreakManager.UpdateStreak();
             }
 
-            _ = _repository.AddStudyLogAsync(new StudyLog
+            _ = _studyLogRepository.AddAsync(new StudyLog
             {
                 MaTask       = TaskHienTai.TaskGoc.MaTask,
                 NgayHoc      = DateTime.Today,
@@ -116,6 +121,7 @@ namespace SmartStudyPlanner.ViewModels
         {
             _timer.Stop();
             LuuThoiGianThucTe(true);
+            _telemetry.Track("focus_complete", new System.Collections.Generic.Dictionary<string, string> { ["task"] = TaskHienTai.TenTask });
             TaskHienTai.TaskGoc.NgayHoanThanh = DateTime.Today;
             TaskHienTai.TaskGoc.TrangThai = StudyTaskStatus.HoanThanh;
             OnKetThuc?.Invoke();
@@ -126,7 +132,13 @@ namespace SmartStudyPlanner.ViewModels
         {
             _timer.Stop();
             LuuThoiGianThucTe(false);
+            _telemetry.Track("focus_abort", new System.Collections.Generic.Dictionary<string, string> { ["task"] = TaskHienTai.TenTask });
             OnKetThuc?.Invoke();
+        }
+
+        private sealed class NullStudyTelemetry : IStudyTelemetry
+        {
+            public void Track(string eventName, System.Collections.Generic.IDictionary<string, string>? properties = null) { }
         }
     }
 }

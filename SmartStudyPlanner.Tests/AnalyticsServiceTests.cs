@@ -96,7 +96,7 @@ namespace SmartStudyPlanner.Tests
         {
             var task = new StudyTask("Test", DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2);
             var item = new TaskDashboardItem { TaskGoc = task, TenTask = "Test", TenMonHoc = "Toán" };
-            var repo = new FakeStudyRepository();
+            var repo = new FakeStudyLogRepository();
             var vm   = new FocusViewModel(item, repo);
 
             vm.SimulateStudySeconds(300); // 5 minutes

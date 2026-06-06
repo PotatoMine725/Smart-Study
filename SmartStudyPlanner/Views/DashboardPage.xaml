@@ -6,12 +6,6 @@
       Background="{DynamicResource AppBackground}">
     <Page.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
-        <Style x:Key="SectionHeader" TargetType="TextBlock">
-            <Setter Property="FontSize"     Value="14"/>
-            <Setter Property="FontWeight"   Value="SemiBold"/>
-            <Setter Property="Foreground"   Value="{DynamicResource PrimaryText}"/>
-            <Setter Property="Margin"       Value="0,20,0,10"/>
-        </Style>
     </Page.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
 
@@ -19,6 +13,34 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
                 <TextBlock Text="{Binding TieuDe}" FontWeight="Bold" FontSize="22" Foreground="{DynamicResource PrimaryText}" Margin="0,0,20,0" VerticalAlignment="Center" />
             </StackPanel>
+
+            <Border Margin="0,0,0,12">
+                <Border.Style>
+                    <Style TargetType="Border" BasedOn="{StaticResource AppEmptyStateCard}">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsLoading}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <TextBlock Text="Đang tải dữ liệu dashboard..." Foreground="{DynamicResource SecondaryText}"/>
+            </Border>
+
+            <Border Margin="0,0,0,12">
+                <Border.Style>
+                    <Style TargetType="Border" BasedOn="{StaticResource AppEmptyStateCard}">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasData}" Value="False">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <TextBlock Text="{Binding EmptyStateMessage}" Foreground="{DynamicResource SecondaryText}" TextWrapping="Wrap"/>
+            </Border>
 
             <Grid Margin="0,0,0,20">
                 <Grid.ColumnDefinitions>
@@ -96,7 +118,7 @@
             <StackPanel Orientation="Horizontal" Margin="0,20,0,10">
                 <TextBlock Text="&#xEA6C;" FontFamily="Segoe MDL2 Assets" FontSize="15"
                            Foreground="{DynamicResource DangerColor}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                <TextBlock Text="TOP 5 DEADLINE KHẨN CẤP NHẤT" Style="{StaticResource SectionHeader}"
+                <TextBlock Text="TOP 5 DEADLINE KHẨN CẤP NHẤT" Style="{StaticResource AppSectionHeaderText}"
                            Foreground="{DynamicResource DangerColor}" Margin="0"/>
             </StackPanel>
 
@@ -147,7 +169,11 @@
                                         </Style>
                                     </Border.Style>
                                     <TextBlock Text="{Binding MucDoCanhBao}" Foreground="White"
-                                               FontSize="11" FontWeight="SemiBold"/>
+                                               FontSize="11" FontWeight="SemiBold">
+                                        <TextBlock.ToolTip>
+                                            <ToolTip Content="{Binding RiskScore, StringFormat=Điểm rủi ro: {0:P0}}"/>
+                                        </TextBlock.ToolTip>
+                                    </TextBlock>
                                 </Border>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -183,13 +209,13 @@
                                     <Button Content="HỌC NGAY"
                                         Command="{Binding DataContext.MoFocusModeCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                         CommandParameter="{Binding}"
-                                        Background="{DynamicResource DangerColor}" Foreground="White"
-                                        FontWeight="Bold" Padding="10,4" Margin="0,0,5,0"/>
+                                        Style="{StaticResource AppDangerButton}"
+                                        Padding="10,4" Margin="0,0,5,0"/>
 
                                     <Button Content="Đi tới"
                                         Command="{Binding DataContext.DiToiTaskCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                         CommandParameter="{Binding}"
-                                        Background="{DynamicResource AccentColor}" Foreground="White"
+                                        Style="{StaticResource AppPrimaryButton}"
                                         Padding="10,4"/>
                                 </StackPanel>
                             </DataTemplate>
@@ -201,7 +227,7 @@
             <StackPanel Orientation="Horizontal" Margin="0,20,0,10">
                 <TextBlock Text="&#xE8BF;" FontFamily="Segoe MDL2 Assets" FontSize="15"
                            Foreground="{DynamicResource SuccessColor}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                <TextBlock Text="{Binding TieuDeLichHomNay}" Style="{StaticResource SectionHeader}"
+                <TextBlock Text="{Binding TieuDeLichHomNay}" Style="{StaticResource AppSectionHeaderText}"
                            Foreground="{DynamicResource SuccessColor}" Margin="0"/>
             </StackPanel>
 
@@ -233,7 +259,7 @@
             <StackPanel Orientation="Horizontal" Margin="0,20,0,10">
                 <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="15"
                            Foreground="{DynamicResource AccentColor}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                <TextBlock Text="TIẾN ĐỘ THỜI GIAN HỌC" Style="{StaticResource SectionHeader}"
+                <TextBlock Text="TIẾN ĐỘ THỜI GIAN HỌC" Style="{StaticResource AppSectionHeaderText}"
                            Foreground="{DynamicResource AccentColor}" Margin="0"/>
             </StackPanel>
 
@@ -255,7 +281,7 @@
                 </StackPanel.Style>
                 <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="15"
                            Foreground="{DynamicResource AccentColor}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                <TextBlock Text="GỢI Ý THÍCH NGHI" Style="{StaticResource SectionHeader}"
+                <TextBlock Text="GỢI Ý THÍCH NGHI" Style="{StaticResource AppSectionHeaderText}"
                            Foreground="{DynamicResource AccentColor}" Margin="0"/>
             </StackPanel>
 

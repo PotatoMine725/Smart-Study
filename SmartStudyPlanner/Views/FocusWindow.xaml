@@ -1,30 +1,81 @@
-﻿<Window x:Class="SmartStudyPlanner.Views.FocusWindow"
+<Window x:Class="SmartStudyPlanner.Views.FocusWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Focus Mode" WindowState="Maximized" Topmost="True" WindowStyle="None" Background="#2C3E50">
+        Title="Focus Mode"
+        WindowState="Maximized"
+        Topmost="True"
+        WindowStyle="None"
+        Background="{DynamicResource AppBackground}">
     <Grid>
-
-        <Button Content="✖ Thoát khẩn cấp" Command="{Binding ThoatKhanCapCommand}" 
-                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="20" 
-                Background="Transparent" Foreground="Gray" FontSize="16" FontWeight="Bold" 
-                BorderBrush="Transparent" Cursor="Hand"/>
+        <Button Content="✖ Thoát khẩn cấp"
+                Command="{Binding ThoatKhanCapCommand}"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="20"
+                Background="Transparent"
+                Foreground="{DynamicResource SecondaryText}"
+                FontSize="16"
+                FontWeight="Bold"
+                BorderBrush="Transparent"
+                Cursor="Hand"/>
 
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+            <TextBlock Text="{Binding TrangThaiText}"
+                       Foreground="{Binding MauTrangThai}"
+                       FontSize="36"
+                       FontWeight="Bold"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,20"/>
 
-            <TextBlock Text="{Binding TrangThaiText}" Foreground="{Binding MauTrangThai}" FontSize="36" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+            <TextBlock Text="{Binding TieuDeTask}"
+                       Foreground="{DynamicResource PrimaryText}"
+                       FontSize="20"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,40"/>
 
-            <TextBlock Text="{Binding TieuDeTask}" Foreground="White" FontSize="20" HorizontalAlignment="Center" Margin="0,0,0,40"/>
+            <TextBlock Text="{Binding ThoiGianHienThi}"
+                       Foreground="{DynamicResource PrimaryText}"
+                       FontSize="120"
+                       FontWeight="Bold"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,50"/>
 
-            <TextBlock Text="{Binding ThoiGianHienThi}" Foreground="White" FontSize="120" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,50"/>
-
-            <TextBlock Text="{Binding TienDoText}" Foreground="#BDC3C7" FontSize="24" HorizontalAlignment="Center" Margin="0,0,0,40" FontStyle="Italic"/>
+            <TextBlock Text="{Binding TienDoText}"
+                       Foreground="{DynamicResource SecondaryText}"
+                       FontSize="24"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,40"
+                       FontStyle="Italic"/>
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <Button Content="▶ Bắt Đầu" Command="{Binding BatDauCommand}" Width="120" Height="50" FontSize="18" FontWeight="Bold" Background="#27AE60" Foreground="White" Margin="0,0,20,0" Cursor="Hand"/>
-                <Button Content="⏸ Tạm Dừng" Command="{Binding TamDungCommand}" Width="120" Height="50" FontSize="18" FontWeight="Bold" Background="#F39C12" Foreground="White" Margin="0,0,20,0" Cursor="Hand"/>
-                <Button Content="✅ Đã Xong" Command="{Binding HoanThanhCommand}" Width="120" Height="50" FontSize="18" FontWeight="Bold" Background="#3498DB" Foreground="White" Cursor="Hand"/>
+                <Button Content="▶ Bắt Đầu"
+                        Command="{Binding BatDauCommand}"
+                        Width="120"
+                        Height="50"
+                        FontSize="18"
+                        FontWeight="Bold"
+                        Style="{StaticResource AppPrimaryButton}"
+                        Margin="0,0,20,0"
+                        Cursor="Hand"/>
+                <Button Content="⏸ Tạm Dừng"
+                        Command="{Binding TamDungCommand}"
+                        Width="120"
+                        Height="50"
+                        FontSize="18"
+                        FontWeight="Bold"
+                        Style="{StaticResource AppSecondaryButton}"
+                        Margin="0,0,20,0"
+                        Cursor="Hand"/>
+                <Button Content="✅ Đã Xong"
+                        Command="{Binding HoanThanhCommand}"
+                        Width="120"
+                        Height="50"
+                        FontSize="18"
+                        FontWeight="Bold"
+                        Style="{StaticResource AppDangerButton}"
+                        Cursor="Hand"/>
             </StackPanel>
-
         </StackPanel>
     </Grid>
 </Window>
+

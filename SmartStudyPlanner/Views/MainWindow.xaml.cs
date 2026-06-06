@@ -1,13 +1,16 @@
 using Microsoft.Toolkit.Uwp.Notifications;
 using SmartStudyPlanner.Data;
+using SmartStudyPlanner.Infrastructure.Persistence.Repositories;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
+using SmartStudyPlanner.Services.Telemetry;
 using SmartStudyPlanner.ViewModels;
 using SmartStudyPlanner.Views;
 using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Threading;
 
 // Sử dụng alias để phân biệt các hàm của WPF và Windows Forms
@@ -22,10 +25,13 @@ namespace SmartStudyPlanner
         private bool _thucSuMuonTat = false;
         private HocKy? _currentHocKy;
         private WorkloadBalancerWindow? _workloadWindow;
+        private WeightOptimizerWindow? _weightOptimizerWindow;
+        private readonly IStudyTelemetry _telemetry;
 
         public MainWindow()
         {
             InitializeComponent();
+            _telemetry = ServiceLocator.Get<IStudyTelemetry>();
             this.Loaded += MainWindow_Loaded;
             MainFrame.Navigated += MainFrame_Navigated;
 
@@ -39,14 +45,21 @@ namespace SmartStudyPlanner
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             MainFrame.Navigate(new SetupPage());
+            _telemetry.Track("app_main_window_loaded");
         }
 
         private void MainFrame_Navigated(object sender, System.Windows.Navigation.NavigationEventArgs e)
         {
+            string page = e.Content?.GetType().Name ?? "Unknown";
+            _telemetry.Track("navigate_page", new System.Collections.Generic.Dictionary<string, string> { ["page"] = page });
             if (e.Content is DashboardPage dp)
                 _currentHocKy = dp.HocKy;
             else if (e.Content is AnalyticsPage ap)
                 _currentHocKy = ap.HocKy;
+
+            CurrentContextText.Text = _currentHocKy == null
+                ? "Chưa chọn học kỳ"
+                : $"Học kỳ: {_currentHocKy.Ten}";
         }
 
         private void SetupSystemTray()
@@ -81,7 +94,7 @@ namespace SmartStudyPlanner
 
         private async void BackgroundTimer_Tick(object sender, EventArgs e)
         {
-            var repo = ServiceLocator.Get<IStudyRepository>();
+            var repo = ServiceLocator.Get<IHocKyRepository>();
             var decisionEngine = ServiceLocator.Get<IDecisionEngine>();
 
             var danhSachHocKy = await repo.LayDanhSachHocKyAsync();
@@ -156,26 +169,17 @@ namespace SmartStudyPlanner
 
         // ── Sidebar Navigation ──
 
-        private void SetActiveNav(System.Windows.Controls.Button active)
+        private void SetActiveNav(ToggleButton active)
         {
-            foreach (var btn in new[] { NavDashboard, NavMonHoc, NavWorkload, NavAnalytics })
-            {
-                btn.ClearValue(BackgroundProperty);
-                var sp = btn.Content as StackPanel;
-                if (sp == null) continue;
-                foreach (var tb in sp.Children.OfType<TextBlock>())
-                    tb.SetResourceReference(TextBlock.ForegroundProperty, "SidebarText");
-            }
-            active.SetResourceReference(BackgroundProperty, "SidebarActiveBackground");
-            var activeSp = active.Content as StackPanel;
-            if (activeSp != null)
-                foreach (var tb in activeSp.Children.OfType<TextBlock>())
-                    tb.SetResourceReference(TextBlock.ForegroundProperty, "SidebarActiveText");
+            foreach (var btn in new[] { NavDashboard, NavMonHoc, NavWorkload, NavAnalytics, NavWeightOptimizer })
+                btn.IsChecked = false;
+            active.IsChecked = true;
         }
 
         private void NavDashboard_Click(object sender, RoutedEventArgs e)
         {
             if (_currentHocKy == null) return;
+            _telemetry.Track("click_nav_dashboard");
             SetActiveNav(NavDashboard);
             MainFrame.Navigate(new DashboardPage(_currentHocKy));
         }
@@ -183,31 +187,59 @@ namespace SmartStudyPlanner
         private void NavMonHoc_Click(object sender, RoutedEventArgs e)
         {
             if (_currentHocKy == null) return;
+            _telemetry.Track("click_nav_subjects");
             SetActiveNav(NavMonHoc);
             MainFrame.Navigate(new QuanLyMonHocPage(_currentHocKy));
         }
 
         private void NavWorkload_Click(object sender, RoutedEventArgs e)
         {
+            _telemetry.Track("click_nav_workload");
+            NavWorkload.IsChecked = false;   // opens a window, not a nav page — don't show as active
             if (_currentHocKy == null) return;
             if (_workloadWindow == null || !_workloadWindow.IsLoaded)
             {
                 _workloadWindow = new WorkloadBalancerWindow(_currentHocKy);
+                _workloadWindow.Closed += (_, _) => WorkloadOpenBadge.Visibility = Visibility.Collapsed;
                 _workloadWindow.Show();
+                WorkloadOpenBadge.Visibility = Visibility.Visible;
             }
             else
+            {
                 _workloadWindow.Activate();
+                WorkloadOpenBadge.Visibility = Visibility.Visible;
+            }
+        }
+
+        private void NavWeightOptimizer_Click(object sender, RoutedEventArgs e)
+        {
+            _telemetry.Track("click_nav_weight_optimizer");
+            NavWeightOptimizer.IsChecked = false;   // opens a window, not a nav page
+            if (_weightOptimizerWindow == null || !_weightOptimizerWindow.IsLoaded)
+            {
+                _weightOptimizerWindow = new WeightOptimizerWindow();
+                _weightOptimizerWindow.Closed += (_, _) => WeightOptimizerOpenBadge.Visibility = Visibility.Collapsed;
+                _weightOptimizerWindow.Show();
+                WeightOptimizerOpenBadge.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                _weightOptimizerWindow.Activate();
+                WeightOptimizerOpenBadge.Visibility = Visibility.Visible;
+            }
         }
 
         private void NavAnalytics_Click(object sender, RoutedEventArgs e)
         {
             if (_currentHocKy == null) return;
+            _telemetry.Track("click_nav_analytics");
             SetActiveNav(NavAnalytics);
             MainFrame.Navigate(new AnalyticsPage(_currentHocKy));
         }
 
         private void BtnLuu_Click(object sender, RoutedEventArgs e)
         {
+            _telemetry.Track("click_save_sidebar");
             if (MainFrame.Content is DashboardPage dp &&
                 dp.DataContext is DashboardViewModel vm)
                 vm.LuuDuLieuCommand.Execute(null);
@@ -215,6 +247,7 @@ namespace SmartStudyPlanner
 
         private void BtnTheme_Click(object sender, RoutedEventArgs e)
         {
+            _telemetry.Track("click_theme_toggle");
             ThemeManager.ToggleTheme();
 
             // Update icon: sun for dark mode (switch to light), moon for light mode (switch to dark)

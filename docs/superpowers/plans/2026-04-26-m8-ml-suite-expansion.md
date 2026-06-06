@@ -5,7 +5,8 @@
 
 > **Status:** planned
 
->
+> **Decision update (2026-05-04):** M8-A is the first delivery target. M8-B follows after parser stabilization. High-confidence optimizer suggestions may auto-suggest/apply; low-confidence suggestions must require review.
+
 > **Scope:**
 > - **M8-A**: Text Classifier for `SmartParser`.
 > - **M8-B**: Weight Optimizer for `WeightConfig` replacement.
@@ -30,6 +31,11 @@
 1. M8-A Text Classifier
 2. M8-B Weight Optimizer
 3. shared hardening + test sweep
+
+### Confirmed M8 operating policy
+- **M8-A first**: Text Classifier feeds `SmartParser` and establishes the shared ML parsing path.
+- **Weight Optimizer policy**: high-confidence suggestions may auto-suggest/apply; low-confidence results require manual review.
+- **Parser output target**: `TaskName + TaskType + Difficulty + DeadlineHint`.
 
 ---
 
