@@ -1,8 +1,8 @@
 # Active — God-Object Refactor + M8 Integration (Slices 5–8)
 
 > Originated from `superpowers/plans/2026-05-17-god-object-refactor-and-m8-integration-plan.md`.
-> Status (2026-06-05): **6 / 8 slices done**. Slices 7–8 finish M8-B (Weight Optimizer) on top of the refactored core.
-> Baseline: 178 tests pass.
+> Status (2026-06-06): **7 / 8 slices done**. Slice 8 finishes M8-B (Weight Optimizer review/apply UI) on top of the refactored core.
+> Baseline: 191 tests pass.
 
 > **Persistence god-repo split — DONE (2026-06-02):** `Data/StudyRepository` (5 aggregate) đã tách thành `IHocKyRepository` + `ITaskEditorRepository` + `IStudyLogRepository`, migrate 7 consumer, xóa god-repo. Plan: [`docs/plans/2026-06-02-split-studyrepository.md`](../plans/2026-06-02-split-studyrepository.md) (`done`). 158 test pass.
 
@@ -53,7 +53,7 @@ classifier in the background. `QuanLyTaskViewModel` prefers the DI orchestrator 
 `SmartParser` when null, so heuristic-only unit tests stay valid) and surfaces an "AI gợi ý Loại …"
 hint when `Source == MlAugmented`; M6.1 invariant (never touches Note/Links) preserved. **Prereq fix:**
 seed v3 (5-class) — see [m8-text-classifier.md](m8-text-classifier.md) — so the ≥0.60 override no longer
-regresses `ThiGiuaKy`/`DoAnCuoiKy`. 166 → **178** tests. `SmartParser.cs` static facade left untouched.
+regresses `ThiGiuaKy`/`DoAnCuoiKy`. 166 → **179** tests. `SmartParser.cs` static facade left untouched.
 
 Goal (original): wire the classifier into the parser flow already exposed by `ParsingOrchestrator` (Slice 3 reserved the seam via optional `IIntentClassifier`).
 
@@ -78,11 +78,19 @@ Exit criteria:
 - App still runs without `text_classifier.zip` (offline-first).
 - Test count grows; no regression.
 
-## Slice 7 — M8-B B1+B2+B3: Weight Optimizer
+## Slice 7 — M8-B B1+B2+B3: Weight Optimizer ✅ DONE (2026-06-06)
 
-Goal: produce `WeightConfigSuggestion` from `UserStatsSnapshot` aggregates and ship it through `SchedulingOrchestrator` without mutating `WeightConfig` silently.
+**Shipped (rule-based MVP — KHÔNG ML scaffold):** quyết định với user vì repo chưa log lịch sử `weight-change → outcome` (DbSet chỉ HocKy/MonHoc/StudyTask/StudyLog/TaskNote/TaskReferenceLink) ⇒ không có ground-truth thật; mọi "ML" chỉ là regression train trên seed synthetic-từ-heuristic (như M7) → chỉ xấp xỉ lại heuristic.
+- `WeightRuleEngine.Compute(WeightConfig current, UserStatsSnapshot stats)` — hàm THUẦN deterministic: MissRate/AverageDelayDays cao → dịch tối đa 15% về `TimeWeight` (lấy từ 3 weight còn lại theo tỷ lệ), FocusStreak dài giảm nudge tới 50%; `Normalize()` về tổng 1.0, last-line giữ `current` nếu lệch. Confidence = độ đủ dữ liệu (TaskCount + StudyMinutes30d), ép < 0.60 khi < 5 task.
+- `WeightOptimizerService : IWeightOptimizerService` — wrapper **async** mỏng (inject `IUserStatsRepository` + `IClock`), fetch snapshot bằng EF async thật.
+- **Contract đổi sang async** `Task<WeightConfigSuggestion?> SuggestAsync(...)` (tránh sync-over-async deadlock; contract chưa có caller nào nên đổi miễn phí).
+- `WeightConfig.Normalize()` (clamp sàn 0.05 + scale 1.0) — guardrail mới.
+- Seam read-only: `SuggestWeightConfigAsync` thêm vào `ISchedulingOrchestrator`/`SchedulingOrchestrator` + `IDecisionEngine`/`DecisionEngineService` (optional dep `IWeightOptimizerService`, trả null nếu chưa inject) — **KHÔNG** chạm `_config`/self-heal. Đăng ký trong `ServiceLocator`.
+- Bỏ so với plan gốc: ModelManager/Importer/Schema In-Out/seed CSV/zip + `WeightOptimizerSchemaTests` (hệ quả rule-based). Scope = global snapshot (không sửa repo). 179 → **191** tests.
 
-Files:
+Goal (original): produce `WeightConfigSuggestion` from `UserStatsSnapshot` aggregates and ship it through `SchedulingOrchestrator` without mutating `WeightConfig` silently.
+
+Files (original plan — ML scaffold, KHÔNG dùng):
 - Create `Services/ML/WeightOptimizer/`
 - Create `Services/ML/WeightOptimizerService.cs` (implements `Core.ML.Contracts.IWeightOptimizerService`)
 - Create `Services/ML/Schema/WeightOptimizerInput.cs`
@@ -138,9 +146,9 @@ Tests:
 
 ## Immediate next action
 
-**Slice 6** — wire the classifier into `ParsingOrchestrator`. Register `IIntentClassifierService` (+ a thin `IIntentClassifier` adapter that consults `IMlConfidencePolicy`) in `ServiceLocator`; merge classifier output into the heuristic parse only at confidence `>= 0.60`; surface extracted fields in the task preview; keep offline-first (must run without `text_classifier.zip`). The Slice-5 scaffold (`TextClassifierService`, `TextClassifierModelManager`) is ready to inject.
+**Slice 8** — M8-B review/apply UI cho WeightOptimizer (Settings hoặc Analytics). Gọi `IDecisionEngine.SuggestWeightConfigAsync()` (seam đã sẵn từ Slice 7); hiển thị panel current vs suggested + confidence + `Rationale`; gate qua `DefaultMlConfidencePolicy` (≥0.75 auto-suggest+1-click apply, 0.60..0.75 review, <0.60 không surface). Apply path mutate `WeightConfig` chỉ khi user click; `IsValid()` là last-line. Suggestion vẫn là object tách rời tới khi apply.
 
 Pre-edit checklist:
-1. `npx gitnexus analyze` if the index is stale.
-2. `npx gitnexus impact SmartParser --direction upstream --repo Smart-Study` (Slice 6 touches the parser seam — confirm blast radius).
+1. `npx gitnexus analyze` if the index is stale (hoặc fallback Grep nếu MCP gitnexus/code-review-graph không kết nối — như session 2026-06-06).
+2. Xác nhận seam Slice 7 (`SuggestWeightConfigAsync` trên `IDecisionEngine`/orchestrator) không đổi; UI chỉ consume.
 3. Confirm M7 ML files in `Services/ML/*` remain untouched.

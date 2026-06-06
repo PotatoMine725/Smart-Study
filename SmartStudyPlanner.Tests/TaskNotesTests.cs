@@ -298,5 +298,7 @@ namespace SmartStudyPlanner.Tests
         public int CalculateRawSuggestedMinutes(StudyTask task) => 0;
         public string SuggestStudyTime(StudyTask task) => "0 phút";
         public int PredictStudyMinutes(StudyTask task, MonHoc monHoc, out bool isMlPrediction) { isMlPrediction = false; return 0; }
+        public System.Threading.Tasks.Task<SmartStudyPlanner.Core.ML.Contracts.WeightConfigSuggestion?> SuggestWeightConfigAsync(System.Threading.CancellationToken ct = default)
+            => System.Threading.Tasks.Task.FromResult<SmartStudyPlanner.Core.ML.Contracts.WeightConfigSuggestion?>(null);
     }
 }

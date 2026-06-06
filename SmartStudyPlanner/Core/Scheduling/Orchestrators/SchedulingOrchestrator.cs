@@ -1,3 +1,6 @@
+using System.Threading;
+using System.Threading.Tasks;
+using SmartStudyPlanner.Core.ML.Contracts;
 using SmartStudyPlanner.Core.Scheduling.Contracts;
 using SmartStudyPlanner.Core.Scheduling.Engines;
 using SmartStudyPlanner.Core.Scheduling.Evaluators;
@@ -18,6 +21,7 @@ namespace SmartStudyPlanner.Core.Scheduling.Orchestrators
         private readonly IRawMinutesCalculator _rawMinutesCalculator;
         private readonly IStudyTimeSuggestionEngine _suggestionEngine;
         private readonly IStudyTimePredictor _studyTimePredictor;
+        private readonly IWeightOptimizerService? _weightOptimizer;
         private WeightConfig _config;
 
         public WeightConfig Config => _config;
@@ -26,10 +30,12 @@ namespace SmartStudyPlanner.Core.Scheduling.Orchestrators
             ITaskTypeWeightProvider taskTypeProvider,
             IClock clock,
             IStudyTimePredictor studyTimePredictor,
-            WeightConfig? initialConfig = null)
+            WeightConfig? initialConfig = null,
+            IWeightOptimizerService? weightOptimizer = null)
         {
             _config = initialConfig ?? new WeightConfig();
             _studyTimePredictor = studyTimePredictor;
+            _weightOptimizer = weightOptimizer;
 
             var calculator = new PriorityCalculator(
                 cfgAccessor: () => _config,
@@ -72,6 +78,15 @@ namespace SmartStudyPlanner.Core.Scheduling.Orchestrators
             var result = _studyTimePredictor.PredictAsync(task, monHoc).GetAwaiter().GetResult();
             isMlPrediction = result.IsMLPrediction;
             return result.Minutes;
+        }
+
+        public Task<WeightConfigSuggestion?> SuggestWeightConfigAsync(CancellationToken ct = default)
+        {
+            // READ-ONLY: chỉ đề xuất dựa trên _config hiện tại, KHÔNG ghi đè. Apply là việc của UI (Slice 8).
+            if (_weightOptimizer == null)
+                return Task.FromResult<WeightConfigSuggestion?>(null);
+
+            return _weightOptimizer.SuggestAsync(_config, ct);
         }
     }
 }

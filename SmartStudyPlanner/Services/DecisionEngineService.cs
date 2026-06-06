@@ -1,3 +1,6 @@
+using System.Threading;
+using System.Threading.Tasks;
+using SmartStudyPlanner.Core.ML.Contracts;
 using SmartStudyPlanner.Core.Scheduling.Orchestrators;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services.ML;
@@ -19,9 +22,10 @@ namespace SmartStudyPlanner.Services
             ITaskTypeWeightProvider taskTypeProvider,
             IClock clock,
             IStudyTimePredictor studyTimePredictor,
-            WeightConfig? initialConfig = null)
+            WeightConfig? initialConfig = null,
+            IWeightOptimizerService? weightOptimizer = null)
         {
-            _orchestrator = new SchedulingOrchestrator(taskTypeProvider, clock, studyTimePredictor, initialConfig);
+            _orchestrator = new SchedulingOrchestrator(taskTypeProvider, clock, studyTimePredictor, initialConfig, weightOptimizer);
         }
 
         public double CalculatePriority(StudyTask task, MonHoc monHoc)
@@ -35,5 +39,8 @@ namespace SmartStudyPlanner.Services
 
         public int PredictStudyMinutes(StudyTask task, MonHoc monHoc, out bool isMlPrediction)
             => _orchestrator.PredictStudyMinutes(task, monHoc, out isMlPrediction);
+
+        public Task<WeightConfigSuggestion?> SuggestWeightConfigAsync(CancellationToken ct = default)
+            => _orchestrator.SuggestWeightConfigAsync(ct);
     }
 }

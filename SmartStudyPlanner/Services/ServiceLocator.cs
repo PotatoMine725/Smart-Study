@@ -59,6 +59,13 @@ namespace SmartStudyPlanner.Services
             services.AddSingleton<IMLModelManager, MLModelManager>();
             services.AddSingleton<IStudyTimePredictor, StudyTimePredictorService>();
 
+            // M8-B WeightOptimizer (Slice 7). Rule-based, đọc UserStatsSnapshot; DI tự inject vào
+            // DecisionEngineService/SchedulingOrchestrator qua optional ctor param.
+            services.AddSingleton<IWeightOptimizerService>(sp =>
+                new SmartStudyPlanner.Services.ML.WeightOptimizer.WeightOptimizerService(
+                    sp.GetRequiredService<IUserStatsRepository>(),
+                    sp.GetRequiredService<IClock>()));
+
             // M8-A TextClassifier (Slice 6 wiring). Manager owns its own text_classifier.zip paths.
             services.AddSingleton<ITextClassifierModelManager>(_ => new TextClassifierModelManager());
             services.AddSingleton<IIntentClassifierService, TextClassifierService>();
