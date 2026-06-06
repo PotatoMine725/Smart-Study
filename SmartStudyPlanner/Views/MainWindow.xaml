@@ -98,6 +98,19 @@
                             <TextBlock Text="Analytics" FontSize="13" VerticalAlignment="Center"/>
                         </StackPanel>
                     </ToggleButton>
+
+                    <ToggleButton x:Name="NavWeightOptimizer" Click="NavWeightOptimizer_Click"
+                                  Style="{StaticResource SidebarNavButton}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE9E9;" FontFamily="Segoe MDL2 Assets" FontSize="16" Width="24"/>
+                            <TextBlock Text="Trọng Số AI" FontSize="13" VerticalAlignment="Center"/>
+                            <Border x:Name="WeightOptimizerOpenBadge"
+                                    Background="{DynamicResource SuccessColor}" Visibility="Collapsed"
+                                    CornerRadius="6" Margin="8,0,0,0" Padding="4,1">
+                                <TextBlock Text="Mở" Foreground="White" FontSize="10"/>
+                            </Border>
+                        </StackPanel>
+                    </ToggleButton>
                 </StackPanel>
 
             </DockPanel>

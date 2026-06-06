@@ -25,6 +25,7 @@ namespace SmartStudyPlanner
         private bool _thucSuMuonTat = false;
         private HocKy? _currentHocKy;
         private WorkloadBalancerWindow? _workloadWindow;
+        private WeightOptimizerWindow? _weightOptimizerWindow;
         private readonly IStudyTelemetry _telemetry;
 
         public MainWindow()
@@ -170,7 +171,7 @@ namespace SmartStudyPlanner
 
         private void SetActiveNav(ToggleButton active)
         {
-            foreach (var btn in new[] { NavDashboard, NavMonHoc, NavWorkload, NavAnalytics })
+            foreach (var btn in new[] { NavDashboard, NavMonHoc, NavWorkload, NavAnalytics, NavWeightOptimizer })
                 btn.IsChecked = false;
             active.IsChecked = true;
         }
@@ -207,6 +208,24 @@ namespace SmartStudyPlanner
             {
                 _workloadWindow.Activate();
                 WorkloadOpenBadge.Visibility = Visibility.Visible;
+            }
+        }
+
+        private void NavWeightOptimizer_Click(object sender, RoutedEventArgs e)
+        {
+            _telemetry.Track("click_nav_weight_optimizer");
+            NavWeightOptimizer.IsChecked = false;   // opens a window, not a nav page
+            if (_weightOptimizerWindow == null || !_weightOptimizerWindow.IsLoaded)
+            {
+                _weightOptimizerWindow = new WeightOptimizerWindow();
+                _weightOptimizerWindow.Closed += (_, _) => WeightOptimizerOpenBadge.Visibility = Visibility.Collapsed;
+                _weightOptimizerWindow.Show();
+                WeightOptimizerOpenBadge.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                _weightOptimizerWindow.Activate();
+                WeightOptimizerOpenBadge.Visibility = Visibility.Visible;
             }
         }
 

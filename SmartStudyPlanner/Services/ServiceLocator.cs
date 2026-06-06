@@ -50,7 +50,7 @@ namespace SmartStudyPlanner.Services
 
             services.AddSingleton<IClock, SystemClock>();
             services.AddSingleton<ITaskTypeWeightProvider, DefaultTaskTypeWeightProvider>();
-            services.AddSingleton<WeightConfig>();
+            services.AddSingleton<WeightConfig>(_ => WeightConfigStore.Load());
             services.AddSingleton<IDecisionEngine, DecisionEngineService>();
             services.AddSingleton<IWorkloadService, WorkloadServiceImpl>();
             services.AddSingleton<IRiskAnalyzer, RiskAnalyzerService>();
