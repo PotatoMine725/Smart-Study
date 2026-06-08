@@ -11,15 +11,10 @@ using SmartStudyPlanner.Services.Pipeline.Stages;
 using SmartStudyPlanner.Services.RiskAnalyzer;
 using SmartStudyPlanner.Services.Strategies;
 
-namespace SmartStudyPlanner.Tests.Pipeline
+namespace SmartStudyPlanner.Tests.Services.Pipeline
 {
     public class PipelineStageTests
     {
-        private sealed class FakeClock : IClock
-        {
-            public DateTime Now { get; init; }
-        }
-
         private sealed class StubDecisionEngine : IDecisionEngine
         {
             public WeightConfig Config { get; } = new();

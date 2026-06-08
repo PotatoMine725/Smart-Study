@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using SmartStudyPlanner.Infrastructure.Persistence.Repositories;
 using SmartStudyPlanner.Models;
 
-namespace SmartStudyPlanner.Tests.Helpers
+namespace SmartStudyPlanner.Tests.TestDoubles
 {
     /// <summary>In-memory fake cho <see cref="IHocKyRepository"/>. Ghi lại lệnh lưu để assert.</summary>
     internal sealed class FakeHocKyRepository : IHocKyRepository

@@ -1,7 +1,7 @@
 using System;
 using SmartStudyPlanner.Services.Strategies;
 
-namespace SmartStudyPlanner.Tests.Helpers
+namespace SmartStudyPlanner.Tests.TestDoubles
 {
     public class FakeClock : IClock
     {
