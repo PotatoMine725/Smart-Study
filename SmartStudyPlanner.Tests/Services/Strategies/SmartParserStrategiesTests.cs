@@ -1,10 +1,10 @@
 using System;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services.Strategies;
-using SmartStudyPlanner.Tests.Helpers;
+using SmartStudyPlanner.Tests.TestDoubles;
 using Xunit;
 
-namespace SmartStudyPlanner.Tests.Strategies
+namespace SmartStudyPlanner.Tests.Services.Strategies
 {
     public class DefaultTaskTypeKeywordParserTests
     {

@@ -4,9 +4,9 @@ using CoreRiskLevel = SmartStudyPlanner.Core.Risk.Models.RiskLevel;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services.RiskAnalyzer;
 using SmartStudyPlanner.Services.Strategies;
-using SmartStudyPlanner.Tests.Helpers;
+using SmartStudyPlanner.Tests.TestDoubles;
 
-namespace SmartStudyPlanner.Tests.RiskAnalyzer
+namespace SmartStudyPlanner.Tests.Services.RiskAnalyzer
 {
     file class FixedRiskComponent : IRiskComponent
     {

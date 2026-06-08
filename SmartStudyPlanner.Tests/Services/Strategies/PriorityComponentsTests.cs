@@ -3,7 +3,7 @@ using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Services.Strategies;
 using Xunit;
 
-namespace SmartStudyPlanner.Tests.Strategies
+namespace SmartStudyPlanner.Tests.Services.Strategies
 {
     public class PriorityComponentsTests
     {

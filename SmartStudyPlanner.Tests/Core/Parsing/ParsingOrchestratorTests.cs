@@ -4,10 +4,10 @@ using SmartStudyPlanner.Core.Parsing.Models;
 using SmartStudyPlanner.Core.Parsing.Orchestrators;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
-using SmartStudyPlanner.Tests.Helpers;
+using SmartStudyPlanner.Tests.TestDoubles;
 using Xunit;
 
-namespace SmartStudyPlanner.Tests.Parsing
+namespace SmartStudyPlanner.Tests.Core.Parsing
 {
     public class ParsingOrchestratorTests
     {

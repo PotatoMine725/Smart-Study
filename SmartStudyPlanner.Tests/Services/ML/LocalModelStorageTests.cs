@@ -3,7 +3,7 @@ using System.IO;
 using SmartStudyPlanner.Services.ML;
 using Xunit;
 
-namespace SmartStudyPlanner.Tests.MLTests
+namespace SmartStudyPlanner.Tests.Services.ML
 {
     public class LocalModelStorageTests
     {

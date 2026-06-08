@@ -5,10 +5,10 @@ using SmartStudyPlanner.Core.Parsing.Models;
 using SmartStudyPlanner.Core.Parsing.Orchestrators;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services.ML;
-using SmartStudyPlanner.Tests.Helpers;
+using SmartStudyPlanner.Tests.TestDoubles;
 using Xunit;
 
-namespace SmartStudyPlanner.Tests.MLTests
+namespace SmartStudyPlanner.Tests.Core.Parsing
 {
     /// <summary>
     /// Slice 6 — the classifier wired into <see cref="ParsingOrchestrator"/> through the real

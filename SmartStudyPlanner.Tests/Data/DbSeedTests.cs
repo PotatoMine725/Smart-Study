@@ -6,10 +6,10 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Models;
-using SmartStudyPlanner.Tests;
+using SmartStudyPlanner.Tests.Fixtures;
 using Xunit;
 
-namespace SmartStudyPlanner.Tests.DevTools
+namespace SmartStudyPlanner.Tests.Data
 {
     [Trait("Category", "Seed")]
     public class DbSeedTests : IDisposable

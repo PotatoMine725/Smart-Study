@@ -5,10 +5,10 @@ using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Services.ML;
 using SmartStudyPlanner.Services.Strategies;
-using SmartStudyPlanner.Tests.Helpers;
+using SmartStudyPlanner.Tests.TestDoubles;
 using Xunit;
 
-namespace SmartStudyPlanner.Tests
+namespace SmartStudyPlanner.Tests.Services
 {
     public class DecisionEngineTests
     {

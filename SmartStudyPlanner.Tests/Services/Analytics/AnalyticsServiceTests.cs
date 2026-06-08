@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services.Analytics;
-using SmartStudyPlanner.Tests.Helpers;
+using SmartStudyPlanner.Tests.TestDoubles;
 using SmartStudyPlanner.ViewModels;
 using Xunit;
 
-namespace SmartStudyPlanner.Tests
+namespace SmartStudyPlanner.Tests.Services.Analytics
 {
     public class AnalyticsServiceTests
     {

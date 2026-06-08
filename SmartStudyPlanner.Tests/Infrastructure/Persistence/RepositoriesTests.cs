@@ -6,9 +6,10 @@ using Microsoft.EntityFrameworkCore;
 using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories;
 using SmartStudyPlanner.Models;
+using SmartStudyPlanner.Tests.Fixtures;
 using Xunit;
 
-namespace SmartStudyPlanner.Tests.Infrastructure
+namespace SmartStudyPlanner.Tests.Infrastructure.Persistence
 {
     /// <summary>
     /// Integration tests cho các repository abstraction trong Slice 4.

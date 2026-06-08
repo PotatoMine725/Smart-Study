@@ -5,7 +5,7 @@ using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services.ML;
 using Xunit;
 
-namespace SmartStudyPlanner.Tests.MLTests
+namespace SmartStudyPlanner.Tests.Services.ML
 {
     /// <summary>Slice 6 — confidence policy + adapter gating unit tests.</summary>
     public class IntentClassifierAdapterTests

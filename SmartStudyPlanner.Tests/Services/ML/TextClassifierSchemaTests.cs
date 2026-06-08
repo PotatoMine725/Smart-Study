@@ -9,7 +9,7 @@ using SmartStudyPlanner.Services.ML;
 using SmartStudyPlanner.Services.ML.Schema;
 using Xunit;
 
-namespace SmartStudyPlanner.Tests.MLTests
+namespace SmartStudyPlanner.Tests.Services.ML
 {
     /// <summary>
     /// Slice 5 (M8-A) — schema/importer/lifecycle/service coverage for the TextClassifier.

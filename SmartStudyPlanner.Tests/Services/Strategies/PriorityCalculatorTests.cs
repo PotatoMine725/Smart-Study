@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Services.Strategies;
-using SmartStudyPlanner.Tests.Helpers;
+using SmartStudyPlanner.Tests.TestDoubles;
 using Xunit;
 
-namespace SmartStudyPlanner.Tests.Strategies
+namespace SmartStudyPlanner.Tests.Services.Strategies
 {
     public class PriorityCalculatorTests
     {

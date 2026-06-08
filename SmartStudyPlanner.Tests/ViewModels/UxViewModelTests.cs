@@ -1,7 +1,7 @@
 using SmartStudyPlanner.ViewModels;
 using Xunit;
 
-namespace SmartStudyPlanner.Tests
+namespace SmartStudyPlanner.Tests.ViewModels
 {
     public class UxViewModelTests
     {

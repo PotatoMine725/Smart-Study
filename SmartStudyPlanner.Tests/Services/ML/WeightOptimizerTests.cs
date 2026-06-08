@@ -10,10 +10,10 @@ using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Services.ML;
 using SmartStudyPlanner.Services.ML.WeightOptimizer;
 using SmartStudyPlanner.Services.Strategies;
-using SmartStudyPlanner.Tests.Helpers;
+using SmartStudyPlanner.Tests.TestDoubles;
 using Xunit;
 
-namespace SmartStudyPlanner.Tests.MLTests
+namespace SmartStudyPlanner.Tests.Services.ML
 {
     /// <summary>Slice 7 (M8-B) — rule-based WeightOptimizer: rule engine, Normalize, service + orchestrator seam.</summary>
     public class WeightOptimizerTests

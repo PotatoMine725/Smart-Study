@@ -2,7 +2,7 @@ using SmartStudyPlanner.Core.Scheduling.Engines;
 using SmartStudyPlanner.Models;
 using Xunit;
 
-namespace SmartStudyPlanner.Tests.Scheduling
+namespace SmartStudyPlanner.Tests.Core.Scheduling
 {
     public class RawMinutesCalculatorTests
     {

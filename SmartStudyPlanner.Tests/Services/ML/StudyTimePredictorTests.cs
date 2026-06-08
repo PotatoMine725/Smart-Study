@@ -1,9 +1,10 @@
 using System.Threading.Tasks;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services.ML;
+using SmartStudyPlanner.Services.ML.Schema;
 using Xunit;
 
-namespace SmartStudyPlanner.Tests.MLTests
+namespace SmartStudyPlanner.Tests.Services.ML
 {
     public class StudyTimePredictorTests
     {
@@ -26,9 +27,9 @@ namespace SmartStudyPlanner.Tests.MLTests
             public bool Ready { get; set; }
             public bool IsReady => Ready;
             public Task InitializeAsync(System.Threading.CancellationToken ct = default) => Task.CompletedTask;
-            public Task RetrainAsync(System.Collections.Generic.IReadOnlyList<Services.ML.Schema.StudyTimeInput> data, System.Threading.CancellationToken ct = default) => Task.CompletedTask;
+            public Task RetrainAsync(System.Collections.Generic.IReadOnlyList<StudyTimeInput> data, System.Threading.CancellationToken ct = default) => Task.CompletedTask;
             public Task<float> EvaluateR2Async(System.Threading.CancellationToken ct = default) => Task.FromResult(0.5f);
-            public int PredictMinutes(Services.ML.Schema.StudyTimeInput input) => -1;
+            public int PredictMinutes(StudyTimeInput input) => -1;
         }
     }
 }
