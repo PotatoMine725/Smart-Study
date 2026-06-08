@@ -80,15 +80,14 @@ namespace SmartStudyPlanner.Services
 
                     if (targetDay == null)
                     {
-                        targetDay = days.OrderBy(d => d.TotalMinutes).First();
-                        targetDay.Tasks.Add(new ScheduledTask
+                        int nextOffset = days.Count;
+                        DateTime newDate = today.AddDays(nextOffset);
+                        targetDay = new ScheduleDay
                         {
-                            TenTask = part > 1 ? $"{task.TenTask} (Phần {part})" : task.TenTask,
-                            TenMon = dictMonHoc[task].TenMonHoc,
-                            SoPhut = remainingMinutes
-                        });
-                        targetDay.TotalMinutes += remainingMinutes;
-                        break;
+                            Date = newDate,
+                            DisplayName = newDate.ToString("dd/MM/yyyy")
+                        };
+                        days.Add(targetDay);
                     }
 
                     int spaceLeft = capacityMinutes - targetDay.TotalMinutes;
