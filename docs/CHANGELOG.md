@@ -116,7 +116,7 @@ Created `Models/HeatCell.cs` (record with Date / TotalMinutes / Level + Tooltip)
 | Themes/SidebarStyles.xaml | New `SidebarNavButton` `ToggleButton` style with hover/active triggers + 3px accent bar |
 | Themes/LightTheme.xaml + DarkTheme.xaml | Added `SidebarHoverBackground/Text` tokens; brightened `SidebarText` + `SidebarIconColor` |
 | Views/MainWindow.xaml(.cs) | All nav `Button` → `ToggleButton`; `SetActiveNav` toggles `IsChecked` |
-| Tests/DevTools/DbSeedTests.cs | `[Trait("Category","Seed")]` test that deletes stale ML artifacts and seeds 180 synthetic StudyLogs (3×60 difficulty groups, `Random(42)`); run via `dotnet test --filter "Category=Seed"` |
+| Tests/DevTools/DbSeedTests.cs | `[Trait("Category","Seed")]` test that seeds 180 synthetic StudyLogs (3×60 difficulty groups, `Random(42)`) into an isolated in-memory SQLite DB; run via `dotnet test --filter "Category=Seed"` |
 
 ## 2026-04-26 — Consolidated change report
 

@@ -1,86 +1,37 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Models;
+using SmartStudyPlanner.Tests;
 using Xunit;
 
 namespace SmartStudyPlanner.Tests.DevTools
 {
     [Trait("Category", "Seed")]
-    public class DbSeedTests
+    public class DbSeedTests : IDisposable
     {
-        // ── DB path helpers ──────────────────────────────────────────
+        private readonly SqliteConnection _conn;
 
-        // Close the app before running — SQLite write locks conflict.
-        private static AppDbContext CreateContext()
+        public DbSeedTests()
         {
-            var dbPath = GetAppDbPath();
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlite($"Data Source={dbPath}")
-                .Options;
-            return new AppDbContext(options);
+            _conn = TestDb.OpenConnection();
         }
 
-        private static string GetAppDbPath()
-        {
-            var dir = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
-            while (dir != null)
-            {
-                var appBinDir = Path.Combine(dir.FullName, "SmartStudyPlanner", "bin");
-                if (Directory.Exists(appBinDir))
-                {
-                    var dbFiles = Directory.GetFiles(appBinDir, "SmartStudyData.db", SearchOption.AllDirectories);
-                    if (dbFiles.Any())
-                        return dbFiles.OrderByDescending(f => new FileInfo(f).LastWriteTime).First();
-                }
-                dir = dir.Parent;
-            }
-            throw new InvalidOperationException(
-                "SmartStudyData.db not found inside SmartStudyPlanner/bin/. " +
-                "Run the app at least once to create the database.");
-        }
+        public void Dispose() => _conn.Dispose();
 
-        // ── Artifact cleanup ─────────────────────────────────────────
-
-        private static void DeleteMlArtifacts()
-        {
-            var modelsDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "SmartStudyPlanner", "models");
-
-            foreach (var fileName in new[] { "study_time.zip", "meta.json" })
-            {
-                var path = Path.Combine(modelsDir, fileName);
-                if (File.Exists(path))
-                    File.Delete(path);
-            }
-        }
-
-        // ── Main seed test ───────────────────────────────────────────
-
-        // WARNING: re-running appends MonHoc/Tasks/Logs — 2nd run gives 360+ logs. See plan Notes.
         [Fact]
         public async Task Seed_180StudyLogs_ForMlPipelineVerification()
         {
-            // Step A: clean stale ML artifacts
-            DeleteMlArtifacts();
+            await using var db = TestDb.Create(_conn);
 
-            await using var db = CreateContext();
-            // EnsureCreated is a no-op if tables already exist
-            await db.Database.EnsureCreatedAsync();
-
-            // Step B: ensure one HocKy exists
-            var hocKy = await db.HocKys.FirstOrDefaultAsync();
-            if (hocKy == null)
-            {
-                hocKy = new HocKy("Học Kỳ Dev Seed", DateTime.Today.AddDays(-90)) { IsSeeded = true };
-                db.HocKys.Add(hocKy);
-                await db.SaveChangesAsync();
-            }
+            // Step B: create seed HocKy
+            var hocKy = new HocKy("Học Kỳ Dev Seed", DateTime.Today.AddDays(-90)) { IsSeeded = true };
+            db.HocKys.Add(hocKy);
+            await db.SaveChangesAsync();
 
             // Step C: create 2 MonHoc — one light (2 credits), one heavy (4 credits)
             var monNhe  = new MonHoc("Toán Rời Rạc", 2)          { MaHocKy = hocKy.MaHocKy };
