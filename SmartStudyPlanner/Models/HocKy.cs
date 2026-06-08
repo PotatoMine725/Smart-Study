@@ -19,6 +19,8 @@ namespace SmartStudyPlanner.Models
         [NotMapped]
         public bool IsNgayKetThucAuto { get; set; } = true;
 
+        public bool IsSeeded { get; set; } = false;
+
         public ObservableCollection<MonHoc> DanhSachMonHoc { get; set; }
 
         public HocKy()

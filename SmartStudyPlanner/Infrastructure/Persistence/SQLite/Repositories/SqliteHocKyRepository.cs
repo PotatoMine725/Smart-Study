@@ -23,6 +23,7 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
             using var db = _ctxFactory();
             // Dùng ToListAsync() để lôi TOÀN BỘ học kỳ có trong DB lên
             return await db.HocKys
+                     .Where(hk => !hk.IsSeeded)
                      .Include(hk => hk.DanhSachMonHoc)
                         .ThenInclude(mon => mon.DanhSachTask)
                      .ToListAsync(ct);

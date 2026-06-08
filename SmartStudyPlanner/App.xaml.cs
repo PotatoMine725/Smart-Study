@@ -25,6 +25,21 @@ namespace SmartStudyPlanner
                 }
 
                 db.Database.EnsureCreated();
+
+                // Runtime schema migration: thêm cột IsSeeded nếu DB cũ chưa có
+                try
+                {
+                    db.Database.ExecuteSqlRaw(
+                        "ALTER TABLE HocKys ADD COLUMN IsSeeded INTEGER NOT NULL DEFAULT 0");
+                }
+                catch (Microsoft.Data.Sqlite.SqliteException)
+                {
+                    // Column đã tồn tại — bỏ qua
+                }
+
+                // Đánh dấu bản ghi seed đã tồn tại trong DB
+                db.Database.ExecuteSqlRaw(
+                    "UPDATE HocKys SET IsSeeded = 1 WHERE Ten = 'Học Kỳ Dev Seed'");
             }
 
             // KHỞI TẠO DI CONTAINER

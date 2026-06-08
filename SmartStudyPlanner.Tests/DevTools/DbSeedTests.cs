@@ -77,7 +77,7 @@ namespace SmartStudyPlanner.Tests.DevTools
             var hocKy = await db.HocKys.FirstOrDefaultAsync();
             if (hocKy == null)
             {
-                hocKy = new HocKy("Học Kỳ Dev Seed", DateTime.Today.AddDays(-90));
+                hocKy = new HocKy("Học Kỳ Dev Seed", DateTime.Today.AddDays(-90)) { IsSeeded = true };
                 db.HocKys.Add(hocKy);
                 await db.SaveChangesAsync();
             }
