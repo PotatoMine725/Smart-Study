@@ -1,6 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using SmartStudyPlanner.Core.ML.Contracts;
 using SmartStudyPlanner.Models;
+using CoreRiskLevel = SmartStudyPlanner.Core.Risk.Models.RiskLevel;
 using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Services.Pipeline;
 using SmartStudyPlanner.Services.Pipeline.Stages;
@@ -23,6 +27,7 @@ namespace SmartStudyPlanner.Tests.Pipeline
             public int CalculateRawSuggestedMinutes(StudyTask task) => 120;
             public string SuggestStudyTime(StudyTask task) => "2 giờ";
             public int PredictStudyMinutes(StudyTask task, MonHoc monHoc, out bool isMlPrediction) { isMlPrediction = false; return 0; }
+            public Task<WeightConfigSuggestion?> SuggestWeightConfigAsync(CancellationToken ct = default) => Task.FromResult<WeightConfigSuggestion?>(null);
         }
 
         private sealed class StubRiskAnalyzer : IRiskAnalyzer
@@ -30,7 +35,7 @@ namespace SmartStudyPlanner.Tests.Pipeline
             public RiskAssessment Assess(StudyTask task, MonHoc mon) => new()
             {
                 Score = 0.7,
-                Level = RiskLevel.High,
+                Level = CoreRiskLevel.High,
                 DeadlineUrgencyScore = 0.5,
                 ProgressGapScore = 0.2,
                 PerformanceDropScore = 0.1
@@ -100,7 +105,7 @@ namespace SmartStudyPlanner.Tests.Pipeline
 
             Assert.True(result.Success);
             Assert.Single(ctx.RiskReport!);
-            Assert.Equal(RiskLevel.High, ctx.RiskReport![0].Level);
+            Assert.Equal(CoreRiskLevel.High, ctx.RiskReport![0].Level);
         }
 
         [Fact]
