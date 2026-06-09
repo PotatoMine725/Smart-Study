@@ -3,7 +3,6 @@ using SmartStudyPlanner.Core.Parsing.Contracts;
 using SmartStudyPlanner.Core.Parsing.Models;
 using SmartStudyPlanner.Core.Parsing.Orchestrators;
 using SmartStudyPlanner.Models;
-using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Tests.TestDoubles;
 using Xunit;
 
@@ -25,20 +24,6 @@ namespace SmartStudyPlanner.Tests.Core.Parsing
             Assert.Equal(Today.AddDays(1), result.HanChot);
             Assert.Equal(ParseSource.Heuristic, result.Source);
             Assert.Null(result.Confidence);
-        }
-
-        [Fact]
-        public void Parse_MatchVoiLegacySmartParser()
-        {
-            var legacy = SmartParser.Parse("Làm bài tập về nhà thứ 5 dễ");
-
-            var clock = new FakeClock(DateTime.Now);
-            var sut = new ParsingOrchestrator(clock);
-            var fresh = sut.Parse("Làm bài tập về nhà thứ 5 dễ");
-
-            Assert.Equal(legacy.Loai, fresh.Loai);
-            Assert.Equal(legacy.DoKho, fresh.DoKho);
-            Assert.Equal(legacy.TenTask, fresh.TenTask);
         }
 
         [Fact]

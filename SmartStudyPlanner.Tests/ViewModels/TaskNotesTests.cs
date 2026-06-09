@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using SmartStudyPlanner.Core.Parsing.Orchestrators;
 using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Tests.Fixtures;
@@ -179,7 +180,8 @@ namespace SmartStudyPlanner.Tests.ViewModels
             var hocKyRepo = new FakeHocKyRepository();
             var taskEditorRepo = new FakeTaskEditorRepository();
             var engine = new FakeDecisionEngine();
-            return new QuanLyTaskViewModel(hocKy, monHoc, hocKyRepo, taskEditorRepo, engine);
+            return new QuanLyTaskViewModel(hocKy, monHoc, hocKyRepo, taskEditorRepo, engine,
+                new ParsingOrchestrator(new FakeClock(DateTime.Today)));
         }
 
         [Fact]

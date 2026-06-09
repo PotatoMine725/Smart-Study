@@ -4,8 +4,8 @@ using SmartStudyPlanner.Models;
 namespace SmartStudyPlanner.Core.Parsing.Models
 {
     /// <summary>
-    /// Kết quả parse chuẩn của Core/Parsing. Có sẵn helper để convert sang tuple legacy
-    /// (TenTask, HanChot, Loai, DoKho) đang được Services.SmartParser.Parse trả về.
+    /// Kết quả parse chuẩn của Core/Parsing. Có sẵn helper <see cref="ToLegacyTuple"/>
+    /// để convert sang tuple legacy (TenTask, HanChot, Loai, DoKho) cho các consumer cũ.
     /// </summary>
     public sealed class ParseResult
     {
