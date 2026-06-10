@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using SmartStudyPlanner.Core.Risk.Models;
 using SmartStudyPlanner.Models;
-using SmartStudyPlanner.Services.RiskAnalyzer;
 
 namespace SmartStudyPlanner.Services.Pipeline
 {

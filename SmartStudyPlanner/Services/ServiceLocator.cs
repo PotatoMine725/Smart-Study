@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using SmartStudyPlanner.Core.ML.Contracts;
 using SmartStudyPlanner.Core.Parsing.Contracts;
+using SmartStudyPlanner.Core.Risk.Contracts;
 using SmartStudyPlanner.Core.Parsing.Orchestrators;
 using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Infrastructure.Persistence.Repositories;

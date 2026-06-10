@@ -8,7 +8,8 @@ using CoreRiskLevel = SmartStudyPlanner.Core.Risk.Models.RiskLevel;
 using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Services.Pipeline;
 using SmartStudyPlanner.Services.Pipeline.Stages;
-using SmartStudyPlanner.Services.RiskAnalyzer;
+using SmartStudyPlanner.Core.Risk.Contracts;
+using CoreRiskAssessment = SmartStudyPlanner.Core.Risk.Models.RiskAssessment;
 using SmartStudyPlanner.Services.Strategies;
 
 namespace SmartStudyPlanner.Tests.Services.Pipeline
@@ -27,7 +28,7 @@ namespace SmartStudyPlanner.Tests.Services.Pipeline
 
         private sealed class StubRiskAnalyzer : IRiskAnalyzer
         {
-            public RiskAssessment Assess(StudyTask task, MonHoc mon) => new()
+            public CoreRiskAssessment Assess(StudyTask task, MonHoc mon) => new()
             {
                 Score = 0.7,
                 Level = CoreRiskLevel.High,
