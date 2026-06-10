@@ -7,7 +7,7 @@ using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services.Strategies;
 using SmartStudyPlanner.Tests.TestDoubles;
 
-namespace SmartStudyPlanner.Tests.Services.RiskAnalyzer
+namespace SmartStudyPlanner.Tests.Core.Risk
 {
     file class FixedRiskComponent : IRiskFactorEvaluator
     {
