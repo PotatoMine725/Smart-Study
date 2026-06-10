@@ -2,14 +2,14 @@ using SmartStudyPlanner.Core.Risk;
 using SmartStudyPlanner.Core.Risk.Evaluators;
 using CoreRiskAssessment = SmartStudyPlanner.Core.Risk.Models.RiskAssessment;
 using CoreRiskLevel = SmartStudyPlanner.Core.Risk.Models.RiskLevel;
+using SmartStudyPlanner.Core.Risk.Contracts;
 using SmartStudyPlanner.Models;
-using SmartStudyPlanner.Services.RiskAnalyzer;
 using SmartStudyPlanner.Services.Strategies;
 using SmartStudyPlanner.Tests.TestDoubles;
 
 namespace SmartStudyPlanner.Tests.Services.RiskAnalyzer
 {
-    file class FixedRiskComponent : IRiskComponent
+    file class FixedRiskComponent : IRiskFactorEvaluator
     {
         private readonly double _value;
         public FixedRiskComponent(double value) => _value = value;
@@ -91,7 +91,7 @@ namespace SmartStudyPlanner.Tests.Services.RiskAnalyzer
         }
     }
 
-    public class DeadlineUrgencyRiskTests
+    public class DeadlineUrgencyRiskEvaluatorTests
     {
         private static readonly MonHoc Mon = new MonHoc { TenMonHoc = "T", SoTinChi = 2 };
         private readonly IClock _clock = new FakeClock(new DateTime(2025, 1, 10));
@@ -101,25 +101,25 @@ namespace SmartStudyPlanner.Tests.Services.RiskAnalyzer
 
         [Fact]
         public void Evaluate_QuaHan_TraVe1()
-            => Assert.Equal(1.0, new DeadlineUrgencyRisk().Evaluate(Task(-1), Mon, _clock));
+            => Assert.Equal(1.0, new DeadlineUrgencyRiskEvaluator().Evaluate(Task(-1), Mon, _clock));
 
         [Fact]
         public void Evaluate_HanHomNay_GanBang1()
         {
-            double score = new DeadlineUrgencyRisk().Evaluate(Task(0), Mon, _clock);
+            double score = new DeadlineUrgencyRiskEvaluator().Evaluate(Task(0), Mon, _clock);
             Assert.Equal(1.0, score, precision: 1);
         }
 
         [Fact]
         public void Evaluate_Con9Ngay_NhoHon1()
         {
-            double score = new DeadlineUrgencyRisk().Evaluate(Task(9), Mon, _clock);
+            double score = new DeadlineUrgencyRiskEvaluator().Evaluate(Task(9), Mon, _clock);
             Assert.True(score < 1.0);
             Assert.True(score > 0.0);
         }
     }
 
-    public class PerformanceDropRiskTests
+    public class PerformanceDropRiskEvaluatorTests
     {
         private static readonly MonHoc Mon = new MonHoc { TenMonHoc = "T", SoTinChi = 2 };
         private readonly IClock _clock = new FakeClock(DateTime.Today);
@@ -129,18 +129,18 @@ namespace SmartStudyPlanner.Tests.Services.RiskAnalyzer
 
         [Fact]
         public void Evaluate_DoKho1_TraVe0()
-            => Assert.Equal(0.0, new PerformanceDropRisk().Evaluate(TaskWithDifficulty(1), Mon, _clock));
+            => Assert.Equal(0.0, new PerformanceDropRiskEvaluator().Evaluate(TaskWithDifficulty(1), Mon, _clock));
 
         [Fact]
         public void Evaluate_DoKho5_TraVe1()
-            => Assert.Equal(1.0, new PerformanceDropRisk().Evaluate(TaskWithDifficulty(5), Mon, _clock));
+            => Assert.Equal(1.0, new PerformanceDropRiskEvaluator().Evaluate(TaskWithDifficulty(5), Mon, _clock));
 
         [Fact]
         public void Evaluate_HoanThanh_TraVe0()
         {
             var task = TaskWithDifficulty(5);
             task.TrangThai = "Hoàn thành";
-            Assert.Equal(0.0, new PerformanceDropRisk().Evaluate(task, Mon, _clock));
+            Assert.Equal(0.0, new PerformanceDropRiskEvaluator().Evaluate(task, Mon, _clock));
         }
     }
 }
