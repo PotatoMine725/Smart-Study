@@ -1,3 +1,4 @@
+using SmartStudyPlanner.Core.Risk;
 using SmartStudyPlanner.Core.Risk.Evaluators;
 using CoreRiskAssessment = SmartStudyPlanner.Core.Risk.Models.RiskAssessment;
 using CoreRiskLevel = SmartStudyPlanner.Core.Risk.Models.RiskLevel;
@@ -31,7 +32,7 @@ namespace SmartStudyPlanner.Tests.Services.RiskAnalyzer
             => Assert.Equal(expected, CoreRiskAssessment.FromScore(score));
     }
 
-    public class RiskAnalyzerServiceTests
+    public class RiskOrchestratorTests
     {
         private static readonly MonHoc Mon = new MonHoc { TenMonHoc = "Test", SoTinChi = 3 };
 
@@ -47,10 +48,10 @@ namespace SmartStudyPlanner.Tests.Services.RiskAnalyzer
         public void Assess_TatCaComponent_Cong_Dung_TrongSo()
         {
             var clock = new FakeClock(DateTime.Today);
-            var sut = new RiskAnalyzerService(
-                deadlineComponent:    new FixedRiskComponent(0.8),
-                progressComponent:    new FixedRiskComponent(0.6),
-                performanceComponent: new FixedRiskComponent(0.5),
+            var sut = new RiskOrchestrator(
+                new FixedRiskComponent(0.8),
+                new FixedRiskComponent(0.6),
+                new FixedRiskComponent(0.5),
                 clock: clock);
 
             var result = sut.Assess(MakeTask(5), Mon);
@@ -63,10 +64,10 @@ namespace SmartStudyPlanner.Tests.Services.RiskAnalyzer
         public void Assess_TaskHoanThanh_TraVeRuiRoThap()
         {
             var clock = new FakeClock(DateTime.Today);
-            var sut = new RiskAnalyzerService(
-                deadlineComponent:    new FixedRiskComponent(1.0),
-                progressComponent:    new FixedRiskComponent(1.0),
-                performanceComponent: new FixedRiskComponent(1.0),
+            var sut = new RiskOrchestrator(
+                new FixedRiskComponent(1.0),
+                new FixedRiskComponent(1.0),
+                new FixedRiskComponent(1.0),
                 clock: clock);
 
             var task = MakeTask(-5, status: "Hoàn thành");
@@ -78,10 +79,10 @@ namespace SmartStudyPlanner.Tests.Services.RiskAnalyzer
         public void Assess_ScoreClampedToOneMax()
         {
             var clock = new FakeClock(DateTime.Today);
-            var sut = new RiskAnalyzerService(
-                deadlineComponent:    new FixedRiskComponent(1.0),
-                progressComponent:    new FixedRiskComponent(1.0),
-                performanceComponent: new FixedRiskComponent(1.0),
+            var sut = new RiskOrchestrator(
+                new FixedRiskComponent(1.0),
+                new FixedRiskComponent(1.0),
+                new FixedRiskComponent(1.0),
                 clock: clock);
 
             var result = sut.Assess(MakeTask(1), Mon);

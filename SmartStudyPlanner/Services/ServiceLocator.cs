@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using SmartStudyPlanner.Core.ML.Contracts;
 using SmartStudyPlanner.Core.Parsing.Contracts;
+using SmartStudyPlanner.Core.Risk;
 using SmartStudyPlanner.Core.Risk.Contracts;
 using SmartStudyPlanner.Core.Parsing.Orchestrators;
 using SmartStudyPlanner.Data;
@@ -10,7 +11,6 @@ using SmartStudyPlanner.Services.Analytics;
 using SmartStudyPlanner.Services.ML;
 using SmartStudyPlanner.Services.Pipeline;
 using SmartStudyPlanner.Services.Pipeline.Stages;
-using SmartStudyPlanner.Services.RiskAnalyzer;
 using SmartStudyPlanner.Services.Strategies;
 using SmartStudyPlanner.Services.Telemetry;
 
@@ -54,7 +54,7 @@ namespace SmartStudyPlanner.Services
             services.AddSingleton<WeightConfig>(_ => WeightConfigStore.Load());
             services.AddSingleton<IDecisionEngine, DecisionEngineService>();
             services.AddSingleton<IWorkloadService, WorkloadServiceImpl>();
-            services.AddSingleton<IRiskAnalyzer, RiskAnalyzerService>();
+            services.AddSingleton<IRiskAnalyzer, RiskOrchestrator>();
 
             services.AddSingleton<IModelStorageProvider, LocalModelStorageProvider>();
             services.AddSingleton<IMLModelManager, MLModelManager>();

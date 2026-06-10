@@ -7,7 +7,7 @@ using SmartStudyPlanner.Services.Strategies;
 
 namespace SmartStudyPlanner.Core.Risk
 {
-    public sealed class RiskOrchestrator
+    public sealed class RiskOrchestrator : IRiskAnalyzer
     {
         private readonly RiskAggregator _aggregator;
 
