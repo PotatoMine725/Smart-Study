@@ -4,6 +4,19 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
+## 2026-06-11 — M8 Ground-Truth Instrumentation (Slices 0–2B)
+
+| Slice | Area | Change | Verification |
+|---|---|---|---|
+| 0 | Models/Telemetry | `DifficultyLabelLog` + `WeightChangeLog` entities; `IDifficultyLabelLogRepository` + `IWeightChangeLogRepository` interfaces + SQLite implementations; `App.xaml.cs` `CREATE TABLE IF NOT EXISTS` for both tables (safe on existing DBs) | build pass |
+| 1A | Services/Strategies | `DefaultDifficultyKeywordParser` — fallback prior by `TaskType` (`DoAnCuoiKy/ThiCuoiKy→4`, `ThiGiuaKy→3`, `KiemTraThuongXuyen→3`, `BaiTapVeNha→2`) replaces hard-coded 3 | parser tests |
+| 1B | ViewModels/QuanLyTask | Fire-and-forget `DifficultyLabelLog` on every task save: `InputText`, `SuggestedDoKho`, `FinalDoKho`, `WasOverride`, `TaskType`, `MaTask`; try/catch — never blocks save | label logging tests |
+| 2A | ViewModels/WeightOptimizer | `ApplySuggestion()` captures before-config snapshot then fires `_ = LogWeightChangeAsync(...)`: before/after weights, `UserStatsSnapshot` baseline, cohort = open-task IDs at apply time (`TrangThai != HoanThanh`) | weight log tests |
+| 2B | Services/Telemetry | `OutcomeMaturationService` + `IOutcomeMaturationService`: scans `WeightChangeLog` rows where `OutcomeMaturedUtc == null && AppliedUtc + 14d ≤ now`; fills miss-rate/avg-delay/completed-in-window from **cohort only**; idempotent; registered in `ServiceLocator`; triggered at app launch fire-and-forget | maturation tests |
+| Tests | TestDoubles/ | `FakeWeightChangeLogRepository` (seed + real `GetPendingMaturationAsync` filter), `FakeUserStatsRepository`, `FakeStudyTaskRepository` | — |
+
+Verification: **237 pass / 1 pre-existing fail** (`DecisionEngineTests.CalculatePriority_TaskToiHanHomNay`).
+
 ## 2026-06-11 — Retire `RiskAnalyzerService` fully (Core/Risk is sole risk subsystem)
 
 | Area | Change | Verification |
@@ -13,6 +26,26 @@
 | Tests | Risk tests relocated to mirror `Core.Risk` namespace | `74ed39b` |
 
 Completes the gradual migration started 2026-05-12 (below). `IRiskAnalyzer` consumers (`DashboardViewModel`, `AssessRiskStage`) depend only on the interface; DI binds `IRiskAnalyzer → RiskOrchestrator`. No `RiskAnalyzerService` / `Services.RiskAnalyzer` references remain in any `.cs` file.
+
+## 2026-06-09 — Infrastructure clean-up (test structure + parser facade)
+
+| Area | Change | Commit |
+|---|---|---|
+| Tests | Split shared test infrastructure into `TestDoubles/` (in-memory fakes) and `Fixtures/` (DB helpers); all test files now mirror production namespace 1:1 | `41a88d0` |
+| Services/SmartParser | Retired static `SmartParser` facade; `QuanLyTaskViewModel` now requires `IParsingOrchestrator` directly (no more static fallback) | `222cb5a` |
+
+## 2026-06-06 — M8-B Slices 7-8 (WeightOptimizer — rule-based + review/apply UI)
+
+| Slice | Area | Change | Verification |
+|---|---|---|---|
+| 7 | Services/ML/WeightOptimizer | `WeightOptimizerService` (rule-based, reads `UserStatsSnapshot`): high miss-rate → boost TimeWeight, long avg delay → boost DifficultyWeight; `WeightRuleEngine` applies adjustment heuristics; registered in `ServiceLocator` | optimizer tests |
+| 7 | Core/ML/Contracts | `IWeightOptimizerService.SuggestAsync()` → `WeightConfigSuggestion` (SuggestedConfig, Confidence, Rationale); `IMlConfidencePolicy` gates at 0.75/0.60/<0.60 | policy tests |
+| 8 | WeightOptimizerViewModel | `LoadSuggestionCommand` calls optimizer; `ApplySuggestionCommand` writes config + calls `_onSave`; `IsHighConfidence`, `HasReview`, `ApplyStatus`, `AutoApplyBadgeVisible` properties | VM tests |
+| 8 | Views/WeightOptimizerWindow.xaml | Side-by-side current vs suggested weight rows; confidence card (percentage + progress bar + `Rationale`); "AI khuyên dùng" badge (gated); styled Apply button; `ApplyStatus` footer | — |
+| 8 | WeightConfigStore | `Load()`/`Save(WeightConfig)` — JSON persistence to `%AppData%\SmartStudyPlanner\weight_config.json`; atomic temp-file swap | — |
+| 8 | MainWindow | `NavWeightOptimizer` button wired; opens `WeightOptimizerWindow` as `ShowDialog` | — |
+
+Merge: rule-based backbone — `WeightRuleEngine` heuristics produce suggestions deterministically; no ML model required. `WeightConfig.IsValid()`/`Normalize()` remain last-line. Suggestion is a separate object until user clicks Apply (never silently overwrites). Offline-first.
 
 ## 2026-06-05 — Refactor Slice 6 (M8-A classifier wired into parser)
 
