@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using SmartStudyPlanner.Infrastructure.Persistence.Repositories;
 using SmartStudyPlanner.Models;
+using SmartStudyPlanner.Models.Telemetry;
 
 namespace SmartStudyPlanner.Tests.TestDoubles
 {
@@ -62,5 +63,19 @@ namespace SmartStudyPlanner.Tests.TestDoubles
         public Task AddLinkAsync(TaskReferenceLink link, CancellationToken ct = default) => Task.CompletedTask;
         public Task UpdateLinkAsync(TaskReferenceLink link, CancellationToken ct = default) => Task.CompletedTask;
         public Task DeleteLinkAsync(Guid linkId, CancellationToken ct = default) => Task.CompletedTask;
+    }
+
+    /// <summary>In-memory fake cho <see cref="IDifficultyLabelLogRepository"/>. Ghi lại entries để assert.</summary>
+    internal sealed class FakeDifficultyLabelLogRepository : IDifficultyLabelLogRepository
+    {
+        public List<DifficultyLabelLog> Added { get; } = new();
+        public bool ShouldThrow { get; set; }
+
+        public Task AddAsync(DifficultyLabelLog entry, CancellationToken ct = default)
+        {
+            if (ShouldThrow) throw new InvalidOperationException("simulated repo failure");
+            Added.Add(entry);
+            return Task.CompletedTask;
+        }
     }
 }
