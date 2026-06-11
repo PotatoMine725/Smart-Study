@@ -134,10 +134,11 @@ Output:
 - component scores for explanation.
 
 Key classes:
-- `RiskAnalyzerService`
+- `RiskOrchestrator` (implements `IRiskAnalyzer`)
+- `RiskAggregator`
 - `RiskAssessment`
 - `IRiskAnalyzer`
-- `IRiskComponent`
+- `IRiskFactorEvaluator`
 
 ---
 

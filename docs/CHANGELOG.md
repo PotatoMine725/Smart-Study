@@ -4,6 +4,16 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
+## 2026-06-11 — Retire `RiskAnalyzerService` fully (Core/Risk is sole risk subsystem)
+
+| Area | Change | Verification |
+|---|---|---|
+| Core/Risk/RiskOrchestrator | Now implements `IRiskAnalyzer` directly; facade/bridge removed | risk tests |
+| Services/RiskAnalyzer | Folder **deleted entirely** — legacy `RiskAnalyzerService` adapter (`0346637` → `1b4c2ba`) and the last DTO file `IRiskComponent.cs` (`191dd17`) both gone | — |
+| Tests | Risk tests relocated to mirror `Core.Risk` namespace | `74ed39b` |
+
+Completes the gradual migration started 2026-05-12 (below). `IRiskAnalyzer` consumers (`DashboardViewModel`, `AssessRiskStage`) depend only on the interface; DI binds `IRiskAnalyzer → RiskOrchestrator`. No `RiskAnalyzerService` / `Services.RiskAnalyzer` references remain in any `.cs` file.
+
 ## 2026-06-05 — Refactor Slice 6 (M8-A classifier wired into parser)
 
 | Area | Change | Verification |
