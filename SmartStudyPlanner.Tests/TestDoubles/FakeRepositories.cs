@@ -78,4 +78,53 @@ namespace SmartStudyPlanner.Tests.TestDoubles
             return Task.CompletedTask;
         }
     }
+
+    /// <summary>In-memory fake cho <see cref="IWeightChangeLogRepository"/>.</summary>
+    internal sealed class FakeWeightChangeLogRepository : IWeightChangeLogRepository
+    {
+        public List<WeightChangeLog> Added { get; } = new();
+        public bool ShouldThrow { get; set; }
+
+        public Task AddAsync(WeightChangeLog entry, CancellationToken ct = default)
+        {
+            if (ShouldThrow) throw new InvalidOperationException("simulated failure");
+            Added.Add(entry);
+            return Task.CompletedTask;
+        }
+
+        public Task<IReadOnlyList<WeightChangeLog>> GetPendingMaturationAsync(DateTime nowUtc, CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<WeightChangeLog>>(new List<WeightChangeLog>());
+
+        public Task UpdateOutcomeAsync(WeightChangeLog entry, CancellationToken ct = default)
+            => Task.CompletedTask;
+    }
+
+    /// <summary>In-memory fake cho <see cref="IUserStatsRepository"/>.</summary>
+    internal sealed class FakeUserStatsRepository : IUserStatsRepository
+    {
+        public UserStatsSnapshot Snapshot { get; set; } = new UserStatsSnapshot { ReferenceUtc = DateTime.UtcNow };
+
+        public Task<UserStatsSnapshot> GetSnapshotAsync(DateTime referenceUtc, CancellationToken ct = default)
+            => Task.FromResult(Snapshot);
+    }
+
+    /// <summary>In-memory fake cho <see cref="IStudyTaskRepository"/>.</summary>
+    internal sealed class FakeStudyTaskRepository : IStudyTaskRepository
+    {
+        private List<StudyTask> _tasks = new();
+        public void Seed(IEnumerable<StudyTask> tasks) => _tasks = tasks.ToList();
+
+        public Task<StudyTask?> GetAsync(Guid maTask, CancellationToken ct = default)
+            => Task.FromResult(_tasks.FirstOrDefault(t => t.MaTask == maTask));
+
+        public Task<List<StudyTask>> GetByMonHocAsync(Guid maMonHoc, CancellationToken ct = default)
+            => Task.FromResult(_tasks.Where(t => t.MaMonHoc == maMonHoc).ToList());
+
+        public Task<List<StudyTask>> GetAllAsync(CancellationToken ct = default)
+            => Task.FromResult(new List<StudyTask>(_tasks));
+
+        public Task AddAsync(StudyTask task, CancellationToken ct = default) { _tasks.Add(task); return Task.CompletedTask; }
+        public Task UpdateAsync(StudyTask task, CancellationToken ct = default) => Task.CompletedTask;
+        public Task DeleteAsync(Guid maTask, CancellationToken ct = default) => Task.CompletedTask;
+    }
 }
