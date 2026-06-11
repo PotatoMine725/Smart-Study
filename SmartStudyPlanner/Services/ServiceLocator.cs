@@ -93,6 +93,10 @@ namespace SmartStudyPlanner.Services
             services.AddSingleton<IPipelineOrchestrator, PipelineOrchestrator>();
             services.AddSingleton<IStudyAnalytics, StudyAnalyticsService>();
             services.AddSingleton<IStudyTelemetry, DebugStudyTelemetry>();
+            services.AddSingleton<IOutcomeMaturationService>(sp =>
+                new OutcomeMaturationService(
+                    sp.GetRequiredService<IWeightChangeLogRepository>(),
+                    sp.GetRequiredService<IStudyTaskRepository>()));
 
             return services.BuildServiceProvider();
         }

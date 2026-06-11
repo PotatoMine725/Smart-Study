@@ -83,18 +83,28 @@ namespace SmartStudyPlanner.Tests.TestDoubles
     internal sealed class FakeWeightChangeLogRepository : IWeightChangeLogRepository
     {
         public List<WeightChangeLog> Added { get; } = new();
+        public List<WeightChangeLog> All { get; } = new();
         public bool ShouldThrow { get; set; }
+
+        public void Seed(IEnumerable<WeightChangeLog> logs) => All.AddRange(logs);
 
         public Task AddAsync(WeightChangeLog entry, CancellationToken ct = default)
         {
             if (ShouldThrow) throw new InvalidOperationException("simulated failure");
             Added.Add(entry);
+            All.Add(entry);
             return Task.CompletedTask;
         }
 
         public Task<IReadOnlyList<WeightChangeLog>> GetPendingMaturationAsync(DateTime nowUtc, CancellationToken ct = default)
-            => Task.FromResult<IReadOnlyList<WeightChangeLog>>(new List<WeightChangeLog>());
+        {
+            var pending = All
+                .Where(e => e.OutcomeMaturedUtc == null && e.AppliedUtc.AddDays(e.OutcomeWindowDays) <= nowUtc)
+                .ToList();
+            return Task.FromResult<IReadOnlyList<WeightChangeLog>>(pending);
+        }
 
+        // Entry is the same object reference held in All, so caller mutations are reflected.
         public Task UpdateOutcomeAsync(WeightChangeLog entry, CancellationToken ct = default)
             => Task.CompletedTask;
     }

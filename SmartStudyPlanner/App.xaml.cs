@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Services.ML;
+using SmartStudyPlanner.Services.Telemetry;
 
 namespace SmartStudyPlanner
 {
@@ -114,6 +115,19 @@ namespace SmartStudyPlanner
                 catch
                 {
                     // Classifier is an enhancement on top of the heuristic parser; never block launch.
+                }
+            });
+
+            // M8-B: opportunistic outcome maturation — fill WeightChangeLog entries whose 14d window elapsed.
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await ServiceLocator.Get<IOutcomeMaturationService>().MatureAsync(System.DateTime.UtcNow);
+                }
+                catch
+                {
+                    // Maturation is an enhancement; never block launch.
                 }
             });
         }
