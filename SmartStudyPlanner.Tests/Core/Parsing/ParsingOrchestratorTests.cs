@@ -81,6 +81,35 @@ namespace SmartStudyPlanner.Tests.Core.Parsing
             Assert.Equal(ParseSource.MlAugmented, result.Source);
         }
 
+        [Theory]
+        [InlineData("Ôn thi cuối kỳ", 4)]              // ThiCuoiKy → prior 4 (trước đây là default-3 cứng)
+        [InlineData("Làm bài tập về nhà chương 3", 2)] // BaiTapVeNha (loại mặc định) → prior 2
+        [InlineData("Ôn thi giữa kỳ tuần sau", 3)]     // ThiGiuaKy → prior 3
+        public void Parse_KhongCoTuKhoaDoKho_DungPriorTheoLoai(string input, int expectedDoKho)
+        {
+            var clock = new FakeClock(Today);
+            var sut = new ParsingOrchestrator(clock);
+
+            var result = sut.Parse(input);
+
+            // Không có từ khóa độ khó → DoKho phải rơi về prior theo loại, không còn là hằng 3.
+            Assert.Equal(expectedDoKho, result.DoKho);
+            Assert.Equal(ParseSource.Heuristic, result.Source);
+        }
+
+        [Fact]
+        public void Parse_CoTuKhoaDoKho_KeywordThangPrior()
+        {
+            var clock = new FakeClock(Today);
+            var sut = new ParsingOrchestrator(clock);
+
+            // "cuối kỳ" → ThiCuoiKy (prior 4) nhưng từ khóa "dễ" phải thắng → DoKho = 1.
+            var result = sut.Parse("Ôn thi cuối kỳ cực dễ");
+
+            Assert.Equal(1, result.DoKho);
+            Assert.Equal(ParseSource.Heuristic, result.Source);
+        }
+
         private sealed class StubIntentClassifier : IIntentClassifier
         {
             private readonly IntentPrediction? _prediction;

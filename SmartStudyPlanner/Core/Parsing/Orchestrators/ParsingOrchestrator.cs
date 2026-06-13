@@ -39,7 +39,10 @@ namespace SmartStudyPlanner.Core.Parsing.Orchestrators
             string lowerInput = input.ToLower();
 
             LoaiCongViec loaiHeuristic = _taskEngine.ExtractType(lowerInput, LoaiCongViec.BaiTapVeNha);
-            int doKhoHeuristic = _taskEngine.ExtractDifficulty(lowerInput, defaultValue: 3);
+            // Khi không có từ khóa độ khó, rơi về prior theo loại (DoAn/ThiCuoiKy=4, BaiTap=2…)
+            // thay cho hằng 3 cứng. Từ khóa "khó"/"dễ" vẫn được parser ưu tiên trước prior.
+            int doKhoHeuristic = _taskEngine.ExtractDifficulty(
+                lowerInput, DefaultDifficultyKeywordParser.PriorForTaskType(loaiHeuristic));
             var hanChot = _timeEngine.ParseDeadline(lowerInput, _clock.Now.AddDays(1));
 
             var prediction = _intentClassifier?.Classify(input);
