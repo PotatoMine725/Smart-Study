@@ -19,9 +19,13 @@ namespace SmartStudyPlanner.Tests.Services
                 => Task.FromResult(new StudyTimePredictionResult(0, false, 0f));
         }
 
+        // Shared frozen "now" for the engine clock AND date-sensitive task deadlines, so the
+        // priority-ordering asserts below don't flip as the real wall clock drifts past this date.
+        private static readonly DateTime FixedNow = new DateTime(2026, 4, 11, 9, 0, 0);
+
         private static DecisionEngineService BuildSut(WeightConfig? config = null, DateTime? now = null)
         {
-            var clock = new FakeClock(now ?? new DateTime(2026, 4, 11, 9, 0, 0));
+            var clock = new FakeClock(now ?? FixedNow);
             return new DecisionEngineService(new DefaultTaskTypeWeightProvider(), clock, new NullStudyTimePredictor(), config);
         }
 
@@ -42,8 +46,8 @@ namespace SmartStudyPlanner.Tests.Services
         {
             var sut = BuildSut();
             var monHoc = new MonHoc("Lý", 2);
-            var overdueTask = new StudyTask("Trễ hạn", DateTime.Now.AddDays(-2), LoaiCongViec.ThiCuoiKy, 5);
-            var futureTask = new StudyTask("Tương lai", DateTime.Now.AddDays(10), LoaiCongViec.ThiCuoiKy, 5);
+            var overdueTask = new StudyTask("Trễ hạn", FixedNow.AddDays(-2), LoaiCongViec.ThiCuoiKy, 5);
+            var futureTask = new StudyTask("Tương lai", FixedNow.AddDays(10), LoaiCongViec.ThiCuoiKy, 5);
 
             double overdueScore = sut.CalculatePriority(overdueTask, monHoc);
             double futureScore = sut.CalculatePriority(futureTask, monHoc);
@@ -57,8 +61,8 @@ namespace SmartStudyPlanner.Tests.Services
         {
             var sut = BuildSut();
             var monHoc = new MonHoc("Hóa", 2);
-            var todayTask = new StudyTask("Hôm nay", DateTime.Now, LoaiCongViec.BaiTapVeNha, 2);
-            var futureTask = new StudyTask("Xa hơn", DateTime.Now.AddDays(5), LoaiCongViec.BaiTapVeNha, 2);
+            var todayTask = new StudyTask("Hôm nay", FixedNow, LoaiCongViec.BaiTapVeNha, 2);
+            var futureTask = new StudyTask("Xa hơn", FixedNow.AddDays(5), LoaiCongViec.BaiTapVeNha, 2);
 
             double todayScore = sut.CalculatePriority(todayTask, monHoc);
             double futureScore = sut.CalculatePriority(futureTask, monHoc);
