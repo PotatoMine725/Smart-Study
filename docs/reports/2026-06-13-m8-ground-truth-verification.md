@@ -30,7 +30,7 @@ same session (see §3).
 
 - **Build clean:** ✅ 0 errors (97 warnings, all pre-existing: NU1904 `System.Drawing.Common`, CS8618 nullable).
 - **Tests green:** ⚠️→✅ At audit start: 236/238, 2 failing. Both failures were a pre-existing date-fragility in `DecisionEngineTests` (frozen `FakeClock(2026-04-11)` vs task deadlines built from real `DateTime.Now`), **unrelated to M8** — confirmed by `git log` (last touched at `b697eca`, before all M8 commits) and by the failures being assertion flips, not compile/exception errors. Fixed this session (§3). Now **242/242**.
-- **Dual-path schema safety:** ✅ verified by code inspection — the `CREATE TABLE IF NOT EXISTS` path is correct and column types match the entities. Not runtime-smoked against an actual pre-M8 `.db` file (see Follow-ups).
+- **Dual-path schema safety:** ✅ **runtime-smoked at the schema + repo level** (was inspection-only). `TelemetrySchemaDualPathTests` (commit `bcaf198`) reproduces a pre-M8 DB — `EnsureCreated` then `DROP` the two telemetry tables, asserting `EnsureCreated` does **not** re-add them — runs the production seam `TelemetrySchema.EnsureTables` (extracted from `App.OnStartup` in `1540001`), asserts both tables reappear, then round-trips an insert+read through the real SQLite repos. Suite now **244/244** (+2). See Follow-up 2.
 
 ### 3. Remediation performed this session
 
@@ -50,6 +50,6 @@ same session (see §3).
 ## Follow-ups (non-blocking)
 
 1. **Same-class date latent:** `CalculatePriority_TaskTrongVung31Den60Ngay_LonHon0` still uses `DateTime.Now.AddDays(45)` (green only because score > 0 holds at any future gap). Anchor it to `FixedNow` if a stricter window assertion is ever added.
-2. **Schema dual-path not runtime-smoked:** the migration is verified by inspection only. A one-off manual smoke (launch against a copied pre-M8 `.db`, confirm both tables appear and a save/apply writes a row) would close gate #4 empirically.
+2. **Schema dual-path — schema-creation CLOSED 2026-06-13:** now runtime-smoked by `TelemetrySchemaDualPathTests` (commit `bcaf198`). The inline `CREATE TABLE IF NOT EXISTS` block was extracted to the testable seam `Data/TelemetrySchema.cs` (commit `1540001`) so the test drives the *exact* production SQL, not a copy. This empirically closes the plan's gate-4 definition (line 157 — both tables created on a pre-M8 DB). **Scope note:** the test inserts through the real SQLite repos, so the *schema + repo round-trip* is proven; the live `OnStartup → ViewModel save/apply → row written` chain remains *inferred* (OnStartup calls the same seam, repos round-trip) and is not GUI-smoked.
 3. **1B telemetry semantics:** `DifficultyLabelLog.SuggestedDoKho` / `WasOverride` compare against the *type prior* only, not the full keyword-aware parser suggestion. `FinalDoKho` + `InputText` remain the true label, so training data is unaffected; revisit only if a richer "suggestion vs final" signal is wanted.
 4. **Distill:** per `docs/reports/README.md`, fold the 1A-wiring completion into `CHANGELOG.md` and the date-fragility lesson into `docs/knowledge/` when convenient; this report can then be pruned.
