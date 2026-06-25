@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Services.ML;
+using SmartStudyPlanner.Services.Telemetry;
 
 namespace SmartStudyPlanner
 {
@@ -25,6 +26,26 @@ namespace SmartStudyPlanner
                 }
 
                 db.Database.EnsureCreated();
+
+                // Runtime schema migration: thêm cột IsSeeded nếu DB cũ chưa có
+                try
+                {
+                    db.Database.ExecuteSqlRaw(
+                        "ALTER TABLE HocKys ADD COLUMN IsSeeded INTEGER NOT NULL DEFAULT 0");
+                }
+                catch (Microsoft.Data.Sqlite.SqliteException)
+                {
+                    // Column đã tồn tại — bỏ qua
+                }
+
+                // Đánh dấu bản ghi seed đã tồn tại trong DB
+                db.Database.ExecuteSqlRaw(
+                    "UPDATE HocKys SET IsSeeded = 1 WHERE Ten = 'Học Kỳ Dev Seed'");
+
+                // Runtime schema migration: tạo bảng telemetry nếu DB cũ chưa có
+                // (EnsureCreated không thêm bảng mới vào DB đã tồn tại). Tách ra seam
+                // Data/TelemetrySchema.cs để dual-path test gọi được cùng đường SQL.
+                TelemetrySchema.EnsureTables(db);
             }
 
             // KHỞI TẠO DI CONTAINER
@@ -56,6 +77,19 @@ namespace SmartStudyPlanner
                 catch
                 {
                     // Classifier is an enhancement on top of the heuristic parser; never block launch.
+                }
+            });
+
+            // M8-B: opportunistic outcome maturation — fill WeightChangeLog entries whose 14d window elapsed.
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await ServiceLocator.Get<IOutcomeMaturationService>().MatureAsync(System.DateTime.UtcNow);
+                }
+                catch
+                {
+                    // Maturation is an enhancement; never block launch.
                 }
             });
         }

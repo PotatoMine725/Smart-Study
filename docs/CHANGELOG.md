@@ -4,6 +4,59 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
+## 2026-06-18 — M8-A TextClassifier seed v4 (collected_v4 merge + recall eval)
+
+| Area | Change | Verification |
+|---|---|---|
+| Services/ML/TextClassifier | Merge 205 vetted/deduped `collected_v4` rows into embedded `seed_intents.csv` (**698 → 903**, purely additive). Per-class: ThiGiuaKy +99 (85→184), BaiTapVeNha +56 (124→180), DoAnCuoiKy +50 (131→181); majorities untouched. Imbalance 2.21× → **1.11×**. SHA-256 change trips the `SeedHash` gate → seed-only model auto-retrains on next init (no code change) | `ab5112c` |
+| datasheets/ | Byte-safe one-off merge script `_merge_seed.py` (UTF-8 strict, dedup on normalized `InputText`) + the 205-row `collected_v4.csv` source. Kept for provenance; outside the build | `8855874` |
+| tools/TextClassifierEval | Throwaway net10.0 harness (not in `.slnx`) — stratified 80/20 per-class recall eval mirroring the prod pipeline. Before/after (v698 vs v903): MacroAccuracy flat at 97.25%, minority recall did not regress, minority test support grew (ThiGiuaKy 17→37, BaiTapVeNha 25→36). Report: `docs/reports/2026-06-25-m8a-textclassifier-v4-recall-eval.md` | build pass; 244 pass |
+
+Merge: continues the project's own label policy (drop `NhacNho`/`OnTap`/`Khac`; `BaiTap→BaiTapVeNha`, `DuAn→DoAnCuoiKy`) with no enum/UI change. TextClassifier remains the sole ML component (`ML_Heuristic_design.md` §5.1); Difficulty/weights stay heuristic.
+
+## 2026-06-11 — M8 Ground-Truth Instrumentation (Slices 0–2B)
+
+| Slice | Area | Change | Verification |
+|---|---|---|---|
+| 0 | Models/Telemetry | `DifficultyLabelLog` + `WeightChangeLog` entities; `IDifficultyLabelLogRepository` + `IWeightChangeLogRepository` interfaces + SQLite implementations; `App.xaml.cs` `CREATE TABLE IF NOT EXISTS` for both tables (safe on existing DBs) | build pass |
+| 1A | Services/Strategies | `DefaultDifficultyKeywordParser` — fallback prior by `TaskType` (`DoAnCuoiKy/ThiCuoiKy→4`, `ThiGiuaKy→3`, `KiemTraThuongXuyen→3`, `BaiTapVeNha→2`) replaces hard-coded 3 | parser tests |
+| 1B | ViewModels/QuanLyTask | Fire-and-forget `DifficultyLabelLog` on every task save: `InputText`, `SuggestedDoKho`, `FinalDoKho`, `WasOverride`, `TaskType`, `MaTask`; try/catch — never blocks save | label logging tests |
+| 2A | ViewModels/WeightOptimizer | `ApplySuggestion()` captures before-config snapshot then fires `_ = LogWeightChangeAsync(...)`: before/after weights, `UserStatsSnapshot` baseline, cohort = open-task IDs at apply time (`TrangThai != HoanThanh`) | weight log tests |
+| 2B | Services/Telemetry | `OutcomeMaturationService` + `IOutcomeMaturationService`: scans `WeightChangeLog` rows where `OutcomeMaturedUtc == null && AppliedUtc + 14d ≤ now`; fills miss-rate/avg-delay/completed-in-window from **cohort only**; idempotent; registered in `ServiceLocator`; triggered at app launch fire-and-forget | maturation tests |
+| Tests | TestDoubles/ | `FakeWeightChangeLogRepository` (seed + real `GetPendingMaturationAsync` filter), `FakeUserStatsRepository`, `FakeStudyTaskRepository` | — |
+
+Verification: **237 pass / 1 pre-existing fail** (`DecisionEngineTests.CalculatePriority_TaskToiHanHomNay`).
+
+## 2026-06-11 — Retire `RiskAnalyzerService` fully (Core/Risk is sole risk subsystem)
+
+| Area | Change | Verification |
+|---|---|---|
+| Core/Risk/RiskOrchestrator | Now implements `IRiskAnalyzer` directly; facade/bridge removed | risk tests |
+| Services/RiskAnalyzer | Folder **deleted entirely** — legacy `RiskAnalyzerService` adapter (`0346637` → `1b4c2ba`) and the last DTO file `IRiskComponent.cs` (`191dd17`) both gone | — |
+| Tests | Risk tests relocated to mirror `Core.Risk` namespace | `74ed39b` |
+
+Completes the gradual migration started 2026-05-12 (below). `IRiskAnalyzer` consumers (`DashboardViewModel`, `AssessRiskStage`) depend only on the interface; DI binds `IRiskAnalyzer → RiskOrchestrator`. No `RiskAnalyzerService` / `Services.RiskAnalyzer` references remain in any `.cs` file.
+
+## 2026-06-09 — Infrastructure clean-up (test structure + parser facade)
+
+| Area | Change | Commit |
+|---|---|---|
+| Tests | Split shared test infrastructure into `TestDoubles/` (in-memory fakes) and `Fixtures/` (DB helpers); all test files now mirror production namespace 1:1 | `41a88d0` |
+| Services/SmartParser | Retired static `SmartParser` facade; `QuanLyTaskViewModel` now requires `IParsingOrchestrator` directly (no more static fallback) | `222cb5a` |
+
+## 2026-06-06 — M8-B Slices 7-8 (WeightOptimizer — rule-based + review/apply UI)
+
+| Slice | Area | Change | Verification |
+|---|---|---|---|
+| 7 | Services/ML/WeightOptimizer | `WeightOptimizerService` (rule-based, reads `UserStatsSnapshot`): high miss-rate → boost TimeWeight, long avg delay → boost DifficultyWeight; `WeightRuleEngine` applies adjustment heuristics; registered in `ServiceLocator` | optimizer tests |
+| 7 | Core/ML/Contracts | `IWeightOptimizerService.SuggestAsync()` → `WeightConfigSuggestion` (SuggestedConfig, Confidence, Rationale); `IMlConfidencePolicy` gates at 0.75/0.60/<0.60 | policy tests |
+| 8 | WeightOptimizerViewModel | `LoadSuggestionCommand` calls optimizer; `ApplySuggestionCommand` writes config + calls `_onSave`; `IsHighConfidence`, `HasReview`, `ApplyStatus`, `AutoApplyBadgeVisible` properties | VM tests |
+| 8 | Views/WeightOptimizerWindow.xaml | Side-by-side current vs suggested weight rows; confidence card (percentage + progress bar + `Rationale`); "AI khuyên dùng" badge (gated); styled Apply button; `ApplyStatus` footer | — |
+| 8 | WeightConfigStore | `Load()`/`Save(WeightConfig)` — JSON persistence to `%AppData%\SmartStudyPlanner\weight_config.json`; atomic temp-file swap | — |
+| 8 | MainWindow | `NavWeightOptimizer` button wired; opens `WeightOptimizerWindow` as `ShowDialog` | — |
+
+Merge: rule-based backbone — `WeightRuleEngine` heuristics produce suggestions deterministically; no ML model required. `WeightConfig.IsValid()`/`Normalize()` remain last-line. Suggestion is a separate object until user clicks Apply (never silently overwrites). Offline-first.
+
 ## 2026-06-05 — Refactor Slice 6 (M8-A classifier wired into parser)
 
 | Area | Change | Verification |
@@ -116,7 +169,7 @@ Created `Models/HeatCell.cs` (record with Date / TotalMinutes / Level + Tooltip)
 | Themes/SidebarStyles.xaml | New `SidebarNavButton` `ToggleButton` style with hover/active triggers + 3px accent bar |
 | Themes/LightTheme.xaml + DarkTheme.xaml | Added `SidebarHoverBackground/Text` tokens; brightened `SidebarText` + `SidebarIconColor` |
 | Views/MainWindow.xaml(.cs) | All nav `Button` → `ToggleButton`; `SetActiveNav` toggles `IsChecked` |
-| Tests/DevTools/DbSeedTests.cs | `[Trait("Category","Seed")]` test that deletes stale ML artifacts and seeds 180 synthetic StudyLogs (3×60 difficulty groups, `Random(42)`); run via `dotnet test --filter "Category=Seed"` |
+| Tests/DevTools/DbSeedTests.cs | `[Trait("Category","Seed")]` test that deletes stale ML artifacts and seeds 180 synthetic StudyLogs (3×60 difficulty groups, `Random(42)`) into an isolated in-memory SQLite DB; run via `dotnet test --filter "Category=Seed"` |
 
 ## 2026-04-26 — Consolidated change report
 

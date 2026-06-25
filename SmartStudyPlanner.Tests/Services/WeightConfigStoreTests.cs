@@ -1,7 +1,7 @@
 using SmartStudyPlanner.Services;
 using System.IO;
 
-namespace SmartStudyPlanner.Tests.Persistence
+namespace SmartStudyPlanner.Tests.Services
 {
     public class WeightConfigStoreTests : IDisposable
     {

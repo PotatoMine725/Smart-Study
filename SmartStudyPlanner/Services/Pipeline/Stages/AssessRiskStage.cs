@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
+using SmartStudyPlanner.Core.Risk.Contracts;
+using SmartStudyPlanner.Core.Risk.Models;
 using SmartStudyPlanner.Models;
-using SmartStudyPlanner.Services.RiskAnalyzer;
 
 namespace SmartStudyPlanner.Services.Pipeline.Stages
 {

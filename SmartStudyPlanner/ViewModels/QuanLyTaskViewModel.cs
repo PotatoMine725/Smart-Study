@@ -4,7 +4,9 @@ using SmartStudyPlanner.Core.Parsing.Contracts;
 using SmartStudyPlanner.Core.Parsing.Models;
 using SmartStudyPlanner.Infrastructure.Persistence.Repositories;
 using SmartStudyPlanner.Models;
+using SmartStudyPlanner.Models.Telemetry;
 using SmartStudyPlanner.Services;
+using SmartStudyPlanner.Services.Strategies;
 using SmartStudyPlanner.Services.Telemetry;
 using System;
 using System.Collections.ObjectModel;
@@ -26,8 +28,8 @@ namespace SmartStudyPlanner.ViewModels
         private readonly ITaskEditorRepository _taskEditorRepository;
         private readonly IDecisionEngine _decisionEngine;
         private readonly IStudyTelemetry _telemetry;
-        // M8-A (Slice 6): optional ML-augmented parser. Null in unit tests → static heuristic path.
-        private readonly IParsingOrchestrator? _parsingOrchestrator;
+        private readonly IParsingOrchestrator _parsingOrchestrator;
+        private readonly IDifficultyLabelLogRepository? _difficultyLogRepo;
 
         // 1. DỮ LIỆU HIỂN THỊ (BINDING)
         [ObservableProperty]
@@ -76,11 +78,11 @@ namespace SmartStudyPlanner.ViewModels
         public Action OnRefreshGrid { get; set; }
 
         public QuanLyTaskViewModel(HocKy hocKy, MonHoc monHoc)
-            : this(hocKy, monHoc, ServiceLocator.Get<IHocKyRepository>(), ServiceLocator.Get<ITaskEditorRepository>(), ServiceLocator.Get<IDecisionEngine>(), ServiceLocator.Get<IStudyTelemetry>(), ServiceLocator.Get<IParsingOrchestrator>()) { }
-        public QuanLyTaskViewModel(HocKy hocKy, MonHoc monHoc, IHocKyRepository hocKyRepository, ITaskEditorRepository taskEditorRepository, IDecisionEngine decisionEngine)
-            : this(hocKy, monHoc, hocKyRepository, taskEditorRepository, decisionEngine, new NullStudyTelemetry()) { }
+            : this(hocKy, monHoc, ServiceLocator.Get<IHocKyRepository>(), ServiceLocator.Get<ITaskEditorRepository>(), ServiceLocator.Get<IDecisionEngine>(), ServiceLocator.Get<IStudyTelemetry>(), ServiceLocator.Get<IParsingOrchestrator>(), ServiceLocator.Get<IDifficultyLabelLogRepository>()) { }
+        public QuanLyTaskViewModel(HocKy hocKy, MonHoc monHoc, IHocKyRepository hocKyRepository, ITaskEditorRepository taskEditorRepository, IDecisionEngine decisionEngine, IParsingOrchestrator parsingOrchestrator)
+            : this(hocKy, monHoc, hocKyRepository, taskEditorRepository, decisionEngine, new NullStudyTelemetry(), parsingOrchestrator) { }
 
-        public QuanLyTaskViewModel(HocKy hocKy, MonHoc monHoc, IHocKyRepository hocKyRepository, ITaskEditorRepository taskEditorRepository, IDecisionEngine decisionEngine, IStudyTelemetry telemetry, IParsingOrchestrator? parsingOrchestrator = null)
+        public QuanLyTaskViewModel(HocKy hocKy, MonHoc monHoc, IHocKyRepository hocKyRepository, ITaskEditorRepository taskEditorRepository, IDecisionEngine decisionEngine, IStudyTelemetry telemetry, IParsingOrchestrator parsingOrchestrator, IDifficultyLabelLogRepository? difficultyLogRepo = null)
         {
             HocKyHienTai = hocKy;
             MonHocHienTai = monHoc;
@@ -89,6 +91,7 @@ namespace SmartStudyPlanner.ViewModels
             _decisionEngine = decisionEngine;
             _telemetry = telemetry;
             _parsingOrchestrator = parsingOrchestrator;
+            _difficultyLogRepo = difficultyLogRepo;
             TieuDe = $"QUẢN LÝ DEADLINE - MÔN {MonHocHienTai.TenMonHoc.ToUpper()}";
 
             TinhDiemVaSapXep();
@@ -209,6 +212,9 @@ namespace SmartStudyPlanner.ViewModels
             await _hocKyRepository.LuuHocKyAsync(HocKyHienTai);
             HasData = MonHocHienTai.DanhSachTask.Count > 0;
 
+            // Ground-truth instrumentation: fire-and-forget, never blocks save
+            _ = LogDifficultyLabelAsync(loaiTask, doKhoInt, TenTask, savedTask.MaTask);
+
             // Save notes & links (for both new and existing tasks)
             var taskId = _editingTaskId ?? savedTask.MaTask;
             _editingTaskId = null;
@@ -250,9 +256,9 @@ namespace SmartStudyPlanner.ViewModels
         {
             if (string.IsNullOrWhiteSpace(VanBanNhapNhanh)) return;
 
-            // M8-A: prefer the ML-augmented orchestrator when injected; otherwise the heuristic facade.
-            ParseResult? ketQua = _parsingOrchestrator?.Parse(VanBanNhapNhanh);
-            var (tenTask, hanChot, loai, doKho) = ketQua?.ToLegacyTuple() ?? SmartParser.Parse(VanBanNhapNhanh);
+            // M8-A: ML-augmented orchestrator (heuristic + classifier) — always injected.
+            ParseResult ketQua = _parsingOrchestrator.Parse(VanBanNhapNhanh);
+            var (tenTask, hanChot, loai, doKho) = ketQua.ToLegacyTuple();
 
             // Parser chỉ điền vào core fields — không bao giờ chạm NoteContent/StudyLinks
             TenTask = tenTask;
@@ -314,6 +320,31 @@ namespace SmartStudyPlanner.ViewModels
 
         [RelayCommand]
         private void ClearNote() => NoteContent = null;
+
+        private async Task LogDifficultyLabelAsync(LoaiCongViec taskType, int finalDoKho, string inputText, Guid maTask)
+        {
+            if (_difficultyLogRepo == null) return;
+            try
+            {
+                int suggested = DefaultDifficultyKeywordParser.PriorForTaskType(taskType);
+                await _difficultyLogRepo.AddAsync(new DifficultyLabelLog
+                {
+                    Id = Guid.NewGuid(),
+                    CreatedUtc = DateTime.UtcNow,
+                    InputText = inputText,
+                    TaskType = taskType,
+                    SuggestedDoKho = suggested,
+                    FinalDoKho = finalDoKho,
+                    WasOverride = finalDoKho != suggested,
+                    Source = "manual",
+                    MaTask = maTask,
+                });
+            }
+            catch
+            {
+                // Logging is an enhancement — never propagate errors to the save path.
+            }
+        }
 
         private sealed class NullStudyTelemetry : IStudyTelemetry
         {
