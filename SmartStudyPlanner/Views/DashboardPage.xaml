@@ -103,7 +103,7 @@
                     <StackPanel Orientation="Horizontal" Margin="18,16,18,12">
                         <Border Style="{StaticResource DashSectionTick}" Background="{DynamicResource DangerColor}"/>
                         <TextBlock Text="TOP 5 DEADLINE KHẨN CẤP NHẤT" Style="{StaticResource DashSectionTitle}"/>
-                        <TextBlock Text="sắp theo Điểm ưu tiên" Style="{StaticResource DashSectionSub}"/>
+                        <TextBlock Text="sắp theo mức khẩn cấp" Style="{StaticResource DashSectionSub}"/>
                     </StackPanel>
 
                     <DataGrid ItemsSource="{Binding Top5Task}" Style="{StaticResource DashDataGrid}">
@@ -135,16 +135,20 @@
                             <DataGridTextColumn Header="ĐÃ HỌC" Width="86"
                                                 Binding="{Binding TaskGoc.ThoiGianDaHoc, StringFormat={}{0} phút}"/>
 
-                            <!-- Điểm ƯT: number + mini meter -->
-                            <DataGridTemplateColumn Header="ĐIỂM ƯT" Width="118">
+                            <!-- Độ Khẩn: number + mini urgency meter -->
+                            <DataGridTemplateColumn Header="ĐỘ KHẨN" Width="118">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding DiemUuTien}" FontWeight="Bold"
-                                                       Foreground="{DynamicResource PrimaryText}" Width="30"/>
-                                            <Border Width="40" Height="4" CornerRadius="2"
+                                            <TextBlock Text="{Binding DiemUuTien, StringFormat={}{0:F0}}"
+                                                       FontWeight="Bold"
+                                                       Foreground="{DynamicResource PrimaryText}" Width="42"
+                                                       ToolTip="{Binding DiemUuTien, StringFormat=Điểm khẩn cấp: {0:F1}/100}"/>
+                                            <Border Width="40" Height="5" CornerRadius="3"
+                                                    VerticalAlignment="Center"
+                                                    ClipToBounds="True"
                                                     Background="{DynamicResource BorderColor}">
-                                                <Border HorizontalAlignment="Left" CornerRadius="2"
+                                                <Border HorizontalAlignment="Left" CornerRadius="3"
                                                         Background="{Binding DiemUuTien, Converter={StaticResource PriorityBrush}}"
                                                         Width="{Binding DiemUuTien, Converter={StaticResource ScoreWidth}, ConverterParameter=40}"/>
                                             </Border>
@@ -325,7 +329,7 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <StackPanel Margin="2,0">
+                                    <StackPanel Margin="2,0" ToolTip="{Binding Subject}">
                                         <!-- Fixed-height cell: StackPanel is bottom-aligned inside Grid -->
                                         <Grid Width="30" Height="150">
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom">

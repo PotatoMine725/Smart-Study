@@ -89,7 +89,7 @@ namespace SmartStudyPlanner.ViewModels
         private void ApplyAdaptations(IReadOnlyList<AdaptationSuggestion> adaptations)
         {
             AdaptationItems.Clear();
-            foreach (var a in adaptations) AdaptationItems.Add(a);
+            foreach (var a in adaptations.Take(5)) AdaptationItems.Add(a);
         }
 
         public void LoadDuLieuDashboard()
@@ -235,19 +235,25 @@ namespace SmartStudyPlanner.ViewModels
             if (summary.SafeCount      > 0) TrangThaiSegments.Add(new StatusSegment("Safe",   "An toàn",  summary.SafeCount));
             if (summary.CompletedCount > 0) TrangThaiSegments.Add(new StatusSegment("Done",   "Đã xong",  summary.CompletedCount));
 
-            // Time progress bars
+            // Time progress bars - top 5 subjects by peak time
             TienDoThoiGian.Clear();
-            for (int i = 0; i < summary.SubjectLabels.Count; i++)
-                TienDoThoiGian.Add(new SubjectTimeProgress(summary.SubjectLabels[i], summary.ExpectedMinutes[i], summary.ActualMinutes[i]));
+            var topTienDo = summary.SubjectLabels
+                .Select((label, i) => new SubjectTimeProgress(label, summary.ExpectedMinutes[i], summary.ActualMinutes[i]))
+                .OrderByDescending(x => Math.Max(x.Expected, x.Actual))
+                .Take(5);
+            foreach (var item in topTienDo) TienDoThoiGian.Add(item);
             MaxThoiGian = TienDoThoiGian.Count > 0
                 ? TienDoThoiGian.Max(x => Math.Max(x.Expected, x.Actual))
                 : 1;
             if (MaxThoiGian <= 0) MaxThoiGian = 1;
 
-            // Workload bars
+            // Workload bars - top 5 subjects by task count
             KhoiLuongMonHoc.Clear();
-            for (int i = 0; i < summary.SubjectLabels.Count; i++)
-                KhoiLuongMonHoc.Add(new SubjectWorkload(summary.SubjectLabels[i], summary.TaskCounts[i]));
+            var topKhoiLuong = summary.SubjectLabels
+                .Select((label, i) => new SubjectWorkload(label, summary.TaskCounts[i]))
+                .OrderByDescending(x => x.Count)
+                .Take(5);
+            foreach (var item in topKhoiLuong) KhoiLuongMonHoc.Add(item);
             MaxKhoiLuong = KhoiLuongMonHoc.Count > 0
                 ? KhoiLuongMonHoc.Max(x => x.Count)
                 : 1;
