@@ -25,6 +25,8 @@ namespace SmartStudyPlanner.ViewModels
         private readonly IStudyLogRepository _studyLogRepository;
         private readonly IStudyAnalytics _analytics;
         private readonly IStudyTelemetry _telemetry;
+        private readonly IStudyTimeTrainingDataSource _trainingDataSource;
+        private readonly IMLModelManager? _mlModelManager;
         private List<StudyLog> _allLogs = new();
 
         public HocKy HocKy => _hocKy;
@@ -51,14 +53,22 @@ namespace SmartStudyPlanner.ViewModels
         [ObservableProperty] private string recommendedNextAction = string.Empty;
 
         public AnalyticsViewModel(HocKy hocKy)
-            : this(hocKy, ServiceLocator.Get<IStudyLogRepository>(), ServiceLocator.Get<IStudyAnalytics>(), ServiceLocator.Get<IStudyTelemetry>()) { }
+            : this(hocKy, ServiceLocator.Get<IStudyLogRepository>(), ServiceLocator.Get<IStudyAnalytics>(), ServiceLocator.Get<IStudyTelemetry>(), ServiceLocator.Get<IStudyTimeTrainingDataSource>()) { }
 
         public AnalyticsViewModel(HocKy hocKy, IStudyLogRepository studyLogRepository, IStudyAnalytics analytics, IStudyTelemetry telemetry)
+            : this(hocKy, studyLogRepository, analytics, telemetry, new NullStudyTimeTrainingDataSource()) { }
+
+        public AnalyticsViewModel(HocKy hocKy, IStudyLogRepository studyLogRepository, IStudyAnalytics analytics, IStudyTelemetry telemetry, IStudyTimeTrainingDataSource trainingDataSource)
+            : this(hocKy, studyLogRepository, analytics, telemetry, trainingDataSource, null) { }
+
+        public AnalyticsViewModel(HocKy hocKy, IStudyLogRepository studyLogRepository, IStudyAnalytics analytics, IStudyTelemetry telemetry, IStudyTimeTrainingDataSource trainingDataSource, IMLModelManager? mlModelManager)
         {
             _hocKy = hocKy;
             _studyLogRepository = studyLogRepository;
             _analytics = analytics;
             _telemetry = telemetry;
+            _trainingDataSource = trainingDataSource;
+            _mlModelManager = mlModelManager;
         }
 
         public async Task LoadAsync()
@@ -214,14 +224,23 @@ namespace SmartStudyPlanner.ViewModels
             IsRetraining = true;
             try
             {
-                var predictor = ServiceLocator.Get<IMLModelManager>();
-                var data = SeedDataGenerator.Generate();
+                var predictor = _mlModelManager ?? ServiceLocator.Get<IMLModelManager>();
+                var real = await _trainingDataSource.BuildAsync();
+                var data = real.Count >= StudyTimeTrainingDataSource.MinRows
+                    ? real
+                    : SeedDataGenerator.Generate();
                 await predictor.RetrainAsync(data);
             }
             finally
             {
                 IsRetraining = false;
             }
+        }
+
+        private sealed class NullStudyTimeTrainingDataSource : IStudyTimeTrainingDataSource
+        {
+            public Task<System.Collections.Generic.IReadOnlyList<SmartStudyPlanner.Services.ML.Schema.StudyTimeInput>> BuildAsync(System.Threading.CancellationToken ct = default)
+                => Task.FromResult<System.Collections.Generic.IReadOnlyList<SmartStudyPlanner.Services.ML.Schema.StudyTimeInput>>(System.Array.Empty<SmartStudyPlanner.Services.ML.Schema.StudyTimeInput>());
         }
     }
 }
