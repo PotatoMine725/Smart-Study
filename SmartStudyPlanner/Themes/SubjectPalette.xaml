@@ -1,0 +1,35 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+      SUBJECT PALETTE + SEVERITY RAMP  (theme-independent)
+      =====================================================
+      The dashboard redesign widens the colour system in two layers:
+
+        • SUBJECT IDENTITY  — every môn học gets a stable hue. These read on both
+          the dark slate and the light surfaces, so they are defined ONCE here
+          (not per theme). The SubjectToBrushConverter returns the same hexes,
+          so chips/bars/text/charts all agree on a subject's colour.
+
+        • SEVERITY RAMP     — status colours for the donut + meters. Urgent/Warn/
+          Safe also exist as theme-aware DangerColor/WarningColor/SuccessColor;
+          these fixed versions are for chart paints (SkiaSharp) and the
+          "Đã xong" slate which has no theme token.
+
+      Merge this BEFORE the theme dictionary in App.xaml.
+    -->
+
+    <!-- Subject identity (1‑based, matches SubjectToBrushConverter order) -->
+    <SolidColorBrush x:Key="SubjectColor1" Color="#6366F1"/> <!-- indigo  -->
+    <SolidColorBrush x:Key="SubjectColor2" Color="#14B8A6"/> <!-- teal    -->
+    <SolidColorBrush x:Key="SubjectColor3" Color="#F59E0B"/> <!-- amber   -->
+    <SolidColorBrush x:Key="SubjectColor4" Color="#F43F5E"/> <!-- rose    -->
+    <SolidColorBrush x:Key="SubjectColor5" Color="#8B5CF6"/> <!-- violet  -->
+    <SolidColorBrush x:Key="SubjectColor6" Color="#06B6D4"/> <!-- cyan    -->
+
+    <!-- Severity ramp (fixed) -->
+    <SolidColorBrush x:Key="SeverityUrgent" Color="#FB3B53"/>
+    <SolidColorBrush x:Key="SeverityWarn"   Color="#F0A92B"/>
+    <SolidColorBrush x:Key="SeveritySafe"   Color="#1FB87A"/>
+    <SolidColorBrush x:Key="SeverityDone"   Color="#7888A6"/>
+    <SolidColorBrush x:Key="SeverityHigh"   Color="#FF7A45"/>
+</ResourceDictionary>
