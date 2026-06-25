@@ -51,6 +51,8 @@ namespace SmartStudyPlanner.Services
             services.AddSingleton<IDifficultyLabelLogRepository>(_ => new SqliteDifficultyLabelLogRepository(ctxFactory));
             services.AddSingleton<IWeightChangeLogRepository>(_ => new SqliteWeightChangeLogRepository(ctxFactory));
             services.AddSingleton<IStudyTimeOutcomeLogRepository>(_ => new SqliteStudyTimeOutcomeLogRepository(ctxFactory));
+            services.AddSingleton<IStudyTimeTrainingDataSource>(sp =>
+                new StudyTimeTrainingDataSource(sp.GetRequiredService<IStudyTimeOutcomeLogRepository>()));
 
             services.AddSingleton<IClock, SystemClock>();
             services.AddSingleton<ITaskTypeWeightProvider, DefaultTaskTypeWeightProvider>();
