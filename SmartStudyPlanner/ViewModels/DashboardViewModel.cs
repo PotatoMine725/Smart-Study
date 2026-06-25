@@ -1,10 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using LiveChartsCore;
-using LiveChartsCore.SkiaSharpView;
-using LiveChartsCore.SkiaSharpView.Painting;
 using Microsoft.Toolkit.Uwp.Notifications;
-using SkiaSharp;
 using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Infrastructure.Persistence.Repositories;
 using SmartStudyPlanner.Models;
@@ -35,11 +31,11 @@ namespace SmartStudyPlanner.ViewModels
         [ObservableProperty] private string tieuDe;
         [ObservableProperty] private string thongKe;
         [ObservableProperty] private ObservableCollection<TaskDashboardItem> top5Task = new();
-        [ObservableProperty] private ISeries[] bieuDoTrangThai;
-        [ObservableProperty] private ISeries[] bieuDoMonHoc;
-        [ObservableProperty] private Axis[] trucXMonHoc;
-        [ObservableProperty] private ISeries[] bieuDoThoiGian;
-        [ObservableProperty] private Axis[] trucXThoiGian;
+        [ObservableProperty] private ObservableCollection<StatusSegment> trangThaiSegments = new();
+        [ObservableProperty] private ObservableCollection<SubjectTimeProgress> tienDoThoiGian = new();
+        [ObservableProperty] private double maxThoiGian = 1;
+        [ObservableProperty] private ObservableCollection<SubjectWorkload> khoiLuongMonHoc = new();
+        [ObservableProperty] private int maxKhoiLuong = 1;
         [ObservableProperty] private string chuoiStreak;
         [ObservableProperty] private ObservableCollection<ScheduledTask> lichHocHomNay = new();
         [ObservableProperty] private string tieuDeLichHomNay;
@@ -120,7 +116,7 @@ namespace SmartStudyPlanner.ViewModels
 
                 var summary = BuildDashboardSummary(pipelineResult);
                 ApplySummary(summary);
-                ApplyCharts(summary);
+                ApplyChartData(summary);
                 ApplySchedule(summary.ScheduleDay);
                 ApplyAdaptations(pipelineResult.Adaptations);
                 ApplyStreak();
@@ -230,28 +226,32 @@ namespace SmartStudyPlanner.ViewModels
             foreach (var item in summary.TopTasks) Top5Task.Add(item);
         }
 
-        private void ApplyCharts(DashboardSummary summary)
+        private void ApplyChartData(DashboardSummary summary)
         {
-            BieuDoTrangThai = new ISeries[]
-            {
-                new PieSeries<int> { Values = new[] { summary.UrgentCount }, Name = "Khẩn cấp", Fill = new SolidColorPaint(SKColors.Crimson) },
-                new PieSeries<int> { Values = new[] { summary.AttentionCount }, Name = "Chú ý", Fill = new SolidColorPaint(SKColors.Orange) },
-                new PieSeries<int> { Values = new[] { summary.SafeCount }, Name = "An toàn", Fill = new SolidColorPaint(SKColors.MediumSeaGreen) },
-                new PieSeries<int> { Values = new[] { summary.CompletedCount }, Name = "Đã xong", Fill = new SolidColorPaint(SKColors.Gray) }
-            };
+            // Status donut
+            TrangThaiSegments.Clear();
+            if (summary.UrgentCount    > 0) TrangThaiSegments.Add(new StatusSegment("Urgent", "Khẩn cấp", summary.UrgentCount));
+            if (summary.AttentionCount > 0) TrangThaiSegments.Add(new StatusSegment("Warn",   "Chú ý",    summary.AttentionCount));
+            if (summary.SafeCount      > 0) TrangThaiSegments.Add(new StatusSegment("Safe",   "An toàn",  summary.SafeCount));
+            if (summary.CompletedCount > 0) TrangThaiSegments.Add(new StatusSegment("Done",   "Đã xong",  summary.CompletedCount));
 
-            BieuDoMonHoc = new ISeries[]
-            {
-                new ColumnSeries<int> { Values = summary.TaskCounts.ToArray(), Name = "Số bài tập", Fill = new SolidColorPaint(SKColors.CornflowerBlue) }
-            };
-            TrucXMonHoc = new[] { new Axis { Labels = summary.SubjectLabels.ToArray(), LabelsRotation = 15 } };
+            // Time progress bars
+            TienDoThoiGian.Clear();
+            for (int i = 0; i < summary.SubjectLabels.Count; i++)
+                TienDoThoiGian.Add(new SubjectTimeProgress(summary.SubjectLabels[i], summary.ExpectedMinutes[i], summary.ActualMinutes[i]));
+            MaxThoiGian = TienDoThoiGian.Count > 0
+                ? TienDoThoiGian.Max(x => Math.Max(x.Expected, x.Actual))
+                : 1;
+            if (MaxThoiGian <= 0) MaxThoiGian = 1;
 
-            BieuDoThoiGian = new ISeries[]
-            {
-                new ColumnSeries<double> { Values = summary.ExpectedMinutes.ToArray(), Name = "Kỳ vọng (phút)", Fill = new SolidColorPaint(SKColors.CornflowerBlue) },
-                new ColumnSeries<double> { Values = summary.ActualMinutes.ToArray(), Name = "Thực tế đã học (phút)", Fill = new SolidColorPaint(SKColors.MediumSeaGreen) }
-            };
-            TrucXThoiGian = new[] { new Axis { Labels = summary.SubjectLabels.ToArray(), LabelsRotation = 15 } };
+            // Workload bars
+            KhoiLuongMonHoc.Clear();
+            for (int i = 0; i < summary.SubjectLabels.Count; i++)
+                KhoiLuongMonHoc.Add(new SubjectWorkload(summary.SubjectLabels[i], summary.TaskCounts[i]));
+            MaxKhoiLuong = KhoiLuongMonHoc.Count > 0
+                ? KhoiLuongMonHoc.Max(x => x.Count)
+                : 1;
+            if (MaxKhoiLuong <= 0) MaxKhoiLuong = 1;
         }
 
         private void ApplySchedule(ScheduleDay? todaySchedule)
