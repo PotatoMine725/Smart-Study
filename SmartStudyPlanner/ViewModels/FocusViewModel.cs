@@ -2,9 +2,12 @@
 using CommunityToolkit.Mvvm.Input;
 using SmartStudyPlanner.Infrastructure.Persistence.Repositories;
 using SmartStudyPlanner.Models;
+using SmartStudyPlanner.Models.Telemetry;
 using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Services.Telemetry;
 using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Windows.Threading;
 
 namespace SmartStudyPlanner.ViewModels
@@ -20,6 +23,7 @@ namespace SmartStudyPlanner.ViewModels
 
         private readonly IStudyLogRepository _studyLogRepository;
         private readonly IStudyTelemetry _telemetry;
+        private readonly IStudyTimeOutcomeLogRepository _outcomeLogRepo;
 
         public TaskDashboardItem TaskHienTai { get; set; }
 
@@ -32,15 +36,18 @@ namespace SmartStudyPlanner.ViewModels
         public Action OnKetThuc { get; set; }
 
         public FocusViewModel(TaskDashboardItem task)
-            : this(task, ServiceLocator.Get<IStudyLogRepository>(), ServiceLocator.Get<IStudyTelemetry>()) { }
+            : this(task, ServiceLocator.Get<IStudyLogRepository>(), ServiceLocator.Get<IStudyTelemetry>(), ServiceLocator.Get<IStudyTimeOutcomeLogRepository>()) { }
         public FocusViewModel(TaskDashboardItem task, IStudyLogRepository studyLogRepository)
-            : this(task, studyLogRepository, new NullStudyTelemetry()) { }
-
+            : this(task, studyLogRepository, new NullStudyTelemetry(), new NullStudyTimeOutcomeLogRepository()) { }
         public FocusViewModel(TaskDashboardItem task, IStudyLogRepository studyLogRepository, IStudyTelemetry telemetry)
+            : this(task, studyLogRepository, telemetry, new NullStudyTimeOutcomeLogRepository()) { }
+
+        public FocusViewModel(TaskDashboardItem task, IStudyLogRepository studyLogRepository, IStudyTelemetry telemetry, IStudyTimeOutcomeLogRepository outcomeLogRepo)
         {
             TaskHienTai = task;
             _studyLogRepository = studyLogRepository;
             _telemetry = telemetry;
+            _outcomeLogRepo = outcomeLogRepo;
             TieuDeTask = $"Đang Focus: {task.TenTask} ({task.TenMonHoc})";
 
             ThietLapPomodoro(true);
@@ -99,8 +106,27 @@ namespace SmartStudyPlanner.ViewModels
             int phutDaHoc = _tongGiayDaHoc / 60;
             if (phutDaHoc > 0)
             {
+                // T1: capture pre-increment value before += so StudiedMinutesSoFar matches
+                // the feature the predictor saw at prediction time (task.ThoiGianDaHoc before this session).
+                int studiedSoFar = TaskHienTai.TaskGoc.ThoiGianDaHoc;
                 TaskHienTai.TaskGoc.ThoiGianDaHoc += phutDaHoc;
                 Services.StreakManager.UpdateStreak();
+
+                _ = _outcomeLogRepo.AddAsync(new StudyTimeOutcomeLog
+                {
+                    Id                  = Guid.NewGuid(),
+                    CreatedUtc          = DateTime.UtcNow,
+                    MaTask              = TaskHienTai.TaskGoc.MaTask,
+                    TaskType            = (int)TaskHienTai.TaskGoc.LoaiTask,
+                    Difficulty          = TaskHienTai.TaskGoc.DoKho,
+                    Credits             = (float)(TaskHienTai.MonHocGoc?.SoTinChi ?? 0),
+                    DaysLeft            = (float)(TaskHienTai.TaskGoc.HanChot - DateTime.Today).TotalDays,
+                    StudiedMinutesSoFar = studiedSoFar,
+                    ActualMinutes       = phutDaHoc,
+                    PredictedMinutes    = null,
+                    WasMlPrediction     = TaskHienTai.IsMLPrediction,
+                    Confidence          = null,
+                });
             }
 
             _ = _studyLogRepository.AddAsync(new StudyLog
@@ -138,7 +164,18 @@ namespace SmartStudyPlanner.ViewModels
 
         private sealed class NullStudyTelemetry : IStudyTelemetry
         {
-            public void Track(string eventName, System.Collections.Generic.IDictionary<string, string>? properties = null) { }
+            public void Track(string eventName, IDictionary<string, string>? properties = null) { }
+        }
+
+        private sealed class NullStudyTimeOutcomeLogRepository : IStudyTimeOutcomeLogRepository
+        {
+            public static readonly NullStudyTimeOutcomeLogRepository Instance = new();
+            public Task AddAsync(StudyTimeOutcomeLog entry, System.Threading.CancellationToken ct = default) => Task.CompletedTask;
+            public Task<IReadOnlyList<StudyTimeOutcomeLog>> GetAllAsync(System.Threading.CancellationToken ct = default)
+                => Task.FromResult<IReadOnlyList<StudyTimeOutcomeLog>>(Array.Empty<StudyTimeOutcomeLog>());
+            public Task<IReadOnlyList<StudyTimeOutcomeLog>> GetSinceAsync(DateTime since, System.Threading.CancellationToken ct = default)
+                => Task.FromResult<IReadOnlyList<StudyTimeOutcomeLog>>(Array.Empty<StudyTimeOutcomeLog>());
+            public Task<int> CountAsync(System.Threading.CancellationToken ct = default) => Task.FromResult(0);
         }
     }
 }
