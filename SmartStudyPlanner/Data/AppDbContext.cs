@@ -22,6 +22,7 @@ namespace SmartStudyPlanner.Data
         public DbSet<TaskReferenceLink> TaskReferenceLinks => Set<TaskReferenceLink>();
         public DbSet<DifficultyLabelLog> DifficultyLabelLogs => Set<DifficultyLabelLog>();
         public DbSet<WeightChangeLog> WeightChangeLogs => Set<WeightChangeLog>();
+        public DbSet<StudyTimeOutcomeLog> StudyTimeOutcomeLogs => Set<StudyTimeOutcomeLog>();
 
         // 2. CẤU HÌNH ĐƯỜNG DẪN LƯU FILE SQLITE
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -72,6 +73,7 @@ namespace SmartStudyPlanner.Data
             // Telemetry log tables — standalone, no FK to StudyTask (MaTask nullable reference only)
             modelBuilder.Entity<DifficultyLabelLog>(b => b.HasKey(e => e.Id));
             modelBuilder.Entity<WeightChangeLog>(b => b.HasKey(e => e.Id));
+            modelBuilder.Entity<StudyTimeOutcomeLog>(b => b.HasKey(e => e.Id));
         }
     }
 }

@@ -115,6 +115,58 @@ namespace SmartStudyPlanner.Tests.Data
 
             Assert.Equal(1, TableCount(conn, "DifficultyLabelLogs"));
             Assert.Equal(1, TableCount(conn, "WeightChangeLogs"));
+            Assert.Equal(1, TableCount(conn, "StudyTimeOutcomeLogs"));
+        }
+
+        // M8-C gate — mirror "M8 gate #4" for StudyTimeOutcomeLogs.
+        // Simulates a DB that existed before M8-C (has M8 tables but not StudyTimeOutcomeLogs).
+        [Fact]
+        public async Task EnsureTables_OnPreM8CDb_CreatesOutcomeLogsAndRoundTrips()
+        {
+            var conn = TestDb.OpenConnection();
+            using var _ = conn;
+
+            // 1) Full schema via EnsureCreated (includes StudyTimeOutcomeLogs now).
+            using (var seed = TestDb.Create(conn)) { /* EnsureCreated */ }
+
+            // 2) Simulate pre-M8C DB: drop only StudyTimeOutcomeLogs.
+            using (var downgrade = TestDb.Create(conn))
+            {
+                downgrade.Database.ExecuteSqlRaw("DROP TABLE StudyTimeOutcomeLogs");
+            }
+
+            // 3) Sanity: table is gone and EnsureCreated is a no-op on existing DB.
+            using (var afterEnsureCreated = TestDb.Create(conn)) { }
+            Assert.Equal(0, TableCount(conn, "StudyTimeOutcomeLogs"));
+
+            // 4) Production seam → table must reappear.
+            using (var migrate = TestDb.Create(conn))
+            {
+                TelemetrySchema.EnsureTables(migrate);
+            }
+            Assert.Equal(1, TableCount(conn, "StudyTimeOutcomeLogs"));
+
+            // 5) Round-trip via real repo: patched table must accept insert.
+            var repo = new SqliteStudyTimeOutcomeLogRepository(() => TestDb.Create(conn));
+            var entry = new StudyTimeOutcomeLog
+            {
+                Id = Guid.NewGuid(),
+                CreatedUtc = DateTime.UtcNow,
+                MaTask = null,
+                TaskType = (int)LoaiCongViec.BaiTapVeNha,
+                Difficulty = 3f,
+                Credits = 3f,
+                DaysLeft = 5f,
+                StudiedMinutesSoFar = 0f,
+                ActualMinutes = 45f,
+                PredictedMinutes = null,
+                WasMlPrediction = false,
+                Confidence = null,
+            };
+            await repo.AddAsync(entry);
+
+            using var verify = TestDb.Create(conn);
+            Assert.NotNull(await verify.StudyTimeOutcomeLogs.FindAsync(entry.Id));
         }
     }
 }

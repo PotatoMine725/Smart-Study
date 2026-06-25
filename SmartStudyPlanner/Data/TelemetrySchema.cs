@@ -33,6 +33,22 @@ namespace SmartStudyPlanner.Data
                 )");
 
             db.Database.ExecuteSqlRaw(@"
+                CREATE TABLE IF NOT EXISTS StudyTimeOutcomeLogs (
+                    Id TEXT NOT NULL PRIMARY KEY,
+                    CreatedUtc TEXT NOT NULL,
+                    MaTask TEXT NULL,
+                    TaskType INTEGER NOT NULL,
+                    Difficulty REAL NOT NULL,
+                    Credits REAL NOT NULL,
+                    DaysLeft REAL NOT NULL,
+                    StudiedMinutesSoFar REAL NOT NULL,
+                    ActualMinutes REAL NOT NULL,
+                    PredictedMinutes REAL NULL,
+                    WasMlPrediction INTEGER NOT NULL,
+                    Confidence REAL NULL
+                )");
+
+            db.Database.ExecuteSqlRaw(@"
                 CREATE TABLE IF NOT EXISTS WeightChangeLogs (
                     Id TEXT NOT NULL PRIMARY KEY,
                     AppliedUtc TEXT NOT NULL,
