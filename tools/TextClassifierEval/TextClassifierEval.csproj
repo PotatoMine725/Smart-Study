@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Throwaway, NOT shipped. Deliberately excluded from SmartStudyPlanner.slnx so it
+    does not affect the main build / 244-test suite. Kept in repo for provenance,
+    mirroring datasheets/_merge_seed.py.
+
+    Purpose: section 7.3 of docs/plans/2026-06-16-m8a-textclassifier-retrain.md:
+    stratified 80/20 per-class recall evaluation of the TextClassifier seed. Mirrors
+    the prod pipeline in TextClassifierModelManager.cs exactly. See Program.cs header
+    for the run command.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.ML" Version="3.0.1" />
+  </ItemGroup>
+
+</Project>
