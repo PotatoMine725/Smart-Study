@@ -4,6 +4,16 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
+## 2026-06-18 — M8-A TextClassifier seed v4 (collected_v4 merge + recall eval)
+
+| Area | Change | Verification |
+|---|---|---|
+| Services/ML/TextClassifier | Merge 205 vetted/deduped `collected_v4` rows into embedded `seed_intents.csv` (**698 → 903**, purely additive). Per-class: ThiGiuaKy +99 (85→184), BaiTapVeNha +56 (124→180), DoAnCuoiKy +50 (131→181); majorities untouched. Imbalance 2.21× → **1.11×**. SHA-256 change trips the `SeedHash` gate → seed-only model auto-retrains on next init (no code change) | `ab5112c` |
+| datasheets/ | Byte-safe one-off merge script `_merge_seed.py` (UTF-8 strict, dedup on normalized `InputText`) + the 205-row `collected_v4.csv` source. Kept for provenance; outside the build | `8855874` |
+| tools/TextClassifierEval | Throwaway net10.0 harness (not in `.slnx`) — stratified 80/20 per-class recall eval mirroring the prod pipeline. Before/after (v698 vs v903): MacroAccuracy flat at 97.25%, minority recall did not regress, minority test support grew (ThiGiuaKy 17→37, BaiTapVeNha 25→36). Report: `docs/reports/2026-06-25-m8a-textclassifier-v4-recall-eval.md` | build pass; 244 pass |
+
+Merge: continues the project's own label policy (drop `NhacNho`/`OnTap`/`Khac`; `BaiTap→BaiTapVeNha`, `DuAn→DoAnCuoiKy`) with no enum/UI change. TextClassifier remains the sole ML component (`ML_Heuristic_design.md` §5.1); Difficulty/weights stay heuristic.
+
 ## 2026-06-11 — M8 Ground-Truth Instrumentation (Slices 0–2B)
 
 | Slice | Area | Change | Verification |
