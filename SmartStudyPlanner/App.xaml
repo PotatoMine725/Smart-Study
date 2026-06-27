@@ -11,6 +11,7 @@
                 <ResourceDictionary Source="pack://application:,,,/Themes/CommonStyles.xaml"/>
                 <ResourceDictionary Source="pack://application:,,,/Themes/SubjectPalette.xaml"/>
                 <ResourceDictionary Source="pack://application:,,,/Themes/DashboardStyles.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/Themes/AnalyticsStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
             <!-- Badge brushes — static, không đổi theo theme -->
