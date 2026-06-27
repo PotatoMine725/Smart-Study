@@ -80,7 +80,7 @@ namespace SmartStudyPlanner.ViewModels
                 _allLogs = await _studyLogRepository.GetForHocKyAsync(_hocKy);
                 HasEnoughData = _allLogs.Count >= 50;
                 SubjectOptions = new ObservableCollection<string>(new[] { "Tất cả" }
-                    .Concat(_hocKy.DanhSachMonHoc.Select(m => m.TenMonHoc).OrderBy(x => x)));
+                    .Concat(_hocKy.DanhSachMonHoc.Select(m => m.TenMonHoc).Distinct().OrderBy(x => x)));
                 ApplyFilters();
                 _telemetry.Track("analytics_open", new Dictionary<string, string> { ["semester"] = _hocKy.Ten });
             }

@@ -38,12 +38,13 @@ namespace SmartStudyPlanner.Services.Pipeline.Stages
                 var totalDays = Math.Max(1, (end - start).Days);
                 var expectedProgress = (double)daysPassed / totalDays;
 
-                foreach (var mon in semester.DanhSachMonHoc)
+                foreach (var g in semester.DanhSachMonHoc.GroupBy(m => m.TenMonHoc))
                 {
-                    var taskCount = mon.DanhSachTask.Count;
+                    var tasks = g.SelectMany(m => m.DanhSachTask).ToList();
+                    var taskCount = tasks.Count;
                     if (taskCount == 0) continue;
 
-                    var completed = mon.DanhSachTask.Count(t => t.TrangThai == StudyTaskStatus.HoanThanh);
+                    var completed = tasks.Count(t => t.TrangThai == StudyTaskStatus.HoanThanh);
                     var progress = (double)completed / taskCount;
 
                     if (progress + 0.05 < expectedProgress)
@@ -51,7 +52,7 @@ namespace SmartStudyPlanner.Services.Pipeline.Stages
                         suggestions.Add(new AdaptationSuggestion
                         {
                             RuleKey = "progress_below_expected",
-                            Message = $"{mon.TenMonHoc}: progress thấp hơn expected progress, nên tăng priority cho tasks còn lại.",
+                            Message = $"{g.Key}: progress thấp hơn expected progress, nên tăng priority cho tasks còn lại.",
                             SuggestedPriorityDelta = 0.1,
                             SuggestedWorkloadDelta = 0
                         });
@@ -62,7 +63,7 @@ namespace SmartStudyPlanner.Services.Pipeline.Stages
                         suggestions.Add(new AdaptationSuggestion
                         {
                             RuleKey = "milestone_exceeded",
-                            Message = $"{mon.TenMonHoc}: đã hoàn thành milestone, có thể giảm workload kế tiếp.",
+                            Message = $"{g.Key}: đã hoàn thành milestone, có thể giảm workload kế tiếp.",
                             SuggestedPriorityDelta = 0,
                             SuggestedWorkloadDelta = -0.1
                         });
