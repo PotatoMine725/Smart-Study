@@ -25,6 +25,7 @@ namespace SmartStudyPlanner.ViewModels
         private readonly IRiskAnalyzer _riskAnalyzer;
         private readonly IPipelineOrchestrator _pipelineOrchestrator;
         private readonly IStudyTelemetry _telemetry;
+        private readonly IStreakManager _streak;
         private HocKy _hocKyHienTai;
         private static bool _daThongBao;
 
@@ -70,11 +71,12 @@ namespace SmartStudyPlanner.ViewModels
                 ServiceLocator.Get<IWorkloadService>(),
                 ServiceLocator.Get<IRiskAnalyzer>(),
                 ServiceLocator.Get<IPipelineOrchestrator>(),
-                ServiceLocator.Get<IStudyTelemetry>())
+                ServiceLocator.Get<IStudyTelemetry>(),
+                ServiceLocator.Get<IStreakManager>())
         {
         }
 
-        public DashboardViewModel(HocKy hocKy, IHocKyRepository hocKyRepository, IDecisionEngine decisionEngine, IWorkloadService workloadService, IRiskAnalyzer riskAnalyzer, IPipelineOrchestrator pipelineOrchestrator, IStudyTelemetry telemetry)
+        public DashboardViewModel(HocKy hocKy, IHocKyRepository hocKyRepository, IDecisionEngine decisionEngine, IWorkloadService workloadService, IRiskAnalyzer riskAnalyzer, IPipelineOrchestrator pipelineOrchestrator, IStudyTelemetry telemetry, IStreakManager streak)
         {
             _hocKyHienTai = hocKy;
             _hocKyRepository = hocKyRepository;
@@ -83,6 +85,7 @@ namespace SmartStudyPlanner.ViewModels
             _riskAnalyzer = riskAnalyzer;
             _pipelineOrchestrator = pipelineOrchestrator;
             _telemetry = telemetry;
+            _streak = streak;
             LoadDuLieuDashboard();
         }
 
@@ -276,7 +279,7 @@ namespace SmartStudyPlanner.ViewModels
 
         private void ApplyStreak()
         {
-            var dataStreak = Services.StreakManager.GetCurrentStreak();
+            var dataStreak = _streak.GetCurrentStreak();
             ChuoiStreak = $"🔥 {dataStreak.StreakCount} Ngày";
         }
 

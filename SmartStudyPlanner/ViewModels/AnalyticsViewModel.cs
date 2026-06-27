@@ -27,6 +27,7 @@ namespace SmartStudyPlanner.ViewModels
         private readonly IStudyTelemetry _telemetry;
         private readonly IStudyTimeTrainingDataSource _trainingDataSource;
         private readonly IMLModelManager? _mlModelManager;
+        private readonly IStreakManager _streak;
         private List<StudyLog> _allLogs = new();
 
         public HocKy HocKy => _hocKy;
@@ -52,8 +53,9 @@ namespace SmartStudyPlanner.ViewModels
         [ObservableProperty] private string weeklyNarrative = string.Empty;
         [ObservableProperty] private string recommendedNextAction = string.Empty;
 
+        // Production: bypass thẳng tới ctor real body với streak thật (disk-backed) + ml=null.
         public AnalyticsViewModel(HocKy hocKy)
-            : this(hocKy, ServiceLocator.Get<IStudyLogRepository>(), ServiceLocator.Get<IStudyAnalytics>(), ServiceLocator.Get<IStudyTelemetry>(), ServiceLocator.Get<IStudyTimeTrainingDataSource>()) { }
+            : this(hocKy, ServiceLocator.Get<IStudyLogRepository>(), ServiceLocator.Get<IStudyAnalytics>(), ServiceLocator.Get<IStudyTelemetry>(), ServiceLocator.Get<IStudyTimeTrainingDataSource>(), null, ServiceLocator.Get<IStreakManager>()) { }
 
         public AnalyticsViewModel(HocKy hocKy, IStudyLogRepository studyLogRepository, IStudyAnalytics analytics, IStudyTelemetry telemetry)
             : this(hocKy, studyLogRepository, analytics, telemetry, new NullStudyTimeTrainingDataSource()) { }
@@ -61,7 +63,11 @@ namespace SmartStudyPlanner.ViewModels
         public AnalyticsViewModel(HocKy hocKy, IStudyLogRepository studyLogRepository, IStudyAnalytics analytics, IStudyTelemetry telemetry, IStudyTimeTrainingDataSource trainingDataSource)
             : this(hocKy, studyLogRepository, analytics, telemetry, trainingDataSource, null) { }
 
+        // Ctor test-facing: default streak về NullStreakManager để không chạm đĩa.
         public AnalyticsViewModel(HocKy hocKy, IStudyLogRepository studyLogRepository, IStudyAnalytics analytics, IStudyTelemetry telemetry, IStudyTimeTrainingDataSource trainingDataSource, IMLModelManager? mlModelManager)
+            : this(hocKy, studyLogRepository, analytics, telemetry, trainingDataSource, mlModelManager, new NullStreakManager()) { }
+
+        public AnalyticsViewModel(HocKy hocKy, IStudyLogRepository studyLogRepository, IStudyAnalytics analytics, IStudyTelemetry telemetry, IStudyTimeTrainingDataSource trainingDataSource, IMLModelManager? mlModelManager, IStreakManager streak)
         {
             _hocKy = hocKy;
             _studyLogRepository = studyLogRepository;
@@ -69,6 +75,7 @@ namespace SmartStudyPlanner.ViewModels
             _telemetry = telemetry;
             _trainingDataSource = trainingDataSource;
             _mlModelManager = mlModelManager;
+            _streak = streak;
         }
 
         public async Task LoadAsync()
@@ -151,7 +158,7 @@ namespace SmartStudyPlanner.ViewModels
             int totalTasks    = insights.Sum(x => x.TotalTaskCount);
             int completedTasks = insights.Sum(x => x.CompletedTaskCount);
             double completionRate = totalTasks == 0 ? 0.0 : (double)completedTasks / totalTasks;
-            int    streakDays     = StreakManager.GetCurrentStreak().StreakCount;
+            int    streakDays     = _streak.GetCurrentStreak().StreakCount;
             double timeEfficiency = filtered.Count == 0 ? 0.0
                 : filtered.Count(l => l.DaHoanThanh) / (double)filtered.Count;
 
@@ -241,6 +248,13 @@ namespace SmartStudyPlanner.ViewModels
         {
             public Task<System.Collections.Generic.IReadOnlyList<SmartStudyPlanner.Services.ML.Schema.StudyTimeInput>> BuildAsync(System.Threading.CancellationToken ct = default)
                 => Task.FromResult<System.Collections.Generic.IReadOnlyList<SmartStudyPlanner.Services.ML.Schema.StudyTimeInput>>(System.Array.Empty<SmartStudyPlanner.Services.ML.Schema.StudyTimeInput>());
+        }
+
+        // No-op streak cho ctor test-facing: trả streak rỗng, không chạm đĩa.
+        private sealed class NullStreakManager : IStreakManager
+        {
+            public UserStreakData GetCurrentStreak() => new UserStreakData();
+            public void UpdateStreak() { }
         }
     }
 }
