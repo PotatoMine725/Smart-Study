@@ -1,0 +1,31 @@
+# Plans
+
+> Implementation plans. Answers: **how** to ship a spec, broken into shippable slices.
+
+Differs from `active/` — `active/` holds the **current** plan in progress; `plans/` is the working area for any plan, including ones that are still being drafted or awaiting approval.
+
+## When to add a file here
+
+- A spec needs an execution path (file map, slice order, verification gate).
+- A refactor needs blast-radius analysis + commit-by-commit breakdown.
+- A multi-day effort needs explicit checkpoints.
+
+## Naming
+
+`YYYY-MM-DD-<short-kebab-slug>.md`.
+
+## Required sections
+
+1. **Goal** — what shipping this looks like.
+2. **Status** — `draft` / `in-progress` / `done`.
+3. **Slice list** — each slice = one shippable commit, with file map + exit criteria.
+4. **Pre-edit checklist** — `gitnexus_impact` + risk classification.
+5. **Acceptance gates** — `dotnet build`, `dotnet test`, `gitnexus_detect_changes`.
+6. **Out of scope** — explicit deferrals.
+
+## Lifecycle
+
+- `draft` → `in-progress` → `done`.
+- When a slice ships, record it in `docs/CHANGELOG.md`.
+- When all slices ship, delete the plan (it's now in CHANGELOG + architecture).
+- Active in-progress plans should also be linked from `docs/active/` for visibility.
