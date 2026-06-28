@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text.Json;
 using SmartStudyPlanner.Services.Strategies;
@@ -11,46 +11,77 @@ namespace SmartStudyPlanner.Services
         public DateTime LastStudyDate { get; set; } = DateTime.MinValue;
     }
 
-    public static class StreakManager
+    // Seam lưu trữ streak. Tách ra để loại tranh ghi file khi test chạy song song
+    // và để unit-test luật streak không cần chạm đĩa.
+    public interface IStreakStore
     {
-        // File lưu trữ chuỗi ngày sẽ nằm cạnh file database .db
-        private static readonly string FilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "streak_data.json");
+        UserStreakData Load();
+        void Save(UserStreakData data);
+    }
 
-        private static IClock _clock = new SystemClock();
+    // Logic streak (đọc/cập nhật chuỗi ngày). Instance + injectable thay cho static cũ.
+    public interface IStreakManager
+    {
+        UserStreakData GetCurrentStreak();
+        void UpdateStreak();
+    }
 
-        private static UserStreakData Load()
+    // Production store: ghi JSON cạnh file database .db. Giữ nguyên byte/schema bản static cũ
+    // (JsonSerializer.Serialize default options, guard File.Exists, try/catch -> data rỗng).
+    public class JsonFileStreakStore : IStreakStore
+    {
+        private readonly string _filePath;
+
+        public JsonFileStreakStore(string filePath)
         {
-            if (!File.Exists(FilePath)) return new UserStreakData();
+            _filePath = filePath;
+        }
+
+        public UserStreakData Load()
+        {
+            if (!File.Exists(_filePath)) return new UserStreakData();
             try
             {
-                string json = File.ReadAllText(FilePath);
+                string json = File.ReadAllText(_filePath);
                 return JsonSerializer.Deserialize<UserStreakData>(json) ?? new UserStreakData();
             }
             catch { return new UserStreakData(); }
         }
 
-        private static void Save(UserStreakData data)
+        public void Save(UserStreakData data)
         {
             string json = JsonSerializer.Serialize(data);
-            File.WriteAllText(FilePath, json);
+            File.WriteAllText(_filePath, json);
+        }
+    }
+
+    public class StreakManager : IStreakManager
+    {
+        private readonly IStreakStore _store;
+        private readonly IClock _clock;
+
+        public StreakManager(IStreakStore store, IClock clock)
+        {
+            _store = store;
+            _clock = clock;
         }
 
-        public static UserStreakData GetCurrentStreak()
+        public UserStreakData GetCurrentStreak()
         {
-            var data = Load();
+            var data = _store.Load();
 
             // LỜI NGUYỀN CỦA STREAK: Nếu hôm nay mà cách ngày học cuối cùng LỚN HƠN 1 NGÀY -> Mất chuỗi!
             if (data.StreakCount > 0 && (_clock.Now.Date - data.LastStudyDate.Date).TotalDays > 1)
             {
                 data.StreakCount = 0;
-                Save(data);
+                _store.Save(data);
             }
             return data;
         }
 
-        public static void UpdateStreak()
+        public void UpdateStreak()
         {
-            var data = Load();
+            var data = _store.Load();
             var today = _clock.Now.Date;
 
             if (data.LastStudyDate.Date == today) return; // Hôm nay đã được cộng chuỗi rồi thì thôi
@@ -62,7 +93,7 @@ namespace SmartStudyPlanner.Services
                 data.StreakCount = 1;
 
             data.LastStudyDate = today;
-            Save(data);
+            _store.Save(data);
         }
     }
 }

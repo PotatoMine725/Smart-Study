@@ -24,6 +24,7 @@ namespace SmartStudyPlanner.ViewModels
         private readonly IStudyLogRepository _studyLogRepository;
         private readonly IStudyTelemetry _telemetry;
         private readonly IStudyTimeOutcomeLogRepository _outcomeLogRepo;
+        private readonly IStreakManager _streak;
 
         public TaskDashboardItem TaskHienTai { get; set; }
 
@@ -35,19 +36,24 @@ namespace SmartStudyPlanner.ViewModels
 
         public Action OnKetThuc { get; set; }
 
+        // Production: resolve streak thật (disk-backed) qua ServiceLocator.
         public FocusViewModel(TaskDashboardItem task)
-            : this(task, ServiceLocator.Get<IStudyLogRepository>(), ServiceLocator.Get<IStudyTelemetry>(), ServiceLocator.Get<IStudyTimeOutcomeLogRepository>()) { }
+            : this(task, ServiceLocator.Get<IStudyLogRepository>(), ServiceLocator.Get<IStudyTelemetry>(), ServiceLocator.Get<IStudyTimeOutcomeLogRepository>(), ServiceLocator.Get<IStreakManager>()) { }
+        // Các ctor test-facing default về NullStreakManager để không chạm đĩa (mirror NullStudyTelemetry).
         public FocusViewModel(TaskDashboardItem task, IStudyLogRepository studyLogRepository)
-            : this(task, studyLogRepository, new NullStudyTelemetry(), new NullStudyTimeOutcomeLogRepository()) { }
+            : this(task, studyLogRepository, new NullStudyTelemetry(), new NullStudyTimeOutcomeLogRepository(), new NullStreakManager()) { }
         public FocusViewModel(TaskDashboardItem task, IStudyLogRepository studyLogRepository, IStudyTelemetry telemetry)
-            : this(task, studyLogRepository, telemetry, new NullStudyTimeOutcomeLogRepository()) { }
-
+            : this(task, studyLogRepository, telemetry, new NullStudyTimeOutcomeLogRepository(), new NullStreakManager()) { }
         public FocusViewModel(TaskDashboardItem task, IStudyLogRepository studyLogRepository, IStudyTelemetry telemetry, IStudyTimeOutcomeLogRepository outcomeLogRepo)
+            : this(task, studyLogRepository, telemetry, outcomeLogRepo, new NullStreakManager()) { }
+
+        public FocusViewModel(TaskDashboardItem task, IStudyLogRepository studyLogRepository, IStudyTelemetry telemetry, IStudyTimeOutcomeLogRepository outcomeLogRepo, IStreakManager streak)
         {
             TaskHienTai = task;
             _studyLogRepository = studyLogRepository;
             _telemetry = telemetry;
             _outcomeLogRepo = outcomeLogRepo;
+            _streak = streak;
             TieuDeTask = $"Đang Focus: {task.TenTask} ({task.TenMonHoc})";
 
             ThietLapPomodoro(true);
@@ -110,7 +116,7 @@ namespace SmartStudyPlanner.ViewModels
                 // the feature the predictor saw at prediction time (task.ThoiGianDaHoc before this session).
                 int studiedSoFar = TaskHienTai.TaskGoc.ThoiGianDaHoc;
                 TaskHienTai.TaskGoc.ThoiGianDaHoc += phutDaHoc;
-                Services.StreakManager.UpdateStreak();
+                _streak.UpdateStreak();
 
                 _ = _outcomeLogRepo.AddAsync(new StudyTimeOutcomeLog
                 {
@@ -165,6 +171,13 @@ namespace SmartStudyPlanner.ViewModels
         private sealed class NullStudyTelemetry : IStudyTelemetry
         {
             public void Track(string eventName, IDictionary<string, string>? properties = null) { }
+        }
+
+        // No-op streak: dùng cho ctor test-facing để không ghi streak_data.json.
+        private sealed class NullStreakManager : IStreakManager
+        {
+            public UserStreakData GetCurrentStreak() => new UserStreakData();
+            public void UpdateStreak() { }
         }
 
         private sealed class NullStudyTimeOutcomeLogRepository : IStudyTimeOutcomeLogRepository

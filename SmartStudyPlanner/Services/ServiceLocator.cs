@@ -55,6 +55,14 @@ namespace SmartStudyPlanner.Services
                 new StudyTimeTrainingDataSource(sp.GetRequiredService<IStudyTimeOutcomeLogRepository>()));
 
             services.AddSingleton<IClock, SystemClock>();
+
+            // Streak: store I/O tách khỏi luật streak (test seam). Production ghi đúng
+            // BaseDirectory/streak_data.json như bản static cũ; test inject InMemoryStreakStore.
+            services.AddSingleton<IStreakStore>(_ => new JsonFileStreakStore(
+                System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "streak_data.json")));
+            services.AddSingleton<IStreakManager>(sp =>
+                new StreakManager(sp.GetRequiredService<IStreakStore>(), sp.GetRequiredService<IClock>()));
+
             services.AddSingleton<ITaskTypeWeightProvider, DefaultTaskTypeWeightProvider>();
             services.AddSingleton<WeightConfig>(_ => WeightConfigStore.Load());
             services.AddSingleton<IDecisionEngine, DecisionEngineService>();

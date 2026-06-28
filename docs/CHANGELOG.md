@@ -4,6 +4,19 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
+## 2026-06-27 — Analytics UI redesign + duplicate-data fixes
+
+| Area | Change | Verification |
+|---|---|---|
+| Themes/AnalyticsStyles.xaml | **Created** — 16 component styles: `AnCard`, `AnPanel`, `AnEyebrow`, `AnPageTitle`, `AnSubText`, `AnSectionTick`, `AnSectionTitle`, `AnSectionSub`, `AnFieldLabel`, `AnKpiLabel`, `AnKpiValue`, `AnSolidButton`, `AnGhostButton`, `AnDataGridHeader`, `AnDataGridRow`, `AnDataGridCell`, `AnDataGrid`. Toàn bộ màu via `{DynamicResource}` → follow Light/Dark theme. | build pass |
+| App.xaml | Thêm `AnalyticsStyles.xaml` vào `MergedDictionaries` (sau `DashboardStyles.xaml`) | — |
+| Views/AnalyticsPage.xaml | **Thay toàn bộ** — layout narrative-first: header+filters (Grid 2-col), Narrative Hero card (câu chuyện tuần + điểm năng suất 46px), loading/empty states, Band A (7*/5* weekly+subject charts), Heatmap (7×52 UniformGrid), DataGrid `AnDataGrid`. 14 binding ViewModel giữ nguyên. | — |
+| ViewModels/AnalyticsViewModel.cs | Sửa `SubjectOptions`: thêm `.Distinct().OrderBy()` — dropdown môn học không còn hiện duplicate khi `DanhSachMonHoc` chứa nhiều instance cùng tên | — |
+| Services/Analytics/StudyAnalyticsService.cs | Sửa `ComputeSubjectInsights`: `GroupBy(TenMonHoc)` + `SelectMany(DanhSachTask)` — DataGrid chi tiết môn không còn lặp hàng | — |
+| Services/Pipeline/Stages/AdaptStage.cs | Sửa `Execute`: lặp theo `GroupBy(TenMonHoc)` thay vì từng `MonHoc` instance — "Gợi ý thích nghi" trên Dashboard không còn duplicate entry cùng môn | 244 pass |
+
+Root cause (3 bugs): `DanhSachMonHoc` lưu nhiều `MonHoc` object có cùng `TenMonHoc`. Mọi code duyệt list trực tiếp sinh ra 1 kết quả per-instance thay vì per-subject. Fix pattern: `GroupBy(m => m.TenMonHoc)` + `SelectMany(DanhSachTask)` áp dụng nhất quán cho cả service layer, pipeline, và ViewModel.
+
 ## 2026-06-18 — M8-A TextClassifier seed v4 (collected_v4 merge + recall eval)
 
 | Area | Change | Verification |

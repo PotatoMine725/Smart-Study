@@ -1,7 +1,8 @@
 ﻿<Window x:Class="SmartStudyPlanner.Views.WorkloadBalancerWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Workload Balancer - Trợ lý Lên lịch" Height="650" Width="500" 
+        Title="Workload Balancer - Trợ lý Lên lịch" Height="650" Width="500"
+        Icon="pack://application:,,,/Assets/icon.ico"
         WindowStartupLocation="CenterOwner" Background="{DynamicResource AppBackground}">
 
     <Grid Margin="20">
