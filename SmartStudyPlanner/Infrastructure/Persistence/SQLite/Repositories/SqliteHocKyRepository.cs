@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -22,11 +23,52 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
         {
             using var db = _ctxFactory();
             // Dùng ToListAsync() để lôi TOÀN BỘ học kỳ có trong DB lên
-            return await db.HocKys
+            var danhSach = await db.HocKys
                      .Where(hk => !hk.IsSeeded)
                      .Include(hk => hk.DanhSachMonHoc)
                         .ThenInclude(mon => mon.DanhSachTask)
                      .ToListAsync(ct);
+
+            // Khử trùng môn học clone: DB có thể chứa nhiều MonHoc cùng TenMonHoc
+            // (do seed/lưu lặp) → giữ 1 bản đại diện mỗi tên để UI + mọi consumer
+            // thấy danh sách sạch. Nhất quán pattern GroupBy(TenMonHoc) toàn dự án.
+            // GỘP task từ MỌI clone (SelectMany, distinct theo MaTask) vào bản đại
+            // diện trước khi loại clone → KHÔNG mất task nằm ở clone không-đại-diện.
+            // Lần LuuHocKyAsync kế tiếp ghi đè danh sách đã khử trùng → prune clone khỏi DB.
+            foreach (var hocKy in danhSach)
+            {
+                var monDuyNhat = hocKy.DanhSachMonHoc
+                    .GroupBy(mon => mon.TenMonHoc)
+                    .Select(nhom =>
+                    {
+                        var daiDien = nhom.First();
+
+                        var taskGop = nhom
+                            .SelectMany(mon => mon.DanhSachTask)
+                            .GroupBy(task => task.MaTask)
+                            .Select(nhomTask => nhomTask.First())
+                            .ToList();
+
+                        if (taskGop.Count != daiDien.DanhSachTask.Count)
+                        {
+                            daiDien.DanhSachTask.Clear();
+                            foreach (var task in taskGop)
+                                daiDien.DanhSachTask.Add(task);
+                        }
+
+                        return daiDien;
+                    })
+                    .ToList();
+
+                if (monDuyNhat.Count != hocKy.DanhSachMonHoc.Count)
+                {
+                    hocKy.DanhSachMonHoc.Clear();
+                    foreach (var mon in monDuyNhat)
+                        hocKy.DanhSachMonHoc.Add(mon);
+                }
+            }
+
+            return danhSach;
         }
 
         public async Task LuuHocKyAsync(HocKy hocKy, CancellationToken ct = default)
