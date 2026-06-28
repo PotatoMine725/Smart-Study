@@ -10,6 +10,7 @@
 	<AssemblyVersion>1.5.0</AssemblyVersion>
 	<FileVersion>1.5.0</FileVersion>
 	<Version>1.5.0</Version>
+	<ApplicationIcon>Assets\icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,6 +27,11 @@
   <ItemGroup>
     <!-- M8-A TextClassifier seed dataset: trained at first run when no model exists on disk. -->
     <EmbeddedResource Include="Services\ML\TextClassifier\seed_intents.csv" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- App/window icon, embedded into the assembly so publish stays self-contained. -->
+    <Resource Include="Assets\icon.ico" />
   </ItemGroup>
 
 </Project>

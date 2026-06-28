@@ -30,22 +30,24 @@ namespace SmartStudyPlanner.Services.Analytics
                 .GroupBy(l => l.MaTask)
                 .ToDictionary(g => g.Key, g => g.Sum(l => l.SoPhutHoc));
 
-            return hocKy.DanhSachMonHoc.Select(mon =>
-            {
-                var tasks     = mon.DanhSachTask.ToList();
-                var completed = tasks.Count(t => t.TrangThai == StudyTaskStatus.HoanThanh);
-                var studied   = tasks.Sum(t =>
-                    logsByTask.TryGetValue(t.MaTask, out var m) ? m : t.ThoiGianDaHoc);
-
-                return new SubjectInsight
+            return hocKy.DanhSachMonHoc
+                .GroupBy(mon => mon.TenMonHoc)
+                .Select(g =>
                 {
-                    SubjectName        = mon.TenMonHoc,
-                    TotalTaskCount     = tasks.Count,
-                    CompletedTaskCount = completed,
-                    CompletionRate     = tasks.Count == 0 ? 0.0 : (double)completed / tasks.Count,
-                    TotalStudyMinutes  = studied
-                };
-            }).ToList();
+                    var tasks     = g.SelectMany(mon => mon.DanhSachTask).ToList();
+                    var completed = tasks.Count(t => t.TrangThai == StudyTaskStatus.HoanThanh);
+                    var studied   = tasks.Sum(t =>
+                        logsByTask.TryGetValue(t.MaTask, out var m) ? m : t.ThoiGianDaHoc);
+
+                    return new SubjectInsight
+                    {
+                        SubjectName        = g.Key,
+                        TotalTaskCount     = tasks.Count,
+                        CompletedTaskCount = completed,
+                        CompletionRate     = tasks.Count == 0 ? 0.0 : (double)completed / tasks.Count,
+                        TotalStudyMinutes  = studied
+                    };
+                }).ToList();
         }
 
         public ProductivityScore ComputeProductivityScore(double completionRate, int streakDays, double timeEfficiency)

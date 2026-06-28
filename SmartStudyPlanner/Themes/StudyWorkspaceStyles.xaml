@@ -1,0 +1,222 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+      "MÔN HỌC & BÀI TẬP" REDESIGN — component styles
+      ===============================================
+      Dùng chung cho QuanLyMonHocPage + QuanLyTaskPage. Mọi màu bề mặt là
+      {DynamicResource} vào theme đang chạy (Light/Dark) → đổi theme qua
+      ThemeManager là cả 2 trang tự cập nhật. Màu nhận diện môn + severity lấy
+      từ SubjectPalette.xaml. Không dùng icon — dùng "vạch màu" (section tick)
+      và "ô màu" (swatch).
+
+      Merge SAU CommonStyles.xaml và SAU SubjectPalette.xaml trong App.xaml.
+    -->
+
+    <!-- ─────────── surfaces ─────────── -->
+    <Style x:Key="WsCard" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="12"/>
+    </Style>
+
+    <Style x:Key="WsPanel" TargetType="Border" BasedOn="{StaticResource WsCard}">
+        <Setter Property="Padding" Value="16"/>
+    </Style>
+
+    <!-- ─────────── eyebrow + titles ─────────── -->
+    <Style x:Key="WsEyebrow" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{DynamicResource AccentColor}"/>
+    </Style>
+
+    <Style x:Key="WsPageTitle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="24"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryText}"/>
+        <Setter Property="Margin" Value="0,5,0,0"/>
+    </Style>
+
+    <Style x:Key="WsSubText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="Foreground" Value="{DynamicResource SecondaryText}"/>
+        <Setter Property="Margin" Value="0,5,0,0"/>
+    </Style>
+
+    <!-- section header: 18×3 colour tick + UPPERCASE title -->
+    <Style x:Key="WsSectionTick" TargetType="Border">
+        <Setter Property="Width" Value="18"/>
+        <Setter Property="Height" Value="3"/>
+        <Setter Property="CornerRadius" Value="2"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="0,0,10,0"/>
+    </Style>
+
+    <Style x:Key="WsSectionTitle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryText}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="WsSectionSub" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11.5"/>
+        <Setter Property="Foreground" Value="{DynamicResource SecondaryText}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="10,0,0,0"/>
+    </Style>
+
+    <Style x:Key="WsFieldLabel" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="10.5"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource SecondaryText}"/>
+        <Setter Property="Margin" Value="0,0,0,5"/>
+    </Style>
+
+    <!-- ─────────── inputs ─────────── -->
+    <Style x:Key="WsInput" TargetType="Control">
+        <Setter Property="Background" Value="{DynamicResource ChartBackground}"/>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryText}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="8,6"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Height" Value="34"/>
+    </Style>
+
+    <!-- ─────────── Smart Add hero ─────────── -->
+    <Style x:Key="WsSmartAddCard" TargetType="Border" BasedOn="{StaticResource WsCard}">
+        <Setter Property="Background" Value="{DynamicResource StatCardBackground}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentColor}"/>
+        <Setter Property="Padding" Value="18,16"/>
+    </Style>
+
+    <Style x:Key="WsTagPill" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource StatCardBackground}"/>
+        <Setter Property="CornerRadius" Value="999"/>
+        <Setter Property="Padding" Value="10,4"/>
+        <Setter Property="HorizontalAlignment" Value="Left"/>
+    </Style>
+
+    <!-- ─────────── pills ("Mức độ") ─────────── -->
+    <Style x:Key="WsPill" TargetType="Border">
+        <Setter Property="CornerRadius" Value="999"/>
+        <Setter Property="Padding" Value="9,3"/>
+        <Setter Property="HorizontalAlignment" Value="Left"/>
+    </Style>
+
+    <!-- ─────────── buttons ─────────── -->
+    <Style x:Key="WsSolidButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Background" Value="{DynamicResource AccentColor}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="11.5"/>
+        <Setter Property="Padding" Value="13,7"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+
+    <Style x:Key="WsGhostButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{DynamicResource SecondaryText}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="Padding" Value="11,5"/>
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+
+    <Style x:Key="WsWarnButton" TargetType="Button" BasedOn="{StaticResource WsGhostButton}">
+        <Setter Property="Foreground" Value="{DynamicResource WarningColor}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource WarningColor}"/>
+    </Style>
+
+    <Style x:Key="WsDangerButton" TargetType="Button" BasedOn="{StaticResource WsGhostButton}">
+        <Setter Property="Foreground" Value="{DynamicResource DangerColor}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource DangerColor}"/>
+    </Style>
+
+    <Style x:Key="WsBackButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Foreground" Value="{DynamicResource AccentColor}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="HorizontalAlignment" Value="Left"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Padding" Value="0,4"/>
+    </Style>
+
+    <!-- ─────────── meters / tracks ─────────── -->
+    <Style x:Key="WsMeterTrack" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource BorderColor}"/>
+        <Setter Property="CornerRadius" Value="3"/>
+        <Setter Property="Height" Value="4"/>
+    </Style>
+
+    <!-- ─────────── DataGrid ─────────── -->
+    <Style x:Key="WsDataGridHeader" TargetType="DataGridColumnHeader">
+        <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+        <Setter Property="Foreground" Value="{DynamicResource SecondaryText}"/>
+        <Setter Property="FontSize" Value="10.5"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="Padding" Value="14,11"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+    </Style>
+
+    <Style x:Key="WsDataGridRow" TargetType="DataGridRow">
+        <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryText}"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource SurfaceHover}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="WsDataGridCell" TargetType="DataGridCell">
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="14,10"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryText}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridCell">
+                    <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter VerticalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{DynamicResource PrimaryText}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="WsDataGrid" TargetType="DataGrid">
+        <Setter Property="AutoGenerateColumns" Value="False"/>
+        <Setter Property="IsReadOnly" Value="True"/>
+        <Setter Property="CanUserAddRows" Value="False"/>
+        <Setter Property="CanUserResizeRows" Value="False"/>
+        <Setter Property="HeadersVisibility" Value="Column"/>
+        <Setter Property="SelectionMode" Value="Single"/>
+        <Setter Property="Background" Value="{DynamicResource CardBackground}"/>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryText}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="RowBackground" Value="{DynamicResource CardBackground}"/>
+        <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+        <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource BorderColor}"/>
+        <Setter Property="RowHeight" Value="52"/>
+        <Setter Property="ColumnHeaderStyle" Value="{StaticResource WsDataGridHeader}"/>
+        <Setter Property="RowStyle" Value="{StaticResource WsDataGridRow}"/>
+        <Setter Property="CellStyle" Value="{StaticResource WsDataGridCell}"/>
+    </Style>
+</ResourceDictionary>

@@ -81,3 +81,18 @@ project.lock.json
 project.fragment.lock.json
 artifacts/
 .gitnexus
+
+# =============================
+# Local agent / tooling caches
+# =============================
+.understand-anything/
+
+# =============================
+# Local runtime data (sqlite, etc.)
+# =============================
+data/
+
+# =============================
+# Archived design scratch (kept local, superseded by shipped UI)
+# =============================
+legacy/

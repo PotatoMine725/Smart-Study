@@ -5,74 +5,108 @@
       xmlns:conv="clr-namespace:SmartStudyPlanner.Converters"
       Title="Analytics" Loaded="Page_Loaded"
       Background="{DynamicResource AppBackground}">
+
+    <!--
+      REDESIGN — Analytics narrative-first. Giữ NGUYÊN binding của AnalyticsViewModel:
+        RangeOptions/SelectedRangeDays · SubjectOptions/SelectedSubject
+        WeeklyNarrative · RecommendedNextAction
+        ProductivityValue · ProductivityLabel · HasEnoughData · RetrainModelCommand
+        IsLoading · HasData · EmptyStateMessage
+        WeeklyChartSeries/WeeklyChartXAxes · SubjectChartSeries/SubjectChartXAxes
+        HeatmapCells (Level/Tooltip) · SubjectInsights (SubjectName/TotalTaskCount/
+          CompletedTaskCount/CompletionRate/TotalStudyMinutes)
+      Lưu ý: WPF không có conic-gradient → "vòng cung điểm" trong HTML preview được
+      thể hiện bằng thẻ điểm số lớn + nhãn ở bản XAML (đọc tức thì, 0 vẽ thủ công).
+    -->
+
     <Page.Resources>
         <conv:HeatLevelToBrushConverter x:Key="HeatBrush"/>
     </Page.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
-        <StackPanel Margin="20">
+        <StackPanel Margin="24,22,24,30">
 
-            <!-- Header -->
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
-                <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="22"
-                           Foreground="{DynamicResource AccentColor}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                <TextBlock Text="PHÂN TÍCH HỌC TẬP" FontWeight="Bold" FontSize="22"
-                           Foreground="{DynamicResource PrimaryText}" VerticalAlignment="Center"/>
-            </StackPanel>
+            <!-- header + filters -->
+            <Grid Margin="0,0,0,18">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="PHÂN TÍCH HỌC TẬP" Style="{StaticResource AnEyebrow}"/>
+                    <TextBlock Text="Analytics" Style="{StaticResource AnPageTitle}"/>
+                    <TextBlock Text="Dựa trên log học tập của bạn · cập nhật liên tục" Style="{StaticResource AnSubText}"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom">
+                    <StackPanel Margin="0,0,16,0">
+                        <TextBlock Text="KHOẢNG THỜI GIAN" Style="{StaticResource AnFieldLabel}"/>
+                        <ComboBox Width="120" Height="32" VerticalContentAlignment="Center"
+                                  ItemsSource="{Binding RangeOptions}" SelectedItem="{Binding SelectedRangeDays}"/>
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock Text="MÔN HỌC" Style="{StaticResource AnFieldLabel}"/>
+                        <ComboBox Width="160" Height="32" VerticalContentAlignment="Center"
+                                  ItemsSource="{Binding SubjectOptions}" SelectedItem="{Binding SelectedSubject}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
 
-            <Border Style="{StaticResource AppCardBorder}" Margin="0,0,0,12">
+            <!-- ─────────── NARRATIVE HERO ─────────── -->
+            <Border Style="{StaticResource AnCard}" Margin="0,0,0,18">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="140"/>
-                        <ColumnDefinition Width="20"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="220"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="260"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="Khoảng thời gian" Foreground="{DynamicResource SecondaryText}" VerticalAlignment="Center"/>
-                    <ComboBox Grid.Column="1" ItemsSource="{Binding RangeOptions}" SelectedItem="{Binding SelectedRangeDays}" Margin="8,0,0,0"/>
-                    <TextBlock Grid.Column="3" Text="Môn học" Foreground="{DynamicResource SecondaryText}" VerticalAlignment="Center"/>
-                    <ComboBox Grid.Column="4" ItemsSource="{Binding SubjectOptions}" SelectedItem="{Binding SelectedSubject}" Margin="8,0,0,0"/>
+
+                    <!-- story + action -->
+                    <StackPanel Grid.Column="0" Margin="22,20">
+                        <TextBlock Text="CÂU CHUYỆN TUẦN NÀY" Style="{StaticResource AnEyebrow}"/>
+                        <TextBlock Text="{Binding WeeklyNarrative}" FontSize="20" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryText}" TextWrapping="Wrap" Margin="0,11,0,0"/>
+                        <Border Margin="0,18,0,0" CornerRadius="10" Padding="14,13"
+                                Background="{DynamicResource StatCardBackground}"
+                                BorderBrush="{DynamicResource AccentColor}" BorderThickness="1">
+                            <StackPanel Orientation="Horizontal">
+                                <Border CornerRadius="6" Padding="9,4" VerticalAlignment="Top" Margin="0,0,11,0"
+                                        Background="{DynamicResource CardBackground}">
+                                    <TextBlock Text="NÊN LÀM TIẾP" FontSize="10" FontWeight="Bold"
+                                               Foreground="{DynamicResource AccentColor}"/>
+                                </Border>
+                                <TextBlock Text="{Binding RecommendedNextAction}" FontSize="13.5"
+                                           Foreground="{DynamicResource PrimaryText}" TextWrapping="Wrap"
+                                           VerticalAlignment="Center" Width="430"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- productivity score -->
+                    <Border Grid.Column="1" Background="{DynamicResource StatCardBackground}"
+                            BorderBrush="{DynamicResource BorderColor}" BorderThickness="1,0,0,0"
+                            CornerRadius="0,12,12,0">
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="16,20">
+                            <TextBlock Text="ĐIỂM NĂNG SUẤT" Style="{StaticResource AnFieldLabel}" HorizontalAlignment="Center"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4,0,0">
+                                <TextBlock Text="{Binding ProductivityValue}" FontSize="46" FontWeight="Bold"
+                                           Foreground="{DynamicResource PrimaryText}"/>
+                                <TextBlock Text="/100" FontSize="15" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource SecondaryText}" VerticalAlignment="Bottom" Margin="3,0,0,9"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding ProductivityLabel}" FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource SuccessColor}" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                            <TextBlock Text="{Binding HasEnoughData, StringFormat=Đủ dữ liệu huấn luyện: {0}}"
+                                       FontSize="10.5" Foreground="{DynamicResource SecondaryText}"
+                                       HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                            <Button Content="Tối ưu AI" Style="{StaticResource AnGhostButton}" Margin="0,14,0,0"
+                                    HorizontalAlignment="Center" IsEnabled="{Binding HasEnoughData}"
+                                    Command="{Binding RetrainModelCommand}"/>
+                        </StackPanel>
+                    </Border>
                 </Grid>
             </Border>
 
-            <Border Style="{StaticResource AppCardBorder}" Margin="0,0,0,16">
-                <StackPanel>
-                    <TextBlock Text="{Binding WeeklyNarrative}" Foreground="{DynamicResource PrimaryText}" TextWrapping="Wrap"/>
-                    <TextBlock Text="{Binding RecommendedNextAction}" Foreground="{DynamicResource AccentText}" Margin="0,8,0,0" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                </StackPanel>
-            </Border>
-
-            <!-- Productivity Score Card -->
-            <Border Background="{DynamicResource StatCardBackground}" CornerRadius="10"
-                    Padding="20,16" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1"
-                    Margin="0,0,0,20">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                    <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="36"
-                               Foreground="{DynamicResource AccentColor}" VerticalAlignment="Center" Margin="0,0,16,0"/>
-                    <StackPanel VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding ProductivityValue}" FontSize="36" FontWeight="Bold"
-                                       Foreground="{DynamicResource PrimaryText}"/>
-                            <TextBlock Text=" điểm" FontSize="20" Foreground="{DynamicResource PrimaryText}"
-                                       VerticalAlignment="Bottom" Margin="4,0,0,4"/>
-                        </StackPanel>
-                        <TextBlock Text="{Binding ProductivityLabel}" FontSize="16"
-                                   Foreground="{DynamicResource SecondaryText}"/>
-                        <TextBlock Text="{Binding HasEnoughData, StringFormat=Đủ dữ liệu huấn luyện: {0}}"
-                                   FontSize="12" Foreground="{DynamicResource SecondaryText}" Margin="0,6,0,0"/>
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-
-            <Button Content="Tối ưu AI"
-                    Command="{Binding RetrainModelCommand}"
-                    HorizontalAlignment="Left"
-                    Margin="0,0,0,10"
-                    IsEnabled="{Binding HasEnoughData}"
-                    Style="{StaticResource AppPrimaryButton}"/>
-
-            <Border Margin="0,8,0,16">
+            <!-- loading / empty -->
+            <Border Margin="0,0,0,12">
                 <Border.Style>
                     <Style TargetType="Border" BasedOn="{StaticResource AppEmptyStateCard}">
                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -85,8 +119,7 @@
                 </Border.Style>
                 <TextBlock Text="Đang tải dữ liệu analytics..." Foreground="{DynamicResource SecondaryText}"/>
             </Border>
-
-            <Border Margin="0,0,0,16">
+            <Border Margin="0,0,0,12">
                 <Border.Style>
                     <Style TargetType="Border" BasedOn="{StaticResource AppEmptyStateCard}">
                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -100,29 +133,48 @@
                 <TextBlock Text="{Binding EmptyStateMessage}" Foreground="{DynamicResource SecondaryText}"/>
             </Border>
 
-            <!-- Weekly Bar Chart -->
-            <TextBlock Text="Số phút học trong 7 ngày qua" Style="{StaticResource AppSectionHeaderText}"/>
-            <Border Background="{DynamicResource StatCardBackground}" CornerRadius="10"
-                    Padding="12" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1"
-                    Margin="0,0,0,4">
-                <lvc:CartesianChart Series="{Binding WeeklyChartSeries}"
-                                    XAxes="{Binding WeeklyChartXAxes}"
-                                    Height="220"/>
-            </Border>
+            <!-- BAND A: weekly + subject completion -->
+            <Grid Margin="0,0,0,18">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="7*"/>
+                    <ColumnDefinition Width="5*"/>
+                </Grid.ColumnDefinitions>
 
-            <!-- Study Activity Heatmap -->
-            <TextBlock Text="Hoạt động học tập (52 tuần qua)" Style="{StaticResource AppSectionHeaderText}"/>
-            <Border Background="{DynamicResource StatCardBackground}" CornerRadius="10"
-                    Padding="12" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1"
-                    Margin="0,0,0,4">
+                <Border Grid.Column="0" Style="{StaticResource AnPanel}" Margin="0,0,9,0">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <Border Style="{StaticResource AnSectionTick}" Background="{DynamicResource AccentColor}"/>
+                            <TextBlock Text="SỐ PHÚT HỌC — 7 NGÀY QUA" Style="{StaticResource AnSectionTitle}"/>
+                            <TextBlock Text="phút / ngày" Style="{StaticResource AnSectionSub}"/>
+                        </StackPanel>
+                        <lvc:CartesianChart Series="{Binding WeeklyChartSeries}" XAxes="{Binding WeeklyChartXAxes}" Height="220"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="1" Style="{StaticResource AnPanel}" Margin="9,0,0,0">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <Border Style="{StaticResource AnSectionTick}" Background="{DynamicResource SuccessColor}"/>
+                            <TextBlock Text="TỈ LỆ HOÀN THÀNH THEO MÔN" Style="{StaticResource AnSectionTitle}"/>
+                        </StackPanel>
+                        <lvc:CartesianChart Series="{Binding SubjectChartSeries}" XAxes="{Binding SubjectChartXAxes}" Height="220"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- HEATMAP -->
+            <Border Style="{StaticResource AnPanel}" Margin="0,0,0,18">
                 <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <Border Style="{StaticResource AnSectionTick}" Background="{DynamicResource SuccessColor}"/>
+                        <TextBlock Text="HOẠT ĐỘNG HỌC TẬP — 52 TUẦN QUA" Style="{StaticResource AnSectionTitle}"/>
+                        <TextBlock Text="mỗi ô = 1 ngày" Style="{StaticResource AnSectionSub}"/>
+                    </StackPanel>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="24"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-
-                        <!-- Day-of-week labels: Mon / Wed / Fri -->
                         <StackPanel Grid.Column="0" VerticalAlignment="Top" Margin="0,1,0,0">
                             <TextBlock Text="T2" FontSize="9" Foreground="{DynamicResource SecondaryText}" Height="14"/>
                             <TextBlock Height="14"/>
@@ -132,8 +184,6 @@
                             <TextBlock Height="14"/>
                             <TextBlock Height="14"/>
                         </StackPanel>
-
-                        <!-- 52 × 7 cell grid -->
                         <ItemsControl Grid.Column="1" ItemsSource="{Binding HeatmapCells}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -149,49 +199,43 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </Grid>
-
-                    <!-- Legend -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,4,0">
-                        <TextBlock Text="Ít" FontSize="10" Foreground="{DynamicResource SecondaryText}"
-                                   VerticalAlignment="Center" Margin="0,0,4,0"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,4,0">
+                        <TextBlock Text="Ít" FontSize="10" Foreground="{DynamicResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,4,0"/>
                         <Border Width="12" Height="12" CornerRadius="2" Background="#EBEDF0" Margin="1"/>
                         <Border Width="12" Height="12" CornerRadius="2" Background="#9BE9A8" Margin="1"/>
                         <Border Width="12" Height="12" CornerRadius="2" Background="#40C463" Margin="1"/>
                         <Border Width="12" Height="12" CornerRadius="2" Background="#30A14E" Margin="1"/>
                         <Border Width="12" Height="12" CornerRadius="2" Background="#216E39" Margin="1"/>
-                        <TextBlock Text="Nhiều" FontSize="10" Foreground="{DynamicResource SecondaryText}"
-                                   VerticalAlignment="Center" Margin="4,0,0,0"/>
+                        <TextBlock Text="Nhiều" FontSize="10" Foreground="{DynamicResource SecondaryText}" VerticalAlignment="Center" Margin="4,0,0,0"/>
                     </StackPanel>
                 </StackPanel>
             </Border>
 
-            <!-- Subject Completion Chart -->
-            <TextBlock Text="Tỉ lệ hoàn thành theo môn học (%)" Style="{StaticResource AppSectionHeaderText}"/>
-            <Border Background="{DynamicResource StatCardBackground}" CornerRadius="10"
-                    Padding="12" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1"
-                    Margin="0,0,0,4">
-                <lvc:CartesianChart Series="{Binding SubjectChartSeries}"
-                                    XAxes="{Binding SubjectChartXAxes}"
-                                    Height="220"/>
+            <!-- DETAILS TABLE -->
+            <Border Style="{StaticResource AnCard}" Padding="0">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="16,15,16,4">
+                        <Border Style="{StaticResource AnSectionTick}" Background="#8B5CF6"/>
+                        <TextBlock Text="CHI TIẾT THEO MÔN HỌC" Style="{StaticResource AnSectionTitle}"/>
+                    </StackPanel>
+                    <DataGrid Style="{StaticResource AnDataGrid}" ItemsSource="{Binding SubjectInsights}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Môn học" Binding="{Binding SubjectName}" Width="*">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Tổng task" Binding="{Binding TotalTaskCount}" Width="100"/>
+                            <DataGridTextColumn Header="Đã xong" Binding="{Binding CompletedTaskCount}" Width="100"/>
+                            <DataGridTextColumn Header="Tỉ lệ HT" Binding="{Binding CompletionRate, StringFormat={}{0:P0}}" Width="100"/>
+                            <DataGridTextColumn Header="Phút đã học" Binding="{Binding TotalStudyMinutes}" Width="120"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
             </Border>
-
-            <!-- Details DataGrid -->
-            <TextBlock Text="Chi tiết theo môn học" Style="{StaticResource AppSectionHeaderText}"/>
-            <DataGrid ItemsSource="{Binding SubjectInsights}"
-                      AutoGenerateColumns="False" IsReadOnly="True"
-                      HeadersVisibility="Column"
-                      RowBackground="Transparent" AlternatingRowBackground="Transparent"
-                      Margin="0,0,0,20"
-                      Style="{StaticResource AppDataGridBase}">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Môn học"    Binding="{Binding SubjectName}"    Width="*"/>
-                    <DataGridTextColumn Header="Tổng task"  Binding="{Binding TotalTaskCount}" Width="90"/>
-                    <DataGridTextColumn Header="Đã xong"    Binding="{Binding CompletedTaskCount}" Width="90"/>
-                    <DataGridTextColumn Header="Tỉ lệ HT"
-                                        Binding="{Binding CompletionRate, StringFormat={}{0:P0}}" Width="90"/>
-                    <DataGridTextColumn Header="Phút đã học" Binding="{Binding TotalStudyMinutes}" Width="100"/>
-                </DataGrid.Columns>
-            </DataGrid>
 
         </StackPanel>
     </ScrollViewer>
