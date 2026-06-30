@@ -24,7 +24,6 @@ namespace SmartStudyPlanner
         private DispatcherTimer _backgroundTimer;
         private bool _thucSuMuonTat = false;
         private HocKy? _currentHocKy;
-        private WorkloadBalancerWindow? _workloadWindow;
         private WeightOptimizerWindow? _weightOptimizerWindow;
         private readonly IStudyTelemetry _telemetry;
 
@@ -56,6 +55,8 @@ namespace SmartStudyPlanner
                 _currentHocKy = dp.HocKy;
             else if (e.Content is AnalyticsPage ap)
                 _currentHocKy = ap.HocKy;
+            else if (e.Content is WorkloadBalancerPage wp)
+                _currentHocKy = wp.HocKy;
 
             CurrentContextText.Text = _currentHocKy == null
                 ? "Chưa chọn học kỳ"
@@ -149,7 +150,7 @@ namespace SmartStudyPlanner
         private void HienThiUngDung()
         {
             this.Show();
-            this.WindowState = WindowState.Normal;
+            this.WindowState = WindowState.Maximized;
             this.Activate(); // Bật nó nổi lên trên cùng
         }
 
@@ -194,21 +195,10 @@ namespace SmartStudyPlanner
 
         private void NavWorkload_Click(object sender, RoutedEventArgs e)
         {
-            _telemetry.Track("click_nav_workload");
-            NavWorkload.IsChecked = false;   // opens a window, not a nav page — don't show as active
             if (_currentHocKy == null) return;
-            if (_workloadWindow == null || !_workloadWindow.IsLoaded)
-            {
-                _workloadWindow = new WorkloadBalancerWindow(_currentHocKy);
-                _workloadWindow.Closed += (_, _) => WorkloadOpenBadge.Visibility = Visibility.Collapsed;
-                _workloadWindow.Show();
-                WorkloadOpenBadge.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                _workloadWindow.Activate();
-                WorkloadOpenBadge.Visibility = Visibility.Visible;
-            }
+            _telemetry.Track("click_nav_workload");
+            SetActiveNav(NavWorkload);
+            MainFrame.Navigate(new WorkloadBalancerPage(_currentHocKy));
         }
 
         private void NavWeightOptimizer_Click(object sender, RoutedEventArgs e)

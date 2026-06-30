@@ -1,27 +1,23 @@
-<Window x:Class="SmartStudyPlanner.Views.WorkloadBalancerWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:conv="clr-namespace:SmartStudyPlanner.Converters"
-        Title="Workload Balancer - Trợ lý Lên lịch"
-        Height="720" Width="760" MinWidth="560" MinHeight="560"
-        Icon="pack://application:,,,/Assets/icon.ico"
-        WindowStartupLocation="CenterOwner"
-        Background="{DynamicResource AppBackground}">
+<Page x:Class="SmartStudyPlanner.Views.WorkloadBalancerPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:conv="clr-namespace:SmartStudyPlanner.Converters"
+      Background="{DynamicResource AppBackground}">
 
     <!--
-      REDESIGN — Cân Bằng Tải (Workload Balancer). GIỮ NGUYÊN binding gốc của
-      WorkloadBalancerViewModel + ScheduleModels:
+      REDESIGN — Cân Bằng Tải (Workload Balancer) — điều hướng trong MainFrame.
+      GIỮ NGUYÊN binding gốc của WorkloadBalancerViewModel + ScheduleModels:
         CapacityHours · GenerateScheduleCommand
         Schedule (ScheduleDay: DisplayName / TotalMinutes / HeaderText / Tasks)
         Tasks (ScheduledTask: TenTask / TenMon / SoPhut / ThoiGianHienThi)
       Không sửa ViewModel/Model. Thanh tải tương đối so với sức học được tính
       bằng converter [TotalMinutes, CapacityHours] (Converters/WorkloadConverters.cs).
       Màu chip theo môn dùng SubjectToBrushConverter có sẵn trong app.
-      Lưu ý: biểu đồ cột là tải-từng-ngày (1 cột/ngày) — bản HTML preview xếp
-      chồng theo môn; WPF giữ 1 cột để bám đúng binding, màu môn vẫn hiện trên chip.
+      AncestorType=Page (không phải Window) vì page host trong Frame — ancestor Window
+      lúc này là MainWindow (DataContext null) nên phải chỉ rõ Page.
     -->
 
-    <Window.Resources>
+    <Page.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="pack://application:,,,/Themes/WorkloadStyles.xaml"/>
@@ -31,7 +27,7 @@
             <conv:LoadToBrushConverter x:Key="LoadBrush"/>
             <conv:FullDayToVisibilityConverter x:Key="FullVis"/>
         </ResourceDictionary>
-    </Window.Resources>
+    </Page.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,8,0">
         <StackPanel Margin="24,22,24,26">
@@ -118,13 +114,13 @@
                                                 <Border.Height>
                                                     <MultiBinding Converter="{StaticResource LoadLen}" ConverterParameter="150">
                                                         <Binding Path="TotalMinutes"/>
-                                                        <Binding Path="DataContext.CapacityHours" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                                        <Binding Path="DataContext.CapacityHours" RelativeSource="{RelativeSource AncestorType=Page}"/>
                                                     </MultiBinding>
                                                 </Border.Height>
                                                 <Border.Background>
                                                     <MultiBinding Converter="{StaticResource LoadBrush}">
                                                         <Binding Path="TotalMinutes"/>
-                                                        <Binding Path="DataContext.CapacityHours" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                                        <Binding Path="DataContext.CapacityHours" RelativeSource="{RelativeSource AncestorType=Page}"/>
                                                     </MultiBinding>
                                                 </Border.Background>
                                             </Border>
@@ -183,13 +179,13 @@
                                             <Border.Width>
                                                 <MultiBinding Converter="{StaticResource LoadLen}" ConverterParameter="150">
                                                     <Binding Path="TotalMinutes"/>
-                                                    <Binding Path="DataContext.CapacityHours" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                                    <Binding Path="DataContext.CapacityHours" RelativeSource="{RelativeSource AncestorType=Page}"/>
                                                 </MultiBinding>
                                             </Border.Width>
                                             <Border.Background>
                                                 <MultiBinding Converter="{StaticResource LoadBrush}">
                                                     <Binding Path="TotalMinutes"/>
-                                                    <Binding Path="DataContext.CapacityHours" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                                    <Binding Path="DataContext.CapacityHours" RelativeSource="{RelativeSource AncestorType=Page}"/>
                                                 </MultiBinding>
                                             </Border.Background>
                                         </Border>
@@ -199,7 +195,7 @@
                                         <TextBlock.Visibility>
                                             <MultiBinding Converter="{StaticResource FullVis}">
                                                 <Binding Path="TotalMinutes"/>
-                                                <Binding Path="DataContext.CapacityHours" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                                <Binding Path="DataContext.CapacityHours" RelativeSource="{RelativeSource AncestorType=Page}"/>
                                             </MultiBinding>
                                         </TextBlock.Visibility>
                                     </TextBlock>
@@ -284,4 +280,4 @@
 
         </StackPanel>
     </ScrollViewer>
-</Window>
+</Page>
