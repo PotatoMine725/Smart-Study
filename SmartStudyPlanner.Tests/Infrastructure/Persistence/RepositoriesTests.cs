@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
@@ -8,6 +10,7 @@ using SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Tests.Fixtures;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace SmartStudyPlanner.Tests.Infrastructure.Persistence
 {
@@ -17,6 +20,13 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence
     /// </summary>
     public class RepositoriesTests
     {
+        private readonly ITestOutputHelper _output;
+
+        public RepositoriesTests(ITestOutputHelper output)
+        {
+            _output = output;
+        }
+
         private static (SqliteConnection conn, Func<AppDbContext> factory) NewDb()
         {
             var conn = new SqliteConnection("Data Source=:memory:");
@@ -186,6 +196,49 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence
             var reloaded = await repo.LayDanhSachHocKyAsync();
             Assert.Single(reloaded); // không nhân đôi học kỳ
             Assert.Equal(2, reloaded[0].DanhSachMonHoc[0].DanhSachTask.Count);
+        }
+
+        // M1.1 T-metric: p95 task-save latency, captured before the sync-metadata stamping seam
+        // lands and re-measured after (docs/plans/2026-07-03-epic-1-execution-plan.md success metric
+        // "p95 task-save ≤ 1.2× baseline"). No hardcoded ms threshold here — cross-machine/CI timing
+        // is inherently noisy; the two runs' p95 values are compared and reported in the milestone
+        // closing note instead of asserted in-test.
+        [Fact]
+        public async Task TaskSave_P95Latency_Baseline()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+            Guid maMonHoc;
+            using (var ctx = TestDb.Create(conn))
+            {
+                var seeded = await TestDb.SeedTaskAsync(ctx);
+                maMonHoc = seeded.MaMonHoc;
+            }
+
+            var repo = new SqliteStudyTaskRepository(factory);
+            const int iterations = 50;
+            var samplesMs = new List<double>(iterations);
+
+            for (int i = 0; i < iterations; i++)
+            {
+                var task = new StudyTask($"Timing-{i}", DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2)
+                {
+                    MaMonHoc = maMonHoc,
+                    MucDoCanhBao = "An toàn",
+                };
+                var sw = Stopwatch.StartNew();
+                await repo.AddAsync(task);
+                sw.Stop();
+                samplesMs.Add(sw.Elapsed.TotalMilliseconds);
+            }
+
+            samplesMs.Sort();
+            var p95Index = Math.Clamp((int)Math.Ceiling(0.95 * samplesMs.Count) - 1, 0, samplesMs.Count - 1);
+            var p95 = samplesMs[p95Index];
+            var mean = samplesMs.Average();
+
+            _output.WriteLine($"TaskSave latency over {iterations} AddAsync calls: p95={p95:F3}ms mean={mean:F3}ms");
+            Assert.Equal(iterations, samplesMs.Count);
         }
 
         [Fact]
