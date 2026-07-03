@@ -1,6 +1,6 @@
 # Architecture Overview
 
-> Consolidated 2026-05-21 from `2026-05-07-project-architecture.md` and `2026-05-07-tech-stack.md`. Reflects current code state after refactor Slice 4.
+> **Descriptive** — consolidated 2026-05-21 from `2026-05-07-project-architecture.md` and `2026-05-07-tech-stack.md`; parser/risk sections current as of 2026-07-01. Per [../plans/2026-07-01-architecture-direction-decisions.md](../plans/2026-07-01-architecture-direction-decisions.md) (D-C), **code is normative and this file may lag it.**
 
 ## 1. What this app is
 
@@ -36,7 +36,7 @@ Principles:
 | DI | `Microsoft.Extensions.DependencyInjection` | composed by `ServiceLocator` |
 | DB | **SQLite** + `Microsoft.EntityFrameworkCore.Sqlite` | `SmartStudyData.db` next to the binary |
 | ML | `Microsoft.ML` + `Microsoft.ML.FastTree` | local-only model in `%AppData%\SmartStudyPlanner\models\` |
-| Tests | `xUnit` + `Microsoft.NET.Test.Sdk` + `coverlet.collector` + `Verify.CommunityToolkit.Mvvm` | 156 passing as of Slice 4 |
+| Tests | `xUnit` + `Microsoft.NET.Test.Sdk` + `coverlet.collector` + `Verify.CommunityToolkit.Mvvm` | green (current count in README / CI) |
 | Solution | `SmartStudyPlanner.slnx` (not `.sln`) | important when running `dotnet build` |
 
 Project version: `1.5.0`.
@@ -81,7 +81,7 @@ SmartStudyPlanner/
 ## 5. Major subsystems
 
 ### 5.1 Presentation
-`MainWindow`, `DashboardPage`, `QuanLyMonHocPage`, `QuanLyTaskPage`, `AnalyticsPage`, `SetupPage`, `FocusWindow`, `WorkloadBalancerWindow`.
+`MainWindow`, `DashboardPage`, `QuanLyMonHocPage`, `QuanLyTaskPage`, `AnalyticsPage`, `SetupPage`, `FocusWindow`, `WorkloadBalancerPage`.
 
 ### 5.2 Planning / decision
 `IDecisionEngine` → `DecisionEngineService` (facade) → `SchedulingOrchestrator` → `PriorityEvaluator` + `RawMinutesCalculator` + `StudyTimeSuggestionEngine` + `IStudyTimePredictor`. `WorkloadServiceImpl` consumes priorities to distribute across `ScheduleDay` / `ScheduledTask`.

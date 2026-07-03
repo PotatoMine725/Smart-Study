@@ -1,5 +1,86 @@
 # Smart Study Planner — System Roadmap & Architecture Direction
 
+> **Canonical roadmap** (decision **D-C.1** — supersedes the retired `docs/ROADMAP.md` and the
+> README "What's coming next"). Decisions: [`../plans/2026-07-01-architecture-direction-decisions.md`](../plans/2026-07-01-architecture-direction-decisions.md).
+>
+> - **Part A — Delivery Status** is **factual**: it reflects shipped state.
+> - **Part B — Architecture Direction** is **aspirational**: target direction that may run ahead of code.
+
+---
+
+# PART A — Delivery Status *(factual)*
+
+## A.1 Snapshot
+
+| Layer | State |
+|---|---|
+| Build | green (`dotnet build SmartStudyPlanner.slnx`) |
+| Tests | green — exact count lives in the README / CI (`dotnet test --no-build`); not hard-coded here |
+| Version | `1.5.0` |
+| GitNexus index | 3,333 symbols / 7,953 relationships / 127 execution flows (commit `5e54220`) |
+
+## A.2 Completed milestones
+
+| ID | Name | Notes |
+|---|---|---|
+| M1 | DI Container (`Microsoft.Extensions.DependencyInjection` + `ServiceLocator`) | merged |
+| M2 | DecisionEngine → instance + `IDecisionEngine` | merged |
+| M3 | WorkloadService → instance + `IWorkloadService` | merged |
+| M4 / M4.5 / M4.6 | Risk Analyzer engine + Dashboard risk UI + drop static facades | merged (`af673d2`) |
+| M5 | Pipeline Orchestrator (5 stages) | merged (`865ca47`, PR #35) |
+| M6 | Study Analytics & Insights (StudyLog, 3 charts) | merged (PR #37) |
+| M6.1 | Task Notes & Study Links (`TaskNote`, `TaskReferenceLink`) | merged |
+| M7 | ML Engine — Study Time Predictor (FastTree, offline-first) | merged |
+| M8-A | TextClassifier wired into parser (seed v3, 5-class, 96.2% held-out); `IntentClassifierAdapter` | shipped 2026-06-05 |
+| M8-B | WeightOptimizer (rule-based) + review/apply UI + JSON persistence | shipped 2026-06-06 |
+| M8 (arch) | God-object refactor Slices 1–8: Core contracts, `DecisionEngineService`→42-line facade, `ParsingOrchestrator`, repo abstractions, `RiskOrchestrator` implements `IRiskAnalyzer`, injectable `StreakManager` | shipped 2026-06-11 |
+| M8 Telemetry | `DifficultyLabelLog` + `WeightChangeLog` capture; `OutcomeMaturationService` (14-day cohort fill) | shipped 2026-06-11 |
+| UI/UX | Design system, sidebar, dashboard, analytics heatmap, WorkloadBalancer page | shipped |
+
+> Granular refactor-slice history: [`../active/refactor-god-object.md`](../active/refactor-god-object.md) + git log.
+
+## A.3 Next up
+
+Ordered per decisions **D-B** (sync-ready data model first) and **D-A** (LAN sync target):
+
+1. **Sync-ready data model** *(foundation — first)* — identity semantics (not just Guid PKs; see the
+   dedup-cloned-`MonHoc` issue), tombstones on every synced entity, and the **D-I metadata block**
+   (`Rev` + `ModifiedAtUtc` + `ModifiedByDeviceId`) with last-synced base snapshots for 3-way merge.
+   See [`../architecture/data-model.md`](../architecture/data-model.md) §8.
+2. **LAN sync epic** *(D-A)* — multi-device, two-way merge over LAN (not cloud). Merge policy **decided (D-F):** field-level merge, LWW only on concurrent same-field edits.
+   **Mechanics frozen 2026-07-02 ([D-I](../plans/2026-07-02-architecture-freeze-decisions.md)):** 3-way merge vs. last-synced base; tie-break `ModifiedAtUtc` → `DeviceId`; delete-vs-edit → tombstone wins,
+   losing side kept in a conflict record; no HLC. *Still open: tombstone retention/purge + cascade policy.*
+3. **Study Optimization Engine** *(on top of the sync foundation)* — evolves the Balancer (Part B §7.3).
+   **Guardrails frozen 2026-07-02 ([D-G/D-H/D-J](../plans/2026-07-02-architecture-freeze-decisions.md)):** deadline feasibility, capacity and calendar limits are **hard constraints** (Constraint Validator);
+   objective = quality only (`w1…w5`); feasibility never worsens (`violations(out) ≤ violations(in)`).
+   **Pass accept/commit semantics still OPEN — implementation blocked on it.** Scope must respect §13. See [`../plans/2026-06-30-workload-optimizer-proposal.md`](../plans/2026-06-30-workload-optimizer-proposal.md).
+4. **M8-C** — retrain the Study Time Predictor on real Focus-session telemetry (replace synthetic seed).
+5. **M9** — natural-language deadline parsing (Part B §9.1) and cross-semester analytics.
+
+## A.4 Deferred / out of scope
+
+- **Pipeline rehome** (`Services/Pipeline/*` → `Application/UseCases/*`) — independent plan.
+- **Core/Capacity** — only when a real need surfaces.
+- **Cloud model storage** — opt-in via `IModelStorageProvider`; no work until users ask.
+- **Mobile / hybrid clients** — preserves offline-first; revisit after LAN sync lands.
+- **Async pipeline end-to-end** — current sync MVP is acceptable.
+- **`System.Drawing.Common` NU1904** vulnerability — ~30 min, independent.
+- *(Promoted out of "deferred": the old "Core/Sync + PostgreSQL — far-future Phase 4" item is now the
+  planned **LAN-sync epic** in A.3, targeting LAN two-way merge rather than PostgreSQL/cloud.)*
+
+## A.5 Guardrails for every change
+
+1. `gitnexus_impact` before editing any symbol; report HIGH/CRITICAL to user.
+2. `gitnexus_detect_changes` before commit.
+3. `dotnet build SmartStudyPlanner.slnx` + `dotnet test --no-build` must stay green.
+4. Never silently mutate `WeightConfig` on low ML confidence.
+5. Never let ML availability gate the app — formula fallback must remain.
+6. Offline-first stays the default; **LAN sync is a planned opt-in direction (D-A); cloud remains opt-in only**.
+
+---
+
+# PART B — Architecture Direction *(aspirational)*
+
 ---
 
 # 1. Current Project State
@@ -198,6 +279,10 @@ Responsibility:
 * urgency evaluation
 * competency gap calculation
 
+> **Reconciliation (N5):** "competency gap calculation" is **net-new and undecided** — **zero
+> occurrences** in the codebase today and no data model. Treat as aspirational until scoped; the
+> shipped Decision Engine does priority scoring + urgency only.
+
 Output:
 
 ```text
@@ -237,6 +322,23 @@ Constraints:
 * max hours/day
 * avoid burnout
 * avoid repetition
+
+> **Reconciliation (D-A/D-B/D2/N9):** the Balancer is slated to evolve into the **Study Optimization
+> Engine** (see [`../plans/2026-06-30-workload-optimizer-proposal.md`](../plans/2026-06-30-workload-optimizer-proposal.md)),
+> where balancing becomes one of several heuristics. Two constraints on that evolution:
+> **(1) sequencing** — it sits on top of the sync-ready data model (Part A §A.3), not before it;
+> **(2) scope** — the proposal's six sub-engines are in **direct tension with §13** below
+> ("don't fragment engines / no unnecessary micro-engines"). Phase it behind an `IScheduleOptimizer`
+> strategy seam (Load Balancer + Constraint Evaluator first). Compute model (**D-E**, amended
+> 2026-07-02): a deterministic ordered pipeline — never a global search; `LearningEfficiencyScore` is an
+> evaluation, not an argmax target. **Frozen guardrails
+> ([D-G/D-H/D-J](../plans/2026-07-02-architecture-freeze-decisions.md)):** deadline feasibility, capacity
+> and calendar limits are **hard constraints** owned by the Constraint Validator; the objective scores
+> schedule quality only — `w1·LoadBalance + w2·ContextContinuity + w3·SessionQuality + w4·FatiguePenalty
+> + w5·FragmentationPenalty` (`w6·DeadlineUrgency` is **dropped**: deadline is a constraint, not a scored
+> term); the SOE never worsens feasibility (`violations(out) ≤ violations(in)`). **Still OPEN: the pass
+> accept/commit granularity** (per-step vs. whole-pass vs. alternatives — see the freeze record §3);
+> SOE implementation is blocked on that decision.
 
 ---
 
@@ -305,6 +407,13 @@ Avoid overengineering.
 ## 9.1 Smart Parser (Primary ML Component)
 
 This is the ONLY ML-first subsystem.
+
+> **Reconciliation (D-D):** this is **consistent** with the "heuristic-first" philosophy (§6/§13)
+> once scoped — the *system* is heuristic-first; the *parser* is the one place ML has precedence,
+> applied **per output field with a confidence-gated fallback** (≥ 0.60, else heuristic).
+> **Shipped today:** ML overrides **task type** only; difficulty and deadline are rule-based. The
+> natural-language **deadline** parsing described below is the **M9 target**, not current behavior.
+> See [`../architecture/pipeline.md`](../architecture/pipeline.md) §2.
 
 Purpose:
 
@@ -584,7 +693,7 @@ The project should remain:
 ## v2
 
 * advanced analytics
-* optional cloud sync
+* **multi-device two-way LAN sync** (D-A) — replaces the earlier "optional cloud sync" direction
 * enhanced recommendation system
 
 ---

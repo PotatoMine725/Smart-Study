@@ -1,9 +1,10 @@
 # Pipeline: Phân loại & Xếp hạng Task
 
-> Viết 2026-06-10 từ trạng thái code thực thi (sau khi retire `RiskAnalyzerService` —
-> commit `0346637`, và retire static `SmartParser` — commit `222cb5a`). Tài liệu này là
-> nguồn chuẩn cho luồng **phân loại task** và **xếp hạng + rủi ro**. Một số mục trong
-> [`overview.md`](./overview.md) §5.4/§5.5 mô tả các type đã chết — ưu tiên file này khi mâu thuẫn.
+> **Mô tả (descriptive)** — viết 2026-06-10 từ code thực thi (sau khi retire
+> `RiskAnalyzerService`, commit `0346637`, và static `SmartParser`, commit `222cb5a`);
+> rà lại 2026-07-01. Theo [`../plans/2026-07-01-architecture-direction-decisions.md`](../plans/2026-07-01-architecture-direction-decisions.md)
+> (D-C), **code là chuẩn — file này có thể lag so với code.** Đây vẫn là bản mô tả chi tiết
+> nhất cho luồng **phân loại task** và **xếp hạng + rủi ro**.
 
 ## 1. Hai luồng độc lập (đừng nhầm)
 
@@ -97,7 +98,7 @@ IIntentClassifier (IntentClassifierAdapter.cs)
 
 > **Tóm tắt trung thực:** *ML chỉ phân loại Loại task. Độ khó và Hạn chót luôn rule-based.
 > ML chỉ ghi đè heuristic khi confidence ≥ 0.60.* `ParseSource` ghi lại nguồn quyết định
-> (`Heuristic` / `MlAugmented` / `MlOverridden`) để UI hiển thị "AI gợi ý… hãy kiểm tra lại".
+> (enum khai báo `Heuristic` / `MlAugmented` / `MlOverridden`, nhưng orchestrator hiện **chỉ set `Heuristic` và `MlAugmented`** — `MlOverridden` khai báo sẵn, chưa được dùng) để UI hiển thị "AI gợi ý… hãy kiểm tra lại".
 
 ---
 
@@ -273,14 +274,9 @@ flowchart LR
 
 ---
 
-## 6. Drift đã biết so với docs cũ
+## 6. Trạng thái reconcile
 
-- **Hệ rủi ro đang dùng là `Core/Risk/*`** (RiskOrchestrator → RiskAggregator → 3 evaluator).
-  `RiskOrchestrator` implements `IRiskAnalyzer` trực tiếp. Folder `Services/RiskAnalyzer/*` (cả
-  `RiskAnalyzerService.cs` lẫn DTO `IRiskComponent.cs`) đã bị **xóa sạch** (commits `0346637` →
-  `1b4c2ba` → `191dd17`). `overview.md` §5.4 đã được cập nhật theo trạng thái này.
-- **`SmartParser` static facade đã bị bỏ** (commit `222cb5a`) — parsing nay bắt buộc qua
-  `IParsingOrchestrator` tiêm vào ViewModel. `overview.md` §5.5 / §4 còn nhắc `SmartParser.cs` là sai.
-- **`IIntentClassifier` đã được wire thật** (M8-A, Slice 6) qua `IntentClassifierAdapter` —
-  không còn "currently null → pure heuristic" như `overview.md` §5.5.
-- **`DecisionEngineService` chỉ là facade mỏng** chuyển tiếp sang `SchedulingOrchestrator`.
+Tính đến 2026-07-01, phần drift mà mục này từng theo dõi đã được xử lý: `overview.md`
+§5.4/§5.5 nay mô tả đúng hệ rủi ro `Core/Risk/*` đang chạy và `IIntentClassifier` đã được
+wire; `RiskAnalyzerService` và static `SmartParser` đã bị gỡ khỏi cả hai file.
+`DecisionEngineService` vẫn chỉ là facade mỏng trên `SchedulingOrchestrator`.

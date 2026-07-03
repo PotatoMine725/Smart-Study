@@ -57,7 +57,7 @@ Core flows = UC-01, UC-02, UC-06, UC-07, UC-08. Supporting = the rest.
 - **Entry**: `QuanLyTaskViewModel.PhanTichNhapNhanh()`.
 - **Chain**:
   1. Empty check.
-  2. `SmartParser.Parse(VanBanNhapNhanh)` — delegates to default `ParsingOrchestrator(SystemClock())`.
+  2. `IParsingOrchestrator.Parse(VanBanNhapNhanh)` — the injected orchestrator (heuristic baseline; ML overrides **task type** at confidence ≥ 0.60).
   3. Assign `TenTask`, `HanChot`, `LoaiTaskIndex`, `DoKho` from the parse result.
   4. Refresh hint + save-button text.
   5. Clear `VanBanNhapNhanh`.

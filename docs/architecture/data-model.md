@@ -19,7 +19,7 @@
 | `HocKy` | Semester container | 1→N `MonHoc`. `NgayKetThuc` is `[NotMapped]`, defaults to `NgayBatDau + 150 days` with auto/manual flag |
 | `MonHoc` | Subject / course | belongs to `HocKy`; 1→N `StudyTask`; has `SoTinChi` (credits) |
 | `StudyTask` | The atomic unit of work | belongs to `MonHoc`; has `TenTask`, `HanChot`, `LoaiCongViec`, `DoKho` (1–5), `TrangThai` (`StudyTaskStatus.ChuaLam`/`HoanThanh`), `ThoiGianDaHoc`, `DiemUuTien`, `NgayHoanThanh` |
-| `StudyLog` | One study session | 1 per task per session; sync-ready fields `CreatedAtUtc`, `DeviceId`, `IsDeleted` added in M7 |
+| `StudyLog` | One study session | 1 per task per session; sync-ready fields `CreatedAtUtc`, `DeviceId`, `IsDeleted` added in M7 — **schema only**: the production write path never populates `DeviceId` (`ViewModels/FocusViewModel.cs:138`; see [lessons-learned L2](lessons-learned.md)) |
 | `TaskNote` | Freeform note | **1-1** with `StudyTask`, unique index on `MaTask`; cascade delete |
 | `TaskReferenceLink` | External link | **1-N** with `StudyTask`; cascade delete; `Title`, `Url`, `Category`, `SortOrder` |
 
@@ -41,6 +41,9 @@
 - `MonHoc` → `StudyTask`: cascade delete.
 - `StudyTask` → `TaskNote`: unique index on `MaTask`, cascade delete.
 - `StudyTask` → `TaskReferenceLink`: cascade delete.
+
+> **Sync note:** these are **hard** deletes. Under the two-way LAN-sync target (§8) a hard delete
+> cannot propagate to other devices; that path needs soft-delete + tombstones.
 
 ## 4. Data lifecycle rules
 
@@ -102,11 +105,34 @@ Seed (180 rows from `SeedDataGenerator.Generate(180)`) or `StudyLog` history →
 | Workload balancer | Pending tasks, current capacity, deadline pressure, history |
 | Heatmap | `StudyLog.NgayHoc` (date) grouped → minute sums → 5-level GitHub-green |
 
-## 8. Future-proofing
+## 8. Future-proofing & sync-readiness
 
-- Schema is already a strong contract for future cloud sync (entities map cleanly).
-- No explicit sync metadata in SQLite besides M7's `CreatedAtUtc` / `DeviceId` / `IsDeleted` on `StudyLog`.
+> Target (per [../plans/2026-07-01-architecture-direction-decisions.md](../plans/2026-07-01-architecture-direction-decisions.md), D-A;
+> mechanics frozen in [../plans/2026-07-02-architecture-freeze-decisions.md](../plans/2026-07-02-architecture-freeze-decisions.md), D-I):
+> **multi-device, two-way LAN sync** — not cloud. Aspirational; describes what exists vs. what is still needed.
+
+**Already in place**
+- **Stable global identity** — every entity uses a `Guid` primary key (`HocKy.MaHocKy`,
+  `MonHoc.MaMonHoc`, `StudyTask.MaTask`, `StudyLog.Id`, telemetry `Id`), addressable across devices.
+- **Partial change/tombstone metadata on `StudyLog` only** — M7's `CreatedAtUtc` / `DeviceId` / `IsDeleted`.
 - `IUserStatsRepository` aggregates were designed with M8-B's `WeightOptimizerInput` in mind.
+
+**Still required before two-way sync (sequenced first — D-B)**
+1. **Identity semantics, not just IDs** — Guids stop key collisions, not *semantic* duplicates
+   (two rows meaning the same subject). The dedup-cloned-`MonHoc` fix (commit `946799b`) is the preview.
+2. **Tombstones on every synced entity** — today's deletes are hard cascade deletes (§3); extend to
+   soft-delete with `IsDeleted` + `DeletedAtUtc` per **D-I**.
+3. **Change tracking — decided ([D-I](../plans/2026-07-02-architecture-freeze-decisions.md)):** every
+   synced entity carries `Rev` (monotonic per-entity counter, local to each device — **never compared
+   across devices**; see [lessons-learned L6](lessons-learned.md)), `ModifiedAtUtc`, `ModifiedByDeviceId`;
+   field-level merge is powered by a **last-synced base snapshot per peer** (3-way diff), not per-field
+   version columns.
+4. **Conflict policy — decided (D-F + D-I):** field-level merge by default; a field changed on both sides
+   relative to the base is a concurrent same-field edit → **LWW** with tie-break `ModifiedAtUtc` →
+   `ModifiedByDeviceId` (lexicographic). **Delete-vs-edit: tombstone wins.** The losing side of every
+   conflict is preserved in a **conflict record** (edit history is out of v1 scope). **No HLC.**
+   Still open: tombstone retention length / purge authority, and the soft-delete cascade policy for
+   parents with live children.
 
 ## 9. Reading order
 
