@@ -90,7 +90,10 @@ artifacts/
 # =============================
 # Local runtime data (sqlite, etc.)
 # =============================
-data/
+# Anchored to repo root — unanchored "data/" case-insensitively matched the
+# SmartStudyPlanner/Data and SmartStudyPlanner.Tests/Data *source* folders on
+# Windows (core.ignorecase=true), silently swallowing new files added there.
+/data/
 
 # =============================
 # Archived design scratch (kept local, superseded by shipped UI)

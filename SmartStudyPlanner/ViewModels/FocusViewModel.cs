@@ -4,6 +4,7 @@ using SmartStudyPlanner.Infrastructure.Persistence.Repositories;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Models.Telemetry;
 using SmartStudyPlanner.Services;
+using SmartStudyPlanner.Services.ML;
 using SmartStudyPlanner.Services.Telemetry;
 using System;
 using System.Collections.Generic;
@@ -107,7 +108,9 @@ namespace SmartStudyPlanner.ViewModels
         }
 
         // --- CÁC HÀM XỬ LÝ KẾT THÚC VÀ LƯU DỮ LIỆU ---
-        private void LuuThoiGianThucTe(bool daHoanThanh)
+        // A6: awaited (not fire-and-forget) so a write failure surfaces via the calling command's
+        // ExecutionTask instead of being silently discarded.
+        private async Task LuuThoiGianThucTe(bool daHoanThanh)
         {
             int phutDaHoc = _tongGiayDaHoc / 60;
             if (phutDaHoc > 0)
@@ -118,7 +121,7 @@ namespace SmartStudyPlanner.ViewModels
                 TaskHienTai.TaskGoc.ThoiGianDaHoc += phutDaHoc;
                 _streak.UpdateStreak();
 
-                _ = _outcomeLogRepo.AddAsync(new StudyTimeOutcomeLog
+                await _outcomeLogRepo.AddAsync(new StudyTimeOutcomeLog
                 {
                     Id                  = Guid.NewGuid(),
                     CreatedUtc          = DateTime.UtcNow,
@@ -135,35 +138,38 @@ namespace SmartStudyPlanner.ViewModels
                 });
             }
 
-            _ = _studyLogRepository.AddAsync(new StudyLog
+            // DeviceId stamped at the write site (A6 scope) — StudyLog doesn't implement
+            // ISyncMetadata until M1.2's T1.1, so this is independent of the SyncStamper seam.
+            await _studyLogRepository.AddAsync(new StudyLog
             {
                 MaTask       = TaskHienTai.TaskGoc.MaTask,
                 NgayHoc      = DateTime.Today,
                 SoPhutHoc    = phutDaHoc,
                 SoPhutDuKien = 0,
-                DaHoanThanh  = daHoanThanh
+                DaHoanThanh  = daHoanThanh,
+                DeviceId     = DeviceHelper.GetId(),
             });
         }
 
         [RelayCommand] private void BatDau() => _timer.Start();
         [RelayCommand] private void TamDung() => _timer.Stop();
 
-        [RelayCommand]
-        private void HoanThanh()
+        [RelayCommand(FlowExceptionsToTaskScheduler = true)]
+        private async Task HoanThanh()
         {
             _timer.Stop();
-            LuuThoiGianThucTe(true);
+            await LuuThoiGianThucTe(true);
             _telemetry.Track("focus_complete", new System.Collections.Generic.Dictionary<string, string> { ["task"] = TaskHienTai.TenTask });
             TaskHienTai.TaskGoc.NgayHoanThanh = DateTime.Today;
             TaskHienTai.TaskGoc.TrangThai = StudyTaskStatus.HoanThanh;
             OnKetThuc?.Invoke();
         }
 
-        [RelayCommand]
-        private void ThoatKhanCap()
+        [RelayCommand(FlowExceptionsToTaskScheduler = true)]
+        private async Task ThoatKhanCap()
         {
             _timer.Stop();
-            LuuThoiGianThucTe(false);
+            await LuuThoiGianThucTe(false);
             _telemetry.Track("focus_abort", new System.Collections.Generic.Dictionary<string, string> { ["task"] = TaskHienTai.TenTask });
             OnKetThuc?.Invoke();
         }
