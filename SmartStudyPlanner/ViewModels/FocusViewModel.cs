@@ -37,9 +37,17 @@ namespace SmartStudyPlanner.ViewModels
 
         public Action OnKetThuc { get; set; }
 
+        // A6/R5: fires when an autosave fails after being caught in HoanThanh/ThoatKhanCap.
+        // Defaults to a no-op so test-facing ctors never pop a real dialog; the production
+        // ctor below overrides it with a real MessageBox.
+        public Action<string> NotifyUser { get; set; } = _ => { };
+
         // Production: resolve streak thật (disk-backed) qua ServiceLocator.
         public FocusViewModel(TaskDashboardItem task)
-            : this(task, ServiceLocator.Get<IStudyLogRepository>(), ServiceLocator.Get<IStudyTelemetry>(), ServiceLocator.Get<IStudyTimeOutcomeLogRepository>(), ServiceLocator.Get<IStreakManager>()) { }
+            : this(task, ServiceLocator.Get<IStudyLogRepository>(), ServiceLocator.Get<IStudyTelemetry>(), ServiceLocator.Get<IStudyTimeOutcomeLogRepository>(), ServiceLocator.Get<IStreakManager>())
+        {
+            NotifyUser = message => System.Windows.MessageBox.Show(message, "Lỗi lưu dữ liệu", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+        }
         // Các ctor test-facing default về NullStreakManager để không chạm đĩa (mirror NullStudyTelemetry).
         public FocusViewModel(TaskDashboardItem task, IStudyLogRepository studyLogRepository)
             : this(task, studyLogRepository, new NullStudyTelemetry(), new NullStudyTimeOutcomeLogRepository(), new NullStreakManager()) { }
@@ -158,20 +166,47 @@ namespace SmartStudyPlanner.ViewModels
         private async Task HoanThanh()
         {
             _timer.Stop();
-            await LuuThoiGianThucTe(true);
+            if (!await TryLuuThoiGianThucTe(true, nameof(HoanThanh))) return;
             _telemetry.Track("focus_complete", new System.Collections.Generic.Dictionary<string, string> { ["task"] = TaskHienTai.TenTask });
             TaskHienTai.TaskGoc.NgayHoanThanh = DateTime.Today;
             TaskHienTai.TaskGoc.TrangThai = StudyTaskStatus.HoanThanh;
             OnKetThuc?.Invoke();
         }
 
+        // "Thoát khẩn cấp" must always be able to close the (maximized, topmost, borderless)
+        // focus-lock window — unlike HoanThanh, a failed autosave here must not trap the user.
         [RelayCommand(FlowExceptionsToTaskScheduler = true)]
         private async Task ThoatKhanCap()
         {
             _timer.Stop();
-            await LuuThoiGianThucTe(false);
+            await TryLuuThoiGianThucTe(false, nameof(ThoatKhanCap));
+            // Tracked unconditionally: "the user hit emergency exit" is true regardless of
+            // whether the autosave succeeded — a failed save is a separate fact (autosave_failed).
             _telemetry.Track("focus_abort", new System.Collections.Generic.Dictionary<string, string> { ["task"] = TaskHienTai.TenTask });
             OnKetThuc?.Invoke();
+        }
+
+        // A6/R5: an autosave failure must reach the user (not just be swallowed or left
+        // as an unobserved ExecutionTask fault) — logs telemetry and shows a notice, then
+        // tells the caller to stop instead of marking the task complete on a failed save.
+        private async Task<bool> TryLuuThoiGianThucTe(bool daHoanThanh, string commandName)
+        {
+            try
+            {
+                await LuuThoiGianThucTe(daHoanThanh);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _telemetry.Track("autosave_failed", new System.Collections.Generic.Dictionary<string, string>
+                {
+                    ["task"] = TaskHienTai.TenTask,
+                    ["command"] = commandName,
+                    ["error"] = ex.Message,
+                });
+                NotifyUser("Không thể lưu tiến độ học tập. Vui lòng thử lại.");
+                return false;
+            }
         }
 
         private sealed class NullStudyTelemetry : IStudyTelemetry
