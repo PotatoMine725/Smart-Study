@@ -198,6 +198,136 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence
             Assert.Equal(2, reloaded[0].DanhSachMonHoc[0].DanhSachTask.Count);
         }
 
+        [Fact]
+        public async Task HocKyRepository_DeleteTaskByAbsence_TombstonesNotHardDeletes()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+            var repo = new SqliteHocKyRepository(factory);
+
+            var hocKy = new HocKy("HK1", DateTime.Today);
+            var monHoc = new MonHoc("Toán", 3) { MaHocKy = hocKy.MaHocKy };
+            var task = new StudyTask("T1", DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                MaMonHoc = monHoc.MaMonHoc,
+                MucDoCanhBao = "An toàn",
+            };
+            monHoc.DanhSachTask.Add(task);
+            hocKy.DanhSachMonHoc.Add(monHoc);
+            await repo.LuuHocKyAsync(hocKy);
+
+            // User deletes the task in the UI -> dropped from the in-memory graph -> re-save (implicit-absence delete).
+            hocKy.DanhSachMonHoc[0].DanhSachTask.Remove(task);
+            await repo.LuuHocKyAsync(hocKy);
+
+            var reloaded = await repo.LayDanhSachHocKyAsync();
+            Assert.Empty(reloaded[0].DanhSachMonHoc[0].DanhSachTask); // read path filters tombstoned rows out
+
+            using var probe = factory();
+            var stillThere = await probe.StudyTasks.FirstOrDefaultAsync(t => t.MaTask == task.MaTask);
+            Assert.NotNull(stillThere); // tombstoned, not hard-deleted
+            Assert.True(stillThere!.IsDeleted);
+        }
+
+        [Fact]
+        public async Task HocKyRepository_DeleteMonHocByAbsence_CascadesTombstoneToItsTasks()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+            var repo = new SqliteHocKyRepository(factory);
+
+            var hocKy = new HocKy("HK1", DateTime.Today);
+            var monHoc = new MonHoc("Toán", 3) { MaHocKy = hocKy.MaHocKy };
+            var task = new StudyTask("T1", DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                MaMonHoc = monHoc.MaMonHoc,
+                MucDoCanhBao = "An toàn",
+            };
+            monHoc.DanhSachTask.Add(task);
+            hocKy.DanhSachMonHoc.Add(monHoc);
+            await repo.LuuHocKyAsync(hocKy);
+
+            hocKy.DanhSachMonHoc.Remove(monHoc);
+            await repo.LuuHocKyAsync(hocKy);
+
+            using var probe = factory();
+            var monStillThere = await probe.MonHocs.FirstOrDefaultAsync(m => m.MaMonHoc == monHoc.MaMonHoc);
+            Assert.NotNull(monStillThere);
+            Assert.True(monStillThere!.IsDeleted);
+            var taskStillThere = await probe.StudyTasks.FirstOrDefaultAsync(t => t.MaTask == task.MaTask);
+            Assert.NotNull(taskStillThere);
+            Assert.True(taskStillThere!.IsDeleted);
+        }
+
+        [Fact]
+        public async Task HocKyRepository_DeleteTaskByAbsence_CascadesToNoteAndLinks()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+            var repo = new SqliteHocKyRepository(factory);
+
+            var hocKy = new HocKy("HK1", DateTime.Today);
+            var monHoc = new MonHoc("Toán", 3) { MaHocKy = hocKy.MaHocKy };
+            var task = new StudyTask("T1", DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                MaMonHoc = monHoc.MaMonHoc,
+                MucDoCanhBao = "An toàn",
+            };
+            monHoc.DanhSachTask.Add(task);
+            hocKy.DanhSachMonHoc.Add(monHoc);
+            await repo.LuuHocKyAsync(hocKy);
+
+            using (var ctx = factory())
+            {
+                ctx.TaskNotes.Add(new TaskNote { MaTask = task.MaTask, Content = "note" });
+                ctx.TaskReferenceLinks.Add(new TaskReferenceLink { MaTask = task.MaTask, Title = "L", Url = "https://l.com" });
+                await ctx.SaveChangesAsync();
+            }
+
+            hocKy.DanhSachMonHoc[0].DanhSachTask.Remove(task);
+            await repo.LuuHocKyAsync(hocKy);
+
+            using var probe = factory();
+            var note = await probe.TaskNotes.FirstOrDefaultAsync(n => n.MaTask == task.MaTask);
+            Assert.NotNull(note);
+            Assert.True(note!.IsDeleted);
+            var link = await probe.TaskReferenceLinks.FirstOrDefaultAsync(l => l.MaTask == task.MaTask);
+            Assert.NotNull(link);
+            Assert.True(link!.IsDeleted);
+        }
+
+        [Fact]
+        public async Task HocKyRepository_ResaveWithNoChanges_DoesNotBumpRevOfUnrelatedRows()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+            var repo = new SqliteHocKyRepository(factory);
+
+            var hocKy = new HocKy("HK1", DateTime.Today);
+            var monHoc = new MonHoc("Toán", 3) { MaHocKy = hocKy.MaHocKy };
+            var task = new StudyTask("T1", DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                MaMonHoc = monHoc.MaMonHoc,
+                MucDoCanhBao = "An toàn",
+            };
+            monHoc.DanhSachTask.Add(task);
+            hocKy.DanhSachMonHoc.Add(monHoc);
+            await repo.LuuHocKyAsync(hocKy);
+
+            using (var probe1 = factory())
+            {
+                var t = await probe1.StudyTasks.FirstAsync(x => x.MaTask == task.MaTask);
+                Assert.Equal(1, t.Rev);
+            }
+
+            // Re-save the exact same graph (no edits) -- e.g. HoanThanhTask completing a sibling task.
+            await repo.LuuHocKyAsync(hocKy);
+
+            using var probe2 = factory();
+            var reloaded = await probe2.StudyTasks.FirstAsync(x => x.MaTask == task.MaTask);
+            Assert.Equal(1, reloaded.Rev); // unchanged row -> no Rev churn
+        }
+
         // M1.1 T-metric: p95 task-save latency, captured before the sync-metadata stamping seam
         // lands and re-measured after (docs/plans/2026-07-03-epic-1-execution-plan.md success metric
         // "p95 task-save ≤ 1.2× baseline"). No hardcoded ms threshold here — cross-machine/CI timing

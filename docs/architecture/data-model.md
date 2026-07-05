@@ -19,7 +19,7 @@
 | `HocKy` | Semester container | 1→N `MonHoc`. `NgayKetThuc` is `[NotMapped]`, defaults to `NgayBatDau + 150 days` with auto/manual flag |
 | `MonHoc` | Subject / course | belongs to `HocKy`; 1→N `StudyTask`; has `SoTinChi` (credits) |
 | `StudyTask` | The atomic unit of work | belongs to `MonHoc`; has `TenTask`, `HanChot`, `LoaiCongViec`, `DoKho` (1–5), `TrangThai` (`StudyTaskStatus.ChuaLam`/`HoanThanh`), `ThoiGianDaHoc`, `DiemUuTien`, `NgayHoanThanh` |
-| `StudyLog` | One study session | 1 per task per session; sync-ready fields `CreatedAtUtc`, `DeviceId`, `IsDeleted` added in M7 — **schema only**: the production write path never populates `DeviceId` (`ViewModels/FocusViewModel.cs:138`; see [lessons-learned L2](lessons-learned.md)) |
+| `StudyLog` | One study session | 1 per task per session; `CreatedAtUtc`/`DeviceId`/`IsDeleted` from M7, plus the full D-I metadata block (`Rev`/`ModifiedAtUtc`/`ModifiedByDeviceId`/`DeletedAtUtc`) from Epic 1/M1.2. The A6 fire-and-forget write and unpopulated `DeviceId` were fixed in M1.1 (`ViewModels/FocusViewModel.cs`; see [lessons-learned L2](lessons-learned.md)) |
 | `TaskNote` | Freeform note | **1-1** with `StudyTask`, unique index on `MaTask`; cascade delete |
 | `TaskReferenceLink` | External link | **1-N** with `StudyTask`; cascade delete; `Title`, `Url`, `Category`, `SortOrder` |
 
@@ -42,15 +42,28 @@
 - `StudyTask` → `TaskNote`: unique index on `MaTask`, cascade delete.
 - `StudyTask` → `TaskReferenceLink`: cascade delete.
 
-> **Sync note:** these are **hard** deletes. Under the two-way LAN-sync target (§8) a hard delete
-> cannot propagate to other devices; that path needs soft-delete + tombstones.
+> **Sync note (updated Epic 1 / M1.2, G1 closed):** these `OnDelete(DeleteBehavior.Cascade)`
+> configs are kept, but are no longer **hard** deletes at the SQL level. `SyncStamper` (in
+> `AppDbContext.SaveChanges`) intercepts every `Deleted`-state entry — including the ones EF's own
+> cascade fixup marks on loaded children — and converts it to a soft tombstone (`IsDeleted = true`,
+> `DeletedAtUtc` stamped) instead of letting a real `DELETE` reach the DB. The cascade config's role
+> shifted from "produce a SQL cascade" to "drive EF's in-memory fixup so cascade-tombstoning works."
+> See [`2026-07-03-g1-soft-delete-cascade.md`](../plans/2026-07-03-g1-soft-delete-cascade.md).
 
 ## 4. Data lifecycle rules
 
 - Local data is the canonical source of truth.
-- Deleting a semester removes dependent subjects + tasks (+ their notes + links).
-- Deleting a subject removes its tasks.
+- Deleting a semester tombstones dependent subjects + tasks (+ their notes + links) — see §3.
+  (No UI path deletes a whole semester today; deletion is exercised via subject/task deletes below.)
+- Deleting a subject tombstones its tasks (+ their notes + links).
+- Deleting a task tombstones its notes + links.
 - Notes and reference links follow the task.
+- Subject/task deletes are expressed as **absence**: the UI drops the item from the in-memory
+  `HocKy` graph and re-saves the whole semester. `SqliteHocKyRepository.LuuHocKyAsync` reconciles
+  the new graph against the DB by Guid (update existing rows in place, add new rows, remove rows
+  absent from the new graph) rather than a blanket remove-then-recreate — the latter would collide
+  on the primary key of every unchanged row now that deletes are soft (the row never actually
+  leaves the table).
 - ML model and metadata live on the filesystem only — not in SQLite.
 
 ## 5. Repository abstractions
@@ -114,25 +127,33 @@ Seed (180 rows from `SeedDataGenerator.Generate(180)`) or `StudyLog` history →
 **Already in place**
 - **Stable global identity** — every entity uses a `Guid` primary key (`HocKy.MaHocKy`,
   `MonHoc.MaMonHoc`, `StudyTask.MaTask`, `StudyLog.Id`, telemetry `Id`), addressable across devices.
-- **Partial change/tombstone metadata on `StudyLog` only** — M7's `CreatedAtUtc` / `DeviceId` / `IsDeleted`.
+- **D-I metadata block on every synced entity (Epic 1 / M1.2, T1.1) — done.** `HocKy`, `MonHoc`,
+  `StudyTask`, `StudyLog`, `TaskNote`, `TaskReferenceLink` all implement `ISyncMetadata` (`Rev`,
+  `ModifiedAtUtc`, `ModifiedByDeviceId`, `IsDeleted`, `DeletedAtUtc`), stamped by the single
+  `SyncStamper` seam in `AppDbContext.SaveChanges`. `Rev` is a local monotonic per-entity counter —
+  **never compared across devices** (see [lessons-learned L6](lessons-learned.md)).
+- **Tombstones on every synced entity (Epic 1 / M1.2, T1.2 — G1 closed) — done.** Deletes are
+  soft (`IsDeleted` + `DeletedAtUtc`), including cascade-tombstone to live descendants; see §3/§4.
+  Existing pre-Epic-1 databases upgrade in place via `Data/SyncSchema.EnsureColumns` (T1.8).
+- **Read paths filter tombstoned rows** — every repository read query excludes `IsDeleted` rows
+  (mirrors the pattern `SqliteStudyLogRepository` already had for `StudyLog`).
 - `IUserStatsRepository` aggregates were designed with M8-B's `WeightOptimizerInput` in mind.
 
-**Still required before two-way sync (sequenced first — D-B)**
+**Still required before two-way sync (Epic 2)**
 1. **Identity semantics, not just IDs** — Guids stop key collisions, not *semantic* duplicates
-   (two rows meaning the same subject). The dedup-cloned-`MonHoc` fix (commit `946799b`) is the preview.
-2. **Tombstones on every synced entity** — today's deletes are hard cascade deletes (§3); extend to
-   soft-delete with `IsDeleted` + `DeletedAtUtc` per **D-I**.
-3. **Change tracking — decided ([D-I](../plans/2026-07-02-architecture-freeze-decisions.md)):** every
-   synced entity carries `Rev` (monotonic per-entity counter, local to each device — **never compared
-   across devices**; see [lessons-learned L6](lessons-learned.md)), `ModifiedAtUtc`, `ModifiedByDeviceId`;
-   field-level merge is powered by a **last-synced base snapshot per peer** (3-way diff), not per-field
-   version columns.
-4. **Conflict policy — decided (D-F + D-I):** field-level merge by default; a field changed on both sides
+   (two rows meaning the same subject). The dedup-cloned-`MonHoc` fix (commit `946799b`) is the
+   preview; centralizing it behind a shared helper is Epic 1's M1.3 (bounded to `MonHoc`).
+2. **Merge engine — decided ([D-I](../plans/2026-07-02-architecture-freeze-decisions.md)), not yet
+   built:** field-level merge is powered by a **last-synced base snapshot per peer** (3-way diff),
+   not per-field version columns. `Rev`/`ModifiedAtUtc`/`ModifiedByDeviceId` (above) are the inputs
+   this merge will read — the merge logic itself, the base-snapshot store (T1.4), and change
+   enumeration are Epic 2 (M2.1).
+3. **Conflict policy — decided (D-F + D-I):** field-level merge by default; a field changed on both sides
    relative to the base is a concurrent same-field edit → **LWW** with tie-break `ModifiedAtUtc` →
    `ModifiedByDeviceId` (lexicographic). **Delete-vs-edit: tombstone wins.** The losing side of every
    conflict is preserved in a **conflict record** (edit history is out of v1 scope). **No HLC.**
-   Still open: tombstone retention length / purge authority, and the soft-delete cascade policy for
-   parents with live children.
+   Still open: tombstone retention length / purge authority (default until Epic 2's G4 closes: never
+   purge — a single-device alpha never purges).
 
 ## 9. Reading order
 

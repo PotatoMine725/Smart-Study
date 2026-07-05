@@ -22,7 +22,8 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
         {
             using var db = _ctxFactory();
             return await db.MonHocs
-                .Include(m => m.DanhSachTask)
+                .Where(m => !m.IsDeleted)
+                .Include(m => m.DanhSachTask.Where(t => !t.IsDeleted))
                 .FirstOrDefaultAsync(m => m.MaMonHoc == maMonHoc, ct);
         }
 
@@ -30,8 +31,8 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
         {
             using var db = _ctxFactory();
             return await db.MonHocs
-                .Where(m => m.MaHocKy == maHocKy)
-                .Include(m => m.DanhSachTask)
+                .Where(m => m.MaHocKy == maHocKy && !m.IsDeleted)
+                .Include(m => m.DanhSachTask.Where(t => !t.IsDeleted))
                 .ToListAsync(ct);
         }
     }

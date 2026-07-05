@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SmartStudyPlanner.Models
 {
-    public class MonHoc
+    public class MonHoc : ISyncMetadata
     {
         // KHÓA CHÍNH
         [Key] public Guid MaMonHoc { get; set; }
@@ -16,6 +16,13 @@ namespace SmartStudyPlanner.Models
         public int SoTinChi { get; set; }
 
         public ObservableCollection<StudyTask> DanhSachTask { get; set; }
+
+        // D-I sync metadata (Epic 1 / M1.2, T1.1) — stamped by SyncStamper.
+        public long Rev { get; set; }
+        public DateTime ModifiedAtUtc { get; set; }
+        public string ModifiedByDeviceId { get; set; } = string.Empty;
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAtUtc { get; set; }
 
         public MonHoc()
         {

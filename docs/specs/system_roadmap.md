@@ -46,18 +46,19 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
 (SOE precedes LAN transport for the desktop-first closed alpha — D-B's build queue is
 *"data model → debt B3/A6 → SOE"*, and its consequences explicitly do not commit to LAN sync next):
 
-1. **Sync-ready data model** *(foundation — first)* — identity semantics (not just Guid PKs; see the
-   dedup-cloned-`MonHoc` issue), tombstones on every synced entity, and the **D-I metadata block**
-   (`Rev` + `ModifiedAtUtc` + `ModifiedByDeviceId`). The last-synced base-snapshot store for 3-way
-   merge lands with the LAN-sync epic, co-designed with its consumer (master plan M2.1).
-   See [`../architecture/data-model.md`](../architecture/data-model.md) §8.
+1. **Sync-ready data model** *(foundation — first)* — **tombstones on every synced entity and the
+   D-I metadata block (`Rev` + `ModifiedAtUtc` + `ModifiedByDeviceId`) done (Epic 1 / M1.2, gate G1
+   closed)**; identity semantics beyond Guid PKs (the dedup-cloned-`MonHoc` issue) remain M1.3. The
+   last-synced base-snapshot store for 3-way merge lands with the LAN-sync epic, co-designed with
+   its consumer (master plan M2.1). See [`../architecture/data-model.md`](../architecture/data-model.md) §8.
 2. **Study Optimization Engine** *(on top of the sync-ready data model — D-B)* — evolves the Balancer (Part B §7.3).
    **Guardrails frozen 2026-07-02 ([D-G/D-H/D-J](../plans/2026-07-02-architecture-freeze-decisions.md)):** deadline feasibility, capacity and calendar limits are **hard constraints** (Constraint Validator);
    objective = quality only (`w1…w5`); feasibility never worsens (`violations(out) ≤ violations(in)`).
    **Pass accept/commit semantics still OPEN — implementation blocked on it** (master plan gate G2). Scope must respect §13. See [`../plans/2026-06-30-workload-optimizer-proposal.md`](../plans/2026-06-30-workload-optimizer-proposal.md).
 3. **LAN sync epic** *(D-A)* — multi-device, two-way merge over LAN (not cloud). Merge policy **decided (D-F):** field-level merge, LWW only on concurrent same-field edits.
    **Mechanics frozen 2026-07-02 ([D-I](../plans/2026-07-02-architecture-freeze-decisions.md)):** 3-way merge vs. last-synced base; tie-break `ModifiedAtUtc` → `DeviceId`; delete-vs-edit → tombstone wins,
-   losing side kept in a conflict record; no HLC. *Still open: tombstone retention/purge + cascade policy (master plan gates G1/G4).*
+   losing side kept in a conflict record; no HLC. *Cascade policy decided + implemented (G1, cascade-tombstone —
+   Epic 1 / M1.2). Still open: tombstone retention/purge authority (master plan gate G4).*
 4. **M8-C** — retrain the Study Time Predictor on real Focus-session telemetry (replace synthetic seed).
 5. **M9** — natural-language deadline parsing (Part B §9.1) and cross-semester analytics.
 

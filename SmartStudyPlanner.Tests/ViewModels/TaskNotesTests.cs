@@ -7,6 +7,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using SmartStudyPlanner.Core.Parsing.Orchestrators;
 using SmartStudyPlanner.Data;
+using SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Tests.Fixtures;
 using SmartStudyPlanner.Tests.TestDoubles;
@@ -104,18 +105,24 @@ namespace SmartStudyPlanner.Tests.ViewModels
             ctx.TaskReferenceLinks.Add(new TaskReferenceLink { MaTask = task.MaTask, Title = "L", Url = "https://l.com" });
             await ctx.SaveChangesAsync();
 
-            // Delete via parent hierarchy (same way LuuHocKyAsync works)
-            using var ctx2 = NewCtx();
-            var hocKy = await ctx2.HocKys
-                .Include(h => h.DanhSachMonHoc)
-                .ThenInclude(m => m.DanhSachTask)
-                .FirstAsync();
-            ctx2.HocKys.Remove(hocKy);
-            await ctx2.SaveChangesAsync();
+            // Delete via the real production path (XoaTask/XoaMon): drop the task from the
+            // in-memory graph, then re-save the whole HocKy (LuuHocKyAsync's implicit-absence
+            // delete cascades explicitly to Note/Links -- see SqliteHocKyRepository).
+            var hocKyRepo = new SqliteHocKyRepository(NewCtx);
+            using (var loadCtx = NewCtx())
+            {
+                var hocKy = await loadCtx.HocKys
+                    .Include(h => h.DanhSachMonHoc)
+                    .ThenInclude(m => m.DanhSachTask)
+                    .FirstAsync();
+                var mon = hocKy.DanhSachMonHoc[0];
+                mon.DanhSachTask.Remove(mon.DanhSachTask.First(t => t.MaTask == task.MaTask));
+                await hocKyRepo.LuuHocKyAsync(hocKy);
+            }
 
             using var ctx3 = NewCtx();
-            Assert.False(await ctx3.TaskNotes.AnyAsync(n => n.MaTask == task.MaTask));
-            Assert.False(await ctx3.TaskReferenceLinks.AnyAsync(l => l.MaTask == task.MaTask));
+            Assert.False(await ctx3.TaskNotes.AnyAsync(n => n.MaTask == task.MaTask && !n.IsDeleted));
+            Assert.False(await ctx3.TaskReferenceLinks.AnyAsync(l => l.MaTask == task.MaTask && !l.IsDeleted));
         }
 
         // ── SaveBundle diff ────────────────────────────────────────────────────
@@ -139,7 +146,7 @@ namespace SmartStudyPlanner.Tests.ViewModels
             await ctx2.SaveChangesAsync();
 
             using var ctx3 = NewCtx();
-            var remaining = await ctx3.TaskReferenceLinks.Where(l => l.MaTask == task.MaTask).ToListAsync();
+            var remaining = await ctx3.TaskReferenceLinks.Where(l => l.MaTask == task.MaTask && !l.IsDeleted).ToListAsync();
             Assert.Single(remaining);
             Assert.Equal("A", remaining[0].Title);
         }
