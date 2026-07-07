@@ -37,7 +37,7 @@
 | M8 Telemetry | `DifficultyLabelLog` + `WeightChangeLog` capture; `OutcomeMaturationService` (14-day cohort fill) | shipped 2026-06-11 |
 | UI/UX | Design system, sidebar, dashboard, analytics heatmap, WorkloadBalancer page | shipped |
 
-> Granular refactor-slice history: [`../active/refactor-god-object.md`](../active/refactor-god-object.md) + git log.
+> Granular refactor-slice history: `refactor-god-object.md` (archived 2026-07-07 → `legacy/Archived plans/`, local-only) + git log.
 
 ## A.3 Next up
 
@@ -54,7 +54,7 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
 2. **Study Optimization Engine** *(on top of the sync-ready data model — D-B)* — evolves the Balancer (Part B §7.3).
    **Guardrails frozen 2026-07-02 ([D-G/D-H/D-J](../plans/2026-07-02-architecture-freeze-decisions.md)):** deadline feasibility, capacity and calendar limits are **hard constraints** (Constraint Validator);
    objective = quality only (`w1…w5`); feasibility never worsens (`violations(out) ≤ violations(in)`).
-   **Pass accept/commit semantics still OPEN — implementation blocked on it** (master plan gate G2). Scope must respect §13. See [`../plans/2026-06-30-workload-optimizer-proposal.md`](../plans/2026-06-30-workload-optimizer-proposal.md).
+   **Pass accept/commit semantics still OPEN — implementation blocked on it** (master plan gate G2). Scope must respect §13. See the SOE proposal `2026-06-30-workload-optimizer-proposal.md` (archived 2026-07-07 → `legacy/Archived plans/`, local-only; recoverable from git history — note it carries a supersession banner, the frozen contract is D-G/D-H/D-J).
 3. **LAN sync epic** *(D-A)* — multi-device, two-way merge over LAN (not cloud). Merge policy **decided (D-F):** field-level merge, LWW only on concurrent same-field edits.
    **Mechanics frozen 2026-07-02 ([D-I](../plans/2026-07-02-architecture-freeze-decisions.md)):** 3-way merge vs. last-synced base; tie-break `ModifiedAtUtc` → `DeviceId`; delete-vs-edit → tombstone wins,
    losing side kept in a conflict record; no HLC. *Still open: tombstone retention/purge + cascade policy (master plan gates G1/G4).*
@@ -328,7 +328,7 @@ Constraints:
 * avoid repetition
 
 > **Reconciliation (D-A/D-B/D2/N9):** the Balancer is slated to evolve into the **Study Optimization
-> Engine** (see [`../plans/2026-06-30-workload-optimizer-proposal.md`](../plans/2026-06-30-workload-optimizer-proposal.md)),
+> Engine** (see the SOE proposal `2026-06-30-workload-optimizer-proposal.md`, archived → `legacy/Archived plans/`),
 > where balancing becomes one of several heuristics. Two constraints on that evolution:
 > **(1) sequencing** — it sits on top of the sync-ready data model (Part A §A.3), not before it;
 > **(2) scope** — the proposal's six sub-engines are in **direct tension with §13** below

@@ -1,8 +1,8 @@
 # Smart Study Planner — Docs Index
 
-> Last reorganized: 2026-05-21
+> Last reorganized: 2026-07-07 — plans from 2026-06 and earlier + completed `active/` trackers were archived to `legacy/Archived plans/` (local-only, gitignored; content remains in git history).
 
-This folder contains all living documentation for Smart Study Planner. Outdated/fulfilled docs were consolidated and removed; historical artifacts are in `_archive/` and the unified history lives in `CHANGELOG.md`.
+This folder contains all living documentation for Smart Study Planner. Outdated/fulfilled docs are archived to `legacy/Archived plans/`; the unified history lives in `CHANGELOG.md`.
 
 ## Reading order
 
@@ -13,18 +13,16 @@ This folder contains all living documentation for Smart Study Planner. Outdated/
    - [data-model.md](architecture/data-model.md) — SQLite schema + data pipeline.
    - [dependency-flows.md](architecture/dependency-flows.md) — who calls who.
    - [async-workflow.md](architecture/async-workflow.md) — async posture.
-   - [usecase-flows.md](architecture/usecase-flows.md) — UC-01..UC-11 step-by-step.
+   - [usecase-flows.md](architecture/usecase-flows.md) — UC-01..UC-12 step-by-step.
    - [lessons-learned.md](architecture/lessons-learned.md) — engineering postmortem of the 2026-07 architecture review (why the decisions exist).
-4. **active/** — work in progress / planned (read before editing).
-   - [refactor-god-object.md](active/refactor-god-object.md) — remaining slices 5-8.
-   - [m8-text-classifier.md](active/m8-text-classifier.md) — M8-A.
-   - [m8-weight-optimizer.md](active/m8-weight-optimizer.md) — M8-B.
+4. **active/** — pointers to work in progress only (read [active/README.md](active/README.md) before editing).
+   Current: Epic 1 sync-ready data model (M1.2 in review) + UI mobile-ready polish (proposed).
 5. **knowledge/** — extracted lessons (programming, system design, ML, debugging).
 6. **specs/**, **plans/**, **reports/**, **review/** — working areas for new work. Each has a README explaining when/how to add files.
 7. **[ux_quality_gate_checklist.md](ux_quality_gate_checklist.md)** — regression checklist for UI work.
 
 ## Conventions
 
-- All new plans / specs / reports go under `active/` (work) or `architecture/` (current state).
-- Once a plan ships → append a row to `CHANGELOG.md`, then move the plan to `_archive/` only if it has lasting reference value, otherwise delete.
+- New plans go under `plans/` (naming `YYYY-MM-DD-<kebab>.md`), with a pointer row in `active/README.md` while in progress; `architecture/` describes current state only.
+- Once a plan ships → append a row to `CHANGELOG.md`, reflect the end state in `architecture/`, then move the plan to `legacy/Archived plans/` (local archive, gitignored — the repo keeps its history in git).
 - Knowledge nuggets distilled from any work belong in `knowledge/`.

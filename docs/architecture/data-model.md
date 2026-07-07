@@ -75,7 +75,7 @@ Standalone tables, **no FK** to domain tables (`MaTask` is a nullable reference 
 
 ## 5. Repository layer
 
-The legacy wide `Data/IStudyRepository` + `StudyRepository` pair is **fully retired** (repository-split plan [../plans/2026-06-02-split-studyrepository.md](../plans/2026-06-02-split-studyrepository.md); consolidation finished as Epic 1 T1.6 — zero references remain in production). All access goes through **nine narrow repositories** in `Infrastructure/Persistence/Repositories/` with SQLite implementations in `.../SQLite/Repositories/`, each constructed with a `Func<AppDbContext>` factory (in-memory SQLite testable):
+The legacy wide `Data/IStudyRepository` + `StudyRepository` pair is **fully retired** (repository-split plan `2026-06-02-split-studyrepository.md`, archived 2026-07-07 → `legacy/Archived plans/`; consolidation finished as Epic 1 T1.6 — zero references remain in production). All access goes through **nine narrow repositories** in `Infrastructure/Persistence/Repositories/` with SQLite implementations in `.../SQLite/Repositories/`, each constructed with a `Func<AppDbContext>` factory (in-memory SQLite testable):
 
 | Interface | Surface |
 |---|---|

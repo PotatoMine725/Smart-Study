@@ -27,5 +27,9 @@ Differs from `active/` — `active/` holds the **current** plan in progress; `pl
 
 - `draft` → `in-progress` → `done`.
 - When a slice ships, record it in `docs/CHANGELOG.md`.
-- When all slices ship, delete the plan (it's now in CHANGELOG + architecture).
-- Active in-progress plans should also be linked from `docs/active/` for visibility.
+- When all slices ship, move the plan to `legacy/Archived plans/` (local archive, gitignored —
+  the repo keeps the content in git history; the living state is CHANGELOG + architecture).
+- Active in-progress plans must have a pointer row in `docs/active/README.md` for visibility.
+
+> Archive sweep 2026-07-07: all `2026-06-*` plans were moved to `legacy/Archived plans/`.
+> This folder now only holds plans that are in-flight or still normative (e.g. decision records).
