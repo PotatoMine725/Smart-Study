@@ -2,7 +2,7 @@
 
 > **Mô tả (descriptive)** — viết 2026-06-10 từ code thực thi (sau khi retire
 > `RiskAnalyzerService`, commit `0346637`, và static `SmartParser`, commit `222cb5a`);
-> rà lại 2026-07-01. Theo [`../plans/2026-07-01-architecture-direction-decisions.md`](../plans/2026-07-01-architecture-direction-decisions.md)
+> rà lại 2026-07-01; rà lại lần cuối **2026-07-07 tại commit `3c96978`** (nhánh `ui_rf`). Theo [`../plans/2026-07-01-architecture-direction-decisions.md`](../plans/2026-07-01-architecture-direction-decisions.md)
 > (D-C), **code là chuẩn — file này có thể lag so với code.** Đây vẫn là bản mô tả chi tiết
 > nhất cho luồng **phân loại task** và **xếp hạng + rủi ro**.
 
@@ -174,6 +174,9 @@ ThiGiuaKy 0.6 > KiemTra 0.3 > BaiTapVeNha 0.1.
 `WeightConfig.cs`: 4 trọng số mặc định cộng = 1.0. `IsValid()` (tổng ≈ 1.0, sai số 0.001) được
 `SchedulingOrchestrator.CalculatePriority` kiểm; nếu hỏng → reset default (**self-heal**). `Normalize()`
 clamp sàn `MinWeight = 0.05` rồi scale về 1.0 (guardrail sau khi WeightOptimizer chỉnh).
+Singleton `WeightConfig` được **nạp từ đĩa** lúc composition (`WeightConfigStore.Load()` →
+`%LocalAppData%\SmartStudyPlanner\weight_config.json`, `Services/ServiceLocator.cs:67`) và được
+ghi lại khi user Apply gợi ý ở `WeightOptimizerWindow` — trọng số sống sót qua restart.
 
 > Rule precedence kiểm `Overdue/JustOverdue/Imminent` **trước** `CompletedRule`, nhưng trong luồng
 > pipeline vô hại vì `PrioritizeStage` đã lọc task hoàn thành trước khi gọi.
@@ -230,9 +233,10 @@ Mỗi evaluator (`Core/Risk/Evaluators/`) trả `[0,1]`:
 
 ---
 
-## 4. Vòng feedback — WeightOptimizer (M8-B)
+## 4. Vòng feedback — WeightOptimizer (M8-B, UI Slice 8 ĐÃ SHIP)
 
-`Services/ML/WeightOptimizer/` — **read-only, không tự apply** (apply để dành UI Slice 8):
+`Services/ML/WeightOptimizer/` — engine **read-only, không tự apply**; việc apply do UI Slice 8
+(`WeightOptimizerWindow`) đảm nhiệm:
 
 - `WeightOptimizerService.cs`: async wrapper, fetch `UserStatsSnapshot` từ `IUserStatsRepository`.
 - `WeightRuleEngine.cs`: hàm thuần, deterministic, không I/O. `pressure = 0.6·missRate +
@@ -240,8 +244,14 @@ Mỗi evaluator (`Core/Risk/Evaluators/`) trả `[0,1]`:
   lệ từ 3 trọng số còn lại), rồi `Normalize()`. `Confidence` = độ *đủ* dữ liệu (số task + phút học 30
   ngày), khớp ngưỡng 0.60/0.75. Trả `WeightConfigSuggestion { Suggested, Confidence, Rationale }`.
 
-Được DI tiêm vào `SchedulingOrchestrator` qua optional ctor; lộ ra qua `SuggestWeightConfigAsync`
-(chưa có UI consume — Slice 8).
+Được DI tiêm vào `SchedulingOrchestrator` qua optional ctor; lộ ra qua `SuggestWeightConfigAsync`,
+**đã có UI consume**: `WeightOptimizerWindow` (mở từ sidebar `MainWindow`, non-modal, single instance)
+→ `WeightOptimizerViewModel.LoadSuggestion` → `IMlConfidencePolicy.Decide` gate UI →
+`ApplySuggestion` mutate `WeightConfig` chung + `Normalize()` + `WeightConfigStore.Save`.
+Mỗi lần apply ghi **ground truth** `WeightChangeLog` (before/after, confidence, baseline
+`UserStatsSnapshot`, cohort task đang mở — fire-and-forget, không được chặn đường apply);
+`OutcomeMaturationService.MatureAsync` (chạy nền lúc startup) điền các cột outcome sau khi
+cửa sổ 14 ngày trôi qua.
 
 ```mermaid
 flowchart LR
@@ -249,7 +259,11 @@ flowchart LR
     CFG["WeightConfig hiện tại"] --> WOS
     WOS --> WRE["WeightRuleEngine.Compute<br/>(pure)"]
     WRE --> SUG["WeightConfigSuggestion<br/>{ Suggested, Confidence, Rationale }"]
-    SUG -. "Slice 8: UI apply" .-> CFG
+    SUG --> UI["WeightOptimizerWindow<br/>Apply"]
+    UI --> CFG
+    UI --> STORE["WeightConfigStore<br/>weight_config.json"]
+    UI --> GT["WeightChangeLog<br/>(ground truth)"]
+    GT -. "startup, sau 14 ngày" .-> MAT["OutcomeMaturationService"]
 ```
 
 ---
@@ -280,3 +294,7 @@ Tính đến 2026-07-01, phần drift mà mục này từng theo dõi đã đư�
 §5.4/§5.5 nay mô tả đúng hệ rủi ro `Core/Risk/*` đang chạy và `IIntentClassifier` đã được
 wire; `RiskAnalyzerService` và static `SmartParser` đã bị gỡ khỏi cả hai file.
 `DecisionEngineService` vẫn chỉ là facade mỏng trên `SchedulingOrchestrator`.
+
+Rà lại 2026-07-07 (commit `3c96978`): luồng A và luồng B **không đổi** sau Epic 1 M1.1
+(M1.1 chỉ chạm persistence + `FocusViewModel`). Thay đổi duy nhất trong phạm vi file này:
+UI Slice 8 (WeightOptimizer, §4) đã ship, và `WeightConfig` giờ persist qua `WeightConfigStore`.

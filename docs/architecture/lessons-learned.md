@@ -12,6 +12,10 @@
 >
 > All `file:line` references were verified against the working tree at commit `5e54220`
 > (no source changes since) on 2026-07-02.
+>
+> **Status addendum 2026-07-07:** Epic 1 M1.1 (merge `3193adf`) has since modified
+> `FocusViewModel` and `AppDbContext` — the historical `file:line` references in L2 describe
+> the pre-M1.1 tree. See the dated status notes inline; the lessons themselves are unchanged.
 
 ## Context
 
@@ -95,6 +99,12 @@ feature was designed and then not wired, which is exactly where assumptions rot.
 not just adding columns. Every synced entity's metadata gets a write-site test ("saving X
 stamps `ModifiedAtUtc`/`ModifiedByDeviceId`"). A6 is a hard prerequisite to LAN sync, not
 cleanup.
+
+> **Status 2026-07-07 — closed by Epic 1 M1.1** (commits `e968033` + `6e1c51f`, merged
+> `3193adf`): the study-log write is awaited, `StudyLog.DeviceId` is stamped at the write site
+> (`ViewModels/FocusViewModel.cs:151-159`), failures surface to the user
+> (`autosave_failed` + `NotifyUser`), and write-site tests exist (`FocusViewModelA6Tests`).
+> The full metadata block on every synced entity is M1.2 — implemented, in review.
 
 ---
 
@@ -232,6 +242,11 @@ does not already provide here.
 `ModifiedAtUtc`, `ModifiedByDeviceId`, and tombstone fields (`IsDeleted`, `DeletedAtUtc`).
 Merge tests exercise concurrency detection and tie-breaking as *separate* concerns. Anyone
 tempted to "simplify" by ordering on `Rev` across devices should be pointed at this section.
+
+> **Status 2026-07-07:** the metadata block + tombstones are implemented in Epic 1 M1.2
+> (worktree `epic1-sync-ready-data-model`, verdict refine-before-accept — one blocker
+> M1.2-R1, [`../review/2026-07-06-epic1-m1.2-review.md`](../review/2026-07-06-epic1-m1.2-review.md)),
+> stamped exclusively through the single `SyncStamper` seam merged in M1.1.
 
 ---
 
