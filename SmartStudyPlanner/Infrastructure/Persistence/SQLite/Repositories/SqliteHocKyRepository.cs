@@ -113,7 +113,7 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
                         // fixup can't see them), then remove the MonHoc itself (EF fixup already
                         // tombstones its loaded StudyTask children via the Include chain above).
                         foreach (var oldTask in oldMon.DanhSachTask.ToList())
-                            await CascadeRemoveTaskChildrenAsync(db, oldTask.MaTask, ct);
+                            await TaskCascadeHelper.RemoveChildrenAsync(db, oldTask.MaTask, ct);
                         hocKyCu.DanhSachMonHoc.Remove(oldMon);
                         db.MonHocs.Remove(oldMon);
                     }
@@ -137,7 +137,7 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
                         {
                             if (newTaskById.ContainsKey(oldTask.MaTask)) continue;
 
-                            await CascadeRemoveTaskChildrenAsync(db, oldTask.MaTask, ct);
+                            await TaskCascadeHelper.RemoveChildrenAsync(db, oldTask.MaTask, ct);
                             oldMon.DanhSachTask.Remove(oldTask);
                             db.StudyTasks.Remove(oldTask);
                         }
@@ -188,15 +188,6 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
                 previous.IsDeleted = snapshot.IsDeleted;
                 previous.DeletedAtUtc = snapshot.DeletedAtUtc;
             }
-        }
-
-        private static async Task CascadeRemoveTaskChildrenAsync(AppDbContext db, Guid maTask, CancellationToken ct)
-        {
-            var note = await db.TaskNotes.FirstOrDefaultAsync(n => n.MaTask == maTask, ct);
-            if (note != null) db.TaskNotes.Remove(note);
-
-            var links = await db.TaskReferenceLinks.Where(l => l.MaTask == maTask).ToListAsync(ct);
-            if (links.Count > 0) db.TaskReferenceLinks.RemoveRange(links);
         }
     }
 }

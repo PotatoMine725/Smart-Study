@@ -55,6 +55,11 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
             using var db = _ctxFactory();
             var existing = await db.StudyTasks.FirstOrDefaultAsync(t => t.MaTask == maTask, ct);
             if (existing is null) return;
+
+            // Review fix M1.2-R1 (G1): TaskNote/TaskReferenceLink aren't reachable via
+            // .Include() (FK-only relationship) so EF's cascade fixup can't tombstone them --
+            // cascade explicitly, same as SqliteHocKyRepository.LuuHocKyAsync already does.
+            await TaskCascadeHelper.RemoveChildrenAsync(db, maTask, ct);
             db.StudyTasks.Remove(existing);
             await db.SaveChangesAsync(ct);
         }

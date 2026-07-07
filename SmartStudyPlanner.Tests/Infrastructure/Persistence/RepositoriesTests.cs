@@ -71,6 +71,49 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence
         }
 
         [Fact]
+        public async Task StudyTaskRepository_DeleteAsync_CascadesToNoteAndLinks()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+            Guid maMonHoc;
+            using (var ctx = TestDb.Create(conn))
+            {
+                var seeded = await TestDb.SeedTaskAsync(ctx);
+                maMonHoc = seeded.MaMonHoc;
+            }
+
+            var repo = new SqliteStudyTaskRepository(factory);
+            var task = new StudyTask("T1", DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                MaMonHoc = maMonHoc,
+                MucDoCanhBao = "An toàn",
+            };
+            await repo.AddAsync(task);
+
+            using (var ctx = factory())
+            {
+                ctx.TaskNotes.Add(new TaskNote { MaTask = task.MaTask, Content = "note" });
+                ctx.TaskReferenceLinks.Add(new TaskReferenceLink { MaTask = task.MaTask, Title = "L", Url = "https://l.com" });
+                await ctx.SaveChangesAsync();
+            }
+
+            await repo.DeleteAsync(task.MaTask);
+
+            using var probe = factory();
+            var deletedTask = await probe.StudyTasks.FirstOrDefaultAsync(t => t.MaTask == task.MaTask);
+            Assert.NotNull(deletedTask);
+            Assert.True(deletedTask!.IsDeleted);
+
+            var note = await probe.TaskNotes.FirstOrDefaultAsync(n => n.MaTask == task.MaTask);
+            Assert.NotNull(note);
+            Assert.True(note!.IsDeleted);
+
+            var link = await probe.TaskReferenceLinks.FirstOrDefaultAsync(l => l.MaTask == task.MaTask);
+            Assert.NotNull(link);
+            Assert.True(link!.IsDeleted);
+        }
+
+        [Fact]
         public async Task StudyLogRepository_AddGetByTaskAndSince()
         {
             var (conn, factory) = NewDb();
