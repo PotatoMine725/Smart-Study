@@ -339,6 +339,116 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence
             Assert.True(link!.IsDeleted);
         }
 
+        // Epic 1 / M1.3 (D2): regression test for a pre-existing M1.2-era gap surfaced while
+        // investigating M1.3 -- confirmed reproducing on unmodified M1.2 code (exact-duplicate
+        // TenMonHoc clones, no normalization involved). LuuHocKyAsync's task reconcile used to be
+        // scoped per-MonHoc-parent; a task that crossed clone boundaries during
+        // LayDanhSachHocKyAsync's merge got cascade-tombstoned under its old parent AND
+        // re-Add()-ed under the representative in the same SaveChanges -> EF "already being
+        // tracked" exception. See docs/reports/ for the full trace.
+        [Fact]
+        public async Task HocKyRepository_DuplicateNamedMonHocClones_DistinctTasks_MergeReconcilesWithoutCollision()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+
+            var hocKy = new HocKy("HK1", DateTime.Today);
+            var monA = new MonHoc("Toán", 3) { MaHocKy = hocKy.MaHocKy };
+            var taskA = new StudyTask("TA", DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                MaMonHoc = monA.MaMonHoc,
+                MucDoCanhBao = "An toàn",
+            };
+            monA.DanhSachTask.Add(taskA);
+
+            var monB = new MonHoc("Toán", 3) { MaHocKy = hocKy.MaHocKy };
+            var taskB = new StudyTask("TB", DateTime.Today.AddDays(4), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                MaMonHoc = monB.MaMonHoc,
+                MucDoCanhBao = "An toàn",
+            };
+            monB.DanhSachTask.Add(taskB);
+
+            hocKy.DanhSachMonHoc.Add(monA);
+            hocKy.DanhSachMonHoc.Add(monB);
+
+            var repo = new SqliteHocKyRepository(factory);
+            await repo.LuuHocKyAsync(hocKy);
+
+            var loaded = await repo.LayDanhSachHocKyAsync();
+
+            var ex = await Record.ExceptionAsync(() => repo.LuuHocKyAsync(loaded[0]));
+            Assert.Null(ex);
+
+            await AssertClonesMergedWithoutLoss(factory, repo, hocKy.MaHocKy, taskA.MaTask, taskB.MaTask);
+        }
+
+        // This is M1.3's discriminating test (per the implementation brief): widening the dedup
+        // key from raw TenMonHoc to MonHocIdentity.Normalize merges MORE clones (case/whitespace
+        // variants, not just byte-identical ones) and migrates more tasks across MonHoc
+        // identities. Must not drop or PK-collide -- see the fix documented alongside
+        // HocKyRepository_DuplicateNamedMonHocClones_DistinctTasks_MergeReconcilesWithoutCollision
+        // above (same underlying reconcile gap, wider trigger).
+        [Fact]
+        public async Task HocKyRepository_CaseWhitespaceVariantMonHocClones_DistinctTasks_MergeReconcilesWithoutCollision()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+
+            var hocKy = new HocKy("HK1", DateTime.Today);
+            var monA = new MonHoc("Toán", 3) { MaHocKy = hocKy.MaHocKy };
+            var taskA = new StudyTask("TA", DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                MaMonHoc = monA.MaMonHoc,
+                MucDoCanhBao = "An toàn",
+            };
+            monA.DanhSachTask.Add(taskA);
+
+            var monB = new MonHoc("toán ", 3) { MaHocKy = hocKy.MaHocKy };
+            var taskB = new StudyTask("TB", DateTime.Today.AddDays(4), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                MaMonHoc = monB.MaMonHoc,
+                MucDoCanhBao = "An toàn",
+            };
+            monB.DanhSachTask.Add(taskB);
+
+            hocKy.DanhSachMonHoc.Add(monA);
+            hocKy.DanhSachMonHoc.Add(monB);
+
+            var repo = new SqliteHocKyRepository(factory);
+            await repo.LuuHocKyAsync(hocKy);
+
+            var loaded = await repo.LayDanhSachHocKyAsync();
+            // Pre-M1.3 (raw TenMonHoc key), "Toán" and "toán " would NOT have merged here --
+            // asserting 2 MonHoc at this point would pin the old behavior. M1.3 merges them.
+            Assert.Single(loaded[0].DanhSachMonHoc);
+
+            var ex = await Record.ExceptionAsync(() => repo.LuuHocKyAsync(loaded[0]));
+            Assert.Null(ex);
+
+            await AssertClonesMergedWithoutLoss(factory, repo, hocKy.MaHocKy, taskA.MaTask, taskB.MaTask);
+        }
+
+        private static async Task AssertClonesMergedWithoutLoss(
+            Func<AppDbContext> factory, SqliteHocKyRepository repo, Guid maHocKy, Guid maTaskA, Guid maTaskB)
+        {
+            var reloaded = await repo.LayDanhSachHocKyAsync();
+            var hocKy = reloaded.Single(h => h.MaHocKy == maHocKy);
+            Assert.Single(hocKy.DanhSachMonHoc); // exactly one subject
+            Assert.Equal(2, hocKy.DanhSachMonHoc[0].DanhSachTask.Count); // both tasks present
+            Assert.Contains(hocKy.DanhSachMonHoc[0].DanhSachTask, t => t.MaTask == maTaskA);
+            Assert.Contains(hocKy.DanhSachMonHoc[0].DanhSachTask, t => t.MaTask == maTaskB);
+
+            using var probe = factory();
+            Assert.Equal(1, await probe.MonHocs.CountAsync(m => m.MaHocKy == maHocKy && !m.IsDeleted));
+            Assert.Equal(1, await probe.MonHocs.CountAsync(m => m.MaHocKy == maHocKy && m.IsDeleted)); // losing clone tombstoned
+
+            var taskAProbe = await probe.StudyTasks.FirstAsync(t => t.MaTask == maTaskA);
+            var taskBProbe = await probe.StudyTasks.FirstAsync(t => t.MaTask == maTaskB);
+            Assert.False(taskAProbe.IsDeleted); // no task lost
+            Assert.False(taskBProbe.IsDeleted);
+        }
+
         [Fact]
         public async Task HocKyRepository_ResaveWithNoChanges_DoesNotBumpRevOfUnrelatedRows()
         {

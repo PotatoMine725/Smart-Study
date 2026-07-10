@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,16 +30,19 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
                         .ThenInclude(mon => mon.DanhSachTask.Where(t => !t.IsDeleted))
                      .ToListAsync(ct);
 
-            // Khử trùng môn học clone: DB có thể chứa nhiều MonHoc cùng TenMonHoc
-            // (do seed/lưu lặp) → giữ 1 bản đại diện mỗi tên để UI + mọi consumer
-            // thấy danh sách sạch. Nhất quán pattern GroupBy(TenMonHoc) toàn dự án.
-            // GỘP task từ MỌI clone (SelectMany, distinct theo MaTask) vào bản đại
-            // diện trước khi loại clone → KHÔNG mất task nằm ở clone không-đại-diện.
+            // Khử trùng môn học clone: DB có thể chứa nhiều MonHoc cùng identity chuẩn hóa
+            // (do seed/lưu lặp, hoặc chỉ khác hoa/thường/khoảng trắng) → giữ 1 bản đại diện
+            // mỗi identity để UI + mọi consumer thấy danh sách sạch. Epic 1 / M1.3: key qua
+            // MonHocIdentity.Normalize thay vì raw TenMonHoc — nhất quán pattern dedup toàn dự án.
+            // GỘP task từ MỌI clone (SelectMany, distinct theo MaTask) vào bản đại diện trước
+            // khi loại clone → KHÔNG mất task nằm ở clone không-đại-diện. Mỗi task gộp được
+            // reparent (MaMonHoc = daiDien.MaMonHoc) để đồ thị trả về nhất quán FK-với-navigation —
+            // LuuHocKyAsync's reconcile dựa vào đó để nhận diện đúng chủ sở hữu mới của task.
             // Lần LuuHocKyAsync kế tiếp ghi đè danh sách đã khử trùng → prune clone khỏi DB.
             foreach (var hocKy in danhSach)
             {
                 var monDuyNhat = hocKy.DanhSachMonHoc
-                    .GroupBy(mon => mon.TenMonHoc)
+                    .GroupBy(mon => MonHocIdentity.Normalize(mon.TenMonHoc))
                     .Select(nhom =>
                     {
                         var daiDien = nhom.First();
@@ -48,6 +52,9 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
                             .GroupBy(task => task.MaTask)
                             .Select(nhomTask => nhomTask.First())
                             .ToList();
+
+                        foreach (var task in taskGop)
+                            task.MaMonHoc = daiDien.MaMonHoc;
 
                         if (taskGop.Count != daiDien.DanhSachTask.Count)
                         {
@@ -104,16 +111,45 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
                     var newMonById = hocKy.DanhSachMonHoc.ToDictionary(m => m.MaMonHoc);
                     var oldMonList = hocKyCu.DanhSachMonHoc.ToList();
 
+                    // Epic 1 / M1.3: task reconcile is scoped to the whole HocKy, not nested
+                    // per-MonHoc parent. LayDanhSachHocKyAsync's identity-based dedup can merge
+                    // two MonHoc clones and move a task from the losing clone into the surviving
+                    // representative between load and save. A per-parent diff would see that
+                    // task as "removed under its old parent" AND "new under the representative"
+                    // -- two conflicting operations on the same StudyTask row in one
+                    // SaveChanges, which EF rejects ("already being tracked"). Diffing every task
+                    // under this HocKy by Guid up front -- before touching any MonHoc -- mirrors
+                    // this same HocKy-level MonHoc diff and lets a reparented task reconcile onto
+                    // its single existing tracked row instead of colliding with it.
+                    var oldTasksByMaTask = oldMonList.SelectMany(m => m.DanhSachTask).ToDictionary(t => t.MaTask);
+                    var newTasksByMaTask = hocKy.DanhSachMonHoc.SelectMany(m => m.DanhSachTask).ToDictionary(t => t.MaTask);
+
+                    // Reparent surviving tasks onto their new owner's FK *before* any MonHoc is
+                    // removed. EF's cascade-on-remove fixup resolves a doomed parent's dependents
+                    // at the moment Remove() is called below, using its own tracked relationship
+                    // snapshot -- not the live ObservableCollection -- so a task must already have
+                    // moved off that FK (and DetectChanges must have run) or it gets swept into
+                    // the cascade and wrongly tombstoned despite surviving under a new parent.
+                    foreach (var oldTask in oldTasksByMaTask.Values)
+                    {
+                        if (!newTasksByMaTask.TryGetValue(oldTask.MaTask, out var newTask)) continue;
+                        if (oldTask.MaMonHoc == newTask.MaMonHoc) continue;
+
+                        var oldOwner = oldMonList.First(m => m.MaMonHoc == oldTask.MaMonHoc);
+                        oldOwner.DanhSachTask.Remove(oldTask);
+                        oldTask.MaMonHoc = newTask.MaMonHoc;
+                    }
+                    db.ChangeTracker.DetectChanges();
+
                     foreach (var oldMon in oldMonList)
                     {
                         if (newMonById.ContainsKey(oldMon.MaMonHoc)) continue;
 
-                        // MonHoc removed by the user -> cascade its tasks' Note/Links explicitly
-                        // (FK-only relationship, not reachable via Include -> EF's own cascade
-                        // fixup can't see them), then remove the MonHoc itself (EF fixup already
-                        // tombstones its loaded StudyTask children via the Include chain above).
-                        foreach (var oldTask in oldMon.DanhSachTask.ToList())
-                            await TaskCascadeHelper.RemoveChildrenAsync(db, oldTask.MaTask, ct);
+                        // MonHoc removed by the user (or merged away as a losing dedup clone).
+                        // Whatever remains in its tracked navigation at this point is genuinely
+                        // gone (reparented survivors were already moved off above), so EF's own
+                        // cascade fixup correctly tombstones it; hocKyCu.DanhSachMonHoc.Remove
+                        // keeps the in-memory graph consistent with that.
                         hocKyCu.DanhSachMonHoc.Remove(oldMon);
                         db.MonHocs.Remove(oldMon);
                     }
@@ -123,37 +159,40 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
                         var oldMon = oldMonList.FirstOrDefault(m => m.MaMonHoc == newMon.MaMonHoc);
                         if (oldMon == null)
                         {
+                            // Its tasks are handled by the flat task diff below, not by cascading
+                            // through this Add -- clear the incoming navigation so EF doesn't
+                            // double-track them.
+                            newMon.DanhSachTask = new ObservableCollection<StudyTask>();
                             hocKyCu.DanhSachMonHoc.Add(newMon);
                             db.MonHocs.Add(newMon);
                             continue;
                         }
 
                         CopySyncSafeValues(db.Entry(oldMon), newMon);
+                    }
 
-                        var newTaskById = newMon.DanhSachTask.ToDictionary(t => t.MaTask);
-                        var oldTaskList = oldMon.DanhSachTask.ToList();
+                    foreach (var oldTask in oldTasksByMaTask.Values)
+                    {
+                        if (newTasksByMaTask.ContainsKey(oldTask.MaTask)) continue;
 
-                        foreach (var oldTask in oldTaskList)
+                        await TaskCascadeHelper.RemoveChildrenAsync(db, oldTask.MaTask, ct);
+                        db.StudyTasks.Remove(oldTask);
+                    }
+
+                    foreach (var newTask in newTasksByMaTask.Values)
+                    {
+                        var owner = hocKyCu.DanhSachMonHoc.First(m => m.MaMonHoc == newTask.MaMonHoc);
+
+                        if (oldTasksByMaTask.TryGetValue(newTask.MaTask, out var oldTask))
                         {
-                            if (newTaskById.ContainsKey(oldTask.MaTask)) continue;
-
-                            await TaskCascadeHelper.RemoveChildrenAsync(db, oldTask.MaTask, ct);
-                            oldMon.DanhSachTask.Remove(oldTask);
-                            db.StudyTasks.Remove(oldTask);
+                            CopySyncSafeValues(db.Entry(oldTask), newTask);
+                            if (!owner.DanhSachTask.Contains(oldTask))
+                                owner.DanhSachTask.Add(oldTask);
                         }
-
-                        foreach (var newTask in newMon.DanhSachTask)
+                        else
                         {
-                            var oldTask = oldTaskList.FirstOrDefault(t => t.MaTask == newTask.MaTask);
-                            if (oldTask == null)
-                            {
-                                oldMon.DanhSachTask.Add(newTask);
-                                db.StudyTasks.Add(newTask);
-                            }
-                            else
-                            {
-                                CopySyncSafeValues(db.Entry(oldTask), newTask);
-                            }
+                            owner.DanhSachTask.Add(newTask);
+                            db.StudyTasks.Add(newTask);
                         }
                     }
                 }
