@@ -25,27 +25,11 @@ namespace SmartStudyPlanner
                     db.Database.EnsureDeleted();
                 }
 
-                db.Database.EnsureCreated();
-
-                // Runtime schema migration: thêm cột IsSeeded nếu DB cũ chưa có
-                try
-                {
-                    db.Database.ExecuteSqlRaw(
-                        "ALTER TABLE HocKys ADD COLUMN IsSeeded INTEGER NOT NULL DEFAULT 0");
-                }
-                catch (Microsoft.Data.Sqlite.SqliteException)
-                {
-                    // Column đã tồn tại — bỏ qua
-                }
-
-                // Đánh dấu bản ghi seed đã tồn tại trong DB
-                db.Database.ExecuteSqlRaw(
-                    "UPDATE HocKys SET IsSeeded = 1 WHERE Ten = 'Học Kỳ Dev Seed'");
-
-                // Runtime schema migration: tạo bảng telemetry nếu DB cũ chưa có
-                // (EnsureCreated không thêm bảng mới vào DB đã tồn tại). Tách ra seam
-                // Data/TelemetrySchema.cs để dual-path test gọi được cùng đường SQL.
-                TelemetrySchema.EnsureTables(db);
+                // Full bootstrap sequence lives in AppStartup.EnsureDatabaseReady so an
+                // integration test can drive the exact same sequence against a real file-based
+                // DB (OnStartup is WPF lifecycle, not callable from a unit test).
+                var dbPath = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "SmartStudyData.db");
+                AppStartup.EnsureDatabaseReady(db, dbPath);
             }
 
             // KHỞI TẠO DI CONTAINER

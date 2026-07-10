@@ -42,6 +42,14 @@ namespace SmartStudyPlanner.Data
         }
 
         // 3. CẤU HÌNH QUAN HỆ GIỮA CÁC BẢNG (Tùy chọn nhưng nên có để tránh lỗi Xóa dây chuyền)
+        //
+        // Epic 1 / M1.2 (G1): every OnDelete(DeleteBehavior.Cascade) below is now inert at the
+        // SQL level -- SyncStamper converts a Remove() into a soft IsDeleted update before
+        // SaveChanges executes, so no real DELETE (and therefore no DB-level ON DELETE CASCADE)
+        // ever fires. The config is kept because it still drives EF Core's in-memory ChangeTracker
+        // cascade *fixup*: when a tracked parent is Remove()d, EF marks its *loaded* children
+        // Deleted too, which is what lets SyncStamper cascade-tombstone them in the same
+        // SaveChanges call. See docs/plans/2026-07-03-g1-soft-delete-cascade.md.
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Khi xóa Học Kỳ -> Tự động xóa sạch Môn Học bên trong
