@@ -86,8 +86,10 @@ namespace SmartStudyPlanner.ViewModels
                 HasError = false;
                 _allLogs = await _studyLogRepository.GetForHocKyAsync(_hocKy);
                 HasEnoughData = _allLogs.Count >= 50;
+                // Epic 1 / M1.3: Distinct qua MonHocIdentity.NameComparer thay vì raw string,
+                // để "Toán"/"toán " gộp về 1 option thay vì hiện 2 lựa chọn trùng nhau.
                 SubjectOptions = new ObservableCollection<string>(new[] { "Tất cả" }
-                    .Concat(_hocKy.DanhSachMonHoc.Select(m => m.TenMonHoc).Distinct().OrderBy(x => x)));
+                    .Concat(_hocKy.DanhSachMonHoc.Select(m => m.TenMonHoc).Distinct(MonHocIdentity.NameComparer.Instance).OrderBy(x => x)));
                 ApplyFilters();
                 _telemetry.Track("analytics_open", new Dictionary<string, string> { ["semester"] = _hocKy.Ten });
             }
@@ -121,7 +123,7 @@ namespace SmartStudyPlanner.ViewModels
                 .ToDictionary(x => x.MaTask, x => x.Mon);
             var filtered = _allLogs
                 .Where(l => l.NgayHoc.Date >= from)
-                .Where(l => SelectedSubject == "Tất cả" || (taskById.TryGetValue(l.MaTask, out var mon) && mon == SelectedSubject))
+                .Where(l => SelectedSubject == "Tất cả" || (taskById.TryGetValue(l.MaTask, out var mon) && MonHocIdentity.NameComparer.Instance.Equals(mon, SelectedSubject)))
                 .ToList();
 
             HasData = filtered.Count > 0;
