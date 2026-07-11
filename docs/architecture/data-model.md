@@ -174,17 +174,26 @@ Every completed/aborted focus session appends a `StudyTimeOutcomeLog` row. On us
 - **A6 closed (M1.1)** — the `StudyLog` write is awaited, `DeviceId` populated at the write site,
   failures user-visible.
 - `IUserStatsRepository` aggregates were designed with M8-B's `WeightOptimizerInput` in mind.
+- **`MonHoc` identity semantics, not just IDs (Epic 1 / M1.3) — done, bounded to `MonHoc`.**
+  Guids stop key collisions, not *semantic* duplicates (two rows meaning the same subject).
+  `Models/MonHocIdentity.Normalize` (NFC → trim → collapse whitespace → invariant-culture
+  lowercase; diacritics preserved — "Toán" == "toán " but "Toán" != "Toan") is the single
+  definition every dedup/prevent-at-source site routes through: the 4 read-side dedups
+  (`SqliteHocKyRepository.LayDanhSachHocKyAsync`, `StudyAnalyticsService.ComputeSubjectInsights`,
+  `AdaptStage.Execute`, `AnalyticsViewModel`'s subject filter) and add-time prevent-at-source in
+  `QuanLyMonHocViewModel.ThemMon`. This is the alpha stopgap for the semantic-duplicate class —
+  true cross-device identity-merge is Epic 2. Widening the dedup key surfaced a pre-existing M1.2
+  gap in `LuuHocKyAsync`'s task reconcile (task reconcile was scoped per-`MonHoc`-parent, so a
+  task moved between merged clones collided with itself in one `SaveChanges`); fixed by scoping
+  the task diff to the whole `HocKy` instead — see the M1.3 report for the full trace.
 
 **Still required before two-way sync (sequenced per D-B)**
-1. **Identity semantics, not just IDs** — Guids stop key collisions, not *semantic* duplicates
-   (two rows meaning the same subject). The dedup-cloned-`MonHoc` fix (commit `946799b`) is the
-   preview; centralizing it behind a shared helper is Epic 1's M1.3 (bounded to `MonHoc`).
-2. **Merge engine — decided ([D-I](../plans/2026-07-02-architecture-freeze-decisions.md)), not yet
+1. **Merge engine — decided ([D-I](../plans/2026-07-02-architecture-freeze-decisions.md)), not yet
    built:** field-level merge is powered by a **last-synced base snapshot per peer** (3-way diff),
    not per-field version columns. `Rev`/`ModifiedAtUtc`/`ModifiedByDeviceId` (above) are the inputs
    this merge will read — the merge logic itself, the base-snapshot store (T1.4), and change
    enumeration are Epic 2 (M2.1).
-3. **Conflict policy — decided (D-F + D-I):** field-level merge by default; a field changed on both sides
+2. **Conflict policy — decided (D-F + D-I):** field-level merge by default; a field changed on both sides
    relative to the base is a concurrent same-field edit → **LWW** with tie-break `ModifiedAtUtc` →
    `ModifiedByDeviceId` (lexicographic). **Delete-vs-edit: tombstone wins.** The losing side of every
    conflict is preserved in a **conflict record** (edit history is out of v1 scope). **No HLC.**

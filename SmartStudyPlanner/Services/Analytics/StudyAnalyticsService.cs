@@ -31,7 +31,9 @@ namespace SmartStudyPlanner.Services.Analytics
                 .ToDictionary(g => g.Key, g => g.Sum(l => l.SoPhutHoc));
 
             return hocKy.DanhSachMonHoc
-                .GroupBy(mon => mon.TenMonHoc)
+                // Epic 1 / M1.3: key qua MonHocIdentity.Normalize thay vì raw TenMonHoc, để
+                // "Toán"/"toán " gộp về 1 insight thay vì bị đếm như 2 môn khác nhau.
+                .GroupBy(mon => MonHocIdentity.Normalize(mon.TenMonHoc))
                 .Select(g =>
                 {
                     var tasks     = g.SelectMany(mon => mon.DanhSachTask).ToList();
@@ -41,7 +43,7 @@ namespace SmartStudyPlanner.Services.Analytics
 
                     return new SubjectInsight
                     {
-                        SubjectName        = g.Key,
+                        SubjectName        = g.First().TenMonHoc,
                         TotalTaskCount     = tasks.Count,
                         CompletedTaskCount = completed,
                         CompletionRate     = tasks.Count == 0 ? 0.0 : (double)completed / tasks.Count,
