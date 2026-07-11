@@ -40,6 +40,9 @@ namespace SmartStudyPlanner.ViewModels
         public Action<HocKy, MonHoc> OnNavigateToTask { get; set; }
         public Action OnRefreshGrid { get; set; } // Dùng để ép DataGrid vẽ lại khi Sửa xong
 
+        // Loa thông báo cho View (bơm MessageBox vào). Để null trong test/headless -> không bung dialog.
+        public Action<string> OnThongBao { get; set; }
+
         public QuanLyMonHocViewModel(HocKy hocKy)
             : this(hocKy, ServiceLocator.Get<IHocKyRepository>())
         {
@@ -112,7 +115,7 @@ namespace SmartStudyPlanner.ViewModels
                     !m.IsDeleted && MonHocIdentity.Normalize(m.TenMonHoc) == MonHocIdentity.Normalize(TenMon));
                 if (trung != null)
                 {
-                    System.Windows.MessageBox.Show($"Môn '{trung.TenMonHoc}' đã tồn tại.", "Trùng môn học", MessageBoxButton.OK);
+                    OnThongBao?.Invoke($"Môn '{trung.TenMonHoc}' đã tồn tại.");
                     return;
                 }
 

@@ -32,16 +32,21 @@ namespace SmartStudyPlanner.Tests.ViewModels
             var hocKy = new HocKy("HK1", DateTime.Today);
             hocKy.DanhSachMonHoc.Add(new MonHoc("Toán", 3) { MaHocKy = hocKy.MaHocKy });
             var repo = new FakeHocKyRepository();
+            string? thongBao = null;
             var vm = new QuanLyMonHocViewModel(hocKy, repo)
             {
                 TenMon = "toán ",
                 SoTinChi = "3",
+                OnThongBao = msg => thongBao = msg,
             };
 
             await vm.ThemMonCommand.ExecuteAsync(null);
 
             Assert.Single(hocKy.DanhSachMonHoc);
             Assert.Equal(0, repo.LuuCallCount);
+            // Warning routed through the OnThongBao seam (View wires MessageBox), not raised
+            // directly by the VM -- so it never bungs a modal dialog in a headless test run.
+            Assert.NotNull(thongBao);
         }
 
         [Fact]
