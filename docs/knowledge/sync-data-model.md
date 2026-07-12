@@ -26,17 +26,15 @@ timestamp+tiebreaker answers both "which is newer" and "did one edit see the oth
 different questions (recency vs. concurrency), and no single scalar answers both.
 
 **How it was solved.** The metadata was split into three roles, deliberately assigned to three
-different mechanisms so no one field is asked to do more than one job:
-
-| Role | Mechanism | Explicitly not |
-|---|---|---|
-| Change enumeration + same-device ordering | `Rev` (monotonic per-entity counter) | never compared across devices |
-| Concurrency detection | 3-way diff against the last-synced base snapshot | not derivable from `Rev` or timestamps |
-| Tie-break for genuine same-field conflicts | `ModifiedAtUtc`, then `ModifiedByDeviceId` | `Rev` excluded from this ordering |
-
-Every synced entity (`HocKy`, `MonHoc`, `StudyTask`, `StudyLog`, `TaskNote`, `TaskReferenceLink`)
-now carries the full block — `Rev`, `ModifiedAtUtc`, `ModifiedByDeviceId`, `IsDeleted`,
-`DeletedAtUtc` — stamped through exactly one seam.
+different mechanisms so no one field is asked to do more than one job — one field for change
+enumeration and same-device ordering, a structurally different mechanism for cross-device
+concurrency detection, and a third, narrower mechanism reserved only for tie-breaking a genuine
+same-field conflict once concurrency is already established. The exact role-to-mechanism mapping is
+the frozen decision (D-I, "Accepted #3") — see
+[`../architecture/lessons-learned.md`](../architecture/lessons-learned.md#l6--revision-counters-are-local-clocks-they-cannot-order-events-across-devices)
+for the table, rather than restating it here. Every synced entity (`HocKy`, `MonHoc`, `StudyTask`,
+`StudyLog`, `TaskNote`, `TaskReferenceLink`) now carries the full metadata block, stamped through
+exactly one seam.
 
 **Principle.** Never let a single scalar answer two different questions. A local monotonic counter
 is real information (it enumerates what changed, and orders edits *on that device*) — it becomes
