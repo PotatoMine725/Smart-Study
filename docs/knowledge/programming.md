@@ -64,7 +64,7 @@ Phase C added `IsLoading`, `HasData`, `HasError`, `EmptyStateMessage` to the Das
 The default `AppDbContext()` configures its own connection string. That's fine for runtime but blocks in-memory SQLite tests. Adding `AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}` unlocks `UseSqlite("Data Source=:memory:")` in tests. The new Slice 4 repositories take `Func<AppDbContext>` factory exactly so callers can swap implementations per test.
 
 ### Configure cascades explicitly via Fluent API
-M6.1 declared `TaskNote` 1-1 and `TaskReferenceLink` 1-N with explicit `OnDelete(DeleteBehavior.Cascade)` in `OnModelCreating`. Don't rely on convention — write it so the cascade story is greppable.
+M6.1 declared `TaskNote` 1-1 and `TaskReferenceLink` 1-N with explicit `OnDelete(DeleteBehavior.Cascade)` in `OnModelCreating`. Don't rely on convention — write it so the cascade story is greppable. See [`sync-data-model.md`](sync-data-model.md) for what happens to this config once deletes stop being real SQL deletes (it drives EF's in-memory fixup instead, and FK-only children need a hand-cascade helper).
 
 ### Atomic file swap for any model artifact
 `MLModelManager.RetrainAsync` writes to `model.tmp`, then `File.Move(tmp, canonical, overwrite: true)`. A crash during training leaves the old good file untouched. Apply the same pattern any time you serialize a model / config / cache.
