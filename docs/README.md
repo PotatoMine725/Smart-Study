@@ -16,7 +16,7 @@ This folder contains all living documentation for Smart Study Planner. Outdated/
    - [usecase-flows.md](architecture/usecase-flows.md) — UC-01..UC-12 step-by-step.
    - [lessons-learned.md](architecture/lessons-learned.md) — engineering postmortem of the 2026-07 architecture review (why the decisions exist).
 4. **active/** — pointers to work in progress only (read [active/README.md](active/README.md) before editing).
-   Current: Epic 1 release gate (code complete; Phase 1 agent tasks A1–A3 done, A4 pending — see
+   Current: Epic 1 release gate (code complete; Phase 1 agent tasks A1–A4 done — see
    [active/README.md](active/README.md)) + UI mobile-ready polish (proposed).
 5. **knowledge/** — extracted lessons (programming, system design, ML, debugging, release
    engineering, review methodology, sync data model, architecture process).

@@ -82,10 +82,16 @@ an incomplete deliverable. Findings, and disposition:
   verified-false status, same fix pattern (present tense, "G1 — done").
 - `docs/architecture/usecase-flows.md:78-79` (UC-05 delete flow) — two claims: (a) `LuuHocKyAsync`
   "recreate transaction simply omits the removed task" (same stale mechanism as above, same
-  verification), and (b) "DB cascade rules delete... *(M1.2, in review, converts this to
-  cascade-tombstoning.)*" — G1 (cascade-tombstone) is independently confirmed closed/shipped across
-  `data-model.md:168` ("G1 closed — done"), `CHANGELOG.md`, and `system_roadmap.md:55`. Both clauses
-  fixed to present tense.
+  source-verified fix), and (b) "DB cascade rules delete... *(M1.2, in review, converts this to
+  cascade-tombstoning.)*" — G1 (cascade-tombstone) as a *policy* is independently confirmed
+  closed/shipped across `data-model.md:168` ("G1 closed — done"), `CHANGELOG.md`, and
+  `system_roadmap.md:55`. **Caveat on (b), flagged on advisor review:** I verified G1 is done
+  generally (`TaskCascadeHelper` cascade-tombstones FK-only children per the shipped design), not
+  that I traced this specific UC-05 path (`XoaTask` → `LuuHocKyAsync` reconcile) end-to-end through
+  the current code to confirm it invokes that exact cascade for `TaskNote`/`TaskReferenceLink`. The
+  new wording is design-consistent and strictly more correct than the original (which was flatly
+  wrong post-M1.2 either way), but it is a weaker verification tier than (a) and the other three
+  fixes in this table, which are all traced to a specific `file:line`.
 - `docs/architecture/data-model.md:3` (header) — the known carry-forward target: "Epic 1 M1.1 and
   M1.2" while §8 already documents M1.3 as done. Fixed to enumerate M1.3. Checked the re-verification
   date wouldn't become dishonest: `git log --oneline -- docs/architecture/data-model.md` shows commit
@@ -103,8 +109,13 @@ an incomplete deliverable. Findings, and disposition:
 Scripted (Python, byte-safe) walk of every `docs/**/*.md`, regex `\[([^\]]*)\]\(([^)]+)\)`, resolved
 every non-external, non-anchor-only target relative to its source file, checked existence.
 
-**163 relative links checked** (160 before my edits + 3 new links I added, all resolve — confirmed
-by re-run). **7 broken, unchanged before/after my edits** (my edits fixed zero and broke zero):
+**166 relative links checked** (160 baseline → 163 after my `docs/architecture/*` edits, all 3 new
+links resolve → 166 after this report itself landed in `docs/`, which the checker then swept too,
+per Check 2's "across ALL of `docs/`" scope). **7 genuinely broken, unchanged across every re-run**
+(my edits fixed zero and broke zero). One additional match reported by the raw regex at 166 is a
+**self-referential false positive**: this report's own methodology section quotes the literal
+string `[…](…)` (see below) — the exact same false-positive shape the execution plan itself
+contains at line 248. Manually excluded, same reasoning both times.
 
 | Source | Target | Why it's broken |
 |---|---|---|
@@ -178,6 +189,7 @@ findings" — this one restates ~4 sentences of specific decision/verdict detail
 | `docs/architecture/dependency-flows.md:162` | Same `LuuHocKyAsync` claim, same fix |
 | `docs/architecture/usecase-flows.md:78-79` | `LuuHocKyAsync` "recreate transaction" → "Guid-diff reconcile"; cascade "DB cascade rules... M1.2 (in review)" → "cascade-tombstoning... G1 — done" |
 | `docs/architecture/data-model.md:3` | Header "Epic 1 M1.1 and M1.2" → "Epic 1 M1.1, M1.2, and M1.3" with an M1.3-authored-vs-merged date clause |
+| `docs/README.md:19` | "Phase 1 agent tasks A1–A3 done, A4 pending" → "A1–A4 done" (this task's own completion — the one status fact I have direct, first-hand authority over, added on advisor review) |
 
 No fix touched `docs/README.md`, `CHANGELOG.md`, `ROADMAP.md`, `active/README.md`,
 `system_roadmap.md`, or any file in `docs/plans/`, `docs/knowledge/`, `docs/reports/`,
@@ -234,10 +246,13 @@ its own no-rewrite convention.
    is fully accurate and correctly marks M1.1/M1.2/M1.3 all done, so this single word is not
    materially misleading in context. Noting it, not fixing it — too small and too ambiguous to be
    worth a wording change that might read as importing a claim rather than removing one.
-8. **`docs/README.md:19`** — "Phase 1 agent tasks A1–A3 done, A4 pending" will become stale the
-   moment this report lands (A4 is what "done" means here). Not fixed — this line is A2's write
-   scope and is about to be superseded wholesale by the Phase 1 exit review regardless; flagging so
-   PM's exit pass picks it up rather than leaving it for a future sweep to rediscover.
+8. ~~`docs/README.md:19`~~ — **fixed, not deferred.** Originally logged here as a finding ("A2's
+   write scope, about to be superseded, leave for PM's exit pass"), but on advisor review that
+   reasoning didn't hold: A4 is the one status fact in this whole audit I have direct, first-hand
+   authority over (I am the A4 agent; "A4 pending" goes false the instant this report lands), and
+   it's a single-word status swap identical in kind to every other fix in this report. Fixed
+   ("A1–A3 done, A4 pending" → "A1–A4 done") in the follow-up commit alongside this report's own
+   link-count correction (below).
 
 ## Regression check — re-ran both sweeps after applying fixes
 
@@ -251,8 +266,10 @@ unrelated false positives (`data-model.md:146` "Pending tasks" — workload-bala
 `data-model.md:154` — PM finding #7). No unaddressed *new* staleness surfaced by the broadened sweep
 beyond what's already itemized above.
 
-Link check: **163 links, 7 broken — identical broken set before and after my edits** (my 3 new links,
-in `overview.md`'s line-7 fix and §5.10 note, all resolve).
+Link check: **7 genuinely broken, identical set before and after my edits**, across three re-runs
+(160 links pre-edit → 163 post-edit, both my new `overview.md` links resolving → 166 once this report
+itself entered `docs/` and was swept, catching one self-referential false positive from the report's
+own methodology prose — see Check 2 above).
 
 ```
 git diff --stat -- docs/architecture/
