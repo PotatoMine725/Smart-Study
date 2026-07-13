@@ -75,8 +75,8 @@ Core flows = UC-01, UC-02, UC-06, UC-07, UC-08. Supporting = the rest.
 ## UC-05 — Delete task
 - **User**: clicks delete.
 - **Entry**: `QuanLyTaskViewModel.XoaTask(taskCanXoa)`.
-- **Chain**: `MessageBox.YesNo` → remove from `DanhSachTask` → `LuuHocKyAsync` (delete-by-absence: the recreate transaction simply omits the removed task).
-- **Cascade**: DB cascade rules delete the matching `TaskNote` + `TaskReferenceLink`s. *(M1.2, in review, converts this to cascade-tombstoning.)*
+- **Chain**: `MessageBox.YesNo` → remove from `DanhSachTask` → `LuuHocKyAsync` (delete-by-absence: the Guid-diff reconcile simply omits the removed task's row).
+- **Cascade**: cascade-tombstoning marks the matching `TaskNote` + `TaskReferenceLink`s deleted in the same transaction (Epic 1 / M1.2, G1 — done).
 
 ## UC-06 — Mark task complete
 - **User**: ticks complete on a task.

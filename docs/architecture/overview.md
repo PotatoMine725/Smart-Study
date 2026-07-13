@@ -4,7 +4,7 @@
 
 ## 1. What this app is
 
-Smart Study Planner is a **WPF desktop app on .NET 10**, designed local-first / offline-first. It transforms semester / subject / task input into priority + schedule + risk + analytics, with ML used as a non-blocking enhancement. The current strategic direction (D-A) is **multi-device, two-way LAN sync** — Epic 1 (sync-ready data model) is executing now (M1.1 merged; M1.2 in review).
+Smart Study Planner is a **WPF desktop app on .NET 10**, designed local-first / offline-first. It transforms semester / subject / task input into priority + schedule + risk + analytics, with ML used as a non-blocking enhancement. The current strategic direction (D-A) is **multi-device, two-way LAN sync** — Epic 1 (sync-ready data model) is **code complete, release gate in progress** (M1.1/M1.2/M1.3 merged `a3a0a3d`; see [system_roadmap.md §A.3](../specs/system_roadmap.md)).
 
 ## 2. Layered architecture
 
@@ -128,7 +128,15 @@ Two channels:
 - **Debug event stream** — `IStudyTelemetry` → `DebugStudyTelemetry` (`Debug.WriteLine` only, no I/O).
 - **Ground-truth SQLite tables** (no FK to domain tables): `DifficultyLabelLogs` (suggested-vs-final difficulty at task creation), `StudyTimeOutcomeLogs` (features + actual minutes per focus session — the predictor's real training data), `WeightChangeLogs` (before/after weights + baseline stats + task cohort when a weight suggestion is applied). `OutcomeMaturationService.MatureAsync` runs opportunistically at startup and fills each `WeightChangeLog`'s outcome columns once its 14-day window has elapsed (`Services/Telemetry/OutcomeMaturationService.cs`).
 
-### 5.10 Sync-readiness (Epic 1 — executing)
+### 5.10 Sync-readiness (Epic 1 — code complete, release gate in progress)
+
+> **Docs-audit note (2026-07-13):** the three bullets below still read as of the M1.1-only merge
+> point (M1.2 "in review"/"NOT merged", M1.3 "Pending") and are stale — M1.2 and M1.3 have both
+> since shipped (merge `a3a0a3d`). Canonical current status:
+> [system_roadmap.md §A.2/§A.3](../specs/system_roadmap.md); shipped-behavior detail:
+> [data-model.md §8](./data-model.md). Left for PM to rewrite (needs fresh per-entity code-state
+> verification, out of this audit's docs-only wording-fix scope).
+
 - **Merged (M1.1, commits `e968033` + `6e1c51f`, merge `3193adf`)**: `ISyncMetadata` contract, `SyncStamper` seam in `AppDbContext`, A6 closed (the focus-session write is awaited, `StudyLog.DeviceId` stamped at the write site, save failures surface to the user via `NotifyUser`/MessageBox + `autosave_failed` telemetry).
 - **In review (M1.2, worktree `epic1-sync-ready-data-model`, NOT merged)**: `ISyncMetadata` on all six entities, delete → tombstone + G1 cascade, `SyncSchema.EnsureColumns` upgrade seam + backup. Verdict 2026-07-06: refine-before-accept ([../review/2026-07-06-epic1-m1.2-review.md](../review/2026-07-06-epic1-m1.2-review.md), one blocker M1.2-R1). At `ui_rf` HEAD, **no production entity implements `ISyncMetadata` yet** and deletes are still hard cascades.
 - **Pending**: M1.3 (bounded `MonHoc` identity/dedup).
@@ -154,7 +162,7 @@ Constraints
 - Windows desktop only for now (a MAUI/Avalonia companion is aspirational — see the mobile-ready UI plan).
 - `ServiceLocator` is still a composition root, not a `HostBuilder`; several ViewModels resolve services via the static locator in their production constructors (constructor injection exists for tests).
 - Schema evolution is `EnsureCreated()` + hand-rolled idempotent patch seams, **not** EF migrations — every schema change to shipped DBs needs its own upgrade step (M1.2's T1.8 formalizes this).
-- `SqliteHocKyRepository.LuuHocKyAsync` persists via transactional **remove-then-recreate** of the whole semester graph — M1.2 (in review) rewrites this into a Guid-diff reconcile because tombstones break delete-by-recreate.
+- `SqliteHocKyRepository.LuuHocKyAsync` persists via a **Guid-diff reconcile** of the whole semester graph (Epic 1 / M1.2, G1 — done; replaced the old remove-then-recreate approach, which tombstones would break — `Infrastructure/Persistence/SQLite/Repositories/SqliteHocKyRepository.cs:81-93`).
 
 ## 8. Suggested reading order
 

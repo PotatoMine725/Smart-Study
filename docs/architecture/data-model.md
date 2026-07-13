@@ -1,6 +1,6 @@
 # Data Model & Pipeline
 
-> Consolidated 2026-05-21 from `2026-05-07-db-scheme-data-pipeline.md`. Re-verified against source **2026-07-10** (branch `ui_rf`) — reflects schema after M6.1 + M7 + Slice 4 + M8 telemetry + **Epic 1 M1.1 and M1.2** (M1.2 merged 2026-07-10, M1.2-R1 closed — [../review/2026-07-10-epic1-m1.2-r1-remediation-review.md](../review/2026-07-10-epic1-m1.2-r1-remediation-review.md)). Per D-C, code is normative.
+> Consolidated 2026-05-21 from `2026-05-07-db-scheme-data-pipeline.md`. Re-verified against source **2026-07-10** (branch `ui_rf`) — reflects schema after M6.1 + M7 + Slice 4 + M8 telemetry + **Epic 1 M1.1, M1.2, and M1.3** (M1.2 merged 2026-07-10, M1.2-R1 closed — [../review/2026-07-10-epic1-m1.2-r1-remediation-review.md](../review/2026-07-10-epic1-m1.2-r1-remediation-review.md); M1.3 §8 content authored same day, M1.3 merged 2026-07-11 — `a3a0a3d`). Per D-C, code is normative.
 
 ## 1. Database
 

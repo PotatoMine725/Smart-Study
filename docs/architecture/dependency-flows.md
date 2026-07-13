@@ -159,7 +159,7 @@ Two channels:
 
 - `ServiceLocator` creates global coupling if overused; constructor injection is preferred (and exists on every ViewModel for tests).
 - Schema evolution is `EnsureCreated()` + hand-rolled patch seams — every new table/column shipped to an existing DB needs its own idempotent patch (M1.2's `SyncSchema` formalizes this into a versioned upgrade with backup).
-- `SqliteHocKyRepository.LuuHocKyAsync` is remove-then-recreate over the whole semester graph — safe under transactions today, but incompatible with tombstones; M1.2 (in review) replaces it with a Guid-diff reconcile.
+- `SqliteHocKyRepository.LuuHocKyAsync` is a Guid-diff reconcile over the whole semester graph (Epic 1 / M1.2, G1 — done) — replaced the old remove-then-recreate approach, which was incompatible with tombstones.
 - `SqliteStudyTaskRepository.DeleteAsync` has zero production callers; M1.2 review flagged it (M1.2-R1) as a cascade-invariant trap for future callers.
 
 ## 11. Reading order
