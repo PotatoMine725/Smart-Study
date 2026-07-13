@@ -36,8 +36,12 @@
 | M8 (arch) | God-object refactor Slices 1–8: Core contracts, `DecisionEngineService`→42-line facade, `ParsingOrchestrator`, repo abstractions, `RiskOrchestrator` implements `IRiskAnalyzer`, injectable `StreakManager` | shipped 2026-06-11 |
 | M8 Telemetry | `DifficultyLabelLog` + `WeightChangeLog` capture; `OutcomeMaturationService` (14-day cohort fill) | shipped 2026-06-11 |
 | UI/UX | Design system, sidebar, dashboard, analytics heatmap, WorkloadBalancer page | shipped |
+| M1.1 | Epic 1 — single stamping seam + A6 (`SyncStamper` in `AppDbContext.SaveChanges*` stamps `Rev`/`ModifiedAtUtc`/`ModifiedByDeviceId`; `StudyLog` write awaited, `DeviceId` populated) | merged `3193adf` (2026-07-05) |
+| M1.2 | Epic 1 — schema upgrade + tombstones, gate G1 (`SyncSchema.EnsureColumns` versioned upgrade + backup + migration report; soft-delete tombstones replace hard cascades; `TaskCascadeHelper` cascade-tombstones FK-only children, M1.2-R1 remediation) | merged `e2f8268` (2026-07-10) |
+| M1.3 | Epic 1 — MonHoc identity & dedup (`MonHocIdentity.Normalize` single dedup definition, 4 read-side sites + `ThemMon` prevent-at-source; folded fix for a pre-existing `LuuHocKyAsync` task-reconcile gap surfaced by the widened dedup key, Option A) | merged `a3a0a3d` (2026-07-11) — **Epic 1 code complete** |
+| Epic 1 closeout | Post-close fix (`101aaa3` — duplicate-subject warning routed through `OnThongBao` seam) + A1 release-gate hardening (`DbBackup` WAL-checkpoint-before-copy, closes verdict finding F5) | fix `2d04be5`, merged `8740350` (2026-07-12/13) |
 
-> Granular refactor-slice history: `refactor-god-object.md` (archived 2026-07-07 → `legacy/Archived plans/`, local-only) + git log.
+> Granular refactor-slice history: `refactor-god-object.md` (archived 2026-07-07 → `legacy/Archived plans/`, local-only) + git log. Epic 1 release gate (conditions C1–C3) tracked in [`../plans/2026-07-11-epic-1-closure-gate.md`](../plans/2026-07-11-epic-1-closure-gate.md); execution in [`../plans/2026-07-12-epic1-closure-phase1-execution.md`](../plans/2026-07-12-epic1-closure-phase1-execution.md).
 
 ## A.3 Next up
 
@@ -46,9 +50,14 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
 (SOE precedes LAN transport for the desktop-first closed alpha — D-B's build queue is
 *"data model → debt B3/A6 → SOE"*, and its consequences explicitly do not commit to LAN sync next):
 
-1. **Sync-ready data model** *(foundation — first)* — **tombstones on every synced entity and the
-   D-I metadata block (`Rev` + `ModifiedAtUtc` + `ModifiedByDeviceId`) done (Epic 1 / M1.2, gate G1
-   closed)**; identity semantics beyond Guid PKs (the dedup-cloned-`MonHoc` issue) remain M1.3. The
+1. **Sync-ready data model** *(foundation — first)* — **Epic 1 done in full.** The D-I metadata
+   block (`Rev` + `ModifiedAtUtc` + `ModifiedByDeviceId`) + tombstones on every synced entity
+   (M1.2, gate G1 closed) **and** identity semantics beyond Guid PKs (the dedup-cloned-`MonHoc`
+   issue, M1.3) have both shipped — merge `a3a0a3d`, post-close fix `101aaa3`. **State: code
+   complete (2026-07-11), release gate in progress** — see
+   [`../plans/2026-07-11-epic-1-closure-gate.md`](../plans/2026-07-11-epic-1-closure-gate.md)
+   (conditions C1–C3) and the
+   [Phase 1 execution plan](../plans/2026-07-12-epic1-closure-phase1-execution.md). The
    last-synced base-snapshot store for 3-way merge lands with the LAN-sync epic, co-designed with
    its consumer (master plan M2.1). See [`../architecture/data-model.md`](../architecture/data-model.md) §8.
 2. **Study Optimization Engine** *(on top of the sync-ready data model — D-B)* — evolves the Balancer (Part B §7.3).
@@ -70,6 +79,8 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
 - **Mobile / hybrid clients** — preserves offline-first; revisit after LAN sync lands.
 - **Async pipeline end-to-end** — current sync MVP is acceptable.
 - **`System.Drawing.Common` NU1904** vulnerability — ~30 min, independent.
+- **`SQLitePCLRaw` NU1903** high-severity advisory — visible in every build; not Epic-1-caused,
+  tracked but not yet scheduled (closure-verdict carry-forward ledger #8).
 - *(Promoted out of "deferred": the old "Core/Sync + PostgreSQL — far-future Phase 4" item is now the
   planned **LAN-sync epic** in A.3, targeting LAN two-way merge rather than PostgreSQL/cloud.)*
 

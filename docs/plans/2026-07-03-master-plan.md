@@ -110,6 +110,13 @@ offline window, and the safe default (no purge) is correct for the whole single-
 
 ## Epic 1 — Sync-Ready Data Model
 
+> **Status (2026-07-11): code complete.** M1.1/M1.2/M1.3 all merged (`a3a0a3d`), release gate in
+> progress per [`2026-07-11-epic-1-closure-gate.md`](2026-07-11-epic-1-closure-gate.md) (conditions
+> C1–C3) and the [Phase 1 execution plan](2026-07-12-epic1-closure-phase1-execution.md). This
+> section is frozen planning content (D-P6) — live status lives in
+> [`system_roadmap.md`](../specs/system_roadmap.md) §A.2/A.3 and
+> [`active/README.md`](../active/README.md).
+
 **Goal.** Make every synced entity mergeable — D-I metadata, tombstones, identity semantics —
 plus the two persistence prerequisites (A6, B3). No sync transport, no snapshot store (→ M2.1).
 

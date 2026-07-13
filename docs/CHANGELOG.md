@@ -4,6 +4,18 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
+## 2026-07-05 → 2026-07-13 — Epic 1 (Sync-Ready Data Model) — code complete, release gate in progress
+
+| Milestone | Change | Verification |
+|---|---|---|
+| M1.1 | Single stamping seam — `SyncStamper` (in `AppDbContext.SaveChanges*`) stamps `Rev`/`ModifiedAtUtc`/`ModifiedByDeviceId` on every write; A6 closed — `StudyLog` write awaited (was fire-and-forget), `DeviceId` populated | merged `3193adf`, review R1/R5 closed |
+| M1.2 | `SyncSchema.EnsureColumns` versioned upgrade seam (backup-before-upgrade + migration report) on every synced entity; soft-delete tombstones (`IsDeleted`/`DeletedAtUtc`) replace hard cascade deletes (gate G1); `TaskCascadeHelper` cascade-tombstones FK-only children (`TaskNote`/`TaskReferenceLink`) — M1.2-R1 remediation | merged `e2f8268`, 330 pass |
+| M1.3 | `Models/MonHocIdentity.Normalize` — single dedup definition (NFC → trim → collapse whitespace → invariant-culture lowercase) routed through by all 4 read-side dedup sites + `QuanLyMonHocViewModel.ThemMon` prevent-at-source; folded fix for a pre-existing M1.2 `LuuHocKyAsync` task-reconcile gap surfaced by the widened dedup key (Option A — scoped the task diff to the whole `HocKy` instead of per-`MonHoc`-parent) | merged `a3a0a3d` — **Epic 1 closed**, 330 pass |
+| post-close | `101aaa3` — duplicate-subject warning routed through the `OnThongBao` seam (fixes a `MessageBox.Show` popping a real modal during headless test runs; escape from the M1.3 review, fixed same day) | — |
+| A1 (release gate, C3a) | `DbBackup.CreateBackup` runs `PRAGMA wal_checkpoint(TRUNCATE)` before `File.Copy` — closes closure-verdict finding F5 (naive file-copy backup silently dropped committed-but-un-checkpointed WAL pages); RED-first discriminating test with a live-WAL fixture (writer open, autocheckpoint off); 2 existing tests converted from fake-text to real SQLite fixtures | fix `2d04be5`, merged `8740350`, 330+ pass |
+
+Epic 1's acceptance criteria and success metrics are all met on the merged tree (independent re-verification: `dotnet build` 0 errors, `dotnet test --no-build` 330/330). **Release is gated, not yet declared:** the [closure verdict](review/2026-07-11-epic1-closure-verdict.md) ratified the close with conditions C1–C3, and the [release gate](plans/2026-07-11-epic-1-closure-gate.md) sequences the remaining release-engineering work (agent-side docs/knowledge tasks A1–A4, then an owner-supervised first real database upgrade, B1–B4) before the epic is marked Released. `NU1903` (`SQLitePCLRaw` high-severity advisory) is now tracked in `specs/system_roadmap.md` §A.4 (verdict carry-forward ledger #8) — pre-existing, not Epic-1-caused.
+
 ## 2026-06-27 — Analytics UI redesign + duplicate-data fixes
 
 | Area | Change | Verification |
