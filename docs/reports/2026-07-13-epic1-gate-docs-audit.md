@@ -332,3 +332,45 @@ commit-date check (`git log --oneline` + `git show -s --format`), and the final 
 
 One commit, scope = the 4 architecture doc fixes + this report. `git status --short` re-checked
 immediately before staging to confirm the owner's 5 files + `Assets/` remained untouched (see below).
+
+## PM follow-up (2026-07-15) — §5.10 rewrite, finding #1 resolved
+
+*Added by the PM/orchestrator at Phase 1 exit. The audit narrative above is A4's dated record and is
+left intact — A4 correctly did **not** rewrite §5.10 (it stopped at a pointer note and escalated to
+PM, per the "Decisions made" scope reasoning and PM finding #1). This section records the PM action
+that closed that escalation, so the two read as a hand-off, not a contradiction.*
+
+**Finding #1 (§5.10 stale bullets) — RESOLVED.** §5.10 has been rewritten: the dated docs-audit
+pointer note plus the three stale bullets ("Merged (M1.1…)", "In review (M1.2… NOT merged)",
+"Pending: M1.3" — incl. the false "no production entity implements `ISyncMetadata` yet") are replaced
+with M1.1/M1.2/M1.3-all-merged content carrying per-entity `file:line` citations. The rewrite was
+present in the working tree from the A4 wave; the PM **code-verified every citation against `ui_rf`
+source before committing** — the code-state assertion authority the audit itself deliberately withheld
+from a docs-only scope (this validates, not contradicts, A4's decision to escalate rather than assert).
+
+Citations verified against source this pass:
+- All six entities implement `ISyncMetadata`: `HocKy.cs:8`, `MonHoc.cs:7`, `StudyTask.cs:14`,
+  `StudyLog.cs:6`, `TaskNote.cs:3`, `TaskReferenceLink.cs:3`.
+- Soft-delete tombstone seam: `SyncStamper.cs:33-41` (Deleted → Modified + `IsDeleted`/`DeletedAtUtc`/`Rev`).
+- Cascade config retained for in-memory fixup: `AppDbContext.cs:44-52`; both SaveChanges overloads
+  call the seam: `AppDbContext.cs:101-111`.
+- FK-only children handled explicitly: `TaskCascadeHelper.cs:17-24`. Schema upgrade seam: `SyncSchema.cs:33-64`.
+- Merge SHAs resolve with matching subjects: M1.1 `3193adf`, M1.2 `e2f8268`, M1.3 `a3a0a3d`.
+
+**Check-3 duplication (flagged for old §5.10) — resolved, not re-tripped.** The old bullets' Check-3
+violation was restating the *review verdict* ("Verdict 2026-07-06: refine-before-accept… one blocker
+M1.2-R1"). The rewrite removes that verdict text entirely and describes shipped *mechanism* with
+`file:line` citations, linking out to the canonical homes (`system_roadmap.md` §A.3, the closure gate
+plan, `data-model.md` §8, `lessons-learned.md` L6) rather than restating any decision — overview.md's
+proper role as the architecture source-of-truth (summary-plus-links), not a decision-text duplication.
+
+**Other PM findings — carried as A4 dispositioned them.** #2 (7 broken links: 3 pre-Epic-1 archived,
+3 `docs/review/` immutability-protected — correct to escalate), #3/#4 (`lessons-learned.md` dated
+`Status 2026-07-07:` callouts — accepted as intentional point-in-time snapshots, left unedited to
+preserve the postmortem's historical record), #5 (CHANGELOG "Milestone" header — accepted, no written
+convention violated), #7 (`data-model.md:154` — too small/ambiguous, accepted). **#6 (the
+`active/README.md` "UI fidelity + mobile-ready polish" `PROPOSED` row) is surfaced to the owner at
+Phase 1 handoff — genuinely an owner call, not the gate's to decide.**
+
+**Provenance.** This addendum and the §5.10 rewrite are committed together in the PM follow-up commit;
+targeted `git add` only (overview.md + this report), owner's 5 local files + `Assets/` left untouched.

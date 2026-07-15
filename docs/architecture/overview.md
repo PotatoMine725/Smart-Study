@@ -130,16 +130,42 @@ Two channels:
 
 ### 5.10 Sync-readiness (Epic 1 — code complete, release gate in progress)
 
-> **Docs-audit note (2026-07-13):** the three bullets below still read as of the M1.1-only merge
-> point (M1.2 "in review"/"NOT merged", M1.3 "Pending") and are stale — M1.2 and M1.3 have both
-> since shipped (merge `a3a0a3d`). Canonical current status:
-> [system_roadmap.md §A.2/§A.3](../specs/system_roadmap.md); shipped-behavior detail:
-> [data-model.md §8](./data-model.md). Left for PM to rewrite (needs fresh per-entity code-state
-> verification, out of this audit's docs-only wording-fix scope).
+Epic 1 (sync-ready data model) is **code complete** on `ui_rf` — M1.1, M1.2, and M1.3 all merged
+(M1.3 merge `a3a0a3d`, 2026-07-11, "Epic 1 closed"); release is gated, not yet declared (see
+[system_roadmap.md §A.3](../specs/system_roadmap.md) and the
+[closure gate](../plans/2026-07-11-epic-1-closure-gate.md)).
 
-- **Merged (M1.1, commits `e968033` + `6e1c51f`, merge `3193adf`)**: `ISyncMetadata` contract, `SyncStamper` seam in `AppDbContext`, A6 closed (the focus-session write is awaited, `StudyLog.DeviceId` stamped at the write site, save failures surface to the user via `NotifyUser`/MessageBox + `autosave_failed` telemetry).
-- **In review (M1.2, worktree `epic1-sync-ready-data-model`, NOT merged)**: `ISyncMetadata` on all six entities, delete → tombstone + G1 cascade, `SyncSchema.EnsureColumns` upgrade seam + backup. Verdict 2026-07-06: refine-before-accept ([../review/2026-07-06-epic1-m1.2-review.md](../review/2026-07-06-epic1-m1.2-review.md), one blocker M1.2-R1). At `ui_rf` HEAD, **no production entity implements `ISyncMetadata` yet** and deletes are still hard cascades.
-- **Pending**: M1.3 (bounded `MonHoc` identity/dedup).
+- **M1.1 — single stamping seam + A6 (merged `3193adf`)**: the `ISyncMetadata` contract
+  (`Models/ISyncMetadata.cs`) and the single `SyncStamper` seam wired into both
+  `AppDbContext.SaveChanges`/`SaveChangesAsync` overloads (`Data/AppDbContext.cs:101-111`); A6 closed
+  (the focus-session write is awaited, `StudyLog.DeviceId` stamped at the write site, save failures
+  surface to the user via `NotifyUser`/MessageBox + `autosave_failed` telemetry).
+- **M1.2 — D-I metadata + tombstones + schema upgrade, gate G1 (merged `e2f8268`, 2026-07-10;
+  review M1.2-R1 closed)**: **all six synced entities implement `ISyncMetadata`** — `HocKy`
+  (`Models/HocKy.cs:8`), `MonHoc` (`Models/MonHoc.cs:7`), `StudyTask` (`Models/StudyTask.cs:14`),
+  `StudyLog` (`Models/StudyLog.cs:6`), `TaskNote` (`Models/TaskNote.cs:3`), `TaskReferenceLink`
+  (`Models/TaskReferenceLink.cs:3`). Deletes are **soft**: `SyncStamper` converts a `Remove()` into a
+  tombstone (`State`→`Modified`, `IsDeleted=true`, `DeletedAtUtc`/`Rev` set) before `SaveChanges`
+  runs, so no real SQL `DELETE` ever fires (`Data/SyncStamper.cs:33-41`). **G1 cascade-tombstone**:
+  EF's in-memory cascade fixup — driven by the retained `OnDelete(Cascade)` config
+  (`Data/AppDbContext.cs:44-52`) — marks *loaded* children `Deleted` so the seam tombstones them in
+  the same `SaveChanges`; FK-only children (`TaskNote`/`TaskReferenceLink`, no navigation property)
+  are handled explicitly by `TaskCascadeHelper.RemoveChildrenAsync`
+  (`Infrastructure/Persistence/SQLite/TaskCascadeHelper.cs:17-24`, the M1.2-R1 remediation). Pre-Epic-1
+  DBs upgrade in place via `SyncSchema.EnsureColumns` — idempotent `ADD COLUMN` on all six tables +
+  stamp backfill (`Data/SyncSchema.cs:33-64`), gated by `NeedsUpgrade` and a file backup at startup.
+- **M1.3 — bounded `MonHoc` identity/dedup (merged `a3a0a3d`, 2026-07-11)**: read-side dedup keys on
+  `MonHocIdentity.Normalize` rather than raw `TenMonHoc` — e.g. `LayDanhSachHocKyAsync`
+  (`Infrastructure/Persistence/SQLite/Repositories/SqliteHocKyRepository.cs:45`), plus three other
+  read sites and add-time prevent-at-source in `QuanLyMonHocViewModel.ThemMon`. Bounded to `MonHoc`;
+  cross-device identity-merge is Epic 2.
+
+Read paths exclude tombstoned rows **explicitly per query** — there is no global EF query filter
+— e.g. `LayDanhSachHocKyAsync` filters `!hk.IsDeleted` and nested `.Where(!mon.IsDeleted)` /
+`.Where(!t.IsDeleted)` on its includes (`SqliteHocKyRepository.cs:28-30`). `Rev` is a local
+monotonic per-entity counter, never compared across devices (see [L6](lessons-learned.md)). The
+merge engine and LAN transport themselves are **Epic 2** — D-I mechanics are frozen, not yet built
+(see [data-model.md §8](./data-model.md)).
 
 ## 6. Runtime composition (`App.xaml.cs`)
 
