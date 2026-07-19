@@ -189,7 +189,10 @@ namespace SmartStudyPlanner.ViewModels
             StudyTask savedTask;
             if (_taskDangSua == null)
             {
-                savedTask = new StudyTask(TenTask, HanChot.Value, loaiTask, doKhoInt);
+                savedTask = new StudyTask(TenTask, HanChot.Value, loaiTask, doKhoInt)
+                {
+                    MaMonHoc = MonHocHienTai.MaMonHoc,
+                };
                 MonHocHienTai.DanhSachTask.Add(savedTask);
                 _telemetry.Track("task_add");
             }
