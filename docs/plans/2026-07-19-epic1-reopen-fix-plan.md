@@ -21,7 +21,7 @@ depth, restoring the pre-M1.2 EF graph-fixup semantics). Separately, a tiny `Cra
 three global WPF exception handlers convert silent process death into a logged, survivable
 error — implementing the QA nuance attached to the F2 waiver.
 
-**Tech Stack:** .NET 9 WPF, EF Core + SQLite, xUnit with in-memory SQLite (`TestDb` fixture),
+**Tech Stack:** .NET 10 WPF (`net10.0-windows10.0.19041.0`), EF Core + SQLite, xUnit with in-memory SQLite (`TestDb` fixture),
 CommunityToolkit.Mvvm.
 
 ---
