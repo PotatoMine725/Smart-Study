@@ -7,8 +7,10 @@
 > **HARD CONSTRAINT (owner, 2026-07-19):** *"Do not begin implementation yet. The planning
 > document will be reviewed and approved before any coding starts."* — no task below may
 > start until the owner flips Status to `approved`.
+> **SATISFIED 2026-07-19:** owner reviewed and approved the plan as-is; implementation is
+> released. PM/QA review stays with the orchestrating session (owner confirmation, same date).
 
-**Status:** `draft — awaiting owner approval`
+**Status:** `approved (owner, 2026-07-19) — implementation released`
 
 **Goal:** Close the single P0 regression that drove B4 = Reopen (task creation never stamps
 `MaMonHoc`, so the M1.2 FK-based reconcile crashes the app) plus the minimal P0-adjacent
