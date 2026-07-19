@@ -111,6 +111,15 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
                     var newMonById = hocKy.DanhSachMonHoc.ToDictionary(m => m.MaMonHoc);
                     var oldMonList = hocKyCu.DanhSachMonHoc.ToList();
 
+                    // Reopen fix 2026-07: a task can arrive having entered the graph only through a
+                    // navigation collection, with MaMonHoc never stamped (Guid.Empty). Its navigation
+                    // position is authoritative in that case — the same semantics EF graph fixup gave the
+                    // pre-M1.2 save — so heal the FK before the FK-keyed diff below treats it as identity.
+                    foreach (var mon in hocKy.DanhSachMonHoc)
+                        foreach (var t in mon.DanhSachTask)
+                            if (t.MaMonHoc == Guid.Empty)
+                                t.MaMonHoc = mon.MaMonHoc;
+
                     // Epic 1 / M1.3: task reconcile is scoped to the whole HocKy, not nested
                     // per-MonHoc parent. LayDanhSachHocKyAsync's identity-based dedup can merge
                     // two MonHoc clones and move a task from the losing clone into the surviving
@@ -181,7 +190,9 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
 
                     foreach (var newTask in newTasksByMaTask.Values)
                     {
-                        var owner = hocKyCu.DanhSachMonHoc.First(m => m.MaMonHoc == newTask.MaMonHoc);
+                        var owner = hocKyCu.DanhSachMonHoc.FirstOrDefault(m => m.MaMonHoc == newTask.MaMonHoc)
+                            ?? throw new InvalidOperationException(
+                                $"Reconcile: task '{newTask.TenTask}' ({newTask.MaTask}) references MonHoc {newTask.MaMonHoc} not present in HocKy {hocKyCu.MaHocKy}.");
 
                         if (oldTasksByMaTask.TryGetValue(newTask.MaTask, out var oldTask))
                         {

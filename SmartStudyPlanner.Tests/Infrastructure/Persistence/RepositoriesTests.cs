@@ -558,5 +558,36 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence
             await repo.DeleteLinkAsync(link.Id);
             Assert.Empty(await repo.GetLinksAsync(maTask));
         }
+
+        [Fact]
+        public async Task LuuHocKyAsync_TaskAddedWithoutFkStamp_PersistsUnderNavigationOwner()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+            var repo = new SqliteHocKyRepository(factory);
+
+            // First save: HocKy + MonHoc exist in DB, so the next save takes the reconcile path.
+            var hocKy = new HocKy("HK Reopen", DateTime.Today);
+            var monHoc = new MonHoc("MH Reopen", 3) { MaHocKy = hocKy.MaHocKy };
+            hocKy.DanhSachMonHoc.Add(monHoc);
+            await repo.LuuHocKyAsync(hocKy);
+
+            // A task that enters the graph only via the navigation collection — MaMonHoc left
+            // Guid.Empty, exactly what an unstamped call site produces.
+            // MucDoCanhBao is NOT NULL in the schema and the 4-arg ctor leaves it null; the VM
+            // always stamps it via TinhDiemVaSapXep() before saving. Set it so the ONLY variable
+            // this test isolates is the unstamped MaMonHoc.
+            var task = new StudyTask("Task khong stamp FK", DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                MucDoCanhBao = "An toàn",
+            };
+            monHoc.DanhSachTask.Add(task);
+
+            await repo.LuuHocKyAsync(hocKy);
+
+            using var ctx = factory();
+            var saved = await ctx.StudyTasks.SingleAsync(t => t.MaTask == task.MaTask);
+            Assert.Equal(monHoc.MaMonHoc, saved.MaMonHoc);
+        }
     }
 }
