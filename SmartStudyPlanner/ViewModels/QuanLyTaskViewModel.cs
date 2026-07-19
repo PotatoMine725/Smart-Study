@@ -189,7 +189,10 @@ namespace SmartStudyPlanner.ViewModels
             StudyTask savedTask;
             if (_taskDangSua == null)
             {
-                savedTask = new StudyTask(TenTask, HanChot.Value, loaiTask, doKhoInt);
+                savedTask = new StudyTask(TenTask, HanChot.Value, loaiTask, doKhoInt)
+                {
+                    MaMonHoc = MonHocHienTai.MaMonHoc,
+                };
                 MonHocHienTai.DanhSachTask.Add(savedTask);
                 _telemetry.Track("task_add");
             }
@@ -213,7 +216,7 @@ namespace SmartStudyPlanner.ViewModels
             HasData = MonHocHienTai.DanhSachTask.Count > 0;
 
             // Ground-truth instrumentation: fire-and-forget, never blocks save
-            _ = LogDifficultyLabelAsync(loaiTask, doKhoInt, TenTask, savedTask.MaTask);
+            _ = CrashLogger.Observe(LogDifficultyLabelAsync(loaiTask, doKhoInt, TenTask, savedTask.MaTask), "DifficultyLabelLog");
 
             // Save notes & links (for both new and existing tasks)
             var taskId = _editingTaskId ?? savedTask.MaTask;
