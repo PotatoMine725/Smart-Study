@@ -216,7 +216,7 @@ namespace SmartStudyPlanner.ViewModels
             HasData = MonHocHienTai.DanhSachTask.Count > 0;
 
             // Ground-truth instrumentation: fire-and-forget, never blocks save
-            _ = LogDifficultyLabelAsync(loaiTask, doKhoInt, TenTask, savedTask.MaTask);
+            _ = CrashLogger.Observe(LogDifficultyLabelAsync(loaiTask, doKhoInt, TenTask, savedTask.MaTask), "DifficultyLabelLog");
 
             // Save notes & links (for both new and existing tasks)
             var taskId = _editingTaskId ?? savedTask.MaTask;
