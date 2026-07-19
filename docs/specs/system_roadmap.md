@@ -50,11 +50,17 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
 (SOE precedes LAN transport for the desktop-first closed alpha — D-B's build queue is
 *"data model → debt B3/A6 → SOE"*, and its consequences explicitly do not commit to LAN sync next):
 
-1. **Sync-ready data model** *(foundation — first)* — **Epic 1 done in full.** The D-I metadata
-   block (`Rev` + `ModifiedAtUtc` + `ModifiedByDeviceId`) + tombstones on every synced entity
-   (M1.2, gate G1 closed) **and** identity semantics beyond Guid PKs (the dedup-cloned-`MonHoc`
-   issue, M1.3) have both shipped — merge `a3a0a3d`, post-close fix `101aaa3`. **State: code
-   complete (2026-07-11), release gate in progress** — see
+1. **Sync-ready data model** *(foundation — first)* — **Epic 1 scope shipped in full; reopened
+   at the release gate.** The D-I metadata block (`Rev` + `ModifiedAtUtc` + `ModifiedByDeviceId`)
+   + tombstones on every synced entity (M1.2, gate G1 closed) **and** identity semantics beyond
+   Guid PKs (the dedup-cloned-`MonHoc` issue, M1.3) have both shipped — merge `a3a0a3d`,
+   post-close fix `101aaa3`. **State: release-gate Phase 2 (first supervised launch, 2026-07-15)
+   returned B4 = Reopen** — one M1.2 regression (task creation never stamps `MaMonHoc`; the
+   FK-based reconcile then crashes the app). Diagnosis accepted by the owner 2026-07-19
+   ([QA investigation](../reports/2026-07-19-epic1-phase2-qa-investigation.md) ·
+   [owner decisions](../specs/2026-07-19-owner-epic-1-decisions.md)); **reopen fix plan drafted
+   ([`2026-07-19-epic1-reopen-fix-plan.md`](../plans/2026-07-19-epic1-reopen-fix-plan.md)),
+   implementation awaiting owner approval.** Gate framework:
    [`../plans/2026-07-11-epic-1-closure-gate.md`](../plans/2026-07-11-epic-1-closure-gate.md)
    (conditions C1–C3) and the
    [Phase 1 execution plan](../plans/2026-07-12-epic1-closure-phase1-execution.md). The
