@@ -87,6 +87,15 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
 - **`System.Drawing.Common` NU1904** vulnerability — ~30 min, independent.
 - **`SQLitePCLRaw` NU1903** high-severity advisory — visible in every build; not Epic-1-caused,
   tracked but not yet scheduled (closure-verdict carry-forward ledger #8).
+- **`StudyTask.MucDoCanhBao` unstamped-by-constructor gap** — latent, surfaced 2026-07-19 during the
+  B4 reopen. The column is `NOT NULL` in the schema, but the 4-arg `StudyTask` ctor leaves it null;
+  today every persisted task is safe only because `QuanLyTaskViewModel.TinhDiemVaSapXep()` stamps it
+  before each save. This is the *same shape* as the `MaMonHoc` bug that caused B4 — a constructor that
+  doesn't establish an invariant the persistence layer requires. Any future call site that saves a
+  `StudyTask` without routing through the ViewModel will hit `SQLite Error 19: NOT NULL constraint
+  failed`. Not fixed in the reopen (out of its minimal P0 scope) and **not surveyed** — no audit of
+  existing call sites was performed. Candidate fix: establish the default in the ctor, or make the
+  column nullable with a computed read. See [`../plans/2026-07-19-epic1-reopen-fix-plan.md`].
 - *(Promoted out of "deferred": the old "Core/Sync + PostgreSQL — far-future Phase 4" item is now the
   planned **LAN-sync epic** in A.3, targeting LAN two-way merge rather than PostgreSQL/cloud.)*
 
