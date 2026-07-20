@@ -114,6 +114,7 @@ namespace SmartStudyPlanner.ViewModels
             {
                 HasData = false;
                 EmptyStateMessage = "Bạn chưa có log học tập để phân tích.";
+                ResetAnalyticsOutputs();
                 return;
             }
 
@@ -130,7 +131,11 @@ namespace SmartStudyPlanner.ViewModels
             EmptyStateMessage = HasData
                 ? string.Empty
                 : "Không có dữ liệu cho bộ lọc hiện tại.";
-            if (!HasData) return;
+            if (!HasData)
+            {
+                ResetAnalyticsOutputs();
+                return;
+            }
 
             var weekly = _analytics.ComputeWeeklyMinutes(filtered, DateTime.Today);
             WeeklyChartSeries = new ISeries[]
@@ -175,6 +180,22 @@ namespace SmartStudyPlanner.ViewModels
                 ["range_days"] = SelectedRangeDays.ToString(),
                 ["subject"] = SelectedSubject
             });
+        }
+
+        // Clears every filter-driven output so a no-data filter renders a truly empty state
+        // instead of leaving the previous filter's charts on screen (Epic 1 reopen / Step 2 fix).
+        private void ResetAnalyticsOutputs()
+        {
+            WeeklyChartSeries     = Array.Empty<ISeries>();
+            WeeklyChartXAxes      = new[] { new Axis() };
+            SubjectChartSeries    = Array.Empty<ISeries>();
+            SubjectChartXAxes     = new[] { new Axis() };
+            SubjectInsights       = new ObservableCollection<SubjectInsight>();
+            HeatmapCells          = new ObservableCollection<HeatCell>();
+            WeeklyNarrative       = string.Empty;
+            RecommendedNextAction = string.Empty;
+            ProductivityValue     = 0;
+            ProductivityLabel     = "Chưa có dữ liệu";
         }
 
         private void BuildNarrative(List<StudyLog> filtered, List<SubjectInsight> insights)
