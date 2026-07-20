@@ -377,3 +377,41 @@ Epic 1 is considered complete only when:
 - Owner explicitly signs the release
 
 Only then may the next implementation cycle begin.
+
+---
+
+# Release Decision Record — B4 Re-decision (2026-07-20)
+
+**Decision:** ✅ **Epic 1 Released.** Owner sign-off, 2026-07-20.
+
+## History
+- **B4 #1 (2026-07-15): ❌ Reopen.** The supervised GUI run found a P0 — creating a task via
+  smart-add hung ~30s then crashed the process — plus a silent-death path with no trace. Recorded
+  in `docs/reports/2026-07-15-GUI-test-observations.md`.
+- **Reopen fix (R1/R2)** merged to `ui_rf` as `37f9678`: FK stamped at task creation + reconcile
+  heal + loud contextual throw (P0), and a global crash sink / handlers (P0-adj). 336→ green.
+- **Re-closure re-run (2026-07-20)**, runbook `docs/plans/2026-07-20-epic1-reopen-owner-reclosure-runbook.md`,
+  observations `docs/reports/2026-07-20-fix-plan-observation.md`:
+  Step 0/1 pass, Step 3 pass, **Step 4 (F2 waiver) signed off**, Step 5 acknowledged. The original
+  P0 create-task crash and the silent death are gone.
+
+## Evidence driving the release
+- The reopen's target defects (P0 FK crash, P0-adj crash visibility) are fixed and verified through
+  the owner's real launches (Steps 0/1/3).
+- **Step 2 caveat (honest record):** the re-run surfaced a *separate, pre-existing* Analytics
+  stale-render bug — **not** a reopen regression (R1/R2 never touched Analytics). Diagnosed in
+  `docs/reports/2026-07-20-analytics-step2-diagnosis.md`, fixed in commit `c4291c7`
+  (`docs/plans/2026-07-20-analytics-stale-render-fix.md`). Part 1 (data-correctness) is
+  unit-verified, full suite **337 pass**; Part 2 (XAML panel-hiding) is compile-checked only, with
+  a cosmetic worst case. The owner accepted release on this basis.
+
+## Consequences
+- Phase 3 closeout (C1 closing docs, C2 archive, C3 next-epic prep) is now unlocked — **not yet
+  executed** (awaiting owner go-ahead; C3 stops before code per this gate).
+- **Post-release feature backlog (next cycle, not part of the release):**
+  - Analytics restructure into two explicit sections — one that follows the subject filter, one
+    for cross-subject/overall views (heatmap + "Thống kê theo môn học"). Owner-requested 2026-07-20.
+  - Subject-completion chart / details table: **decided — follow the subject filter** (owner,
+    2026-07-20). Folds into the restructure above.
+  - Range selector vs. trend chart semantics: still open.
+  - Step 5 backlog: 2 non-WPF global-handler live-fire tests. Low priority.
