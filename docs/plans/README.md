@@ -27,5 +27,16 @@ Differs from `active/` — `active/` holds the **current** plan in progress; `pl
 
 - `draft` → `in-progress` → `done`.
 - When a slice ships, record it in `docs/CHANGELOG.md`.
-- When all slices ship, delete the plan (it's now in CHANGELOG + architecture).
-- Active in-progress plans should also be linked from `docs/active/` for visibility.
+- When all slices ship, move the plan to `legacy/Archived plans/` (local archive, gitignored —
+  the repo keeps the content in git history; the living state is CHANGELOG + architecture).
+- Active in-progress plans must have a pointer row in `docs/active/README.md` for visibility.
+
+> Archive sweep 2026-07-07: all `2026-06-*` plans were moved to `legacy/Archived plans/`.
+> This folder now only holds plans that are in-flight or still normative (e.g. decision records).
+>
+> Archive sweep 2026-07-26: with Epic 1 Released (2026-07-20), its shipped execution/QA plans
+> moved to `legacy/Archived plans/` (9 files — the Epic 1 execution/closure/reopen plans + the
+> analytics stale-render fix plan). Retained here: the closure-gate record
+> (`2026-07-11-epic-1-closure-gate.md`, holds the B4=Released decision), the architecture
+> decision/freeze records, the forks-proposals record (open SOE Decision 1), the master plan,
+> and the in-flight `2026-07-24-smart-add-negation-fix-plan.md`.

@@ -10,6 +10,7 @@
 - **Root cause**: `App.xaml.cs` used `db.Database.EnsureCreated()`. `EnsureCreated` **only creates the DB if it doesn't already exist** — it never alters schema. Old local DBs were stuck on the pre-`NgayHoanThanh` shape.
 - **Fix**: `using Microsoft.EntityFrameworkCore;` + `db.Database.Migrate()` in `App.xaml.cs`. Migrations now run on launch.
 - **Generalized lesson**: `EnsureCreated` is a **prototype-only** API. Past the first schema change, switch to `Migrate()` and accept that the migration assembly is real source code.
+- **See also**: [`release-engineering.md`](release-engineering.md) — the idempotent `SyncSchema.EnsureColumns` upgrade seam this project actually shipped instead of EF migrations, and the WAL backup gap found alongside it.
 
 ### URL assertion failure in `TaskNotesViewModelTests`
 

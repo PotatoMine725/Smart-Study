@@ -38,8 +38,11 @@ namespace SmartStudyPlanner.Services.Pipeline.Stages
                 var totalDays = Math.Max(1, (end - start).Days);
                 var expectedProgress = (double)daysPassed / totalDays;
 
-                foreach (var g in semester.DanhSachMonHoc.GroupBy(m => m.TenMonHoc))
+                // Epic 1 / M1.3: key qua MonHocIdentity.Normalize thay vì raw TenMonHoc, để
+                // "Toán"/"toán " gộp về 1 nhóm suggestion thay vì bị tách làm 2 môn khác nhau.
+                foreach (var g in semester.DanhSachMonHoc.GroupBy(m => MonHocIdentity.Normalize(m.TenMonHoc)))
                 {
+                    var tenMonHoc = g.First().TenMonHoc;
                     var tasks = g.SelectMany(m => m.DanhSachTask).ToList();
                     var taskCount = tasks.Count;
                     if (taskCount == 0) continue;
@@ -52,7 +55,7 @@ namespace SmartStudyPlanner.Services.Pipeline.Stages
                         suggestions.Add(new AdaptationSuggestion
                         {
                             RuleKey = "progress_below_expected",
-                            Message = $"{g.Key}: progress thấp hơn expected progress, nên tăng priority cho tasks còn lại.",
+                            Message = $"{tenMonHoc}: progress thấp hơn expected progress, nên tăng priority cho tasks còn lại.",
                             SuggestedPriorityDelta = 0.1,
                             SuggestedWorkloadDelta = 0
                         });
@@ -63,7 +66,7 @@ namespace SmartStudyPlanner.Services.Pipeline.Stages
                         suggestions.Add(new AdaptationSuggestion
                         {
                             RuleKey = "milestone_exceeded",
-                            Message = $"{g.Key}: đã hoàn thành milestone, có thể giảm workload kế tiếp.",
+                            Message = $"{tenMonHoc}: đã hoàn thành milestone, có thể giảm workload kế tiếp.",
                             SuggestedPriorityDelta = 0,
                             SuggestedWorkloadDelta = -0.1
                         });

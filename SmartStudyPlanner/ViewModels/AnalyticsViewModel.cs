@@ -86,8 +86,10 @@ namespace SmartStudyPlanner.ViewModels
                 HasError = false;
                 _allLogs = await _studyLogRepository.GetForHocKyAsync(_hocKy);
                 HasEnoughData = _allLogs.Count >= 50;
+                // Epic 1 / M1.3: Distinct qua MonHocIdentity.NameComparer thay vì raw string,
+                // để "Toán"/"toán " gộp về 1 option thay vì hiện 2 lựa chọn trùng nhau.
                 SubjectOptions = new ObservableCollection<string>(new[] { "Tất cả" }
-                    .Concat(_hocKy.DanhSachMonHoc.Select(m => m.TenMonHoc).Distinct().OrderBy(x => x)));
+                    .Concat(_hocKy.DanhSachMonHoc.Select(m => m.TenMonHoc).Distinct(MonHocIdentity.NameComparer.Instance).OrderBy(x => x)));
                 ApplyFilters();
                 _telemetry.Track("analytics_open", new Dictionary<string, string> { ["semester"] = _hocKy.Ten });
             }
@@ -112,6 +114,7 @@ namespace SmartStudyPlanner.ViewModels
             {
                 HasData = false;
                 EmptyStateMessage = "Bạn chưa có log học tập để phân tích.";
+                ResetAnalyticsOutputs();
                 return;
             }
 
@@ -121,14 +124,18 @@ namespace SmartStudyPlanner.ViewModels
                 .ToDictionary(x => x.MaTask, x => x.Mon);
             var filtered = _allLogs
                 .Where(l => l.NgayHoc.Date >= from)
-                .Where(l => SelectedSubject == "Tất cả" || (taskById.TryGetValue(l.MaTask, out var mon) && mon == SelectedSubject))
+                .Where(l => SelectedSubject == "Tất cả" || (taskById.TryGetValue(l.MaTask, out var mon) && MonHocIdentity.NameComparer.Instance.Equals(mon, SelectedSubject)))
                 .ToList();
 
             HasData = filtered.Count > 0;
             EmptyStateMessage = HasData
                 ? string.Empty
                 : "Không có dữ liệu cho bộ lọc hiện tại.";
-            if (!HasData) return;
+            if (!HasData)
+            {
+                ResetAnalyticsOutputs();
+                return;
+            }
 
             var weekly = _analytics.ComputeWeeklyMinutes(filtered, DateTime.Today);
             WeeklyChartSeries = new ISeries[]
@@ -173,6 +180,22 @@ namespace SmartStudyPlanner.ViewModels
                 ["range_days"] = SelectedRangeDays.ToString(),
                 ["subject"] = SelectedSubject
             });
+        }
+
+        // Clears every filter-driven output so a no-data filter renders a truly empty state
+        // instead of leaving the previous filter's charts on screen (Epic 1 reopen / Step 2 fix).
+        private void ResetAnalyticsOutputs()
+        {
+            WeeklyChartSeries     = Array.Empty<ISeries>();
+            WeeklyChartXAxes      = new[] { new Axis() };
+            SubjectChartSeries    = Array.Empty<ISeries>();
+            SubjectChartXAxes     = new[] { new Axis() };
+            SubjectInsights       = new ObservableCollection<SubjectInsight>();
+            HeatmapCells          = new ObservableCollection<HeatCell>();
+            WeeklyNarrative       = string.Empty;
+            RecommendedNextAction = string.Empty;
+            ProductivityValue     = 0;
+            ProductivityLabel     = "Chưa có dữ liệu";
         }
 
         private void BuildNarrative(List<StudyLog> filtered, List<SubjectInsight> insights)

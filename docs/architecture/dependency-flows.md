@@ -1,6 +1,6 @@
 # Dependency Flows
 
-> Consolidated 2026-05-21 from `2026-05-07-dependency-flows.md`. Reflects current call graph after Slice 4.
+> Consolidated 2026-05-21 from `2026-05-07-dependency-flows.md`. Re-verified against source **2026-07-07 at commit `3c96978`** (branch `ui_rf`) — reflects the call graph after the `StudyRepository` split, M8 telemetry, the `ui_rf` UI redesign, and Epic 1 M1.1.
 
 ## 1. Top-level direction
 
@@ -8,22 +8,22 @@
 Views → ViewModels → Services → Core / Infrastructure / Models
 ```
 
-- `Views` know nothing about business logic; they bind and forward events.
+- `Views` know nothing about business logic; they bind and forward events. `MainWindow` is the navigation shell (sidebar + `MainFrame` + system tray).
 - `ViewModels` own UI state and commands.
-- `Services` host application orchestration + ML lifecycle + telemetry.
+- `Services` host application orchestration + ML lifecycle + telemetry + streak/theme/weight stores.
 - `Core/*` contains the pure domain logic (parsing, scheduling, risk, ML contracts).
-- `Infrastructure/*` and `Data/*` own persistence.
-- `Models/*` are shared data contracts.
+- `Infrastructure/Persistence/*` and `Data/*` own persistence.
+- `Models/*` are shared data contracts (incl. `Models/Telemetry/*` and `ISyncMetadata`).
 
 ## 2. Startup flow
 
-1. `App.xaml.cs.OnStartup()`
-2. `db.Database.Migrate()` creates/upgrades SQLite schema.
+1. `App.xaml.cs.OnStartup()` first wires **global crash-safety handlers** (Epic 1 reopen R2, `App.xaml.cs:23-38`): `DispatcherUnhandledException` (log + error dialog + `args.Handled = true`, so a UI-thread fault no longer silently kills the process), `AppDomain.UnhandledException` (log), and `TaskScheduler.UnobservedTaskException` (log + `SetObserved()`) — all through `CrashLogger.Log` → `%AppData%\SmartStudyPlanner\crash.log`, a last-resort sink that never throws (`Services/CrashLogger.cs`).
+2. DB init via `AppStartup.EnsureDatabaseReady`: `db.Database.EnsureCreated()` + idempotent patch seams — `IsSeeded` column `ALTER`, dev-seed marker `UPDATE`, `TelemetrySchema.EnsureTables`, and `SyncSchema.EnsureColumns` (M1.2 in-place upgrade + backup) (**no EF migrations**).
 3. `ServiceLocator.Configure()` registers DI.
-4. `IMLModelManager.InitializeAsync()` warmed up on a background `Task.Run` — exceptions swallowed.
-5. UI proceeds even if ML is unavailable.
+4. Three background `Task.Run` warmups: the two ML warmups (`IMLModelManager.InitializeAsync()`, `ITextClassifierModelManager.InitializeAsync()`) deliberately **silent-catch** (offline-first enhancements over deterministic paths); `IOutcomeMaturationService.MatureAsync(utcNow)` now **logs its fault** via `CrashLogger.Log` instead of swallowing (`App.xaml.cs:96-100`).
+5. UI proceeds even if all warmups fail; the step-1 handlers backstop any later fault.
 
-Why: DB + DI must be ready before any ViewModel resolves. ML is non-critical, isolated from the launch path.
+Why: DB + DI must be ready before any ViewModel resolves. ML and telemetry maturation are non-critical, isolated from the launch path. The reopen crash-safety handlers make the previously silent failure modes visible — a dialog on the UI thread, `crash.log` for background faults — without restructuring the `async void OnStartup` itself.
 
 ## 3. Dashboard (`DashboardViewModel`)
 
@@ -31,15 +31,16 @@ Highest service density.
 
 ```text
 DashboardViewModel
-  ├── IStudyRepository
-  ├── IDecisionEngine            → SchedulingOrchestrator
-  ├── IWorkloadService           → WorkloadServiceImpl
-  ├── IRiskAnalyzer              → Core/Risk/RiskOrchestrator
-  ├── IPipelineOrchestrator      → PipelineOrchestrator + 5 stages
-  └── IStudyTelemetry            → DebugStudyTelemetry
+  ├── IHocKyRepository            → SqliteHocKyRepository (seed-filtered, clone-dedup read)
+  ├── IDecisionEngine             → DecisionEngineService → SchedulingOrchestrator
+  ├── IWorkloadService            → WorkloadServiceImpl
+  ├── IRiskAnalyzer               → Core/Risk/RiskOrchestrator
+  ├── IPipelineOrchestrator       → PipelineOrchestrator + 5 stages
+  ├── IStudyTelemetry             → DebugStudyTelemetry
+  └── IStreakManager              → StreakManager (JsonFileStreakStore + IClock)
 ```
 
-`LoadDuLieuDashboard()` calls `Execute(PipelineContext)` then `BuildDashboardSummary(result)`. Fallback: if pipeline doesn't fill a slot, `IDecisionEngine` / `IRiskAnalyzer` are called directly.
+`LoadDuLieuDashboard()` calls `Execute(PipelineContext)` then `BuildDashboardSummary(result)`. Fallback: if pipeline doesn't fill a slot, `IDecisionEngine` / `IRiskAnalyzer` are called directly. Charts are native XAML (`Controls/DonutChart` + `DashboardChartModels`) — no LiveCharts on this page.
 
 ## 4. Scheduling chain
 
@@ -47,12 +48,12 @@ DashboardViewModel
 WorkloadServiceImpl.GenerateSchedule(hocKy, capacityHours)
   ├── IDecisionEngine.CalculatePriority(task, monHoc)
   │     → DecisionEngineService (facade)
-  │       → SchedulingOrchestrator
+  │       → SchedulingOrchestrator (owns WeightConfig — loaded from WeightConfigStore)
   │         ├── PriorityEvaluator → PriorityCalculator (rule chain + components)
   │         ├── RawMinutesCalculator
   │         ├── StudyTimeSuggestionEngine
   │         └── IStudyTimePredictor (optional ML augmentation)
-  └── packs into ScheduleDay / ScheduledTask
+  └── packs into ScheduleDay / ScheduledTask (least-loaded day — deadline-blind; Epic 3 fixes)
 ```
 
 The decision engine is the priority source; the workload service is the distribution layer.
@@ -72,76 +73,102 @@ Properties:
 - Errors collected into `context.Errors`.
 - Orchestrator stops early on real failures (not on missing inputs).
 
-## 6. ML lifecycle
+## 6. ML lifecycles
 
+### Study-time predictor
 ```text
-IModelStorageProvider   ←─ LocalModelStorageProvider (filesystem only)
+IModelStorageProvider   ←─ LocalModelStorageProvider (%AppData% filesystem)
         ↓
-MLModelManager          ─ load / train / retrain / persist
+MLModelManager          ─ load / train / retrain / persist (R² ≥ 0.45 gate, atomic swap)
         ↓
-StudyTimePredictorService  ─ predict + confidence gate (≥0.6 ML, else formula)
+StudyTimePredictorService  ─ agreement confidence (1 − |ml − formula|/formula); ≥0.6 → ML, else formula
         ↓
 SchedulingOrchestrator     ─ uses predictor as optional input
 ```
 
-Fallback rule: if model not ready or confidence low, deterministic formula wins.
+Training data: `IStudyTimeOutcomeLogRepository → StudyTimeTrainingDataSource` (real outcome logs, ≥ 50 rows) with `SeedDataGenerator` fallback; retrain triggered by `AnalyticsViewModel.RetrainModel`.
 
-Startup note: ML never sits on the critical launch path.
+### Text classifier (M8-A)
+```text
+TextClassifierModelManager (ML.NET multiclass, seed CSV embedded)
+        ↓
+TextClassifierService → IntentClassifierAdapter (confidence gate ≥ 0.60)
+        ↓
+ParsingOrchestrator (task-type field only)
+```
+
+### Weight optimizer (M8-B, Slice 8)
+```text
+IUserStatsRepository → WeightOptimizerService → WeightRuleEngine (pure)
+        ↓ WeightConfigSuggestion
+WeightOptimizerViewModel (WeightOptimizerWindow)
+        ├── apply → WeightConfig.Normalize() + WeightConfigStore.Save
+        └── ground truth → IWeightChangeLogRepository (fire-and-forget)
+                └── OutcomeMaturationService.MatureAsync (startup, 14d window)
+```
+
+Fallback rule everywhere: if a model is not ready or confidence is low, the deterministic path wins. ML never sits on the critical launch path.
 
 ## 7. Persistence
 
 ```text
-ViewModels / Services
+ViewModels / Services / MainWindow background check
   ↓
-IStudyRepository (legacy)         OR    I*Repository (Slice 4)
-  ↓                                       ↓
-StudyRepository                          Sqlite*Repository (Func<AppDbContext> factory)
-  ↓                                       ↓
+I*Repository (9 narrow interfaces — legacy IStudyRepository RETIRED)
+  ↓
+Sqlite*Repository (Func<AppDbContext> factory)
+  ↓
 AppDbContext (EF Core)
-  ↓
+  ↓  SaveChanges/SaveChangesAsync override → SyncStamper.Apply (M1.1 stamping seam)
 SQLite (SmartStudyData.db)
 ```
 
-`OnModelCreating` cascades: `HocKy → MonHoc → StudyTask → {TaskNote, TaskReferenceLink}`.
+`OnModelCreating` cascades: `HocKy → MonHoc → StudyTask → {TaskNote, TaskReferenceLink}` (soft-delete **tombstones shipped in M1.2** — the cascade tombstones live descendants instead of hard-deleting; see [data-model.md §3–§4](./data-model.md)). Telemetry tables (`DifficultyLabelLogs`, `StudyTimeOutcomeLogs`, `WeightChangeLogs`) are standalone — no FK.
 
 ## 8. UI chain
 
 ```text
-MainWindow
-  ├── DashboardPage           ─ binds DashboardViewModel
+MainWindow (shell: sidebar, MainFrame, tray icon, 1-min deadline toast timer)
+  ├── SetupPage               ─ SetupViewModel (start page; IHocKyRepository)
+  ├── DashboardPage           ─ DashboardViewModel
   ├── QuanLyMonHocPage        ─ QuanLyMonHocViewModel
-  ├── QuanLyTaskPage          ─ QuanLyTaskViewModel
-  ├── AnalyticsPage           ─ AnalyticsViewModel
-  ├── SetupPage               ─ SetupViewModel
-  ├── FocusWindow (dialog)    ─ FocusViewModel
-  └── WorkloadBalancerWindow  ─ WorkloadBalancerViewModel
+  ├── QuanLyTaskPage          ─ QuanLyTaskViewModel (IHocKyRepository + ITaskEditorRepository +
+  │                              IParsingOrchestrator + IDifficultyLabelLogRepository)
+  ├── AnalyticsPage           ─ AnalyticsViewModel (LiveCharts + heatmap + RetrainModel)
+  ├── WorkloadBalancerPage    ─ WorkloadBalancerViewModel (Window → Page, commit 6481fc8)
+  ├── FocusWindow (dialog)    ─ FocusViewModel (opened from Dashboard)
+  └── WeightOptimizerWindow   ─ WeightOptimizerViewModel (non-modal, single instance, sidebar)
 ```
 
-UI implication: a few ViewModels still call `ServiceLocator.Get<T>()` (semi-static composition). Data still flows up only from service → UI.
+UI implication: production ViewModel constructors still resolve via `ServiceLocator.Get<T>()` (test constructors take injected dependencies). Data still flows up only from service → UI.
 
 ## 9. Observability
 
-`IStudyTelemetry.Track(event, props)` is the abstraction; `DebugStudyTelemetry` writes to `Debug.WriteLine`.
+Two channels:
 
-Events emitted today:
+**Event stream** — `IStudyTelemetry.Track(event, props)` → `DebugStudyTelemetry` (`Debug.WriteLine`). Events emitted today include:
+- `app_main_window_loaded`, `navigate_page`, `click_nav_dashboard|subjects|workload|analytics|weight_optimizer`, `click_save_sidebar`, `click_theme_toggle`
 - `dashboard_open`, `dashboard_click_save`, `dashboard_click_goto`
 - `analytics_open`, `analytics_filter_change` (with `range_days`, `subject`)
-- `focus_start`, `focus_complete`, `focus_abort`
+- `focus_start`, `focus_complete`, `focus_abort` (unconditional), `autosave_failed` (A6/R5)
 - `task_add`, `task_update`, `task_click_edit`, `task_add_link`
-- Sidebar navigation events
+
+**Ground-truth log tables** (SQLite, M8) — durable, analyzable offline: `DifficultyLabelLogs`, `StudyTimeOutcomeLogs`, `WeightChangeLogs` (+ outcome maturation). These feed retraining and weight-governance decisions; see [data-model.md §2](./data-model.md).
 
 ## 10. Known dependency risks
 
-- `ServiceLocator` creates global coupling if overused; constructor injection is preferred.
-- A few ViewModels still own model objects + service calls together — keep an eye on this when extending.
-- `EnsureCreated` was the source of a production bug; the codebase has switched to `Migrate()` but the migration story is still light.
+- `ServiceLocator` creates global coupling if overused; constructor injection is preferred (and exists on every ViewModel for tests).
+- Schema evolution is `EnsureCreated()` + hand-rolled patch seams — every new table/column shipped to an existing DB needs its own idempotent patch (M1.2's `SyncSchema` formalizes this into a versioned upgrade with backup).
+- `SqliteHocKyRepository.LuuHocKyAsync` is a Guid-diff reconcile over the whole semester graph (Epic 1 / M1.2, G1 — done) — replaced the old remove-then-recreate approach, which was incompatible with tombstones.
+- `SqliteStudyTaskRepository.DeleteAsync` has zero production callers; M1.2 review flagged it (M1.2-R1) as a cascade-invariant trap for future callers.
 
 ## 11. Reading order
 
 1. `App.xaml.cs`
 2. `Services/ServiceLocator.cs`
-3. `ViewModels/DashboardViewModel.cs`
-4. `Services/Pipeline/PipelineOrchestrator.cs`
-5. `Services/WorkloadServiceImpl.cs`
-6. `Core/Scheduling/Orchestrators/SchedulingOrchestrator.cs`
-7. `Data/AppDbContext.cs`
+3. `Views/MainWindow.xaml.cs`
+4. `ViewModels/DashboardViewModel.cs`
+5. `Services/Pipeline/PipelineOrchestrator.cs`
+6. `Services/WorkloadServiceImpl.cs`
+7. `Core/Scheduling/Orchestrators/SchedulingOrchestrator.cs`
+8. `Data/AppDbContext.cs` + `Data/SyncStamper.cs`

@@ -24,11 +24,13 @@ namespace SmartStudyPlanner.ViewModels
             _hocKy = hocKy;
             _workloadService = workloadService;
             CapacityHours = _workloadService.GetCapacity();
-            GenerateSchedule();
+            BuildSchedule(notify: false);   // khởi tạo: không popup, tránh modal mỗi lần nav
         }
 
         [RelayCommand]
-        private void GenerateSchedule()
+        private void GenerateSchedule() => BuildSchedule(notify: true);
+
+        private void BuildSchedule(bool notify)
         {
             _workloadService.SaveCapacity(CapacityHours);
 
@@ -40,9 +42,10 @@ namespace SmartStudyPlanner.ViewModels
                 if (day.Tasks.Count > 0) Schedule.Add(day);
             }
 
-            System.Windows.MessageBox.Show(
-                $"Thuật toán đã xếp lại lịch thành công với giới hạn:\n{CapacityHours} giờ/ngày!",
-                "Workload Balancer");
+            if (notify)
+                System.Windows.MessageBox.Show(
+                    $"Thuật toán đã xếp lại lịch thành công với giới hạn:\n{CapacityHours} giờ/ngày!",
+                    "Workload Balancer");
         }
     }
 }

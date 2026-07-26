@@ -1,5 +1,131 @@
 # Smart Study Planner — System Roadmap & Architecture Direction
 
+> **Canonical roadmap** (decision **D-C.1** — supersedes the retired `docs/ROADMAP.md` and the
+> README "What's coming next"). Decisions: [`../plans/2026-07-01-architecture-direction-decisions.md`](../plans/2026-07-01-architecture-direction-decisions.md).
+>
+> - **Part A — Delivery Status** is **factual**: it reflects shipped state.
+> - **Part B — Architecture Direction** is **aspirational**: target direction that may run ahead of code.
+
+---
+
+# PART A — Delivery Status *(factual)*
+
+## A.1 Snapshot
+
+| Layer | State |
+|---|---|
+| Build | green (`dotnet build SmartStudyPlanner.slnx`) |
+| Tests | green — exact count lives in the README / CI (`dotnet test --no-build`); not hard-coded here |
+| Version | `1.5.0` |
+| GitNexus index | 3,333 symbols / 7,953 relationships / 127 execution flows (commit `5e54220`) |
+
+## A.2 Completed milestones
+
+| ID | Name | Notes |
+|---|---|---|
+| M1 | DI Container (`Microsoft.Extensions.DependencyInjection` + `ServiceLocator`) | merged |
+| M2 | DecisionEngine → instance + `IDecisionEngine` | merged |
+| M3 | WorkloadService → instance + `IWorkloadService` | merged |
+| M4 / M4.5 / M4.6 | Risk Analyzer engine + Dashboard risk UI + drop static facades | merged (`af673d2`) |
+| M5 | Pipeline Orchestrator (5 stages) | merged (`865ca47`, PR #35) |
+| M6 | Study Analytics & Insights (StudyLog, 3 charts) | merged (PR #37) |
+| M6.1 | Task Notes & Study Links (`TaskNote`, `TaskReferenceLink`) | merged |
+| M7 | ML Engine — Study Time Predictor (FastTree, offline-first) | merged |
+| M8-A | TextClassifier wired into parser (seed v3, 5-class, 96.2% held-out); `IntentClassifierAdapter` | shipped 2026-06-05 |
+| M8-B | WeightOptimizer (rule-based) + review/apply UI + JSON persistence | shipped 2026-06-06 |
+| M8 (arch) | God-object refactor Slices 1–8: Core contracts, `DecisionEngineService`→42-line facade, `ParsingOrchestrator`, repo abstractions, `RiskOrchestrator` implements `IRiskAnalyzer`, injectable `StreakManager` | shipped 2026-06-11 |
+| M8 Telemetry | `DifficultyLabelLog` + `WeightChangeLog` capture; `OutcomeMaturationService` (14-day cohort fill) | shipped 2026-06-11 |
+| UI/UX | Design system, sidebar, dashboard, analytics heatmap, WorkloadBalancer page | shipped |
+| M1.1 | Epic 1 — single stamping seam + A6 (`SyncStamper` in `AppDbContext.SaveChanges*` stamps `Rev`/`ModifiedAtUtc`/`ModifiedByDeviceId`; `StudyLog` write awaited, `DeviceId` populated) | merged `3193adf` (2026-07-05) |
+| M1.2 | Epic 1 — schema upgrade + tombstones, gate G1 (`SyncSchema.EnsureColumns` versioned upgrade + backup + migration report; soft-delete tombstones replace hard cascades; `TaskCascadeHelper` cascade-tombstones FK-only children, M1.2-R1 remediation) | merged `e2f8268` (2026-07-10) |
+| M1.3 | Epic 1 — MonHoc identity & dedup (`MonHocIdentity.Normalize` single dedup definition, 4 read-side sites + `ThemMon` prevent-at-source; folded fix for a pre-existing `LuuHocKyAsync` task-reconcile gap surfaced by the widened dedup key, Option A) | merged `a3a0a3d` (2026-07-11) — **Epic 1 code complete** |
+| Epic 1 closeout | Post-close fix (`101aaa3` — duplicate-subject warning routed through `OnThongBao` seam) + A1 release-gate hardening (`DbBackup` WAL-checkpoint-before-copy, closes verdict finding F5) | fix `2d04be5`, merged `8740350` (2026-07-12/13) |
+| Epic 1 released | B4 reopen fix — R1 (`QuanLyTaskViewModel.ThemTask` stamps `MaMonHoc`; reconcile heals an empty FK from navigation position and fails loud on an unknown FK, `3bb56c6`/`63b9611`) + R2 (`CrashLogger` last-resort sink + `Dispatcher`/`AppDomain`/`TaskScheduler` global handlers, `b0061e7`/`c18e1e7`); plus a separate pre-existing Analytics stale-render fix (`c4291c7`). **Epic 1 Released 2026-07-20** — owner sign-off, closure-gate release decision record | merged `37f9678`, 337 pass |
+
+> Granular refactor-slice history: `refactor-god-object.md` (archived 2026-07-07 → `legacy/Archived plans/`, local-only) + git log. Epic 1 release gate (conditions C1–C3) tracked in [`../plans/2026-07-11-epic-1-closure-gate.md`](../plans/2026-07-11-epic-1-closure-gate.md); execution in `2026-07-12-epic1-closure-phase1-execution.md` (archived 2026-07-26 → `legacy/Archived plans/`, local-only).
+
+## A.3 Next up
+
+Ordered per decisions **D-B** (sync-ready data model first) and **D-A** (LAN sync target);
+execution decomposition + order per the [2026-07-03 master plan](../plans/2026-07-03-master-plan.md)
+(SOE precedes LAN transport for the desktop-first closed alpha — D-B's build queue is
+*"data model → debt B3/A6 → SOE"*, and its consequences explicitly do not commit to LAN sync next):
+
+1. **Sync-ready data model** *(foundation — shipped)* — **Epic 1 shipped in full and Released
+   (2026-07-20).** The D-I metadata block (`Rev` + `ModifiedAtUtc` + `ModifiedByDeviceId`)
+   + tombstones on every synced entity (M1.2, gate G1 closed) **and** identity semantics beyond
+   Guid PKs (the dedup-cloned-`MonHoc` issue, M1.3) have both shipped — merge `a3a0a3d`,
+   post-close fix `101aaa3`. **Release-gate history (preserved):** Phase 2's first supervised
+   launch (2026-07-15) returned **B4 = Reopen** on one latent M1.2 regression (task creation
+   never stamped `MaMonHoc`; the FK-based reconcile then crashed the app, with no global handler
+   to contain it). Diagnosis accepted by the owner 2026-07-19
+   ([QA investigation](../reports/2026-07-19-epic1-phase2-qa-investigation.md) ·
+   [owner decisions](../specs/2026-07-19-owner-epic-1-decisions.md)); the
+   the reopen fix plan (`2026-07-19-epic1-reopen-fix-plan.md`, archived 2026-07-26 →
+   `legacy/Archived plans/`, local-only) was approved and shipped —
+   **R1** (`ThemTask` stamps `MaMonHoc`; reconcile heals an empty FK from navigation position and
+   fails loud on an unknown FK, `3bb56c6`/`63b9611`) + **R2** (`CrashLogger` + global exception
+   handlers, `b0061e7`/`c18e1e7`), merged `37f9678`. A **separate, pre-existing** Analytics
+   stale-render bug (surfaced during the B4 Step-2 re-run — *not* an Epic 1 regression) was fixed
+   in `c4291c7` (337 pass; Part 2 XAML visibility shipped, visual toggle pending owner re-run).
+   The owner re-ran the supervised launch and signed off **Epic 1 = Released (2026-07-20)** —
+   release decision record in
+   [`../plans/2026-07-11-epic-1-closure-gate.md`](../plans/2026-07-11-epic-1-closure-gate.md)
+   (conditions C1–C3; Phase 1 execution plan `2026-07-12-epic1-closure-phase1-execution.md`,
+   archived 2026-07-26 → `legacy/Archived plans/`, local-only),
+   superseding the earlier "do not release yet" hold. **Post-release backlog:** the Analytics
+   **two-section redesign** + subject-filter / range-vs-trend semantics
+   ([design brief](../plans/2026-07-20-analytics-two-section-redesign.md), design-only) and the
+   latent `MucDoCanhBao` ctor gap (§A.4). The last-synced base-snapshot store for 3-way merge
+   lands with the LAN-sync epic, co-designed with its consumer (master plan M2.1). See
+   [`../architecture/data-model.md`](../architecture/data-model.md) §8.
+2. **Study Optimization Engine** *(on top of the sync-ready data model — D-B)* — evolves the Balancer (Part B §7.3).
+   **Guardrails frozen 2026-07-02 ([D-G/D-H/D-J](../plans/2026-07-02-architecture-freeze-decisions.md)):** deadline feasibility, capacity and calendar limits are **hard constraints** (Constraint Validator);
+   objective = quality only (`w1…w5`); feasibility never worsens (`violations(out) ≤ violations(in)`).
+   **Pass accept/commit semantics still OPEN — implementation blocked on it** (master plan gate G2). Scope must respect §13. See the SOE proposal `2026-06-30-workload-optimizer-proposal.md` (archived 2026-07-07 → `legacy/Archived plans/`, local-only; recoverable from git history — note it carries a supersession banner, the frozen contract is D-G/D-H/D-J).
+3. **LAN sync epic** *(D-A)* — multi-device, two-way merge over LAN (not cloud). Merge policy **decided (D-F):** field-level merge, LWW only on concurrent same-field edits.
+   **Mechanics frozen 2026-07-02 ([D-I](../plans/2026-07-02-architecture-freeze-decisions.md)):** 3-way merge vs. last-synced base; tie-break `ModifiedAtUtc` → `DeviceId`; delete-vs-edit → tombstone wins,
+   losing side kept in a conflict record; no HLC. *Cascade policy decided + implemented (G1, cascade-tombstone —
+   Epic 1 / M1.2). Still open: tombstone retention/purge authority (master plan gate G4).*
+4. **M8-C** — retrain the Study Time Predictor on real Focus-session telemetry (replace synthetic seed).
+5. **M9** — natural-language deadline parsing (Part B §9.1) and cross-semester analytics.
+
+## A.4 Deferred / out of scope
+
+- **Pipeline rehome** (`Services/Pipeline/*` → `Application/UseCases/*`) — independent plan.
+- **Core/Capacity** — only when a real need surfaces.
+- **Cloud model storage** — opt-in via `IModelStorageProvider`; no work until users ask.
+- **Mobile / hybrid clients** — preserves offline-first; revisit after LAN sync lands.
+- **Async pipeline end-to-end** — current sync MVP is acceptable.
+- **`System.Drawing.Common` NU1904** vulnerability — ~30 min, independent.
+- **`SQLitePCLRaw` NU1903** high-severity advisory — visible in every build; not Epic-1-caused,
+  tracked but not yet scheduled (closure-verdict carry-forward ledger #8).
+- **`StudyTask.MucDoCanhBao` unstamped-by-constructor gap** — latent, surfaced 2026-07-19 during the
+  B4 reopen. The column is `NOT NULL` in the schema, but the 4-arg `StudyTask` ctor leaves it null;
+  today every persisted task is safe only because `QuanLyTaskViewModel.TinhDiemVaSapXep()` stamps it
+  before each save. This is the *same shape* as the `MaMonHoc` bug that caused B4 — a constructor that
+  doesn't establish an invariant the persistence layer requires. Any future call site that saves a
+  `StudyTask` without routing through the ViewModel will hit `SQLite Error 19: NOT NULL constraint
+  failed`. Not fixed in the reopen (out of its minimal P0 scope) and **not surveyed** — no audit of
+  existing call sites was performed. Candidate fix: establish the default in the ctor, or make the
+  column nullable with a computed read. See `2026-07-19-epic1-reopen-fix-plan.md` (archived
+  2026-07-26 → `legacy/Archived plans/`, local-only).
+- *(Promoted out of "deferred": the old "Core/Sync + PostgreSQL — far-future Phase 4" item is now the
+  planned **LAN-sync epic** in A.3, targeting LAN two-way merge rather than PostgreSQL/cloud.)*
+
+## A.5 Guardrails for every change
+
+1. `gitnexus_impact` before editing any symbol; report HIGH/CRITICAL to user.
+2. `gitnexus_detect_changes` before commit.
+3. `dotnet build SmartStudyPlanner.slnx` + `dotnet test --no-build` must stay green.
+4. Never silently mutate `WeightConfig` on low ML confidence.
+5. Never let ML availability gate the app — formula fallback must remain.
+6. Offline-first stays the default; **LAN sync is a planned opt-in direction (D-A); cloud remains opt-in only**.
+
+---
+
+# PART B — Architecture Direction *(aspirational)*
+
 ---
 
 # 1. Current Project State
@@ -198,6 +324,10 @@ Responsibility:
 * urgency evaluation
 * competency gap calculation
 
+> **Reconciliation (N5):** "competency gap calculation" is **net-new and undecided** — **zero
+> occurrences** in the codebase today and no data model. Treat as aspirational until scoped; the
+> shipped Decision Engine does priority scoring + urgency only.
+
 Output:
 
 ```text
@@ -237,6 +367,23 @@ Constraints:
 * max hours/day
 * avoid burnout
 * avoid repetition
+
+> **Reconciliation (D-A/D-B/D2/N9):** the Balancer is slated to evolve into the **Study Optimization
+> Engine** (see the SOE proposal `2026-06-30-workload-optimizer-proposal.md`, archived → `legacy/Archived plans/`),
+> where balancing becomes one of several heuristics. Two constraints on that evolution:
+> **(1) sequencing** — it sits on top of the sync-ready data model (Part A §A.3), not before it;
+> **(2) scope** — the proposal's six sub-engines are in **direct tension with §13** below
+> ("don't fragment engines / no unnecessary micro-engines"). Phase it behind an `IScheduleOptimizer`
+> strategy seam (Load Balancer + Constraint Evaluator first). Compute model (**D-E**, amended
+> 2026-07-02): a deterministic ordered pipeline — never a global search; `LearningEfficiencyScore` is an
+> evaluation, not an argmax target. **Frozen guardrails
+> ([D-G/D-H/D-J](../plans/2026-07-02-architecture-freeze-decisions.md)):** deadline feasibility, capacity
+> and calendar limits are **hard constraints** owned by the Constraint Validator; the objective scores
+> schedule quality only — `w1·LoadBalance + w2·ContextContinuity + w3·SessionQuality + w4·FatiguePenalty
+> + w5·FragmentationPenalty` (`w6·DeadlineUrgency` is **dropped**: deadline is a constraint, not a scored
+> term); the SOE never worsens feasibility (`violations(out) ≤ violations(in)`). **Still OPEN: the pass
+> accept/commit granularity** (per-step vs. whole-pass vs. alternatives — see the freeze record §3);
+> SOE implementation is blocked on that decision.
 
 ---
 
@@ -305,6 +452,13 @@ Avoid overengineering.
 ## 9.1 Smart Parser (Primary ML Component)
 
 This is the ONLY ML-first subsystem.
+
+> **Reconciliation (D-D):** this is **consistent** with the "heuristic-first" philosophy (§6/§13)
+> once scoped — the *system* is heuristic-first; the *parser* is the one place ML has precedence,
+> applied **per output field with a confidence-gated fallback** (≥ 0.60, else heuristic).
+> **Shipped today:** ML overrides **task type** only; difficulty and deadline are rule-based. The
+> natural-language **deadline** parsing described below is the **M9 target**, not current behavior.
+> See [`../architecture/pipeline.md`](../architecture/pipeline.md) §2.
 
 Purpose:
 
@@ -584,7 +738,7 @@ The project should remain:
 ## v2
 
 * advanced analytics
-* optional cloud sync
+* **multi-device two-way LAN sync** (D-A) — replaces the earlier "optional cloud sync" direction
 * enhanced recommendation system
 
 ---
