@@ -16,9 +16,10 @@ This folder contains all living documentation for Smart Study Planner. Outdated/
    - [usecase-flows.md](architecture/usecase-flows.md) — UC-01..UC-12 step-by-step.
    - [lessons-learned.md](architecture/lessons-learned.md) — engineering postmortem of the 2026-07 architecture review (why the decisions exist).
 4. **active/** — pointers to work in progress only (read [active/README.md](active/README.md) before editing).
-   Current: Epic 1 **reopened** at the release gate (Phase 2 supervised launch, B4 = Reopen —
-   one M1.2 regression; fix plan drafted, implementation awaiting owner approval — see
-   [active/README.md](active/README.md)) + UI mobile-ready polish (proposed).
+   Current: Epic 1 **Released** (2026-07-20) — the B4 reopen (a latent M1.2 FK regression) was
+   fixed (R1/R2) and, with a separate pre-existing Analytics stale-render bug also fixed, the
+   owner signed off release — see [active/README.md](active/README.md). Next: Analytics
+   two-section redesign (design brief queued) + UI mobile-ready polish (proposed).
 5. **knowledge/** — extracted lessons (programming, system design, ML, debugging, release
    engineering, review methodology, sync data model, architecture process, incident
    investigation).

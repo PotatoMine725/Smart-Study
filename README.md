@@ -81,7 +81,7 @@ The app sends native Windows toast notifications to remind you of upcoming deadl
 
 Version 1.5.0 — Active Development
 
-All core milestones (M1 through M8) are complete and merged. The test suite has 289 tests, all passing, and the build is clean with zero errors.
+All core milestones (M1 through M8) plus the Epic 1 sync-ready data model are complete and merged — **Epic 1 Released 2026-07-20**. The test suite has 337 tests, all passing, and the build is clean with zero errors.
 
 ### What Has Been Built
 
@@ -98,10 +98,11 @@ All core milestones (M1 through M8) are complete and merged. The test suite has 
 | M8-A | TextClassifier — SdcaMaximumEntropy model that identifies task type from title text; wired into the parsing pipeline; retrains from a real-data-first seed (903 rows, 5 classes) |
 | M8-B | WeightOptimizer — rule-based optimizer that reads WeightChangeLog ground truth and proposes updated scoring weights; review/apply UI with JSON persistence |
 | M8 (arch) | God-object refactor: IDecisionEngine decomposed into strategy components; RiskAnalyzerService retired in favour of RiskOrchestrator; StudyRepository split into focused repos; StreakManager made fully injectable |
+| Epic 1 | Sync-ready data model — per-entity change metadata (`Rev`/`ModifiedAtUtc`/`ModifiedByDeviceId`), soft-delete tombstones replacing hard cascades, a versioned schema-upgrade seam, and normalized subject identity/dedup. The foundation for future multi-device sync. Released 2026-07-20 |
 
 ### What Is Coming Next
 
-Near-term: a **sync-ready data model** and **multi-device two-way LAN sync**, the **Study Optimization Engine** (evolving the Workload Balancer), **M8-C** telemetry-based ML retraining, and **M9** natural-language deadline parsing.
+Near-term: **multi-device two-way LAN sync** (building on the now-shipped sync-ready data model), the **Study Optimization Engine** (evolving the Workload Balancer), **M8-C** telemetry-based ML retraining, and **M9** natural-language deadline parsing.
 
 The full, canonical roadmap lives in [`docs/specs/system_roadmap.md`](docs/specs/system_roadmap.md).
 

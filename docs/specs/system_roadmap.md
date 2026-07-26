@@ -40,6 +40,7 @@
 | M1.2 | Epic 1 — schema upgrade + tombstones, gate G1 (`SyncSchema.EnsureColumns` versioned upgrade + backup + migration report; soft-delete tombstones replace hard cascades; `TaskCascadeHelper` cascade-tombstones FK-only children, M1.2-R1 remediation) | merged `e2f8268` (2026-07-10) |
 | M1.3 | Epic 1 — MonHoc identity & dedup (`MonHocIdentity.Normalize` single dedup definition, 4 read-side sites + `ThemMon` prevent-at-source; folded fix for a pre-existing `LuuHocKyAsync` task-reconcile gap surfaced by the widened dedup key, Option A) | merged `a3a0a3d` (2026-07-11) — **Epic 1 code complete** |
 | Epic 1 closeout | Post-close fix (`101aaa3` — duplicate-subject warning routed through `OnThongBao` seam) + A1 release-gate hardening (`DbBackup` WAL-checkpoint-before-copy, closes verdict finding F5) | fix `2d04be5`, merged `8740350` (2026-07-12/13) |
+| Epic 1 released | B4 reopen fix — R1 (`QuanLyTaskViewModel.ThemTask` stamps `MaMonHoc`; reconcile heals an empty FK from navigation position and fails loud on an unknown FK, `3bb56c6`/`63b9611`) + R2 (`CrashLogger` last-resort sink + `Dispatcher`/`AppDomain`/`TaskScheduler` global handlers, `b0061e7`/`c18e1e7`); plus a separate pre-existing Analytics stale-render fix (`c4291c7`). **Epic 1 Released 2026-07-20** — owner sign-off, closure-gate release decision record | merged `37f9678`, 337 pass |
 
 > Granular refactor-slice history: `refactor-god-object.md` (archived 2026-07-07 → `legacy/Archived plans/`, local-only) + git log. Epic 1 release gate (conditions C1–C3) tracked in [`../plans/2026-07-11-epic-1-closure-gate.md`](../plans/2026-07-11-epic-1-closure-gate.md); execution in [`../plans/2026-07-12-epic1-closure-phase1-execution.md`](../plans/2026-07-12-epic1-closure-phase1-execution.md).
 
@@ -50,22 +51,32 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
 (SOE precedes LAN transport for the desktop-first closed alpha — D-B's build queue is
 *"data model → debt B3/A6 → SOE"*, and its consequences explicitly do not commit to LAN sync next):
 
-1. **Sync-ready data model** *(foundation — first)* — **Epic 1 scope shipped in full; reopened
-   at the release gate.** The D-I metadata block (`Rev` + `ModifiedAtUtc` + `ModifiedByDeviceId`)
+1. **Sync-ready data model** *(foundation — shipped)* — **Epic 1 shipped in full and Released
+   (2026-07-20).** The D-I metadata block (`Rev` + `ModifiedAtUtc` + `ModifiedByDeviceId`)
    + tombstones on every synced entity (M1.2, gate G1 closed) **and** identity semantics beyond
    Guid PKs (the dedup-cloned-`MonHoc` issue, M1.3) have both shipped — merge `a3a0a3d`,
-   post-close fix `101aaa3`. **State: release-gate Phase 2 (first supervised launch, 2026-07-15)
-   returned B4 = Reopen** — one M1.2 regression (task creation never stamps `MaMonHoc`; the
-   FK-based reconcile then crashes the app). Diagnosis accepted by the owner 2026-07-19
+   post-close fix `101aaa3`. **Release-gate history (preserved):** Phase 2's first supervised
+   launch (2026-07-15) returned **B4 = Reopen** on one latent M1.2 regression (task creation
+   never stamped `MaMonHoc`; the FK-based reconcile then crashed the app, with no global handler
+   to contain it). Diagnosis accepted by the owner 2026-07-19
    ([QA investigation](../reports/2026-07-19-epic1-phase2-qa-investigation.md) ·
-   [owner decisions](../specs/2026-07-19-owner-epic-1-decisions.md)); **reopen fix plan drafted
-   ([`2026-07-19-epic1-reopen-fix-plan.md`](../plans/2026-07-19-epic1-reopen-fix-plan.md)),
-   implementation awaiting owner approval.** Gate framework:
+   [owner decisions](../specs/2026-07-19-owner-epic-1-decisions.md)); the
+   [reopen fix plan](../plans/2026-07-19-epic1-reopen-fix-plan.md) was approved and shipped —
+   **R1** (`ThemTask` stamps `MaMonHoc`; reconcile heals an empty FK from navigation position and
+   fails loud on an unknown FK, `3bb56c6`/`63b9611`) + **R2** (`CrashLogger` + global exception
+   handlers, `b0061e7`/`c18e1e7`), merged `37f9678`. A **separate, pre-existing** Analytics
+   stale-render bug (surfaced during the B4 Step-2 re-run — *not* an Epic 1 regression) was fixed
+   in `c4291c7` (337 pass; Part 2 XAML visibility shipped, visual toggle pending owner re-run).
+   The owner re-ran the supervised launch and signed off **Epic 1 = Released (2026-07-20)** —
+   release decision record in
    [`../plans/2026-07-11-epic-1-closure-gate.md`](../plans/2026-07-11-epic-1-closure-gate.md)
-   (conditions C1–C3) and the
-   [Phase 1 execution plan](../plans/2026-07-12-epic1-closure-phase1-execution.md). The
-   last-synced base-snapshot store for 3-way merge lands with the LAN-sync epic, co-designed with
-   its consumer (master plan M2.1). See [`../architecture/data-model.md`](../architecture/data-model.md) §8.
+   (conditions C1–C3; [Phase 1 execution plan](../plans/2026-07-12-epic1-closure-phase1-execution.md)),
+   superseding the earlier "do not release yet" hold. **Post-release backlog:** the Analytics
+   **two-section redesign** + subject-filter / range-vs-trend semantics
+   ([design brief](../plans/2026-07-20-analytics-two-section-redesign.md), design-only) and the
+   latent `MucDoCanhBao` ctor gap (§A.4). The last-synced base-snapshot store for 3-way merge
+   lands with the LAN-sync epic, co-designed with its consumer (master plan M2.1). See
+   [`../architecture/data-model.md`](../architecture/data-model.md) §8.
 2. **Study Optimization Engine** *(on top of the sync-ready data model — D-B)* — evolves the Balancer (Part B §7.3).
    **Guardrails frozen 2026-07-02 ([D-G/D-H/D-J](../plans/2026-07-02-architecture-freeze-decisions.md)):** deadline feasibility, capacity and calendar limits are **hard constraints** (Constraint Validator);
    objective = quality only (`w1…w5`); feasibility never worsens (`violations(out) ≤ violations(in)`).
