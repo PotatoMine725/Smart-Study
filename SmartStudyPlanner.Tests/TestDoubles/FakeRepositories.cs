@@ -30,13 +30,21 @@ namespace SmartStudyPlanner.Tests.TestDoubles
     internal sealed class FakeStudyLogRepository : IStudyLogRepository
     {
         public List<StudyLog> AddedLogs { get; } = new();
+        public bool ShouldThrow { get; set; }
         private List<StudyLog> _seeded = new();
         public void SeedLogs(IEnumerable<StudyLog> logs) => _seeded = logs.ToList();
 
-        public Task AddAsync(StudyLog log, CancellationToken ct = default)
+        // Faults after an await (not a synchronous throw) to mirror how the real SQLite write
+        // fails — a synchronous throw here would already propagate through the pre-A6
+        // fire-and-forget call site, making the test meaningless for what A6 actually fixes.
+        public async Task AddAsync(StudyLog log, CancellationToken ct = default)
         {
+            if (ShouldThrow)
+            {
+                await Task.Yield();
+                throw new InvalidOperationException("simulated repo failure");
+            }
             AddedLogs.Add(log);
-            return Task.CompletedTask;
         }
 
         public Task<List<StudyLog>> GetByTaskAsync(Guid maTask, CancellationToken ct = default)

@@ -1,19 +1,19 @@
 # Architecture Overview
 
-> Consolidated 2026-05-21 from `2026-05-07-project-architecture.md` and `2026-05-07-tech-stack.md`. Reflects current code state after refactor Slice 4.
+> **Descriptive** — consolidated 2026-05-21 from `2026-05-07-project-architecture.md` and `2026-05-07-tech-stack.md`; last full re-verification against source **2026-07-07 at commit `3c96978`** (branch `ui_rf`, post-M1.1 merge). Per [../plans/2026-07-01-architecture-direction-decisions.md](../plans/2026-07-01-architecture-direction-decisions.md) (D-C), **code is normative and this file may lag it.** Canonical roadmap: [../specs/system_roadmap.md](../specs/system_roadmap.md); active execution plan: [../plans/2026-07-03-master-plan.md](../plans/2026-07-03-master-plan.md) (Epics 1–4, order E1 → E3 → E2 → E4).
 
 ## 1. What this app is
 
-Smart Study Planner is a **WPF desktop app on .NET 10**, designed local-first / offline-first. It transforms semester / subject / task input into priority + schedule + risk + analytics, with ML used as a non-blocking enhancement.
+Smart Study Planner is a **WPF desktop app on .NET 10**, designed local-first / offline-first. It transforms semester / subject / task input into priority + schedule + risk + analytics, with ML used as a non-blocking enhancement. The current strategic direction (D-A) is **multi-device, two-way LAN sync** — Epic 1 (sync-ready data model) is **Released (2026-07-20)** (M1.1/M1.2/M1.3 merged `a3a0a3d` + B4-reopen fix merge `37f9678`, 337 pass; see [system_roadmap.md §A.3](../specs/system_roadmap.md)).
 
 ## 2. Layered architecture
 
 ```text
-Views (WPF pages/windows)
+Views (WPF pages/windows, MainFrame navigation)
   → ViewModels (CommunityToolkit.Mvvm)
     → Services / Application orchestration
       → Core/*  (domain logic — Scheduling, Risk, Parsing, ML contracts)
-        → Infrastructure/Persistence  (EF Core + SQLite)
+        → Infrastructure/Persistence  (EF Core + SQLite, 9 narrow repositories)
         → Services/ML/*               (local model artifacts on filesystem)
 ```
 
@@ -23,20 +23,21 @@ Principles:
 - Local data is the default source of truth.
 - ML is an enhancement, not allowed to block the app.
 - All services flow through DI (`ServiceLocator`) — no `static class` in domain.
+- Every DB write funnels through one stamping seam (`AppDbContext.SaveChanges*` → `SyncStamper`, Epic 1 M1.1).
 
 ## 3. Tech stack
 
 | Layer | Technology | Notes |
 |---|---|---|
-| UI | WPF on **.NET 10** (`net10.0-windows10.0.19041.0`) | `WinExe`, `UseWPF=true`, `UseWindowsForms=true` |
+| UI | WPF on **.NET 10** (`net10.0-windows10.0.19041.0`) | `WinExe`, `UseWPF=true`, `UseWindowsForms=true` (tray icon) |
 | Language | C# (nullable reference types **enabled**, implicit usings **enabled**) | |
 | MVVM | `CommunityToolkit.Mvvm` | `[ObservableProperty]`, `[RelayCommand]`, `ObservableObject` |
-| Charts | `LiveChartsCore.SkiaSharpView.WPF` | Used in Dashboard + Analytics |
-| Notifications | `Microsoft.Toolkit.Uwp.Notifications` | Windows toasts |
+| Charts | `LiveChartsCore.SkiaSharpView.WPF` — **Analytics only** | Dashboard was redesigned to **native XAML charts** (`Controls/DonutChart`, `DashboardChartModels`) in commit `7225dba` |
+| Notifications | `Microsoft.Toolkit.Uwp.Notifications` | Windows toasts (deadline warnings, minimize-to-tray notice) |
 | DI | `Microsoft.Extensions.DependencyInjection` | composed by `ServiceLocator` |
 | DB | **SQLite** + `Microsoft.EntityFrameworkCore.Sqlite` | `SmartStudyData.db` next to the binary |
-| ML | `Microsoft.ML` + `Microsoft.ML.FastTree` | local-only model in `%AppData%\SmartStudyPlanner\models\` |
-| Tests | `xUnit` + `Microsoft.NET.Test.Sdk` + `coverlet.collector` + `Verify.CommunityToolkit.Mvvm` | 156 passing as of Slice 4 |
+| ML | `Microsoft.ML` + `Microsoft.ML.FastTree` | study-time model in `%AppData%\SmartStudyPlanner\models\`; text classifier `text_classifier.zip` |
+| Tests | `xUnit` + `Microsoft.NET.Test.Sdk` + `coverlet.collector` + `Verify.CommunityToolkit.Mvvm` | 291/291 green at M1.1 acceptance |
 | Solution | `SmartStudyPlanner.slnx` (not `.sln`) | important when running `dotnet build` |
 
 Project version: `1.5.0`.
@@ -45,13 +46,19 @@ Project version: `1.5.0`.
 
 ```text
 SmartStudyPlanner/
-├── App.xaml(.cs)                # Startup, DB bootstrap, DI bootstrap
-├── Models/                      # Entities + DTO-like models
-├── Data/                        # AppDbContext, IStudyRepository, StudyRepository
-├── Infrastructure/Persistence/  # New repo abstractions + SQLite impls (Slice 4)
-│   ├── Repositories/            # IStudyTaskRepository, IStudyLogRepository,
-│   │                            #   IMonHocRepository, IUserStatsRepository,
-│   │                            #   UserStatsSnapshot
+├── App.xaml(.cs)                # Startup: DB bootstrap (EnsureCreated + patch seams),
+│                                #   DI bootstrap, 3 background warmups
+├── Assets/                      # icon.ico (app + window icon)
+├── Controls/                    # DonutChart (native XAML chart control)
+├── Models/                      # Entities + DTO-like models + ISyncMetadata (M1.1)
+│   └── Telemetry/               # DifficultyLabelLog, StudyTimeOutcomeLog, WeightChangeLog
+├── Data/                        # AppDbContext (+ SaveChanges stamping overrides),
+│                                #   SyncStamper (M1.1), TelemetrySchema (runtime table patch)
+├── Infrastructure/Persistence/  # THE persistence layer (legacy StudyRepository retired)
+│   ├── Repositories/            # IHocKyRepository, IStudyTaskRepository, IStudyLogRepository,
+│   │                            #   IMonHocRepository, IUserStatsRepository, ITaskEditorRepository,
+│   │                            #   IDifficultyLabelLogRepository, IWeightChangeLogRepository,
+│   │                            #   IStudyTimeOutcomeLogRepository, UserStatsSnapshot
 │   └── SQLite/Repositories/     # Sqlite* implementations (Func<AppDbContext> factory)
 ├── Core/                        # Domain — pure logic, no UI/storage references
 │   ├── Parsing/                 # ParsingOrchestrator + engines + contracts + ParseResult
@@ -62,29 +69,39 @@ SmartStudyPlanner/
 │                                #   IWeightOptimizerService, WeightConfigSuggestion
 ├── Services/                    # Application services + adapters
 │   ├── ServiceLocator.cs        # Composition root (singletons)
-│   ├── DecisionEngineService.cs # 42-line facade over SchedulingOrchestrator
+│   ├── DecisionEngineService.cs # thin facade over SchedulingOrchestrator
 │   ├── WorkloadServiceImpl.cs   # IWorkloadService impl
-│   ├── WeightConfig.cs          # POCO + IsValid()
+│   ├── WeightConfig.cs          # POCO + IsValid()/Normalize()
+│   ├── WeightConfigStore.cs     # persists weights to %LocalAppData%\SmartStudyPlanner\weight_config.json
+│   ├── StreakManager.cs         # IStreakManager/IStreakStore + JsonFileStreakStore (streak_data.json)
+│   ├── ThemeManager.cs          # Light/Dark merged-dictionary swap
 │   ├── Analytics/               # IStudyAnalytics + StudyAnalyticsService
-│   ├── ML/                      # IMLModelManager, MLModelManager, IModelStorageProvider,
-│   │                            #   LocalModelStorageProvider, StudyTimePredictorService,
-│   │                            #   SeedDataGenerator, DeviceHelper, Schema/*
+│   ├── ML/                      # IMLModelManager, MLModelManager, StudyTimePredictorService,
+│   │                            #   StudyTimeTrainingDataSource, SeedDataGenerator, DeviceHelper,
+│   │                            #   TextClassifierModelManager/-Service, IntentClassifierAdapter,
+│   │                            #   TextClassifierDatasetImporter, Schema/*, WeightOptimizer/*
 │   ├── Pipeline/                # IPipelineOrchestrator + 5 stages + PipelineContext
-│   ├── Strategies/              # IClock, IUrgencyRule, IPriorityComponent, parsers
-│   └── Telemetry/               # IStudyTelemetry + DebugStudyTelemetry
-├── Themes/                      # CommonStyles, Light/Dark, SidebarStyles
+│   ├── Strategies/              # IClock, IUrgencyRule, IPriorityComponent, keyword parsers
+│   └── Telemetry/               # IStudyTelemetry + DebugStudyTelemetry,
+│                                #   IOutcomeMaturationService + OutcomeMaturationService (M8-B)
+├── Themes/                      # CommonStyles, Light/Dark, SidebarStyles, StudyWorkspaceStyles
 ├── Converters/                  # HeatLevelToBrushConverter, etc.
-├── ViewModels/                  # MVVM screen logic
-└── Views/                       # XAML + code-behind
+├── ViewModels/                  # MVVM screen logic (incl. WeightOptimizerViewModel — Slice 8)
+└── Views/                       # XAML + code-behind (pages + FocusWindow + WeightOptimizerWindow)
 ```
 
 ## 5. Major subsystems
 
 ### 5.1 Presentation
-`MainWindow`, `DashboardPage`, `QuanLyMonHocPage`, `QuanLyTaskPage`, `AnalyticsPage`, `SetupPage`, `FocusWindow`, `WorkloadBalancerWindow`.
+`MainWindow` is a shell: sidebar navigation + `MainFrame` (page navigation), a system-tray icon (close button hides to tray; explicit "Thoát hoàn toàn" quits), and a 1-minute background `DispatcherTimer` that recomputes priorities and fires a toast when urgent tasks (score ≥ 80) exist (`Views/MainWindow.xaml.cs:96-129`).
+
+- **Pages** (navigated in `MainFrame`): `SetupPage` (start page), `DashboardPage`, `QuanLyMonHocPage`, `QuanLyTaskPage`, `AnalyticsPage`, `WorkloadBalancerPage` (converted Window → Page in commit `6481fc8`).
+- **Windows**: `FocusWindow` (modal, maximized/topmost focus-lock) and `WeightOptimizerWindow` (non-modal, opened from the sidebar; Slice 8 UI, `Views/MainWindow.xaml.cs:204-220`).
+
+An in-flight UI plan ([../plans/2026-07-05-ui-mobile-ready-polish.md](../plans/2026-07-05-ui-mobile-ready-polish.md), status PROPOSED) targets fidelity closure + responsive/touch-friendly polish on branch `ui_rf`.
 
 ### 5.2 Planning / decision
-`IDecisionEngine` → `DecisionEngineService` (facade) → `SchedulingOrchestrator` → `PriorityEvaluator` + `RawMinutesCalculator` + `StudyTimeSuggestionEngine` + `IStudyTimePredictor`. `WorkloadServiceImpl` consumes priorities to distribute across `ScheduleDay` / `ScheduledTask`.
+`IDecisionEngine` → `DecisionEngineService` (facade) → `SchedulingOrchestrator` → `PriorityEvaluator` + `RawMinutesCalculator` + `StudyTimeSuggestionEngine` + `IStudyTimePredictor`. `WorkloadServiceImpl` consumes priorities to distribute across `ScheduleDay` / `ScheduledTask`. The `WeightConfig` singleton is now **loaded from disk** at composition time (`WeightConfigStore.Load()`, `Services/ServiceLocator.cs:67`) and persisted when the user applies a Weight Optimizer suggestion.
 
 > Full pipeline + classification/ranking detail with Mermaid diagrams: [pipeline.md](./pipeline.md).
 
@@ -98,42 +115,92 @@ SmartStudyPlanner/
 `Core/Parsing/Orchestrators/ParsingOrchestrator` composes `RuleBasedTimeParsingEngine` + `TaskExtractionEngine`, then augments with `IIntentClassifier` (M8-A, **wired** via `IntentClassifierAdapter` → `TextClassifierService` → ML.NET `TextClassifierModelManager`). ML only sets task **type** (Loai), gated at confidence ≥ 0.60; difficulty/deadline stay rule-based; on model-absent/error it falls back byte-equal to heuristic. The old static `Services/SmartParser` facade was **retired** (commit `222cb5a`) — consumers inject `IParsingOrchestrator`.
 
 ### 5.6 Analytics
-`StudyAnalyticsService` is a pure function over `IEnumerable<StudyLog>`. Outputs: `WeeklyReport` (7-day minutes), `SubjectInsight` (per-subject totals + completion), `ProductivityScore` (label tiers Xuất sắc / Tốt / Trung bình / Cần cải thiện).
+`StudyAnalyticsService` is a pure function over `IEnumerable<StudyLog>`. Outputs: `WeeklyReport` (7-day minutes), `SubjectInsight` (per-subject totals + completion), `ProductivityScore` (label tiers Xuất sắc / Tốt / Trung bình / Cần cải thiện). `AnalyticsViewModel` adds a 52×7 heatmap and hosts the user-triggered **Retrain** command (enabled at ≥ 50 study logs, `ViewModels/AnalyticsViewModel.cs:88`).
 
-### 5.7 ML
-`MLModelManager` owns lifecycle. `StudyTimePredictorService` is the only insertion point into `SchedulingOrchestrator`. `LocalModelStorageProvider` reads/writes `%AppData%\SmartStudyPlanner\models\`. See [knowledge/machine-learning.md](../knowledge/machine-learning.md).
+### 5.7 ML (study-time predictor)
+`MLModelManager` owns lifecycle (SemaphoreSlim-gated load/train, atomic temp-file swap, R² ≥ 0.45 acceptance gate — `Services/ML/MLModelManager.cs:106`). `StudyTimePredictorService` is the only insertion point into `SchedulingOrchestrator`; its confidence is agreement-based (`1 − |predicted − formula| / max(formula, 1)`, ML wins at ≥ 0.6 — `Services/ML/StudyTimePredictorService.cs:41-48`). Retraining is **real-data-first**: `StudyTimeTrainingDataSource` builds the training set from `StudyTimeOutcomeLog` rows (requires ≥ 50, else empty) and `AnalyticsViewModel.RetrainModel` falls back to `SeedDataGenerator.Generate()` when real data is insufficient (`ViewModels/AnalyticsViewModel.cs:234-239`). See [knowledge/machine-learning.md](../knowledge/machine-learning.md).
 
 ### 5.8 Persistence
-`AppDbContext` (EF Core) + legacy `IStudyRepository` / `StudyRepository`. New repo abstractions (`IStudyTaskRepository`, `IStudyLogRepository`, `IMonHocRepository`, `IUserStatsRepository`) added in Slice 4 — implementations use `Func<AppDbContext>` factory to support in-memory SQLite tests.
+`AppDbContext` (EF Core) + **nine narrow repositories** under `Infrastructure/Persistence/` (the legacy `Data/IStudyRepository` + `StudyRepository` pair is **fully retired** — zero references remain; all ViewModels consume the new layer). Implementations take a `Func<AppDbContext>` factory to support in-memory SQLite tests. Since M1.1, `AppDbContext` overrides `SaveChanges(bool)` / `SaveChangesAsync(bool, ct)` to run `SyncStamper.Apply` (the single sync-metadata stamping seam) before every write (`Data/AppDbContext.cs:93-103`). See [data-model.md](./data-model.md).
+
+### 5.9 Telemetry & ground truth (M8)
+Two channels:
+- **Debug event stream** — `IStudyTelemetry` → `DebugStudyTelemetry` (`Debug.WriteLine` only, no I/O).
+- **Ground-truth SQLite tables** (no FK to domain tables): `DifficultyLabelLogs` (suggested-vs-final difficulty at task creation), `StudyTimeOutcomeLogs` (features + actual minutes per focus session — the predictor's real training data), `WeightChangeLogs` (before/after weights + baseline stats + task cohort when a weight suggestion is applied). `OutcomeMaturationService.MatureAsync` runs opportunistically at startup and fills each `WeightChangeLog`'s outcome columns once its 14-day window has elapsed (`Services/Telemetry/OutcomeMaturationService.cs`).
+
+### 5.10 Sync-readiness (Epic 1 — Released 2026-07-20)
+
+Epic 1 (sync-ready data model) is **Released** on `ui_rf` (owner sign-off 2026-07-20) — M1.1, M1.2,
+and M1.3 all merged (M1.3 merge `a3a0a3d`, 2026-07-11), plus the B4-reopen fix (R1 FK stamping /
+R2 crash-safety, merge `37f9678`). Full suite **337 pass**. The release-gate arc (closure → B4
+reopen → re-closure → Released) is preserved in [system_roadmap.md §A.3](../specs/system_roadmap.md)
+and the [closure gate](../plans/2026-07-11-epic-1-closure-gate.md), which carries the
+B4 = Released re-decision record.
+
+- **M1.1 — single stamping seam + A6 (merged `3193adf`)**: the `ISyncMetadata` contract
+  (`Models/ISyncMetadata.cs`) and the single `SyncStamper` seam wired into both
+  `AppDbContext.SaveChanges`/`SaveChangesAsync` overloads (`Data/AppDbContext.cs:101-111`); A6 closed
+  (the focus-session write is awaited, `StudyLog.DeviceId` stamped at the write site, save failures
+  surface to the user via `NotifyUser`/MessageBox + `autosave_failed` telemetry).
+- **M1.2 — D-I metadata + tombstones + schema upgrade, gate G1 (merged `e2f8268`, 2026-07-10;
+  review M1.2-R1 closed)**: **all six synced entities implement `ISyncMetadata`** — `HocKy`
+  (`Models/HocKy.cs:8`), `MonHoc` (`Models/MonHoc.cs:7`), `StudyTask` (`Models/StudyTask.cs:14`),
+  `StudyLog` (`Models/StudyLog.cs:6`), `TaskNote` (`Models/TaskNote.cs:3`), `TaskReferenceLink`
+  (`Models/TaskReferenceLink.cs:3`). Deletes are **soft**: `SyncStamper` converts a `Remove()` into a
+  tombstone (`State`→`Modified`, `IsDeleted=true`, `DeletedAtUtc`/`Rev` set) before `SaveChanges`
+  runs, so no real SQL `DELETE` ever fires (`Data/SyncStamper.cs:33-41`). **G1 cascade-tombstone**:
+  EF's in-memory cascade fixup — driven by the retained `OnDelete(Cascade)` config
+  (`Data/AppDbContext.cs:44-52`) — marks *loaded* children `Deleted` so the seam tombstones them in
+  the same `SaveChanges`; FK-only children (`TaskNote`/`TaskReferenceLink`, no navigation property)
+  are handled explicitly by `TaskCascadeHelper.RemoveChildrenAsync`
+  (`Infrastructure/Persistence/SQLite/TaskCascadeHelper.cs:17-24`, the M1.2-R1 remediation). Pre-Epic-1
+  DBs upgrade in place via `SyncSchema.EnsureColumns` — idempotent `ADD COLUMN` on all six tables +
+  stamp backfill (`Data/SyncSchema.cs:33-64`), gated by `NeedsUpgrade` and a file backup at startup.
+- **M1.3 — bounded `MonHoc` identity/dedup (merged `a3a0a3d`, 2026-07-11)**: read-side dedup keys on
+  `MonHocIdentity.Normalize` rather than raw `TenMonHoc` — e.g. `LayDanhSachHocKyAsync`
+  (`Infrastructure/Persistence/SQLite/Repositories/SqliteHocKyRepository.cs:45`), plus three other
+  read sites and add-time prevent-at-source in `QuanLyMonHocViewModel.ThemMon`. Bounded to `MonHoc`;
+  cross-device identity-merge is Epic 2.
+
+Read paths exclude tombstoned rows **explicitly per query** — there is no global EF query filter
+— e.g. `LayDanhSachHocKyAsync` filters `!hk.IsDeleted` and nested `.Where(!mon.IsDeleted)` /
+`.Where(!t.IsDeleted)` on its includes (`SqliteHocKyRepository.cs:28-30`). `Rev` is a local
+monotonic per-entity counter, never compared across devices (see [L6](lessons-learned.md)). The
+merge engine and LAN transport themselves are **Epic 2** — D-I mechanics are frozen, not yet built
+(see [data-model.md §8](./data-model.md)).
 
 ## 6. Runtime composition (`App.xaml.cs`)
 
-1. Open local DB; run `db.Database.Migrate()` (changed from `EnsureCreated()` after the `NgayHoanThanh` bug — see [knowledge/debugging.md](../knowledge/debugging.md)).
-2. If `DEV_RESET_DB=1`, `EnsureDeleted()` first, then recreate.
-3. Build DI container via `ServiceLocator.Configure()`.
-4. Kick `IMLModelManager.InitializeAsync()` on `Task.Run(...)` — exceptions swallowed so app launches regardless.
-5. UI shows even if ML fails.
+1. **Crash-safety handlers first** (Epic 1 reopen R2, `App.xaml.cs:23-38`) — wired at the very top of `OnStartup`, before DB/DI, so a fault anywhere later is caught: `DispatcherUnhandledException` logs, shows a Vietnamese error dialog, and sets `args.Handled = true` so a UI-thread exception no longer silently kills the process (the B4 failure mode); `AppDomain.UnhandledException` logs; `TaskScheduler.UnobservedTaskException` logs and calls `SetObserved()`. All route through `CrashLogger.Log` → `%AppData%\SmartStudyPlanner\crash.log`, a last-resort sink that must never throw (`Services/CrashLogger.cs`).
+2. If `DEV_RESET_DB=1`, `EnsureDeleted()` first (`App.xaml.cs:45-48`).
+3. DB bootstrap via `AppStartup.EnsureDatabaseReady(db, dbPath)` (`App.xaml.cs:54`; extracted so an integration test drives the exact same sequence) — `db.Database.EnsureCreated()` (`Data/AppStartup.cs:16`), **no EF migrations**. Existing DBs are patched by ad-hoc idempotent seams: an `ALTER TABLE HocKys ADD COLUMN IsSeeded` guarded by try/catch (`AppStartup.cs:20-22`), a dev-seed marker `UPDATE` (`:31`), and `TelemetrySchema.EnsureTables(db)` (`:36`; `CREATE TABLE IF NOT EXISTS` for the 3 telemetry tables). M1.2 adds a proper `SyncSchema.EnsureColumns` upgrade seam with backup-before-upgrade (`:44`) — shipped.
+4. Build DI container via `ServiceLocator.Configure()` (`App.xaml.cs:61`).
+5. Three fire-and-forget background warmups on `Task.Run` (`App.xaml.cs:64-101`), none allowed to block launch. The two ML warmups — `IMLModelManager.InitializeAsync()` and `ITextClassifierModelManager.InitializeAsync()` (M8-A) — deliberately **silent-catch** (offline-first: both are enhancements over deterministic paths). `IOutcomeMaturationService.MatureAsync(utcNow)` (M8-B) no longer swallows — its catch logs via `CrashLogger.Log` (`App.xaml.cs:96-100`).
+6. UI shows even if all three warmups fail; the handlers from step 1 keep the app alive on any later fault.
 
 ## 7. Architectural strengths and constraints
 
 Strengths
-- Clear layer boundaries; no `static class` in domain.
+- Clear layer boundaries; no `static class` in domain (`ServiceLocator`, `WeightConfigStore`, `ThemeManager` are composition/infra shells).
 - Central DI container + stage-based pipeline (not a monolith).
-- Safe ML fallback wired everywhere.
+- Safe ML fallback wired everywhere; ML never on the launch path.
 - Offline-first as the default, explicit.
+- Single write path: all EF writes flow through `SaveChanges*` → stamping seam (verified precondition — no `ExecuteUpdate`/`ExecuteDelete` bypasses).
 
 Constraints
-- Windows desktop only for now.
-- `ServiceLocator` is still a composition root, not a `HostBuilder`.
-- Some ViewModels still resolve services via the static locator instead of constructor injection.
-- DB schema is bootstrapped via `Migrate()`; migration story is light.
+- Windows desktop only for now (a MAUI/Avalonia companion is aspirational — see the mobile-ready UI plan).
+- `ServiceLocator` is still a composition root, not a `HostBuilder`; several ViewModels resolve services via the static locator in their production constructors (constructor injection exists for tests).
+- Schema evolution is `EnsureCreated()` + hand-rolled idempotent patch seams, **not** EF migrations — every schema change to shipped DBs needs its own upgrade step (M1.2's T1.8 formalizes this).
+- `SqliteHocKyRepository.LuuHocKyAsync` persists via a **Guid-diff reconcile** of the whole semester graph (Epic 1 / M1.2, G1 — done; replaced the old remove-then-recreate approach, which tombstones would break — `Infrastructure/Persistence/SQLite/Repositories/SqliteHocKyRepository.cs:81-93`).
 
 ## 8. Suggested reading order
 
 1. `App.xaml.cs`
 2. `Services/ServiceLocator.cs`
-3. `Data/AppDbContext.cs`
-4. `Services/Pipeline/PipelineOrchestrator.cs`
-5. `Core/Scheduling/Orchestrators/SchedulingOrchestrator.cs`
-6. `Services/DecisionEngineService.cs` (notice how thin it is)
-7. `ViewModels/DashboardViewModel.cs`
+3. `Data/AppDbContext.cs` + `Data/SyncStamper.cs`
+4. `Infrastructure/Persistence/SQLite/Repositories/SqliteHocKyRepository.cs`
+5. `Services/Pipeline/PipelineOrchestrator.cs`
+6. `Core/Scheduling/Orchestrators/SchedulingOrchestrator.cs`
+7. `Services/DecisionEngineService.cs` (notice how thin it is)
+8. `ViewModels/DashboardViewModel.cs`
+9. `ViewModels/FocusViewModel.cs` (A6 write path + ground-truth logging)
