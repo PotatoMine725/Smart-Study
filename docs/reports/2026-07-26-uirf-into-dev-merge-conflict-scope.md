@@ -2,7 +2,13 @@
 
 **Date:** 2026-07-26
 **Author:** PM/QA session (owner-directed)
-**Status:** scope-only — **no PR opened, no merge performed.** Advisory input to the owner's integration decision.
+> **⚠️ SUPERSEDED (2026-07-26).** The owner ruled `ui_rf` the newest, most stable, manually-tested trunk
+> and chose **not** to integrate the dev/ML+UI line. The via-`dev` route and "adopt dev's redesign as base"
+> recommendation below are **void**. Actual resolution: a `ui_rf`-authoritative, history-preserving merge
+> makes `main` reflect `ui_rf` (dev line preserved in history, not integrated) — **PR #49**. This document is
+> retained only as the conflict-surface analysis that informed the decision.
+
+**Status:** scope-only — **no PR opened, no merge performed.** Advisory input to the owner's integration decision. **(Superseded — see banner above; PR #49 is the outcome.)**
 **Method:** `git merge-tree --write-tree origin/dev ui_rf` (in-memory 3-way merge; no working tree touched).
 
 ---
