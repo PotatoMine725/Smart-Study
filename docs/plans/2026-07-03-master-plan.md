@@ -114,7 +114,8 @@ offline window, and the safe default (no purge) is correct for the whole single-
 > reopen (a latent M1.2 FK regression) was fixed — R1/R2, merged `37f9678` — and the owner signed
 > off **Epic 1 = Released (2026-07-20)** per
 > [`2026-07-11-epic-1-closure-gate.md`](2026-07-11-epic-1-closure-gate.md) (conditions
-> C1–C3) and the [Phase 1 execution plan](2026-07-12-epic1-closure-phase1-execution.md). This
+> C1–C3) and the Phase 1 execution plan (`2026-07-12-epic1-closure-phase1-execution.md`, archived
+> 2026-07-26 → `legacy/Archived plans/`, local-only). This
 > section is frozen planning content (D-P6) — live status lives in
 > [`system_roadmap.md`](../specs/system_roadmap.md) §A.2/A.3 and
 > [`active/README.md`](../active/README.md).

@@ -69,7 +69,7 @@ Standalone tables, **no FK** to domain tables (`MaTask` is a nullable reference 
 > shifted from "produce a SQL cascade" to "drive EF's in-memory fixup so cascade-tombstoning works."
 > FK-only children (`TaskNote`/`TaskReferenceLink`, no navigation property) are unreachable by that
 > fixup, so every `StudyTask`-removal path hand-cascades them via `TaskCascadeHelper` (M1.2-R1).
-> See [`2026-07-03-g1-soft-delete-cascade.md`](../plans/2026-07-03-g1-soft-delete-cascade.md).
+> See `2026-07-03-g1-soft-delete-cascade.md` (archived 2026-07-26 → `legacy/Archived plans/`, local-only).
 
 ## 4. Data lifecycle rules
 
@@ -166,8 +166,8 @@ Every completed/aborted focus session appends a `StudyTimeOutcomeLog` row. On us
 > Target (per [../plans/2026-07-01-architecture-direction-decisions.md](../plans/2026-07-01-architecture-direction-decisions.md), D-A;
 > mechanics frozen in [../plans/2026-07-02-architecture-freeze-decisions.md](../plans/2026-07-02-architecture-freeze-decisions.md), D-I):
 > **multi-device, two-way LAN sync** — not cloud. Executing as **Epic 1** of the
-> [master plan](../plans/2026-07-03-master-plan.md) via the
-> [Epic 1 execution plan](../plans/2026-07-03-epic-1-execution-plan.md).
+> [master plan](../plans/2026-07-03-master-plan.md) via the Epic 1 execution plan
+> (`2026-07-03-epic-1-execution-plan.md`, archived 2026-07-26 → `legacy/Archived plans/`, local-only).
 
 **Already in place**
 - **Stable global identity** — every entity uses a `Guid` primary key (`HocKy.MaHocKy`,

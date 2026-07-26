@@ -42,7 +42,7 @@
 | Epic 1 closeout | Post-close fix (`101aaa3` — duplicate-subject warning routed through `OnThongBao` seam) + A1 release-gate hardening (`DbBackup` WAL-checkpoint-before-copy, closes verdict finding F5) | fix `2d04be5`, merged `8740350` (2026-07-12/13) |
 | Epic 1 released | B4 reopen fix — R1 (`QuanLyTaskViewModel.ThemTask` stamps `MaMonHoc`; reconcile heals an empty FK from navigation position and fails loud on an unknown FK, `3bb56c6`/`63b9611`) + R2 (`CrashLogger` last-resort sink + `Dispatcher`/`AppDomain`/`TaskScheduler` global handlers, `b0061e7`/`c18e1e7`); plus a separate pre-existing Analytics stale-render fix (`c4291c7`). **Epic 1 Released 2026-07-20** — owner sign-off, closure-gate release decision record | merged `37f9678`, 337 pass |
 
-> Granular refactor-slice history: `refactor-god-object.md` (archived 2026-07-07 → `legacy/Archived plans/`, local-only) + git log. Epic 1 release gate (conditions C1–C3) tracked in [`../plans/2026-07-11-epic-1-closure-gate.md`](../plans/2026-07-11-epic-1-closure-gate.md); execution in [`../plans/2026-07-12-epic1-closure-phase1-execution.md`](../plans/2026-07-12-epic1-closure-phase1-execution.md).
+> Granular refactor-slice history: `refactor-god-object.md` (archived 2026-07-07 → `legacy/Archived plans/`, local-only) + git log. Epic 1 release gate (conditions C1–C3) tracked in [`../plans/2026-07-11-epic-1-closure-gate.md`](../plans/2026-07-11-epic-1-closure-gate.md); execution in `2026-07-12-epic1-closure-phase1-execution.md` (archived 2026-07-26 → `legacy/Archived plans/`, local-only).
 
 ## A.3 Next up
 
@@ -61,7 +61,8 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
    to contain it). Diagnosis accepted by the owner 2026-07-19
    ([QA investigation](../reports/2026-07-19-epic1-phase2-qa-investigation.md) ·
    [owner decisions](../specs/2026-07-19-owner-epic-1-decisions.md)); the
-   [reopen fix plan](../plans/2026-07-19-epic1-reopen-fix-plan.md) was approved and shipped —
+   the reopen fix plan (`2026-07-19-epic1-reopen-fix-plan.md`, archived 2026-07-26 →
+   `legacy/Archived plans/`, local-only) was approved and shipped —
    **R1** (`ThemTask` stamps `MaMonHoc`; reconcile heals an empty FK from navigation position and
    fails loud on an unknown FK, `3bb56c6`/`63b9611`) + **R2** (`CrashLogger` + global exception
    handlers, `b0061e7`/`c18e1e7`), merged `37f9678`. A **separate, pre-existing** Analytics
@@ -70,7 +71,8 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
    The owner re-ran the supervised launch and signed off **Epic 1 = Released (2026-07-20)** —
    release decision record in
    [`../plans/2026-07-11-epic-1-closure-gate.md`](../plans/2026-07-11-epic-1-closure-gate.md)
-   (conditions C1–C3; [Phase 1 execution plan](../plans/2026-07-12-epic1-closure-phase1-execution.md)),
+   (conditions C1–C3; Phase 1 execution plan `2026-07-12-epic1-closure-phase1-execution.md`,
+   archived 2026-07-26 → `legacy/Archived plans/`, local-only),
    superseding the earlier "do not release yet" hold. **Post-release backlog:** the Analytics
    **two-section redesign** + subject-filter / range-vs-trend semantics
    ([design brief](../plans/2026-07-20-analytics-two-section-redesign.md), design-only) and the
@@ -106,7 +108,8 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
   `StudyTask` without routing through the ViewModel will hit `SQLite Error 19: NOT NULL constraint
   failed`. Not fixed in the reopen (out of its minimal P0 scope) and **not surveyed** — no audit of
   existing call sites was performed. Candidate fix: establish the default in the ctor, or make the
-  column nullable with a computed read. See [`../plans/2026-07-19-epic1-reopen-fix-plan.md`].
+  column nullable with a computed read. See `2026-07-19-epic1-reopen-fix-plan.md` (archived
+  2026-07-26 → `legacy/Archived plans/`, local-only).
 - *(Promoted out of "deferred": the old "Core/Sync + PostgreSQL — far-future Phase 4" item is now the
   planned **LAN-sync epic** in A.3, targeting LAN two-way merge rather than PostgreSQL/cloud.)*
 

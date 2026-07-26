@@ -228,5 +228,5 @@ defines the mandatory scope, so nothing silently disappears.
 
 - [`docs/reports/2026-07-19-epic1-phase2-qa-investigation.md`](../reports/2026-07-19-epic1-phase2-qa-investigation.md) — the full investigation: verdict table, causal chain, evidence.
 - [`docs/reports/2026-07-15-GUI-test-observations.md`](../reports/2026-07-15-GUI-test-observations.md) — the owner's raw B1–B4 observations.
-- [`docs/plans/2026-07-15-epic1-phase2-owner-runbook.md`](../plans/2026-07-15-epic1-phase2-owner-runbook.md) — the Phase-2 runbook, including the mis-specified step.
+- `docs/plans/2026-07-15-epic1-phase2-owner-runbook.md` (archived 2026-07-26 → `legacy/Archived plans/`, local-only) — the Phase-2 runbook, including the mis-specified step.
 - [`docs/specs/2026-07-19-owner-epic-1-decisions.md`](../specs/2026-07-19-owner-epic-1-decisions.md) — owner acceptance of the diagnosis and the decision gate between investigation and planning.

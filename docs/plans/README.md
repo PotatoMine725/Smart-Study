@@ -33,3 +33,10 @@ Differs from `active/` — `active/` holds the **current** plan in progress; `pl
 
 > Archive sweep 2026-07-07: all `2026-06-*` plans were moved to `legacy/Archived plans/`.
 > This folder now only holds plans that are in-flight or still normative (e.g. decision records).
+>
+> Archive sweep 2026-07-26: with Epic 1 Released (2026-07-20), its shipped execution/QA plans
+> moved to `legacy/Archived plans/` (9 files — the Epic 1 execution/closure/reopen plans + the
+> analytics stale-render fix plan). Retained here: the closure-gate record
+> (`2026-07-11-epic-1-closure-gate.md`, holds the B4=Released decision), the architecture
+> decision/freeze records, the forks-proposals record (open SOE Decision 1), the master plan,
+> and the in-flight `2026-07-24-smart-add-negation-fix-plan.md`.

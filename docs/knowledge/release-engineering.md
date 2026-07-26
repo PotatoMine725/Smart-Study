@@ -93,5 +93,5 @@ produces if collapsed into one predicate.
 
 - [`docs/review/2026-07-11-epic1-closure-verdict.md`](../review/2026-07-11-epic1-closure-verdict.md) — finding F5, conditions C1–C3
 - [`docs/plans/2026-07-11-epic-1-closure-gate.md`](../plans/2026-07-11-epic-1-closure-gate.md) — Task A1 (WAL-safe backup fix) requirements
-- [`docs/plans/2026-07-12-epic1-closure-phase1-execution.md`](../plans/2026-07-12-epic1-closure-phase1-execution.md) — D-P1–D-P3 (fix placement, failure semantics, fixture honesty)
+- `docs/plans/2026-07-12-epic1-closure-phase1-execution.md` (archived 2026-07-26 → `legacy/Archived plans/`, local-only) — D-P1–D-P3 (fix placement, failure semantics, fixture honesty)
 - [`docs/reports/2026-07-05-epic1-m1.2-schema-upgrade-tombstones-metadata.md`](../reports/2026-07-05-epic1-m1.2-schema-upgrade-tombstones-metadata.md) — T1.8 upgrade seam, `MigrationReporter`, `AppStartupFileBasedTests`

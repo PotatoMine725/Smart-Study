@@ -183,7 +183,7 @@ Epic 2's merge engine exists.
 
 - [`../architecture/data-model.md`](../architecture/data-model.md) — the current, normative schema
   (§2 entities, §3 cascade rules, §8 sync-readiness state).
-- [`../plans/2026-07-03-g1-soft-delete-cascade.md`](../plans/2026-07-03-g1-soft-delete-cascade.md) — the G1 decision record (cascade-tombstone chosen over orphan-in-place).
+- `2026-07-03-g1-soft-delete-cascade.md` (archived 2026-07-26 → `legacy/Archived plans/`, local-only) — the G1 decision record (cascade-tombstone chosen over orphan-in-place).
 - [`release-engineering.md`](release-engineering.md) — the upgrade seam that backfills this
   metadata onto pre-existing rows, and the backup gap found alongside it.
 
