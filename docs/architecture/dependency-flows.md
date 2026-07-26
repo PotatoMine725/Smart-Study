@@ -17,13 +17,13 @@ Views → ViewModels → Services → Core / Infrastructure / Models
 
 ## 2. Startup flow
 
-1. `App.xaml.cs.OnStartup()`
-2. `db.Database.EnsureCreated()` + idempotent patch seams: `IsSeeded` column `ALTER`, dev-seed marker `UPDATE`, `TelemetrySchema.EnsureTables` (**no EF migrations**).
+1. `App.xaml.cs.OnStartup()` first wires **global crash-safety handlers** (Epic 1 reopen R2, `App.xaml.cs:23-38`): `DispatcherUnhandledException` (log + error dialog + `args.Handled = true`, so a UI-thread fault no longer silently kills the process), `AppDomain.UnhandledException` (log), and `TaskScheduler.UnobservedTaskException` (log + `SetObserved()`) — all through `CrashLogger.Log` → `%AppData%\SmartStudyPlanner\crash.log`, a last-resort sink that never throws (`Services/CrashLogger.cs`).
+2. DB init via `AppStartup.EnsureDatabaseReady`: `db.Database.EnsureCreated()` + idempotent patch seams — `IsSeeded` column `ALTER`, dev-seed marker `UPDATE`, `TelemetrySchema.EnsureTables`, and `SyncSchema.EnsureColumns` (M1.2 in-place upgrade + backup) (**no EF migrations**).
 3. `ServiceLocator.Configure()` registers DI.
-4. Three background `Task.Run` warmups, exceptions swallowed: `IMLModelManager.InitializeAsync()`, `ITextClassifierModelManager.InitializeAsync()`, `IOutcomeMaturationService.MatureAsync(utcNow)`.
-5. UI proceeds even if all warmups fail.
+4. Three background `Task.Run` warmups: the two ML warmups (`IMLModelManager.InitializeAsync()`, `ITextClassifierModelManager.InitializeAsync()`) deliberately **silent-catch** (offline-first enhancements over deterministic paths); `IOutcomeMaturationService.MatureAsync(utcNow)` now **logs its fault** via `CrashLogger.Log` instead of swallowing (`App.xaml.cs:96-100`).
+5. UI proceeds even if all warmups fail; the step-1 handlers backstop any later fault.
 
-Why: DB + DI must be ready before any ViewModel resolves. ML and telemetry maturation are non-critical, isolated from the launch path.
+Why: DB + DI must be ready before any ViewModel resolves. ML and telemetry maturation are non-critical, isolated from the launch path. The reopen crash-safety handlers make the previously silent failure modes visible — a dialog on the UI thread, `crash.log` for background faults — without restructuring the `async void OnStartup` itself.
 
 ## 3. Dashboard (`DashboardViewModel`)
 
@@ -123,7 +123,7 @@ AppDbContext (EF Core)
 SQLite (SmartStudyData.db)
 ```
 
-`OnModelCreating` cascades: `HocKy → MonHoc → StudyTask → {TaskNote, TaskReferenceLink}` (hard deletes at HEAD; tombstones land with M1.2). Telemetry tables (`DifficultyLabelLogs`, `StudyTimeOutcomeLogs`, `WeightChangeLogs`) are standalone — no FK.
+`OnModelCreating` cascades: `HocKy → MonHoc → StudyTask → {TaskNote, TaskReferenceLink}` (soft-delete **tombstones shipped in M1.2** — the cascade tombstones live descendants instead of hard-deleting; see [data-model.md §3–§4](./data-model.md)). Telemetry tables (`DifficultyLabelLogs`, `StudyTimeOutcomeLogs`, `WeightChangeLogs`) are standalone — no FK.
 
 ## 8. UI chain
 

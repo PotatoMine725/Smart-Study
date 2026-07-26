@@ -1,6 +1,6 @@
 # Async Workflow
 
-> Consolidated 2026-05-21 from `2026-05-07-async-workflow.md`. Re-verified against source **2026-07-07 at commit `3c96978`** (branch `ui_rf`) — reflects behavior after M7 + Slice 4 + M8 + **Epic 1 M1.1** (fire-and-forget study-log write removed).
+> Consolidated 2026-05-21 from `2026-05-07-async-workflow.md`. Re-verified against source **2026-07-07 at commit `3c96978`** (branch `ui_rf`) — reflects behavior after M7 + Slice 4 + M8 + **Epic 1 M1.1** (fire-and-forget study-log write removed). **Updated 2026-07-24 (doc-sync)** for the Epic 1 reopen crash-safety layer (global handlers + `CrashLogger`) and the observable fire-and-forget pattern (R2, merge `37f9678`).
 
 ## 1. Posture
 
@@ -17,14 +17,15 @@ Anything not on that list is sync — local data is small, so reading it on the 
 
 ## 2. Startup (`App.xaml.cs`)
 
-1. DB init: **sync** on the UI thread — `EnsureCreated()` plus the idempotent patch seams (`IsSeeded` column, `TelemetrySchema.EnsureTables`).
+0. **Crash-safety handlers wired first** (Epic 1 reopen R2, `App.xaml.cs:23-38`): `DispatcherUnhandledException`, `AppDomain.UnhandledException`, and `TaskScheduler.UnobservedTaskException` all log through `CrashLogger` → `%AppData%\SmartStudyPlanner\crash.log`; the Dispatcher handler also shows a dialog and sets `args.Handled = true` so a UI-thread fault no longer kills the process. This is the async-safety backstop for everything below.
+1. DB init: **sync** on the UI thread via `AppStartup.EnsureDatabaseReady` — `EnsureCreated()` plus the idempotent patch seams (`IsSeeded` column, `TelemetrySchema.EnsureTables`, `SyncSchema.EnsureColumns`).
 2. DI container build: **sync** via `ServiceLocator.Configure()`.
-3. Three **async** fire-and-forget warmups, each on its own `Task.Run` with exceptions swallowed:
-   - `IMLModelManager.InitializeAsync()` — study-time model;
-   - `ITextClassifierModelManager.InitializeAsync()` — M8-A intent classifier (loads `text_classifier.zip` or trains from embedded seed CSV);
-   - `IOutcomeMaturationService.MatureAsync(utcNow)` — M8-B: fills `WeightChangeLog` outcome columns whose 14-day window elapsed.
+3. Three **async** fire-and-forget warmups, each on its own `Task.Run`. The two ML warmups deliberately **silent-catch** (offline-first); `MatureAsync` now logs its fault via `CrashLogger` instead of swallowing:
+   - `IMLModelManager.InitializeAsync()` — study-time model (silent-catch);
+   - `ITextClassifierModelManager.InitializeAsync()` — M8-A intent classifier (loads `text_classifier.zip` or trains from embedded seed CSV; silent-catch);
+   - `IOutcomeMaturationService.MatureAsync(utcNow)` — M8-B: fills `WeightChangeLog` outcome columns whose 14-day window elapsed (`catch` → `CrashLogger.Log`, `App.xaml.cs:96-100`).
 
-Intent: ML and telemetry maturation must not slow startup, must not block launch, and are allowed to be ready late (or never).
+Intent: ML and telemetry maturation must not slow startup, must not block launch, and are allowed to be ready late (or never). The reopen handlers ensure that "never" is at least traceable, not silent.
 
 ## 3. ML lifecycle (`MLModelManager`)
 
@@ -77,7 +78,7 @@ Many are still sync because they only navigate, open a window, or toggle theme �
 
 ## 6. Telemetry
 
-`DebugStudyTelemetry.Track(...)` is sync because it only writes to `Debug.WriteLine`. No network, no file I/O — safe inline from command handlers. The **ground-truth telemetry writes** (SQLite log tables) are async: awaited inside the focus autosave path; fire-and-forget only for `WeightChangeLog` (`WeightOptimizerViewModel.ApplySuggestion` — logging is an enhancement and must never block or fail the apply path).
+`DebugStudyTelemetry.Track(...)` is sync because it only writes to `Debug.WriteLine`. No network, no file I/O — safe inline from command handlers. The **ground-truth telemetry writes** (SQLite log tables) are async: awaited inside the focus autosave path (persisted state the user can lose), and **observed fire-and-forget** for the two enhancement logs — `WeightChangeLog` (`WeightOptimizerViewModel.cs:123`) and `DifficultyLabelLog` (`QuanLyTaskViewModel.cs:219`). Both are wrapped in `CrashLogger.Observe(...)` (Epic 1 reopen R2, the "F2 nuance"): the write still never blocks or fails the user's action, but a fault now lands in `crash.log` instead of vanishing. See §8 rule 4.
 
 ## 7. What is intentionally NOT async yet
 
@@ -92,7 +93,7 @@ This matches the current data scale. If pipeline or analytics balloon, the seams
 1. Warm-ups (ML, classifier, maturation) never block startup.
 2. `RetrainAsync` never blocks the UI thread; the lifecycle gate serializes it against `InitializeAsync`.
 3. Fail-soft: if any background task throws, the UI must remain usable.
-4. **No fire-and-forget on data the user can lose.** The former fire-and-forget `StudyLog` write (rule 5 of the old version of this doc) was eliminated by M1.1/A6 — persisted-state writes are awaited and their failures surfaced. The only remaining fire-and-forget writes are pure enhancements (`WeightChangeLog`, startup warmups).
+4. **No fire-and-forget on data the user can lose.** The former fire-and-forget `StudyLog` write (rule 5 of the old version of this doc) was eliminated by M1.1/A6 — persisted-state writes are awaited and their failures surfaced. The remaining fire-and-forget writes are pure enhancements (`WeightChangeLog`, `DifficultyLabelLog`, startup warmups) — but "fire-and-forget" no longer means "swallow." Epic 1 reopen R2 introduced the **observable fire-and-forget** pattern: `CrashLogger.Observe(task, context)` attaches an always-run `ContinueWith` (`ExecuteSynchronously`) that logs to `crash.log` only when the task faulted (an always-run continuation, not `OnlyOnFaulted` — the latter cancels on success and would throw when awaited in tests). The two enhancement telemetry writes are `.Observe(...)`-wrapped; `MatureAsync`'s startup warmup uses the equivalent inline `try/catch → CrashLogger.Log`. **Convention: an unawaited task must either be `.Observe(...)`-wrapped or carry an inline fault log — never a bare `_ = SomethingAsync()` that swallows.**
 5. An emergency exit must never be blockable by I/O (`ThoatKhanCap` invariant above).
 
 ## 9. Reading order

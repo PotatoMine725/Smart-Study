@@ -4,7 +4,7 @@
 
 ## 1. What this app is
 
-Smart Study Planner is a **WPF desktop app on .NET 10**, designed local-first / offline-first. It transforms semester / subject / task input into priority + schedule + risk + analytics, with ML used as a non-blocking enhancement. The current strategic direction (D-A) is **multi-device, two-way LAN sync** — Epic 1 (sync-ready data model) is **code complete, release gate in progress** (M1.1/M1.2/M1.3 merged `a3a0a3d`; see [system_roadmap.md §A.3](../specs/system_roadmap.md)).
+Smart Study Planner is a **WPF desktop app on .NET 10**, designed local-first / offline-first. It transforms semester / subject / task input into priority + schedule + risk + analytics, with ML used as a non-blocking enhancement. The current strategic direction (D-A) is **multi-device, two-way LAN sync** — Epic 1 (sync-ready data model) is **Released (2026-07-20)** (M1.1/M1.2/M1.3 merged `a3a0a3d` + B4-reopen fix merge `37f9678`, 337 pass; see [system_roadmap.md §A.3](../specs/system_roadmap.md)).
 
 ## 2. Layered architecture
 
@@ -128,12 +128,14 @@ Two channels:
 - **Debug event stream** — `IStudyTelemetry` → `DebugStudyTelemetry` (`Debug.WriteLine` only, no I/O).
 - **Ground-truth SQLite tables** (no FK to domain tables): `DifficultyLabelLogs` (suggested-vs-final difficulty at task creation), `StudyTimeOutcomeLogs` (features + actual minutes per focus session — the predictor's real training data), `WeightChangeLogs` (before/after weights + baseline stats + task cohort when a weight suggestion is applied). `OutcomeMaturationService.MatureAsync` runs opportunistically at startup and fills each `WeightChangeLog`'s outcome columns once its 14-day window has elapsed (`Services/Telemetry/OutcomeMaturationService.cs`).
 
-### 5.10 Sync-readiness (Epic 1 — code complete, release gate in progress)
+### 5.10 Sync-readiness (Epic 1 — Released 2026-07-20)
 
-Epic 1 (sync-ready data model) is **code complete** on `ui_rf` — M1.1, M1.2, and M1.3 all merged
-(M1.3 merge `a3a0a3d`, 2026-07-11, "Epic 1 closed"); release is gated, not yet declared (see
-[system_roadmap.md §A.3](../specs/system_roadmap.md) and the
-[closure gate](../plans/2026-07-11-epic-1-closure-gate.md)).
+Epic 1 (sync-ready data model) is **Released** on `ui_rf` (owner sign-off 2026-07-20) — M1.1, M1.2,
+and M1.3 all merged (M1.3 merge `a3a0a3d`, 2026-07-11), plus the B4-reopen fix (R1 FK stamping /
+R2 crash-safety, merge `37f9678`). Full suite **337 pass**. The release-gate arc (closure → B4
+reopen → re-closure → Released) is preserved in [system_roadmap.md §A.3](../specs/system_roadmap.md)
+and the [closure gate](../plans/2026-07-11-epic-1-closure-gate.md), which carries the
+B4 = Released re-decision record.
 
 - **M1.1 — single stamping seam + A6 (merged `3193adf`)**: the `ISyncMetadata` contract
   (`Models/ISyncMetadata.cs`) and the single `SyncStamper` seam wired into both
@@ -169,11 +171,12 @@ merge engine and LAN transport themselves are **Epic 2** — D-I mechanics are f
 
 ## 6. Runtime composition (`App.xaml.cs`)
 
-1. If `DEV_RESET_DB=1`, `EnsureDeleted()` first.
-2. `db.Database.EnsureCreated()` (`App.xaml.cs:28`) — **no EF migrations**. Existing DBs are patched by ad-hoc idempotent seams: an `ALTER TABLE HocKys ADD COLUMN IsSeeded` guarded by try/catch (`App.xaml.cs:31-39`), a dev-seed marker `UPDATE`, and `TelemetrySchema.EnsureTables(db)` (`CREATE TABLE IF NOT EXISTS` for the 3 telemetry tables). M1.2 extends this pattern into a proper `SyncSchema.EnsureColumns` upgrade seam with backup-before-upgrade.
-3. Build DI container via `ServiceLocator.Configure()`.
-4. Three fire-and-forget background warmups on `Task.Run`, each with swallowed exceptions so the app launches regardless: `IMLModelManager.InitializeAsync()`, `ITextClassifierModelManager.InitializeAsync()` (M8-A), `IOutcomeMaturationService.MatureAsync(utcNow)` (M8-B).
-5. UI shows even if all three fail.
+1. **Crash-safety handlers first** (Epic 1 reopen R2, `App.xaml.cs:23-38`) — wired at the very top of `OnStartup`, before DB/DI, so a fault anywhere later is caught: `DispatcherUnhandledException` logs, shows a Vietnamese error dialog, and sets `args.Handled = true` so a UI-thread exception no longer silently kills the process (the B4 failure mode); `AppDomain.UnhandledException` logs; `TaskScheduler.UnobservedTaskException` logs and calls `SetObserved()`. All route through `CrashLogger.Log` → `%AppData%\SmartStudyPlanner\crash.log`, a last-resort sink that must never throw (`Services/CrashLogger.cs`).
+2. If `DEV_RESET_DB=1`, `EnsureDeleted()` first (`App.xaml.cs:45-48`).
+3. DB bootstrap via `AppStartup.EnsureDatabaseReady(db, dbPath)` (`App.xaml.cs:54`; extracted so an integration test drives the exact same sequence) — `db.Database.EnsureCreated()` (`Data/AppStartup.cs:16`), **no EF migrations**. Existing DBs are patched by ad-hoc idempotent seams: an `ALTER TABLE HocKys ADD COLUMN IsSeeded` guarded by try/catch (`AppStartup.cs:20-22`), a dev-seed marker `UPDATE` (`:31`), and `TelemetrySchema.EnsureTables(db)` (`:36`; `CREATE TABLE IF NOT EXISTS` for the 3 telemetry tables). M1.2 adds a proper `SyncSchema.EnsureColumns` upgrade seam with backup-before-upgrade (`:44`) — shipped.
+4. Build DI container via `ServiceLocator.Configure()` (`App.xaml.cs:61`).
+5. Three fire-and-forget background warmups on `Task.Run` (`App.xaml.cs:64-101`), none allowed to block launch. The two ML warmups — `IMLModelManager.InitializeAsync()` and `ITextClassifierModelManager.InitializeAsync()` (M8-A) — deliberately **silent-catch** (offline-first: both are enhancements over deterministic paths). `IOutcomeMaturationService.MatureAsync(utcNow)` (M8-B) no longer swallows — its catch logs via `CrashLogger.Log` (`App.xaml.cs:96-100`).
+6. UI shows even if all three warmups fail; the handlers from step 1 keep the app alive on any later fault.
 
 ## 7. Architectural strengths and constraints
 

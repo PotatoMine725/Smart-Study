@@ -85,6 +85,20 @@ Standalone tables, **no FK** to domain tables (`MaTask` is a nullable reference 
   absent from the new graph) rather than a blanket remove-then-recreate — the latter would collide
   on the primary key of every unchanged row now that deletes are soft (the row never actually
   leaves the table).
+- **Task FK integrity in the reconcile (Epic 1 reopen R1).** The Guid-diff above keys each task on
+  its `MaMonHoc` owner FK, so that FK must be correct before the diff runs. Two guards ensure it:
+  (1) `QuanLyTaskViewModel.ThemTask` stamps `MaMonHoc = MonHocHienTai.MaMonHoc` at creation
+  (`QuanLyTaskViewModel.cs:192-194`), no longer relying on EF graph fixup to fill it; (2) the
+  reconcile first **heals** any task that entered the graph through a navigation collection with
+  `MaMonHoc == Guid.Empty` by adopting its navigation parent's id
+  (`SqliteHocKyRepository.cs:118-121` — the same semantics EF fixup gave the pre-M1.2 save), then
+  **fails loud** if a task references a `MonHoc` not present in the `HocKy`, throwing
+  `InvalidOperationException("Reconcile: task '…' references MonHoc … not present …")`
+  (`SqliteHocKyRepository.cs:191-195`) instead of silently dropping or mis-parenting it. This closed
+  the B4 crash where an unstamped FK reached the diff.
+  > **Latent, deferred:** `StudyTask.MucDoCanhBao` has the same constructor-stamping shape as the
+  > fixed `MaMonHoc` gap but has **not** had a call-site survey (a known-unknown); tracked in
+  > [system_roadmap §A.4](../specs/system_roadmap.md), not addressed in this cycle.
 - Filesystem-only state (not in SQLite):
   - ML model artifacts + `ModelMeta` — `%AppData%\SmartStudyPlanner\models\`;
   - weight configuration — `%LocalAppData%\SmartStudyPlanner\weight_config.json` (`WeightConfigStore`);

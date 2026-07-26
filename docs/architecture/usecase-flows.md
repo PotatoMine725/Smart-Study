@@ -42,7 +42,7 @@ Core flows = UC-01, UC-02, UC-06, UC-07, UC-08. Supporting = the rest.
 - **Chain**:
   1. Validate `TenTask != null`, `HanChot != null`.
   2. Parse `DoKho` → int, clamp 1..5; convert `LoaiTaskIndex` → `LoaiCongViec`.
-  3. If creating: `new StudyTask(...)` added to `MonHocHienTai.DanhSachTask`; telemetry `task_add`. If editing: update `_taskDangSua.*`; telemetry `task_update`.
+  3. If creating: `new StudyTask(...) { MaMonHoc = MonHocHienTai.MaMonHoc }` (Epic 1 reopen R1 — the owner FK is stamped at creation, `QuanLyTaskViewModel.cs:192-194`, rather than left to EF graph fixup) added to `MonHocHienTai.DanhSachTask`; telemetry `task_add`. If editing: update `_taskDangSua.*`; telemetry `task_update`.
   4. `TinhDiemVaSapXep()` re-runs `IDecisionEngine.CalculatePriority(task, MonHocHienTai)` for every task.
   5. `OnRefreshGrid?.Invoke()`.
   6. `await _hocKyRepository.LuuHocKyAsync(HocKyHienTai)`.
