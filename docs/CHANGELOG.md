@@ -4,6 +4,12 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
+## 2026-07-26 — P1: Smart-add Vietnamese negation fix (parser)
+
+| Area | Change | Verification |
+|---|---|---|
+| Services/Strategies/DifficultyKeywordParser | Negation-aware, **word-boundary token** difficulty matching in `DefaultDifficultyKeywordParser`. A difficulty keyword negated within a 2-token preceding window (`"không dễ"`, `"chẳng khó"`, `"khong de"`) is suppressed and falls back to the task-type prior (owner decision 2026-07-24: suppress→prior, not invert — never overshoots on compound negation `"không khó không dễ"`). Replaces bare `.Contains()` substring matching, which as a pinned consequence removes the RR-1 substring false-positives (`"de"` ∈ `"deadline"`, `"kho"` ∈ `"khong"`). Input NFC-normalized before tokenizing over `\p{L}+` (D-9). `ContainsAnyRule`, the task-type parser, and the `Parse`/`PriorForTaskType` signatures are untouched; **no UI change**. RED-first (7-row negation characterization corpus + 2 guard rows). Plan: `plans/2026-07-24-smart-add-negation-fix-plan.md` | `47cded6` (RED) + `c163135` (fix), **346 pass** |
+
 ## 2026-07-05 → 2026-07-20 — Epic 1 (Sync-Ready Data Model) — **Released 2026-07-20** (reopened at B4 on 2026-07-15, refixed 2026-07-19, re-closed & released 2026-07-20)
 
 | Milestone | Change | Verification |
