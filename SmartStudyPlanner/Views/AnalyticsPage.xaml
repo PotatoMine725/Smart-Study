@@ -135,6 +135,15 @@
 
             <!-- BAND A: weekly + subject completion -->
             <Grid Margin="0,0,0,18">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasData}" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="7*"/>
                     <ColumnDefinition Width="5*"/>
@@ -163,7 +172,16 @@
             </Grid>
 
             <!-- HEATMAP -->
-            <Border Style="{StaticResource AnPanel}" Margin="0,0,0,18">
+            <Border Margin="0,0,0,18">
+                <Border.Style>
+                    <Style TargetType="Border" BasedOn="{StaticResource AnPanel}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasData}" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                         <Border Style="{StaticResource AnSectionTick}" Background="{DynamicResource SuccessColor}"/>
@@ -212,7 +230,16 @@
             </Border>
 
             <!-- DETAILS TABLE -->
-            <Border Style="{StaticResource AnCard}" Padding="0">
+            <Border Padding="0">
+                <Border.Style>
+                    <Style TargetType="Border" BasedOn="{StaticResource AnCard}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasData}" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="16,15,16,4">
                         <Border Style="{StaticResource AnSectionTick}" Background="#8B5CF6"/>

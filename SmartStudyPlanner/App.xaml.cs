@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using System.Windows;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +16,27 @@ namespace SmartStudyPlanner
         {
             base.OnStartup(e);
 
+            // Reopen R2: last-resort crash visibility. A UI-thread exception now shows a dialog and
+            // keeps the app alive instead of silently killing the process (the B4 failure mode);
+            // background faults leave a trace in crash.log. Also catches async-void OnStartup faults
+            // (they post to the Dispatcher), shrinking investigation item 2.8-3 without restructuring.
+            DispatcherUnhandledException += (_, args) =>
+            {
+                CrashLogger.Log("DispatcherUnhandledException", args.Exception);
+                System.Windows.MessageBox.Show(
+                    "Đã xảy ra lỗi không mong muốn. Thao tác vừa rồi có thể chưa được lưu.\nChi tiết đã ghi vào crash.log.",
+                    "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                args.Handled = true;
+            };
+            AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+                CrashLogger.Log("AppDomain.UnhandledException",
+                    args.ExceptionObject as Exception ?? new Exception(args.ExceptionObject?.ToString() ?? "unknown"));
+            TaskScheduler.UnobservedTaskException += (_, args) =>
+            {
+                CrashLogger.Log("TaskScheduler.UnobservedTaskException", args.Exception);
+                args.SetObserved();
+            };
+
             // KÍCH HOẠT DATABASE
             // Mặc định giữ dữ liệu học kỳ/task qua các lần mở app.
             // Nếu cần clean reset dev, có thể bật bằng biến môi trường DEV_RESET_DB=1.
@@ -25,27 +47,11 @@ namespace SmartStudyPlanner
                     db.Database.EnsureDeleted();
                 }
 
-                db.Database.EnsureCreated();
-
-                // Runtime schema migration: thêm cột IsSeeded nếu DB cũ chưa có
-                try
-                {
-                    db.Database.ExecuteSqlRaw(
-                        "ALTER TABLE HocKys ADD COLUMN IsSeeded INTEGER NOT NULL DEFAULT 0");
-                }
-                catch (Microsoft.Data.Sqlite.SqliteException)
-                {
-                    // Column đã tồn tại — bỏ qua
-                }
-
-                // Đánh dấu bản ghi seed đã tồn tại trong DB
-                db.Database.ExecuteSqlRaw(
-                    "UPDATE HocKys SET IsSeeded = 1 WHERE Ten = 'Học Kỳ Dev Seed'");
-
-                // Runtime schema migration: tạo bảng telemetry nếu DB cũ chưa có
-                // (EnsureCreated không thêm bảng mới vào DB đã tồn tại). Tách ra seam
-                // Data/TelemetrySchema.cs để dual-path test gọi được cùng đường SQL.
-                TelemetrySchema.EnsureTables(db);
+                // Full bootstrap sequence lives in AppStartup.EnsureDatabaseReady so an
+                // integration test can drive the exact same sequence against a real file-based
+                // DB (OnStartup is WPF lifecycle, not callable from a unit test).
+                var dbPath = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "SmartStudyData.db");
+                AppStartup.EnsureDatabaseReady(db, dbPath);
             }
 
             // KHỞI TẠO DI CONTAINER
@@ -87,9 +93,10 @@ namespace SmartStudyPlanner
                 {
                     await ServiceLocator.Get<IOutcomeMaturationService>().MatureAsync(System.DateTime.UtcNow);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Maturation is an enhancement; never block launch.
+                    // Maturation is an enhancement; never block launch — but the fault is no longer silent.
+                    CrashLogger.Log("OutcomeMaturation.MatureAsync", ex);
                 }
             });
         }

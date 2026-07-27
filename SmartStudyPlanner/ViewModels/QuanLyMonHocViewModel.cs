@@ -4,6 +4,7 @@ using SmartStudyPlanner.Infrastructure.Persistence.Repositories;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
 using System;
+using System.Linq;
 using System.Windows;
 using System.Threading.Tasks;
 
@@ -16,7 +17,7 @@ namespace SmartStudyPlanner.ViewModels
         private MonHoc? _monDangSua;
 
         // Repository để tương tác với dữ liệu (nếu cần)
-        private readonly IHocKyRepository _hocKyRepository = ServiceLocator.Get<IHocKyRepository>();
+        private readonly IHocKyRepository _hocKyRepository;
 
         // 1. DỮ LIỆU HIỂN THỊ TRÊN UI
         [ObservableProperty]
@@ -39,9 +40,18 @@ namespace SmartStudyPlanner.ViewModels
         public Action<HocKy, MonHoc> OnNavigateToTask { get; set; }
         public Action OnRefreshGrid { get; set; } // Dùng để ép DataGrid vẽ lại khi Sửa xong
 
+        // Loa thông báo cho View (bơm MessageBox vào). Để null trong test/headless -> không bung dialog.
+        public Action<string> OnThongBao { get; set; }
+
         public QuanLyMonHocViewModel(HocKy hocKy)
+            : this(hocKy, ServiceLocator.Get<IHocKyRepository>())
+        {
+        }
+
+        public QuanLyMonHocViewModel(HocKy hocKy, IHocKyRepository hocKyRepository)
         {
             HocKyHienTai = hocKy;
+            _hocKyRepository = hocKyRepository;
             TieuDe = $"DANH SÁCH MÔN HỌC - {HocKyHienTai.Ten.ToUpper()}";
         }
 
@@ -97,6 +107,18 @@ namespace SmartStudyPlanner.ViewModels
 
             if (_monDangSua == null)
             {
+                // Epic 1 / M1.3: prevent-at-source -- don't create a second MonHoc row that
+                // only differs by case/whitespace/NFC-composition from a live one already in
+                // this semester; consistent with the read-side dedup this would otherwise need
+                // to consolidate later.
+                var trung = HocKyHienTai.DanhSachMonHoc.FirstOrDefault(m =>
+                    !m.IsDeleted && MonHocIdentity.Normalize(m.TenMonHoc) == MonHocIdentity.Normalize(TenMon));
+                if (trung != null)
+                {
+                    OnThongBao?.Invoke($"Môn '{trung.TenMonHoc}' đã tồn tại.");
+                    return;
+                }
+
                 HocKyHienTai.DanhSachMonHoc.Add(new MonHoc(TenMon, tinChi));
             }
             else

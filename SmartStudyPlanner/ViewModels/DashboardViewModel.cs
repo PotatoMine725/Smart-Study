@@ -353,15 +353,6 @@ namespace SmartStudyPlanner.ViewModels
         }
 
         [RelayCommand]
-        private void MoWorkloadBalancer()
-        {
-            var win = new Views.WorkloadBalancerWindow(_hocKyHienTai);
-            win.Owner = System.Windows.Application.Current.MainWindow;
-            win.ShowDialog();
-            LoadDuLieuDashboard();
-        }
-
-        [RelayCommand]
         private void ToggleTheme() => Services.ThemeManager.ToggleTheme();
 
         private sealed record DashboardSummary(

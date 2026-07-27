@@ -90,7 +90,7 @@ Before modifying any symbol, run `gitnexus_impact({target: "X", direction: "upst
 `SmartParser` returned LOW (only 1 method-level call site). `DecisionEngineService` returned LOW (only `DecisionEngineTests`). These reports gave confidence to ship Slices 2-3 as single commits.
 
 ### Verify with `gitnexus_detect_changes` before commit
-After editing, this tool tells you which flows are now in scope. If the report shows surfaces you didn't intend to touch, you have a bug or a leak.
+After editing, this tool tells you which flows are now in scope. If the report shows surfaces you didn't intend to touch, you have a bug or a leak. See [`review-methodology.md`](review-methodology.md) for the wider discipline this is one instance of: independent verification instead of trusting a self-report.
 
 ## Offline-first principles
 
@@ -117,7 +117,7 @@ The app remains 100% usable with no model file on disk.
 ## Data + persistence
 
 ### Cascade rules belong in `OnModelCreating`
-Greppable, explicit, version-controlled. M6.1 added cascade rules for `TaskNote` and `TaskReferenceLink` so deleting a task drops its dependents.
+Greppable, explicit, version-controlled. M6.1 added cascade rules for `TaskNote` and `TaskReferenceLink` so deleting a task drops its dependents. See [`sync-data-model.md`](sync-data-model.md) for how this same config was repurposed — kept, not removed — to drive EF's in-memory cascade *fixup* once deletes became soft tombstones instead of real `DELETE`s.
 
 ### Note + reference link storage choice: separate tables
 Considered: stuff notes and links into JSON columns on `StudyTask`. Rejected because:

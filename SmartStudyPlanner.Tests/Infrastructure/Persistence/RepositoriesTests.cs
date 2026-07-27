@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
@@ -8,6 +10,7 @@ using SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Tests.Fixtures;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace SmartStudyPlanner.Tests.Infrastructure.Persistence
 {
@@ -17,6 +20,13 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence
     /// </summary>
     public class RepositoriesTests
     {
+        private readonly ITestOutputHelper _output;
+
+        public RepositoriesTests(ITestOutputHelper output)
+        {
+            _output = output;
+        }
+
         private static (SqliteConnection conn, Func<AppDbContext> factory) NewDb()
         {
             var conn = new SqliteConnection("Data Source=:memory:");
@@ -58,6 +68,49 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence
 
             await repo.DeleteAsync(task.MaTask);
             Assert.Null(await repo.GetAsync(task.MaTask));
+        }
+
+        [Fact]
+        public async Task StudyTaskRepository_DeleteAsync_CascadesToNoteAndLinks()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+            Guid maMonHoc;
+            using (var ctx = TestDb.Create(conn))
+            {
+                var seeded = await TestDb.SeedTaskAsync(ctx);
+                maMonHoc = seeded.MaMonHoc;
+            }
+
+            var repo = new SqliteStudyTaskRepository(factory);
+            var task = new StudyTask("T1", DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                MaMonHoc = maMonHoc,
+                MucDoCanhBao = "An toàn",
+            };
+            await repo.AddAsync(task);
+
+            using (var ctx = factory())
+            {
+                ctx.TaskNotes.Add(new TaskNote { MaTask = task.MaTask, Content = "note" });
+                ctx.TaskReferenceLinks.Add(new TaskReferenceLink { MaTask = task.MaTask, Title = "L", Url = "https://l.com" });
+                await ctx.SaveChangesAsync();
+            }
+
+            await repo.DeleteAsync(task.MaTask);
+
+            using var probe = factory();
+            var deletedTask = await probe.StudyTasks.FirstOrDefaultAsync(t => t.MaTask == task.MaTask);
+            Assert.NotNull(deletedTask);
+            Assert.True(deletedTask!.IsDeleted);
+
+            var note = await probe.TaskNotes.FirstOrDefaultAsync(n => n.MaTask == task.MaTask);
+            Assert.NotNull(note);
+            Assert.True(note!.IsDeleted);
+
+            var link = await probe.TaskReferenceLinks.FirstOrDefaultAsync(l => l.MaTask == task.MaTask);
+            Assert.NotNull(link);
+            Assert.True(link!.IsDeleted);
         }
 
         [Fact]
@@ -189,6 +242,289 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence
         }
 
         [Fact]
+        public async Task HocKyRepository_DeleteTaskByAbsence_TombstonesNotHardDeletes()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+            var repo = new SqliteHocKyRepository(factory);
+
+            var hocKy = new HocKy("HK1", DateTime.Today);
+            var monHoc = new MonHoc("Toán", 3) { MaHocKy = hocKy.MaHocKy };
+            var task = new StudyTask("T1", DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                MaMonHoc = monHoc.MaMonHoc,
+                MucDoCanhBao = "An toàn",
+            };
+            monHoc.DanhSachTask.Add(task);
+            hocKy.DanhSachMonHoc.Add(monHoc);
+            await repo.LuuHocKyAsync(hocKy);
+
+            // User deletes the task in the UI -> dropped from the in-memory graph -> re-save (implicit-absence delete).
+            hocKy.DanhSachMonHoc[0].DanhSachTask.Remove(task);
+            await repo.LuuHocKyAsync(hocKy);
+
+            var reloaded = await repo.LayDanhSachHocKyAsync();
+            Assert.Empty(reloaded[0].DanhSachMonHoc[0].DanhSachTask); // read path filters tombstoned rows out
+
+            using var probe = factory();
+            var stillThere = await probe.StudyTasks.FirstOrDefaultAsync(t => t.MaTask == task.MaTask);
+            Assert.NotNull(stillThere); // tombstoned, not hard-deleted
+            Assert.True(stillThere!.IsDeleted);
+        }
+
+        [Fact]
+        public async Task HocKyRepository_DeleteMonHocByAbsence_CascadesTombstoneToItsTasks()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+            var repo = new SqliteHocKyRepository(factory);
+
+            var hocKy = new HocKy("HK1", DateTime.Today);
+            var monHoc = new MonHoc("Toán", 3) { MaHocKy = hocKy.MaHocKy };
+            var task = new StudyTask("T1", DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                MaMonHoc = monHoc.MaMonHoc,
+                MucDoCanhBao = "An toàn",
+            };
+            monHoc.DanhSachTask.Add(task);
+            hocKy.DanhSachMonHoc.Add(monHoc);
+            await repo.LuuHocKyAsync(hocKy);
+
+            hocKy.DanhSachMonHoc.Remove(monHoc);
+            await repo.LuuHocKyAsync(hocKy);
+
+            using var probe = factory();
+            var monStillThere = await probe.MonHocs.FirstOrDefaultAsync(m => m.MaMonHoc == monHoc.MaMonHoc);
+            Assert.NotNull(monStillThere);
+            Assert.True(monStillThere!.IsDeleted);
+            var taskStillThere = await probe.StudyTasks.FirstOrDefaultAsync(t => t.MaTask == task.MaTask);
+            Assert.NotNull(taskStillThere);
+            Assert.True(taskStillThere!.IsDeleted);
+        }
+
+        [Fact]
+        public async Task HocKyRepository_DeleteTaskByAbsence_CascadesToNoteAndLinks()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+            var repo = new SqliteHocKyRepository(factory);
+
+            var hocKy = new HocKy("HK1", DateTime.Today);
+            var monHoc = new MonHoc("Toán", 3) { MaHocKy = hocKy.MaHocKy };
+            var task = new StudyTask("T1", DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                MaMonHoc = monHoc.MaMonHoc,
+                MucDoCanhBao = "An toàn",
+            };
+            monHoc.DanhSachTask.Add(task);
+            hocKy.DanhSachMonHoc.Add(monHoc);
+            await repo.LuuHocKyAsync(hocKy);
+
+            using (var ctx = factory())
+            {
+                ctx.TaskNotes.Add(new TaskNote { MaTask = task.MaTask, Content = "note" });
+                ctx.TaskReferenceLinks.Add(new TaskReferenceLink { MaTask = task.MaTask, Title = "L", Url = "https://l.com" });
+                await ctx.SaveChangesAsync();
+            }
+
+            hocKy.DanhSachMonHoc[0].DanhSachTask.Remove(task);
+            await repo.LuuHocKyAsync(hocKy);
+
+            using var probe = factory();
+            var note = await probe.TaskNotes.FirstOrDefaultAsync(n => n.MaTask == task.MaTask);
+            Assert.NotNull(note);
+            Assert.True(note!.IsDeleted);
+            var link = await probe.TaskReferenceLinks.FirstOrDefaultAsync(l => l.MaTask == task.MaTask);
+            Assert.NotNull(link);
+            Assert.True(link!.IsDeleted);
+        }
+
+        // Epic 1 / M1.3 (D2): regression test for a pre-existing M1.2-era gap surfaced while
+        // investigating M1.3 -- confirmed reproducing on unmodified M1.2 code (exact-duplicate
+        // TenMonHoc clones, no normalization involved). LuuHocKyAsync's task reconcile used to be
+        // scoped per-MonHoc-parent; a task that crossed clone boundaries during
+        // LayDanhSachHocKyAsync's merge got cascade-tombstoned under its old parent AND
+        // re-Add()-ed under the representative in the same SaveChanges -> EF "already being
+        // tracked" exception. See docs/reports/ for the full trace.
+        [Fact]
+        public async Task HocKyRepository_DuplicateNamedMonHocClones_DistinctTasks_MergeReconcilesWithoutCollision()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+
+            var hocKy = new HocKy("HK1", DateTime.Today);
+            var monA = new MonHoc("Toán", 3) { MaHocKy = hocKy.MaHocKy };
+            var taskA = new StudyTask("TA", DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                MaMonHoc = monA.MaMonHoc,
+                MucDoCanhBao = "An toàn",
+            };
+            monA.DanhSachTask.Add(taskA);
+
+            var monB = new MonHoc("Toán", 3) { MaHocKy = hocKy.MaHocKy };
+            var taskB = new StudyTask("TB", DateTime.Today.AddDays(4), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                MaMonHoc = monB.MaMonHoc,
+                MucDoCanhBao = "An toàn",
+            };
+            monB.DanhSachTask.Add(taskB);
+
+            hocKy.DanhSachMonHoc.Add(monA);
+            hocKy.DanhSachMonHoc.Add(monB);
+
+            var repo = new SqliteHocKyRepository(factory);
+            await repo.LuuHocKyAsync(hocKy);
+
+            var loaded = await repo.LayDanhSachHocKyAsync();
+
+            var ex = await Record.ExceptionAsync(() => repo.LuuHocKyAsync(loaded[0]));
+            Assert.Null(ex);
+
+            await AssertClonesMergedWithoutLoss(factory, repo, hocKy.MaHocKy, taskA.MaTask, taskB.MaTask);
+        }
+
+        // This is M1.3's discriminating test (per the implementation brief): widening the dedup
+        // key from raw TenMonHoc to MonHocIdentity.Normalize merges MORE clones (case/whitespace
+        // variants, not just byte-identical ones) and migrates more tasks across MonHoc
+        // identities. Must not drop or PK-collide -- see the fix documented alongside
+        // HocKyRepository_DuplicateNamedMonHocClones_DistinctTasks_MergeReconcilesWithoutCollision
+        // above (same underlying reconcile gap, wider trigger).
+        [Fact]
+        public async Task HocKyRepository_CaseWhitespaceVariantMonHocClones_DistinctTasks_MergeReconcilesWithoutCollision()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+
+            var hocKy = new HocKy("HK1", DateTime.Today);
+            var monA = new MonHoc("Toán", 3) { MaHocKy = hocKy.MaHocKy };
+            var taskA = new StudyTask("TA", DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                MaMonHoc = monA.MaMonHoc,
+                MucDoCanhBao = "An toàn",
+            };
+            monA.DanhSachTask.Add(taskA);
+
+            var monB = new MonHoc("toán ", 3) { MaHocKy = hocKy.MaHocKy };
+            var taskB = new StudyTask("TB", DateTime.Today.AddDays(4), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                MaMonHoc = monB.MaMonHoc,
+                MucDoCanhBao = "An toàn",
+            };
+            monB.DanhSachTask.Add(taskB);
+
+            hocKy.DanhSachMonHoc.Add(monA);
+            hocKy.DanhSachMonHoc.Add(monB);
+
+            var repo = new SqliteHocKyRepository(factory);
+            await repo.LuuHocKyAsync(hocKy);
+
+            var loaded = await repo.LayDanhSachHocKyAsync();
+            // Pre-M1.3 (raw TenMonHoc key), "Toán" and "toán " would NOT have merged here --
+            // asserting 2 MonHoc at this point would pin the old behavior. M1.3 merges them.
+            Assert.Single(loaded[0].DanhSachMonHoc);
+
+            var ex = await Record.ExceptionAsync(() => repo.LuuHocKyAsync(loaded[0]));
+            Assert.Null(ex);
+
+            await AssertClonesMergedWithoutLoss(factory, repo, hocKy.MaHocKy, taskA.MaTask, taskB.MaTask);
+        }
+
+        private static async Task AssertClonesMergedWithoutLoss(
+            Func<AppDbContext> factory, SqliteHocKyRepository repo, Guid maHocKy, Guid maTaskA, Guid maTaskB)
+        {
+            var reloaded = await repo.LayDanhSachHocKyAsync();
+            var hocKy = reloaded.Single(h => h.MaHocKy == maHocKy);
+            Assert.Single(hocKy.DanhSachMonHoc); // exactly one subject
+            Assert.Equal(2, hocKy.DanhSachMonHoc[0].DanhSachTask.Count); // both tasks present
+            Assert.Contains(hocKy.DanhSachMonHoc[0].DanhSachTask, t => t.MaTask == maTaskA);
+            Assert.Contains(hocKy.DanhSachMonHoc[0].DanhSachTask, t => t.MaTask == maTaskB);
+
+            using var probe = factory();
+            Assert.Equal(1, await probe.MonHocs.CountAsync(m => m.MaHocKy == maHocKy && !m.IsDeleted));
+            Assert.Equal(1, await probe.MonHocs.CountAsync(m => m.MaHocKy == maHocKy && m.IsDeleted)); // losing clone tombstoned
+
+            var taskAProbe = await probe.StudyTasks.FirstAsync(t => t.MaTask == maTaskA);
+            var taskBProbe = await probe.StudyTasks.FirstAsync(t => t.MaTask == maTaskB);
+            Assert.False(taskAProbe.IsDeleted); // no task lost
+            Assert.False(taskBProbe.IsDeleted);
+        }
+
+        [Fact]
+        public async Task HocKyRepository_ResaveWithNoChanges_DoesNotBumpRevOfUnrelatedRows()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+            var repo = new SqliteHocKyRepository(factory);
+
+            var hocKy = new HocKy("HK1", DateTime.Today);
+            var monHoc = new MonHoc("Toán", 3) { MaHocKy = hocKy.MaHocKy };
+            var task = new StudyTask("T1", DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                MaMonHoc = monHoc.MaMonHoc,
+                MucDoCanhBao = "An toàn",
+            };
+            monHoc.DanhSachTask.Add(task);
+            hocKy.DanhSachMonHoc.Add(monHoc);
+            await repo.LuuHocKyAsync(hocKy);
+
+            using (var probe1 = factory())
+            {
+                var t = await probe1.StudyTasks.FirstAsync(x => x.MaTask == task.MaTask);
+                Assert.Equal(1, t.Rev);
+            }
+
+            // Re-save the exact same graph (no edits) -- e.g. HoanThanhTask completing a sibling task.
+            await repo.LuuHocKyAsync(hocKy);
+
+            using var probe2 = factory();
+            var reloaded = await probe2.StudyTasks.FirstAsync(x => x.MaTask == task.MaTask);
+            Assert.Equal(1, reloaded.Rev); // unchanged row -> no Rev churn
+        }
+
+        // M1.1 T-metric: p95 task-save latency, captured before the sync-metadata stamping seam
+        // lands and re-measured after (docs/plans/2026-07-03-epic-1-execution-plan.md success metric
+        // "p95 task-save ≤ 1.2× baseline"). No hardcoded ms threshold here — cross-machine/CI timing
+        // is inherently noisy; the two runs' p95 values are compared and reported in the milestone
+        // closing note instead of asserted in-test.
+        [Fact]
+        public async Task TaskSave_P95Latency_Baseline()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+            Guid maMonHoc;
+            using (var ctx = TestDb.Create(conn))
+            {
+                var seeded = await TestDb.SeedTaskAsync(ctx);
+                maMonHoc = seeded.MaMonHoc;
+            }
+
+            var repo = new SqliteStudyTaskRepository(factory);
+            const int iterations = 50;
+            var samplesMs = new List<double>(iterations);
+
+            for (int i = 0; i < iterations; i++)
+            {
+                var task = new StudyTask($"Timing-{i}", DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2)
+                {
+                    MaMonHoc = maMonHoc,
+                    MucDoCanhBao = "An toàn",
+                };
+                var sw = Stopwatch.StartNew();
+                await repo.AddAsync(task);
+                sw.Stop();
+                samplesMs.Add(sw.Elapsed.TotalMilliseconds);
+            }
+
+            samplesMs.Sort();
+            var p95Index = Math.Clamp((int)Math.Ceiling(0.95 * samplesMs.Count) - 1, 0, samplesMs.Count - 1);
+            var p95 = samplesMs[p95Index];
+            var mean = samplesMs.Average();
+
+            _output.WriteLine($"TaskSave latency over {iterations} AddAsync calls: p95={p95:F3}ms mean={mean:F3}ms");
+            Assert.Equal(iterations, samplesMs.Count);
+        }
+
+        [Fact]
         public async Task TaskEditorRepository_NoteUpsert_VaLinkCrud()
         {
             var (conn, factory) = NewDb();
@@ -221,6 +557,37 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence
 
             await repo.DeleteLinkAsync(link.Id);
             Assert.Empty(await repo.GetLinksAsync(maTask));
+        }
+
+        [Fact]
+        public async Task LuuHocKyAsync_TaskAddedWithoutFkStamp_PersistsUnderNavigationOwner()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+            var repo = new SqliteHocKyRepository(factory);
+
+            // First save: HocKy + MonHoc exist in DB, so the next save takes the reconcile path.
+            var hocKy = new HocKy("HK Reopen", DateTime.Today);
+            var monHoc = new MonHoc("MH Reopen", 3) { MaHocKy = hocKy.MaHocKy };
+            hocKy.DanhSachMonHoc.Add(monHoc);
+            await repo.LuuHocKyAsync(hocKy);
+
+            // A task that enters the graph only via the navigation collection — MaMonHoc left
+            // Guid.Empty, exactly what an unstamped call site produces.
+            // MucDoCanhBao is NOT NULL in the schema and the 4-arg ctor leaves it null; the VM
+            // always stamps it via TinhDiemVaSapXep() before saving. Set it so the ONLY variable
+            // this test isolates is the unstamped MaMonHoc.
+            var task = new StudyTask("Task khong stamp FK", DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                MucDoCanhBao = "An toàn",
+            };
+            monHoc.DanhSachTask.Add(task);
+
+            await repo.LuuHocKyAsync(hocKy);
+
+            using var ctx = factory();
+            var saved = await ctx.StudyTasks.SingleAsync(t => t.MaTask == task.MaTask);
+            Assert.Equal(monHoc.MaMonHoc, saved.MaMonHoc);
         }
     }
 }

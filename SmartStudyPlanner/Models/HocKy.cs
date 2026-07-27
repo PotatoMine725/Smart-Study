@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SmartStudyPlanner.Models
 {
-    public class HocKy
+    public class HocKy : ISyncMetadata
     {
         // KHÓA CHÍNH
         [Key] public Guid MaHocKy { get; set; }
@@ -20,6 +20,13 @@ namespace SmartStudyPlanner.Models
         public bool IsNgayKetThucAuto { get; set; } = true;
 
         public bool IsSeeded { get; set; } = false;
+
+        // D-I sync metadata (Epic 1 / M1.2, T1.1) — stamped by SyncStamper.
+        public long Rev { get; set; }
+        public DateTime ModifiedAtUtc { get; set; }
+        public string ModifiedByDeviceId { get; set; } = string.Empty;
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAtUtc { get; set; }
 
         public ObservableCollection<MonHoc> DanhSachMonHoc { get; set; }
 

@@ -22,11 +22,11 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
         public async Task<TaskEditorBundle?> GetBundleAsync(Guid taskId, CancellationToken ct = default)
         {
             using var db = _ctxFactory();
-            var task = await db.StudyTasks.FindAsync(new object[] { taskId }, ct);
+            var task = await db.StudyTasks.FirstOrDefaultAsync(t => t.MaTask == taskId && !t.IsDeleted, ct);
             if (task is null) return null;
-            var note = await db.TaskNotes.FirstOrDefaultAsync(n => n.MaTask == taskId, ct);
+            var note = await db.TaskNotes.FirstOrDefaultAsync(n => n.MaTask == taskId && !n.IsDeleted, ct);
             var links = await db.TaskReferenceLinks
-                .Where(l => l.MaTask == taskId)
+                .Where(l => l.MaTask == taskId && !l.IsDeleted)
                 .OrderBy(l => l.SortOrder)
                 .ToListAsync(ct);
             return new TaskEditorBundle { Task = task, Note = note, Links = links };
@@ -35,13 +35,12 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
         public async Task UpsertNoteAsync(Guid taskId, string? content, CancellationToken ct = default)
         {
             using var db = _ctxFactory();
-            var note = await db.TaskNotes.FirstOrDefaultAsync(n => n.MaTask == taskId, ct);
+            var note = await db.TaskNotes.FirstOrDefaultAsync(n => n.MaTask == taskId && !n.IsDeleted, ct);
             if (note is null)
                 db.TaskNotes.Add(new TaskNote { MaTask = taskId, Content = content });
             else
             {
                 note.Content = content;
-                note.UpdatedAtUtc = DateTime.UtcNow;
             }
             await db.SaveChangesAsync(ct);
         }
@@ -50,7 +49,7 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
         {
             using var db = _ctxFactory();
             return await db.TaskReferenceLinks
-                .Where(l => l.MaTask == taskId)
+                .Where(l => l.MaTask == taskId && !l.IsDeleted)
                 .OrderBy(l => l.SortOrder)
                 .ToListAsync(ct);
         }

@@ -120,7 +120,7 @@ namespace SmartStudyPlanner.ViewModels
             ApplyStatus = "✓ Đã áp dụng thành công.";
 
             // Ground-truth instrumentation: fire-and-forget, never blocks apply path
-            _ = LogWeightChangeAsync(before, Suggestion);
+            _ = CrashLogger.Observe(LogWeightChangeAsync(before, Suggestion), "WeightChangeLog");
         }
 
         private bool CanApply() => HasSuggestion && Suggestion != null;
