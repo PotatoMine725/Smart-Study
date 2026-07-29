@@ -8,9 +8,12 @@ using CoreRiskLevel = SmartStudyPlanner.Core.Risk.Models.RiskLevel;
 using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Services.Pipeline;
 using SmartStudyPlanner.Services.Pipeline.Stages;
+using SmartStudyPlanner.Core.Risk;
 using SmartStudyPlanner.Core.Risk.Contracts;
 using CoreRiskAssessment = SmartStudyPlanner.Core.Risk.Models.RiskAssessment;
+using SmartStudyPlanner.Services.ML;
 using SmartStudyPlanner.Services.Strategies;
+using SmartStudyPlanner.Tests.TestDoubles;
 
 namespace SmartStudyPlanner.Tests.Services.Pipeline
 {
@@ -197,7 +200,16 @@ namespace SmartStudyPlanner.Tests.Services.Pipeline
             mon.DanhSachTask.Add(t2);
             hocKy.DanhSachMonHoc.Add(mon);
 
-            var riskAnalyzer = ServiceLocator.Get<IRiskAnalyzer>();
+            // Dựng thẳng RiskOrchestrator thay vì ServiceLocator.Get: resolve qua container
+            // sẽ build cả composition root production (DB thật, weight config thật ở
+            // %LOCALAPPDATA%, model path thật) chỉ để lấy 1 object 2 dependency.
+            var clock = new FakeClock(start);
+            var riskAnalyzer = new RiskOrchestrator(
+                new DecisionEngineService(
+                    new DefaultTaskTypeWeightProvider(),
+                    clock,
+                    new NullStudyTimePredictorForRisk()),
+                clock);
             var stage = new AssessRiskStage(riskAnalyzer);
             var ctx = new PipelineContext
             {
@@ -213,6 +225,17 @@ namespace SmartStudyPlanner.Tests.Services.Pipeline
             Assert.All(ctx.RiskReport, r => Assert.NotEqual(Guid.Empty, r.TaskId));
             Assert.Contains(ctx.RiskReport, r => r.TaskId == t1.MaTask);
             Assert.Contains(ctx.RiskReport, r => r.TaskId == t2.MaTask);
+        }
+
+        // ML predictor không liên quan tới assert của test này (TaskId propagation), nhưng
+        // DecisionEngineService bắt buộc phải có một cái. Inline theo đúng convention của
+        // repo: double viết tay, đặt ngay tại file dùng nó.
+        private sealed class NullStudyTimePredictorForRisk : IStudyTimePredictor
+        {
+            public bool IsReady => false;
+            public Task<StudyTimePredictionResult> PredictAsync(
+                StudyTask task, MonHoc monHoc, CancellationToken ct = default)
+                => Task.FromResult(new StudyTimePredictionResult(0, false, 0f));
         }
 
         private static HocKy BuildSemester()
