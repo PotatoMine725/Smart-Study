@@ -9,9 +9,15 @@ namespace SmartStudyPlanner.Services.ML
         public string ModelZipPath => Path.Combine(BaseDirectory, "study_time.zip");
         public string MetaPath => Path.Combine(BaseDirectory, "meta.json");
 
-        public LocalModelStorageProvider()
+        public static string DefaultBaseDirectory => Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "SmartStudyPlanner", "models");
+
+        // baseDirectory chỉ để test trỏ vào thư mục tạm; production luôn dùng default,
+        // nên DI registration (ServiceLocator.cs) không phải đổi.
+        public LocalModelStorageProvider(string? baseDirectory = null)
         {
-            BaseDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SmartStudyPlanner", "models");
+            BaseDirectory = baseDirectory ?? DefaultBaseDirectory;
             Directory.CreateDirectory(BaseDirectory);
         }
 
