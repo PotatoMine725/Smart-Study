@@ -34,7 +34,7 @@ namespace SmartStudyPlanner.Tests.Services
         {
             var sut = BuildSut();
             var monHocMock = new MonHoc("Toán", 3);
-            var taskMock = new StudyTask("BT", DateTime.Now, LoaiCongViec.BaiTapVeNha, 3);
+            var taskMock = new StudyTask("BT", FixedNow, LoaiCongViec.BaiTapVeNha, 3);
 
             Assert.Equal(0.0, sut.CalculatePriority(null, monHocMock));
             Assert.Equal(0.0, sut.CalculatePriority(taskMock, null));
@@ -75,7 +75,7 @@ namespace SmartStudyPlanner.Tests.Services
         {
             var sut = BuildSut();
             var monHoc = new MonHoc("Sinh", 2);
-            var task = new StudyTask("Đã xong", DateTime.Now.AddDays(5), LoaiCongViec.ThiGiuaKy, 3)
+            var task = new StudyTask("Đã xong", FixedNow.AddDays(5), LoaiCongViec.ThiGiuaKy, 3)
             {
                 TrangThai = "Hoàn thành"
             };
@@ -89,10 +89,21 @@ namespace SmartStudyPlanner.Tests.Services
         {
             var sut = BuildSut();
             var monHoc = new MonHoc("Toán", 3);
-            var task = new StudyTask("Bài tập 45 ngày", DateTime.Now.AddDays(45), LoaiCongViec.BaiTapVeNha, 3);
+
+            // 45 ngày: trong horizon (mặc định 60) nên phải đi qua component pipeline.
+            var task = new StudyTask("Bài tập 45 ngày", FixedNow.AddDays(45), LoaiCongViec.BaiTapVeNha, 3);
+            // 90 ngày: vượt horizon -> BeyondHorizonRule short-circuit, trả đúng sentinel 1.0.
+            var beyondHorizon = new StudyTask("Bài tập 90 ngày", FixedNow.AddDays(90), LoaiCongViec.BaiTapVeNha, 3);
+            // 10 ngày: gần hơn -> TimeComponent cao hơn, nên điểm phải lớn hơn mốc 45 ngày.
+            var nearer = new StudyTask("Bài tập 10 ngày", FixedNow.AddDays(10), LoaiCongViec.BaiTapVeNha, 3);
 
             double score = sut.CalculatePriority(task, monHoc);
-            Assert.True(score > 0.0);
+            double beyondScore = sut.CalculatePriority(beyondHorizon, monHoc);
+            double nearerScore = sut.CalculatePriority(nearer, monHoc);
+
+            Assert.Equal(1.0, beyondScore);          // sentinel, không phải điểm thật
+            Assert.True(score > beyondScore);        // 45 ngày KHÔNG được rơi vào nhánh horizon
+            Assert.True(score < nearerScore);        // và phải xếp dưới mốc gần hơn
         }
 
         [Fact]
@@ -107,7 +118,7 @@ namespace SmartStudyPlanner.Tests.Services
             });
 
             var monHoc = new MonHoc("Toán", 3);
-            var task = new StudyTask("BT", DateTime.Now.AddDays(10), LoaiCongViec.BaiTapVeNha, 3);
+            var task = new StudyTask("BT", FixedNow.AddDays(10), LoaiCongViec.BaiTapVeNha, 3);
 
             _ = sut.CalculatePriority(task, monHoc);
 
@@ -118,7 +129,7 @@ namespace SmartStudyPlanner.Tests.Services
         public void CalculateRawSuggestedMinutes_DaHoanThanh_TraVe0()
         {
             var sut = BuildSut();
-            var task = new StudyTask("Xong", DateTime.Now.AddDays(1), LoaiCongViec.BaiTapVeNha, 2)
+            var task = new StudyTask("Xong", FixedNow.AddDays(1), LoaiCongViec.BaiTapVeNha, 2)
             {
                 TrangThai = "Hoàn thành",
                 DiemUuTien = 80
@@ -131,7 +142,7 @@ namespace SmartStudyPlanner.Tests.Services
         public void SuggestStudyTime_ConLaiItHon60Phut_TraVeGioPhutHoacGio()
         {
             var sut = BuildSut();
-            var task = new StudyTask("Task", DateTime.Now.AddDays(1), LoaiCongViec.BaiTapVeNha, 2)
+            var task = new StudyTask("Task", FixedNow.AddDays(1), LoaiCongViec.BaiTapVeNha, 2)
             {
                 DiemUuTien = 50,
                 ThoiGianDaHoc = 30
@@ -146,13 +157,39 @@ namespace SmartStudyPlanner.Tests.Services
         public void SuggestStudyTime_DaDatMucTieu_TraVeThongBaoHoanThanh()
         {
             var sut = BuildSut();
-            var task = new StudyTask("Task", DateTime.Now.AddDays(1), LoaiCongViec.BaiTapVeNha, 2)
+            var task = new StudyTask("Task", FixedNow.AddDays(1), LoaiCongViec.BaiTapVeNha, 2)
             {
                 DiemUuTien = 10,
                 ThoiGianDaHoc = 500
             };
 
             Assert.Equal("Đã đạt mục tiêu 🎉", sut.SuggestStudyTime(task));
+        }
+
+        // Chốt chặn: file này phải hoàn toàn tất định. Bất kỳ deadline nào dựng từ
+        // wall clock đều trôi và sớm muộn sẽ pass/fail vì lý do sai
+        // (xem CSA 2026-07-27, §8.4 "the false green").
+        [Fact]
+        public void TestFile_KhongDungWallClock()
+        {
+            // Ghép chuỗi để chính dòng assert này không tự trở thành một match.
+            var needle = "DateTime" + "." + "Now";
+            var source = System.IO.File.ReadAllText(
+                System.IO.Path.Combine(TestSourceRoot(), "Services", "DecisionEngineTests.cs"));
+
+            Assert.DoesNotContain(needle, source);
+        }
+
+        private static string TestSourceRoot()
+        {
+            var dir = new System.IO.DirectoryInfo(AppContext.BaseDirectory);
+            while (dir is not null && !System.IO.File.Exists(
+                       System.IO.Path.Combine(dir.FullName, "SmartStudyPlanner.Tests.csproj")))
+            {
+                dir = dir.Parent;
+            }
+            Assert.NotNull(dir);
+            return dir!.FullName;
         }
     }
 }
