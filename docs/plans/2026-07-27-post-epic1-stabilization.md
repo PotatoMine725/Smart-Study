@@ -1,6 +1,6 @@
 # Post-Epic 1 Engineering Stabilization Plan
 
-**Status:** Approved 2026-07-29 (revised against `docs/reports/2026-07-27-stabilization-plan-architecture-review.md`) · in progress — WP-1 landed, awaiting owner action
+**Status:** Approved 2026-07-29 (revised against `docs/reports/2026-07-27-stabilization-plan-architecture-review.md`) · in progress — WP-1 and WP-2 landed; WP-3 unblocked
 **Baseline:** `fcd4b42` (tree `d3deca7`) — all line numbers are hints at this commit; see *On line numbers* below
 **Lifecycle:** Execution artifact, not living documentation. Superseded when WP-6 lands.
 **Successor doc:** the stabilization report (to be written) is the durable record.
@@ -189,7 +189,7 @@ Update this table as packages land; it is the resumption point for a later sessi
 | WP | Status | Commit(s) | Notes |
 |---|---|---|---|
 | WP-1 | ◐ workflow landed, **gate not yet enforced** | `f98e4c7` (via PR #50) | CI green on `dev` first try — 0 errors, 346 passed on `windows-latest`. No debugging round needed; the tests that touch `%APPDATA%` and build the composition root passed on a fresh runner. **Step 6 outstanding (owner action):** require `build-test` on `dev` and `main`. Until then WP-1 measures but does not enforce, so it is not complete. |
-| WP-2 | ☐ not started | | 2.1's result decides whether WP-3 proceeds as scoped |
+| WP-2 | ☑ done | `c701527` (2.1), `81f4759` (2.2), `078fdbe` (2.3) | **2.1 passed — no priority-band defect was hiding behind the false green, so WP-3 proceeds as scoped and no re-scoping is needed.** Suite 346 → 348. Entry Criteria #2 and #3 met; `DecisionEngineTests.cs` has zero wall-clock deadlines (verified by the guard *and* independently by `grep`), and no test resolves through `ServiceLocator`. |
 | WP-3 | ☐ not started | | 3.1 before 3.3 is hard; run 2.3 before 3.2 |
 | WP-4 | ☐ not started | | |
 | WP-5 | ☐ not started | | Two manual checks must be recorded, with verifier and date |
