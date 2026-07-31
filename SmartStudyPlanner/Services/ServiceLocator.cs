@@ -37,15 +37,20 @@ namespace SmartStudyPlanner.Services
         {
             var services = new ServiceCollection();
 
-            services.AddSingleton<AppDbContext>();
-
-            // Repository abstractions (Slice 4 seam + StudyRepository split).
-            // Mỗi repo nhận factory để chỉ instantiate context khi cần (tránh lifecycle conflict với singleton AppDbContext).
             // Một instance duy nhất: DeviceIdentity cache sau lần đọc đầu, nên toàn app
             // chỉ tốn 1 lần đọc file. Đăng ký luôn để FocusViewModel (ctor production)
             // resolve đúng instance này thay vì tự dựng cái thứ hai.
             var deviceIdentity = new DeviceIdentity();
             services.AddSingleton(deviceIdentity);
+
+            // Registration này hiện KHÔNG có ai resolve (đã grep: 0 hit cho
+            // Get<AppDbContext>) — nhưng nó vẫn reachable, nên wire luôn DeviceIdProvider.
+            // Nếu để container tự dựng qua ctor rỗng thì ai đó resolve nó sau này sẽ âm
+            // thầm đóng dấu device id dẫn xuất, trong khi mọi write khác dùng bản persist.
+            services.AddSingleton(_ => new AppDbContext { DeviceIdProvider = deviceIdentity.GetId });
+
+            // Repository abstractions (Slice 4 seam + StudyRepository split).
+            // Mỗi repo nhận factory để chỉ instantiate context khi cần (tránh lifecycle conflict với singleton AppDbContext).
             Func<AppDbContext> ctxFactory = () => new AppDbContext { DeviceIdProvider = deviceIdentity.GetId };
             services.AddSingleton<IStudyTaskRepository>(_ => new SqliteStudyTaskRepository(ctxFactory));
             services.AddSingleton<IStudyLogRepository>(_ => new SqliteStudyLogRepository(ctxFactory));
