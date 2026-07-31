@@ -37,7 +37,7 @@ namespace SmartStudyPlanner.Tests.ViewModels
             };
 
             var spy = new SpyStudyTimeOutcomeLogRepository();
-            var studyLogRepo = new NullStudyLogRepository();
+            var studyLogRepo = new CapturingStudyLogRepository();
             var vm = new FocusViewModel(dashItem, studyLogRepo, new NullStudyTelemetryForTest(), spy);
             return (vm, spy);
         }
@@ -128,7 +128,7 @@ namespace SmartStudyPlanner.Tests.ViewModels
                 MonHocGoc = null, // guard T4
             };
             var spy = new SpyStudyTimeOutcomeLogRepository();
-            var vm = new FocusViewModel(dashItem, new NullStudyLogRepository(), new NullStudyTelemetryForTest(), spy);
+            var vm = new FocusViewModel(dashItem, new CapturingStudyLogRepository(), new NullStudyTelemetryForTest(), spy);
 
             vm.SimulateStudySeconds(60);
             vm.HoanThanhCommand.Execute(null);
@@ -160,7 +160,7 @@ namespace SmartStudyPlanner.Tests.ViewModels
                 MonHocGoc = monHoc,
             };
 
-            var studyLogRepo = new NullStudyLogRepository();
+            var studyLogRepo = new CapturingStudyLogRepository();
             var vm = new FocusViewModel(
                 dashItem, studyLogRepo, new NullStudyTelemetryForTest(),
                 new SpyStudyTimeOutcomeLogRepository(), new NullStreakManagerForTest(),
@@ -191,7 +191,7 @@ namespace SmartStudyPlanner.Tests.ViewModels
             public Task<int> CountAsync(CancellationToken ct = default) => Task.FromResult(Entries.Count);
         }
 
-        private sealed class NullStudyLogRepository : IStudyLogRepository
+        private sealed class CapturingStudyLogRepository : IStudyLogRepository
         {
             public List<StudyLog> Logs { get; } = new();
             public Task AddAsync(StudyLog log, CancellationToken ct = default)
