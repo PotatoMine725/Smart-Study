@@ -40,7 +40,10 @@ namespace SmartStudyPlanner
             // KÍCH HOẠT DATABASE
             // Mặc định giữ dữ liệu học kỳ/task qua các lần mở app.
             // Nếu cần clean reset dev, có thể bật bằng biến môi trường DEV_RESET_DB=1.
-            using (var db = new AppDbContext())
+            // Bootstrap chạy TRƯỚC khi DI container được cấu hình, nên wire DeviceIdentity
+            // bằng tay ở đây — nếu không, backfill của SyncSchema sẽ đóng dấu giá trị dẫn
+            // xuất từ hostname trong khi mọi write sau đó dùng danh tính đã persist.
+            using (var db = new AppDbContext { DeviceIdProvider = new DeviceIdentity().GetId })
             {
                 if (System.Environment.GetEnvironmentVariable("DEV_RESET_DB") == "1")
                 {

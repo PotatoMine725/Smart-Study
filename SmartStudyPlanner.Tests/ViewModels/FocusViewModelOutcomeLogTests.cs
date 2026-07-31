@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using SmartStudyPlanner.Infrastructure.Persistence.Repositories;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Models.Telemetry;
+using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Services.Telemetry;
 using SmartStudyPlanner.ViewModels;
 using Xunit;
@@ -137,6 +138,42 @@ namespace SmartStudyPlanner.Tests.ViewModels
             Assert.Equal(0f, row.Credits);
         }
 
+        // StudyLog.DeviceId là thiết bị TẠO log, tách biệt với ModifiedByDeviceId mà
+        // SyncStamper đóng dấu. Sau WP-3.2 nó phải chảy qua seam chứ không gọi thẳng
+        // DeviceHelper, nếu không một row sẽ mang hai danh tính khác nhau khi user đổi
+        // hostname — thứ Epic 2 không hoà giải được.
+        [Fact]
+        public async Task StudyLog_DeviceId_LayTuProviderDuocInject()
+        {
+            var monHoc = new MonHoc("MH Test", 3) { MaHocKy = Guid.NewGuid() };
+            var task = new StudyTask("T1", DateTime.Today.AddDays(5), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                MaMonHoc = monHoc.MaMonHoc,
+                MucDoCanhBao = "An toàn",
+            };
+            var dashItem = new TaskDashboardItem
+            {
+                TenMonHoc = monHoc.TenMonHoc,
+                TenTask = task.TenTask,
+                HanChot = task.HanChot,
+                TaskGoc = task,
+                MonHocGoc = monHoc,
+            };
+
+            var studyLogRepo = new NullStudyLogRepository();
+            var vm = new FocusViewModel(
+                dashItem, studyLogRepo, new NullStudyTelemetryForTest(),
+                new SpyStudyTimeOutcomeLogRepository(), new NullStreakManagerForTest(),
+                () => "desktop-injected");
+
+            vm.SimulateStudySeconds(60);
+            vm.HoanThanhCommand.Execute(null);
+            await Task.Yield();
+
+            var log = Assert.Single(studyLogRepo.Logs);
+            Assert.Equal("desktop-injected", log.DeviceId);
+        }
+
         // ---- test doubles ----
 
         private sealed class SpyStudyTimeOutcomeLogRepository : IStudyTimeOutcomeLogRepository
@@ -156,7 +193,12 @@ namespace SmartStudyPlanner.Tests.ViewModels
 
         private sealed class NullStudyLogRepository : IStudyLogRepository
         {
-            public Task AddAsync(StudyLog log, CancellationToken ct = default) => Task.CompletedTask;
+            public List<StudyLog> Logs { get; } = new();
+            public Task AddAsync(StudyLog log, CancellationToken ct = default)
+            {
+                Logs.Add(log);
+                return Task.CompletedTask;
+            }
             public Task<List<StudyLog>> GetByTaskAsync(Guid maTask, CancellationToken ct = default) => Task.FromResult(new List<StudyLog>());
             public Task<List<StudyLog>> GetSinceAsync(DateTime since, CancellationToken ct = default) => Task.FromResult(new List<StudyLog>());
             public Task<List<StudyLog>> GetAllAsync(CancellationToken ct = default) => Task.FromResult(new List<StudyLog>());
@@ -166,6 +208,14 @@ namespace SmartStudyPlanner.Tests.ViewModels
         private sealed class NullStudyTelemetryForTest : IStudyTelemetry
         {
             public void Track(string eventName, IDictionary<string, string>? properties = null) { }
+        }
+
+        // FocusViewModel có sẵn NullStreakManager nhưng nó là private nested — ctor 6 tham số
+        // cần một cái nhìn thấy được từ đây. Không ghi streak_data.json.
+        private sealed class NullStreakManagerForTest : IStreakManager
+        {
+            public UserStreakData GetCurrentStreak() => new UserStreakData();
+            public void UpdateStreak() { }
         }
     }
 }

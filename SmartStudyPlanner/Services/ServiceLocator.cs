@@ -41,7 +41,12 @@ namespace SmartStudyPlanner.Services
 
             // Repository abstractions (Slice 4 seam + StudyRepository split).
             // Mỗi repo nhận factory để chỉ instantiate context khi cần (tránh lifecycle conflict với singleton AppDbContext).
-            Func<AppDbContext> ctxFactory = () => new AppDbContext();
+            // Một instance duy nhất: DeviceIdentity cache sau lần đọc đầu, nên toàn app
+            // chỉ tốn 1 lần đọc file. Đăng ký luôn để FocusViewModel (ctor production)
+            // resolve đúng instance này thay vì tự dựng cái thứ hai.
+            var deviceIdentity = new DeviceIdentity();
+            services.AddSingleton(deviceIdentity);
+            Func<AppDbContext> ctxFactory = () => new AppDbContext { DeviceIdProvider = deviceIdentity.GetId };
             services.AddSingleton<IStudyTaskRepository>(_ => new SqliteStudyTaskRepository(ctxFactory));
             services.AddSingleton<IStudyLogRepository>(_ => new SqliteStudyLogRepository(ctxFactory));
             services.AddSingleton<IMonHocRepository>(_ => new SqliteMonHocRepository(ctxFactory));
