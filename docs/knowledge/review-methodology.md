@@ -188,6 +188,85 @@ authoritative source that lists all of Y's children (schema config, `OnModelCrea
 registry) and check the fix's coverage against that list explicitly — don't infer completeness
 from the fact that the one reported case now passes.
 
+## A green check is evidence only after you've shown it can go red
+
+**Problem.** WP-4's acceptance criteria were *"`GenerateSchedule` has characterization tests"*
+and *"future behavioural regressions would cause meaningful test failures."* The obvious way to
+report those met is to run the suite and show 13 passing. That demonstrates the first criterion
+and says nothing whatsoever about the second.
+
+**Why it was hard.** The failure mode is invisible from the passing side. A characterization
+test that asserts something the method cannot violate — a tautology, an assertion on a value
+the code derives rather than decides, a `Assert.NotNull` on a non-nullable — is green forever
+and protects nothing. It looks identical in the output to a test that pins real behaviour. This
+repo has already paid for this once: WP-2 removed a test that had been passing for two years on
+a horizon sentinel rather than on the band it named.
+
+**Wrong assumption.** That a suite written carefully, by someone who read the implementation
+first, is therefore sensitive. Care correlates with sensitivity but does not establish it, and
+the tests most likely to be vacuous are exactly the ones covering behaviour you understood
+least well when you wrote them.
+
+**How it was solved.** Mutation. Seven single-line changes were applied to
+`WorkloadServiceImpl.GenerateSchedule` one at a time — reversing the least-loaded day sort,
+adding one to the overflow day offset, dropping the completed-task filter, dropping the
+`ThoiGianDaHoc` subtraction, reversing the priority sort, dropping the `DiemUuTien` write-back,
+shrinking the 7-day window — each followed by a suite run, then reverted from git and the
+production tree confirmed clean with `git diff`. All seven turned the suite red.
+
+The sweep also produced information no green run could: it showed *which* test covers *which*
+behaviour. The overflow off-by-one is caught by exactly one assertion — day-date contiguity —
+because the day *count* is unchanged by that mutation, so the count assertion sails through.
+That test had been added on a hunch; the sweep converted the hunch into a reason. Symmetrically,
+it showed the single-task tests are insensitive to placement strategy, which is correct (with
+one task, least-loaded and most-loaded agree) and worth knowing before someone deletes the
+two-task test as redundant.
+
+**Principle.** For any artifact whose purpose is to *detect a future change*, passing is not
+evidence — the artifact must be shown to fail when the thing it watches changes. This
+generalises past test suites: it is the same principle as *"'no exception was thrown' does not
+confirm a fix"* elsewhere in this file, and as the guard test in `DecisionEngineTests` that had
+to be checked against a `grep` because a self-scanning assertion can match itself. Whenever a
+check's own sensitivity is untested, its green is decoration.
+
+**How to avoid it next time.** Budget the mutation sweep into the package, not after it — it
+cost about ten minutes here via a scripted edit/run/revert loop, and it is the only artifact
+that lets you write "regressions would be caught" without hedging. Pick mutations that are
+*plausible future edits* (a sort direction, an off-by-one, a dropped filter), not absurd ones;
+the point is to model the regression you fear, not to prove the compiler works. Always restore
+from version control rather than by re-editing, and verify the restore.
+
+## Verify a claim before it sets someone else's severity
+
+**Problem.** WP-4's report handed two defects to WP-5.2. One of them — that
+`double.TryParse("4,5", out v)` silently yields `45` on `en-US` rather than failing — was
+written from reasoning about which `NumberStyles` the overload implies, and had already been
+committed and pushed when the reasoning was challenged.
+
+**Why it was hard.** The reasoning was *correct about the mechanism* (the overload does imply
+`AllowThousands`) and that is the part that feels like the hard part. The unverified step was
+the mundane one: whether .NET's group-position validation actually accepts a one-digit trailing
+group. Had it rejected `"4,5"`, the bug would have been a benign fall-through to the default
+instead of a silent 45-hour capacity — the same mechanism, a different severity, and a
+different priority for the package receiving it.
+
+**How it was solved.** A scratch xUnit fact that pinned `CurrentCulture` and printed the parse
+outcomes through `Assert.Fail`, run once, read, deleted. Under a minute. It confirmed the claim
+(`"4,5"` → `45`, `"4,500"` → `4500`) and incidentally surfaced something the reasoning had
+missed: WP-5.2's planned reader recovers `"4,5"` only where `CurrentCulture` is `vi-VN`, and
+falls to the default on `en-US` — a safe outcome and still an improvement, but a *safe fallback*
+rather than the *cross-locale recovery* the plan's wording implies. That correction went into
+the report so the next commit message would not over-claim.
+
+**Principle.** A claim that assigns severity to another package's work is a handoff, and a
+handoff is load-bearing in a way that an observation is not. The bar for it is measurement, not
+derivation — especially when measuring is cheap and the deliverable is already written.
+
+**How to avoid it next time.** Before writing a runtime behaviour into a report, a commit
+message, or a plan, ask which parts were *executed* and which were *reasoned*. Reasoned ones in
+a handoff get a scratch probe. The existing discipline of *"reproduce before escalating"* covers
+suspected bugs you are raising; this is its counterpart for facts you are asserting.
+
 ## See also
 
 - [`sync-data-model.md`](sync-data-model.md) — the cascade-tombstone and reconcile mechanics these
@@ -202,4 +281,5 @@ from the fact that the one reported case now passes.
 - [`docs/review/2026-07-05-epic1-m1.1-review.md`](../review/2026-07-05-epic1-m1.1-review.md) — independent flake reproduction (R1), user-visibility decision (R5)
 - [`docs/review/2026-07-06-epic1-m1.2-review.md`](../review/2026-07-06-epic1-m1.2-review.md) — refine-before-accept verdict shape
 - [`docs/review/2026-07-11-epic1-closure-verdict.md`](../review/2026-07-11-epic1-closure-verdict.md) — F4 escape analysis (commit `101aaa3`), independent re-verification on the merged tree
+- [`docs/reports/2026-07-31-wp4-scheduling-characterization.md`](../reports/2026-07-31-wp4-scheduling-characterization.md) — the seven-mutation sweep, and the parse claim that was published before it was measured
 - [`docs/reports/2026-07-10-epic1-m1.3-monhoc-identity-dedup.md`](../reports/2026-07-10-epic1-m1.3-monhoc-identity-dedup.md) — D2 (reproduce-before-escalating), D3 (the underlying fix)
