@@ -122,12 +122,28 @@ file containing `4,5` therefore parses as **45**, not as a failure: the comma is
 thousands separator. Capacity silently becomes 45 hours/day rather than falling back to the
 3.0 default.
 
-This strengthens the case for WP-5.2 rather than changing it. Its planned reader is
-`double.TryParse(raw, NumberStyles.Float, InvariantCulture, …)` with a `CurrentCulture`
-fallback — `NumberStyles.Float` excludes `AllowThousands`, so the invariant attempt on `"4,5"`
-correctly fails and the current-culture fallback recovers `4.5`. The planned fix closes this
-too; it is worth knowing that it fixes *two* bugs, and that the more severe of them is silent
-rather than merely lossy.
+Measured on .NET 10 rather than reasoned — `NumberStyles`' group-position rules are strict
+enough that `"4,5"` could plausibly have been rejected outright, which would have made this a
+lossy bug rather than a silent-wrong one. It is not. Probe results:
+
+| Call | Result |
+|---|---|
+| `double.TryParse("4,5", out v)` under `en-US` — today's code | `true`, **45** |
+| `double.TryParse("4,500", out v)` under `en-US` | `true`, **4500** |
+| `double.TryParse("4,5", NumberStyles.Float, InvariantCulture, out v)` | `false` |
+| `double.TryParse("4,5", NumberStyles.Float, en-US, out v)` | `false` |
+| `double.TryParse("4,5", NumberStyles.Float, vi-VN, out v)` | `true`, `4.5` |
+
+This strengthens the case for WP-5.2 rather than changing it, and it fixes *two* bugs, the more
+severe of them silent rather than merely lossy.
+
+**One caveat for whoever executes WP-5.2, so the commit message does not over-claim.** The
+planned reader tries `InvariantCulture` then `CurrentCulture`, both with `NumberStyles.Float`.
+Rows 3–5 show what that means: a vi-VN-written `"4,5"` is recovered **only on a machine whose
+current culture is vi-VN** — which is the plan's actual stated goal ("existing vi-VN files still
+load"). On an `en-US` machine the same file falls through to the `3.0` default. That is the
+right outcome and still a strict improvement, because today it silently yields 45 hours/day —
+but it is a safe fallback, not cross-locale recovery, and the two should not be conflated.
 
 ### 3.3 The plan's draft tests needed no correction
 
