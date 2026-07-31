@@ -43,7 +43,7 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
                 .Select(t => t.MaTask)
                 .ToHashSet();
             return await db.StudyLogs
-                .Where(l => taskIds.Contains(l.MaTask))
+                .Where(l => taskIds.Contains(l.MaTask) && !l.IsDeleted)
                 .OrderBy(l => l.NgayHoc)
                 .ToListAsync(ct);
         }
