@@ -83,5 +83,29 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence
             Assert.Equal(1, snapshot.TotalTaskCount);
             Assert.Equal(0, snapshot.OverdueTaskCount);
         }
+
+        [Fact]
+        public async Task TaskDungTuCtor_LuuDuocMaKhongCanUIStampMucDoCanhBao()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+
+            var hocKy  = new HocKy("HK Ctor", DateTime.Today);
+            var monHoc = new MonHoc("Hoá", 3) { MaHocKy = hocKy.MaHocKy };
+            // KHÔNG set MucDoCanhBao — mô phỏng write path không đi qua
+            // QuanLyTaskViewModel.TinhDiemVaSapXep(), đúng như sync-apply của Epic 2.
+            var task = new StudyTask("Không qua UI", DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2)
+            {
+                MaMonHoc = monHoc.MaMonHoc,
+            };
+            monHoc.DanhSachTask.Add(task);
+            hocKy.DanhSachMonHoc.Add(monHoc);
+
+            await new SqliteHocKyRepository(factory).LuuHocKyAsync(hocKy);
+
+            var saved = await new SqliteStudyTaskRepository(factory).GetAsync(task.MaTask);
+            Assert.NotNull(saved);
+            Assert.False(string.IsNullOrWhiteSpace(saved!.MucDoCanhBao));
+        }
     }
 }
