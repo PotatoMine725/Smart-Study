@@ -210,6 +210,68 @@ namespace SmartStudyPlanner.Tests.Services
             Assert.Equal("Lý", scheduled.Single(t => t.TenTask == "Bài Lý").TenMon);
         }
 
+        // ---- sàn capacity: bất biến của vòng phân bổ ----
+        //
+        // CẢNH BÁO CHO NGƯỜI SỬA SAU: nếu ClampCapacityMinutes bị gỡ, những test dưới đây
+        // KHÔNG đỏ — chúng TREO. Vòng while trong GenerateSchedule không tiến triển khi
+        // capacityMinutes < 1, nên test runner sẽ đứng im cho tới khi CI hết giờ. Đó là
+        // hành vi mong đợi của một test đặt đúng chỗ cho lỗi này: treo là tín hiệu ồn ào,
+        // không phải tín hiệu im lặng. Đừng "sửa" bằng cách xoá test.
+
+        [Theory]
+        [InlineData(0.0)]           // slider/file không bao giờ ra 0, nhưng method tự bảo vệ mình
+        [InlineData(-5.0)]
+        [InlineData(0.001)]         // (int)(0.001*60) = 0 — đúng lỗi treo WP-4 §3.1
+        [InlineData(double.NaN)]    // Math.Max(NaN, x) = NaN nên GetCapacity từng để lọt
+        [InlineData(double.NegativeInfinity)]
+        public void GenerateSchedule_CapacityDuoiSan_BiKepVeMotGio_KhongTreo(double capacityHours)
+        {
+            // 180 phút với sàn 1 giờ phải trải đúng 3 ngày, mỗi ngày 60 phút.
+            var (hocKy, engine) = BuildFixture(("Dài", 90, 180));
+
+            var days = Sut(engine).GenerateSchedule(hocKy, capacityHours);
+
+            Assert.All(days, d => Assert.True(d.TotalMinutes <= 60));
+            Assert.Equal(180, days.Sum(d => d.TotalMinutes));
+            Assert.Equal(3, days.Count(d => d.Tasks.Count > 0));
+        }
+
+        [Theory]
+        [InlineData(double.PositiveInfinity)]
+        [InlineData(1e30)]
+        public void GenerateSchedule_CapacityVoHan_BaoHoaChuKhongTranSoAm(double capacityHours)
+        {
+            // +∞ nằm TRÊN sàn, nên nó không đi vào nhánh kẹp — và không cần. Nguy hiểm thật
+            // sự của nó là cast: (int)(∞*60) ngoài dải double->int là undefined, thực tế ra
+            // int.MinValue, làm spaceLeft âm và remainingMinutes TĂNG mỗi vòng. Bão hoà về
+            // int.MaxValue giữ đúng ý nghĩa "sức học không giới hạn" mà vẫn kết thúc:
+            // mọi việc dồn vào một ngày.
+            //
+            // (GetCapacity vẫn chặn không-hữu-hạn ở biên file — đây là lớp thứ hai cho
+            // caller nào không đi qua file, không phải thay thế lớp đó.)
+            var (hocKy, engine) = BuildFixture(("Dài", 90, 180));
+
+            var days = Sut(engine).GenerateSchedule(hocKy, capacityHours);
+
+            Assert.Equal(180, days.Sum(d => d.TotalMinutes));
+            Assert.Single(days.Where(d => d.Tasks.Count > 0));
+            Assert.Equal(180, days[0].TotalMinutes);
+        }
+
+        [Fact]
+        public void GenerateSchedule_CapacityTrenSan_KhongBiKep()
+        {
+            // Chốt rằng cái kẹp KHÔNG đụng vào dải giá trị thật (slider 1..8): 2 giờ vẫn
+            // là 120 phút, không bị hạ về 60. Thiếu test này thì một cái kẹp hỏng
+            // (ví dụ luôn trả MinCapacityMinutes) vẫn làm mọi test ở trên xanh.
+            var (hocKy, engine) = BuildFixture(("Vừa", 90, 120));
+
+            var days = Sut(engine).GenerateSchedule(hocKy, capacityHours: 2.0);
+
+            Assert.Single(days.Where(d => d.Tasks.Count > 0));
+            Assert.Equal(120, days.First(d => d.Tasks.Count > 0).TotalMinutes);
+        }
+
         // ---- fixture ----
 
         private static StudyTask NewTask(string ten)

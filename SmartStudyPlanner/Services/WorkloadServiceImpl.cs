@@ -29,6 +29,8 @@ namespace SmartStudyPlanner.Services
         /// </summary>
         private const double MinCapacityHours = 1.0;
 
+        private const int MinCapacityMinutes = (int)(MinCapacityHours * 60);
+
         private readonly IDecisionEngine _decisionEngine;
         private readonly IClock _clock;
 
@@ -75,9 +77,31 @@ namespace SmartStudyPlanner.Services
             File.WriteAllText(FilePath, capacity.ToString(CultureInfo.InvariantCulture));
         }
 
+        /// <summary>
+        /// Kẹp capacityHours về số phút dùng được. Đây là bất biến RIÊNG của vòng lặp phân bổ
+        /// bên dưới, nên nó phải được bảo vệ tại chỗ chứ không đi mượn GetCapacity: hai đường
+        /// vào hiện tại (GetCapacity đã kẹp sàn, slider Minimum="1") đều sạch, nhưng đó là
+        /// tính chất của caller, không phải của method này.
+        ///
+        /// capacityMinutes &lt; 1 làm vòng while không bao giờ kết thúc: spaceLeft &lt;= 0 =&gt;
+        /// chunk &lt;= 0 =&gt; remainingMinutes không giảm. Ba cách rơi vào đó:
+        ///   - NaN: mọi phép so sánh với NaN đều false, nên !(x &gt;= sàn) bắt được, còn
+        ///     (x &lt; sàn) thì KHÔNG — đây đúng là lỗ đã lọt qua Math.Max ở GetCapacity.
+        ///   - 0 hoặc âm: (int)(h*60) ra 0 hoặc âm.
+        ///   - +∞ / tràn: cast double-&gt;int khi ngoài dải là undefined, thực tế ra int.MinValue,
+        ///     làm spaceLeft âm và remainingMinutes TĂNG mỗi vòng.
+        /// </summary>
+        private static int ClampCapacityMinutes(double capacityHours)
+        {
+            if (!(capacityHours >= MinCapacityHours)) return MinCapacityMinutes;
+
+            double minutes = capacityHours * 60;
+            return minutes >= int.MaxValue ? int.MaxValue : (int)minutes;
+        }
+
         public List<ScheduleDay> GenerateSchedule(HocKy hocKy, double capacityHours)
         {
-            int capacityMinutes = (int)(capacityHours * 60);
+            int capacityMinutes = ClampCapacityMinutes(capacityHours);
             var tatCaTask = new List<StudyTask>();
             var dictMonHoc = new Dictionary<StudyTask, MonHoc>();
 
