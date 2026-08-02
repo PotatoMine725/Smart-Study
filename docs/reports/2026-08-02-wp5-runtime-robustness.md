@@ -5,6 +5,7 @@
 **Commits:** `9a175b9` (5.1 timer guard) · `54f64ca` (5.2 capacity round-trip + tests) · `c3f2286` (non-finite guard, §3.3a) · `0c489cf` (criteria signed)
 **Post-review (owner-directed):** `0e5d448` (`GenerateSchedule` termination guard) · `d425068` (single toast source) · `866b5be` (scan once per process)
 **Suite:** 368 → **391** passing, green in Debug and Release
+**Manual criteria:** #11 re-verified by the owner on 2026-08-02 after the post-review commits — **PASS** (§3.5a). #12 is covered by the automated suite. No manual check remains outstanding.
 
 ---
 
@@ -311,6 +312,25 @@ still cannot separate *"the flag suppressed a second scan"* from *"`Loaded` neve
 restore anyway"* — and the latter is exactly the unproven premise the flag exists to sidestep.
 The experiment could only ever show the flag is **unnecessary**, never that it is load-bearing.
 
+**Result — PASS, owner-run 2026-08-02.** Exactly **1** toast at launch. `crash.log` does not
+exist under `%AppData%\SmartStudyPlanner\`, so the scan completed rather than failing into the
+swallow at `:180`. Criterion #11 now covers both emission points.
+
+**The liveness step failed on that run, and the PASS survives it.** Clicking X hid the window
+but produced no *"đã được thu nhỏ"* toast. It worked normally on a later launch in the same
+Windows session; the failing run was **the first launch after a machine reboot**.
+
+Why this does not qualify the result: the liveness step exists to disambiguate a **0**-result.
+The observation was 1, and that toast came from the same process and the same
+`ToastContentBuilder` API minutes earlier — delivery is proven by the measurement itself, not
+by the insurance. `OnClosing` (`:187-203`) is also unconditional, untouched by WP-5 (last
+changed in `c7898be`), and no part of the deadline mechanism.
+
+Why it is not dismissed either: *"it worked the second time"* is a different finding from
+*"it works"*, and first-launch-after-boot is the case a real user hits every morning. Carried
+to §4 as a follow-up. It also indicts the step design — a liveness probe is only useful if it
+is more reliable than the thing it vouches for, and this one was picked without checking that.
+
 **Scoped claim for `866b5be`.** Its commit message says *"without the flag, every tray restore
 with an urgent task present would fire another toast."* **That is not true** — the cooldown
 already blocks it. `_daQuetLanDau` is defense in depth against a scenario that has never been
@@ -370,6 +390,30 @@ missed entirely: a BOM breaks neither.
    title: it read as "the app is minimised", but `SetupBackgroundWorker` starts in the
    constructor and the timer runs whether the window is open or not — precisely what made
    the duplicate look like a de-dup failure during verification.
+6. **The minimize-to-tray toast did not fire on the first launch after a machine reboot.**
+   Observed once, during the §3.5a re-verification. `OnClosing`
+   (`MainWindow.xaml.cs:187-203`) hid the window as expected but showed no toast; the same
+   action worked on a later launch in the same Windows session. **Not a WP-5 regression** —
+   that block last changed in `c7898be`, and this package never touched it.
+
+   Unexplained, and deliberately left that way rather than guessed at. What is ruled out:
+   delivery was working in that process (the launch toast fired minutes earlier through the
+   same API), the path has no de-dup guard and no dependence on `_thucSuMuonTat` once past
+   `:190`, and nothing reached `crash.log` — though `OnClosing` has no `try`/`catch`, so a
+   throw there would surface as an `App` `MessageBox`, not a log line. Two candidates worth
+   separating if it recurs: the notification platform not yet ready that early after boot,
+   versus Windows delivering a *silent* banner (this toast carries no `.AddAudio`, unlike the
+   deadline toast) straight to the notification centre where it is easy to miss.
+
+   Cost of chasing it now is a reboot per observation, on a cosmetic path outside this
+   package. Recording it so a second sighting is recognised as a pattern instead of
+   re-investigated from zero.
+7. **The liveness probe in §3.5a was chosen without checking it was more reliable than the
+   thing it vouched for.** It is only worth adding an independent confirmation channel if
+   that channel is *sturdier* than the measurement — this one turned out to be flakier. Had
+   the observation been 0, the probe would have produced a false "delivery is broken"
+   diagnosis. The principle for next time: pick the probe by evidence of reliability, not by
+   the fact that it is architecturally unrelated.
 
 6. **Entry criteria #11 and #12 are now both signed** (§3.5), taking Epic 2 entry criteria to
    **9 of 12**: met are #2–#7, #9, #11, #12. The three outstanding are **#1** (require
