@@ -2,8 +2,9 @@
 
 **Date:** 2026-08-02
 **Package:** WP-5 (Category B) of `docs/plans/2026-07-27-post-epic1-stabilization.md`
-**Commits:** `9a175b9` (5.1 timer guard) · `54f64ca` (5.2 capacity round-trip + tests) · `+1` (non-finite guard, §3.3a)
-**Suite:** 368 → 383 passing, green in Debug and Release
+**Commits:** `9a175b9` (5.1 timer guard) · `54f64ca` (5.2 capacity round-trip + tests) · `c3f2286` (non-finite guard, §3.3a) · `0c489cf` (criteria signed)
+**Post-review (owner-directed):** `0e5d448` (`GenerateSchedule` termination guard) · `d425068` (single toast source)
+**Suite:** 368 → **391** passing, green in Debug and Release
 
 ---
 
@@ -251,11 +252,12 @@ missed entirely: a BOM breaks neither.
 
 ## 4. Follow-ups
 
-1. **`GenerateSchedule` still has no internal guard against `capacityMinutes <= 0`.** The
-   reachable path is closed at the reader, but a future caller passing `0.0` directly
-   still hangs. Belongs to whoever next opens that method — realistically Epic 3 / SOE.
-   Deliberately not fixed here: it cannot be tested without risking the hang, and WP-4
-   pinned that method's behaviour.
+1. ~~**`GenerateSchedule` still has no internal guard against `capacityMinutes <= 0`.**~~
+   **CLOSED 2026-08-02** by `ClampCapacityMinutes` — see §5, *Decision: add the
+   `GenerateSchedule` guard after all*. The reasoning recorded here ("it cannot be tested
+   without risking the hang") was not wrong so much as **unpriced**: the hang only happens
+   when the guard is broken, which is a loud CI failure, not a silent pass. That is an
+   affordable price, and it was never named before declining to pay it.
 2. **The current-culture read branch is transitional.** It exists so a legacy vi-VN
    `"4,5"` survives one app open, after which `SaveCapacity` rewrites it as invariant.
    It can be deleted once every install has opened the workload page since this release —
@@ -277,14 +279,14 @@ missed entirely: a BOM breaks neither.
    Neither is a defect on its own — the dashboard toast is guarded by a `private static
    bool _daThongBao` (`DashboardViewModel.cs:30`), so it fires at most once per process, and
    the timer's cooldown now works. The gap is that **nothing coordinates them**: there is no
-   notification service, so each path throttles only itself. Deliberately not fixed — the
-   CSA scoped WP-5 to the timer, and a shared throttle is a new seam, which the plan's *Out
-   of Scope* excludes. It belongs wherever notifications get an owner.
+   notification service, so each path throttles only itself.
 
-   Cosmetic sub-item for the same fix: **"(Chạy ngầm)" is misleading.** It reads as "the app
-   is minimised", but `SetupBackgroundWorker` starts in the constructor and the timer runs
-   whether the window is open or not. This is precisely what made the duplicate look like a
-   de-dup failure during verification.
+   **CLOSED 2026-08-02**, owner-directed after review — see §5, *Decision: delete the
+   dashboard toast rather than coordinate the two sources*. The dashboard copy is gone,
+   the timer now scans once from `MainWindow_Loaded`, and `(Chạy ngầm)` is dropped from the
+   title: it read as "the app is minimised", but `SetupBackgroundWorker` starts in the
+   constructor and the timer runs whether the window is open or not — precisely what made
+   the duplicate look like a de-dup failure during verification.
 
 6. **Entry criteria #11 and #12 are now both signed** (§3.5), taking Epic 2 entry criteria to
    **9 of 12**: met are #2–#7, #9, #11, #12. The three outstanding are **#1** (require
@@ -348,3 +350,73 @@ watching notifications.
 *Experience:* The useful output was not a signature but a *discriminating* recipe (§3.5) —
 one that states the expected count and the pre-fix count, so the observation can fail.
 "I opened it and it looked fine" would have been worth nothing.
+
+---
+
+### Post-review decisions (2026-08-02, after owner debate)
+
+The four items below were settled with the owner after WP-5 had already been signed off,
+in a review of this report's own process failures. They amend §3.3a and Follow-ups 1 and 5.
+
+**Decision: add the `GenerateSchedule` guard after all.**
+*Why:* Follow-up 1 declined it on the grounds that it "cannot be tested without risking the
+hang." That reasoning **mispriced a cost rather than identifying a blocker**. A test for the
+guard genuinely can hang — but only when the guard is broken, and a hung CI job is a loud,
+visible failure, not a silent pass. The price was affordable and was never named.
+*What for:* So the loop's termination is a property of the method rather than a property of
+its two current callers. `GetCapacity` and the slider are both clean today; nothing makes
+them stay clean.
+*Experience:* This is the same shape of error as the plan's untestability premise in §3.1 —
+which I had caught, and then reproduced one section later. The tell is identical both times:
+an unfalsifiable-sounding word ("untestable", "cannot") standing in for a measurement never
+taken. Worth noting that the guard is *inert* — every input above the floor is unaffected —
+so WP-4's characterization still pins exactly what it pinned.
+
+**Decision: `+∞` saturates to `int.MaxValue` instead of being clamped to the floor.**
+*Why:* Measured, not reasoned: the first draft's theory listed `+∞` as a below-floor input,
+and the test **failed**. `∞ >= 1.0` is true, so it never enters the clamp branch. The real
+hazard is the cast — `(int)(∞*60)` is undefined out of range and yields `int.MinValue`,
+making `remainingMinutes` grow. Saturation terminates and preserves the natural reading of
+"unlimited capacity": everything lands on day 0.
+*What for:* The method's invariant is termination, not plausibility. `GetCapacity` already
+rejects non-finite values at the file boundary; this is a second line, not a replacement.
+*Experience:* The failing test was right and my expectation was wrong — the third time in
+this package that an input I had classified by reasoning turned out to belong in a different
+class when actually run.
+
+**Decision: delete the dashboard toast rather than coordinate the two sources.**
+*Why:* Measurement settled it. `DashboardViewModel`'s copy is weaker on all three axes —
+one semester vs. all, capped at 5 by `Take(5)` vs. uncapped, stored `DiemUuTien` vs. freshly
+computed `CalculatePriority` — at an identical `>= 80` threshold. So this was never two views
+of one thing; it was one mechanism and a strictly worse subset of it.
+*What for:* A shared notification service would have been a new seam (excluded by the plan's
+*Out of Scope*) for a problem whose real shape was "delete the worse one." Deletion cannot
+regress and needs no abstraction.
+*Experience:* Two things nearly went wrong. The startup scan belongs in `MainWindow_Loaded`,
+**not** the constructor where `SetupBackgroundWorker` lives — an early `ServiceLocator`
+resolve can fail and the tick's own `try`/`catch` would bury it in `crash.log`, failing
+silently in a way that looks like success. And `RaiseNotification` had a **second branch**
+(the all-clear toast) with no duplicate anywhere; deleting the method without surfacing that
+would have dropped user-facing behaviour nobody agreed to drop. The owner's call was to drop
+it deliberately: notifications should be actionable, and routine all-clear messages are
+notification fatigue.
+
+**Decision: delete the stale build directories instead of relying on a rule not to glob them.**
+*Why:* §3.5's false start came from resolving `bin/` with a glob and hitting a five-month-old
+output. The memory rule written afterwards ("resolve from the csproj TFM") trains around the
+trap instead of removing it. The TFM is pinned, so `net10.0-windows/` will never be recreated.
+*What for:* Structural rather than behavioural: with one directory per configuration, no
+future session can pick the wrong one.
+*Experience:* There were **two** stale directories, not one — `bin/Debug/net10.0-windows` and
+`obj/Debug/net10.0-windows` — so deleting only the one that burned me would have left the
+ambiguity in place. The rule is kept but generalised: *verify the artifact you are about to
+run was produced by the build you just ran* (compare mtimes). That catches the Release/Debug
+and stale-publish variants too, which the TFM-specific wording does not.
+
+**Standard adopted: evidence-scoped claims.**
+Any claim that a change closes a *class* of defects must name the test or measurement that
+covers that class, and state what remains uncovered. §3.3a exists because `54f64ca` claimed
+the floor clamp "closes the file ingress to the hang" while the only test named for it
+covered the floor — `NaN` and `Infinity` were never in scope of any assertion. The check is
+mechanical at writing time: if a commit message says *X closes Y*, there must be a test named
+for Y. "Be more careful" is not a check; this is.
