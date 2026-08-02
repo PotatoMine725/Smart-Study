@@ -87,44 +87,74 @@ namespace SmartStudyPlanner
         private void SetupBackgroundWorker()
         {
             _backgroundTimer = new DispatcherTimer();
-            // Tạm thời để 1 phút réo 1 lần để em test.
-            _backgroundTimer.Interval = TimeSpan.FromMinutes(1);
+            // 5 phút: vẫn kịp thời cho cảnh báo deadline, nhưng không quét lại toàn bộ học kỳ
+            // (mọi HocKy × MonHoc × Task + CalculatePriority) mỗi phút. Giá trị 1 phút cũ là
+            // giá trị debug, chính comment cũ đã ghi là "tạm thời để em test".
+            _backgroundTimer.Interval = TimeSpan.FromMinutes(5);
             _backgroundTimer.Tick += BackgroundTimer_Tick;
             _backgroundTimer.Start();
         }
 
+        // Chống spam toast: cùng một tình trạng khẩn cấp không réo lại trong 30 phút.
+        private static readonly TimeSpan ToastCooldown = TimeSpan.FromMinutes(30);
+        private DateTime _lanCanhBaoGanNhat = DateTime.MinValue;
+        private int _soTaskKhanCapDaBao = 0;
+
         private async void BackgroundTimer_Tick(object sender, EventArgs e)
         {
-            var repo = ServiceLocator.Get<IHocKyRepository>();
-            var decisionEngine = ServiceLocator.Get<IDecisionEngine>();
-
-            var danhSachHocKy = await repo.LayDanhSachHocKyAsync();
-            int soTaskKhanCap = 0;
-
-            foreach (var hk in danhSachHocKy)
+            // async void trên DispatcherTimer: exception ở đây không ai await, nó rơi thẳng
+            // vào DispatcherUnhandledException của App (App.xaml.cs:23) — mà handler đó bật
+            // MessageBox. Tức là một lỗi DB thoáng qua sẽ dựng modal dialog LẶP LẠI mỗi lượt
+            // tick, người dùng không thao tác được gì. Nuốt tại chỗ và ghi crash.log.
+            try
             {
-                foreach (var mon in hk.DanhSachMonHoc)
+                var repo = ServiceLocator.Get<IHocKyRepository>();
+                var decisionEngine = ServiceLocator.Get<IDecisionEngine>();
+
+                var danhSachHocKy = await repo.LayDanhSachHocKyAsync();
+                int soTaskKhanCap = 0;
+
+                foreach (var hk in danhSachHocKy)
                 {
-                    foreach (var task in mon.DanhSachTask)
+                    foreach (var mon in hk.DanhSachMonHoc)
                     {
-                        if (task.TrangThai != StudyTaskStatus.HoanThanh)
+                        foreach (var task in mon.DanhSachTask)
                         {
-                            double diem = decisionEngine.CalculatePriority(task, mon);
-                            if (diem >= 80) soTaskKhanCap++;
+                            if (task.TrangThai != StudyTaskStatus.HoanThanh)
+                            {
+                                double diem = decisionEngine.CalculatePriority(task, mon);
+                                if (diem >= 80) soTaskKhanCap++;
+                            }
                         }
                     }
                 }
-            }
 
-            // Nếu phát hiện có deadline rực lửa, bắn thông báo hệ thống!
-            if (soTaskKhanCap > 0)
-            {
+                if (soTaskKhanCap == 0)
+                {
+                    // Hết khẩn cấp -> quên trạng thái cũ, lần khẩn cấp sau được báo ngay.
+                    _soTaskKhanCapDaBao = 0;
+                    return;
+                }
+
+                // Báo lại sớm CHỈ khi mức khẩn cấp tăng (có task mới vượt ngưỡng — đó là tin
+                // mới). Số giảm đi thì không đáng để réo, cứ chờ hết cooldown.
+                bool dangKhanCapHon = soTaskKhanCap > _soTaskKhanCapDaBao;
+                bool hetCooldown = DateTime.Now - _lanCanhBaoGanNhat >= ToastCooldown;
+                if (!dangKhanCapHon && !hetCooldown) return;
+
+                _lanCanhBaoGanNhat = DateTime.Now;
+                _soTaskKhanCapDaBao = soTaskKhanCap;
+
                 new ToastContentBuilder()
                     .AddText("🔥 CẢNH BÁO DEADLINE (Chạy ngầm)!")
                     .AddText($"Bạn đang có {soTaskKhanCap} bài tập KHẨN CẤP chưa làm!")
                     .AddText("Click vào đây để mở app và giải quyết ngay!")
                     .AddAudio(new Uri("ms-winsoundevent:Notification.Default"))
                     .Show();
+            }
+            catch (Exception ex)
+            {
+                CrashLogger.Log("MainWindow.BackgroundTimer_Tick", ex);
             }
         }
 
