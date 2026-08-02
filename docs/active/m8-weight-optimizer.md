@@ -2,7 +2,7 @@
 
 > Status: **shipped** — Slices 7+8 (rule-based engine + UI) shipped 2026-06-06. Ground-truth telemetry (Slices 0–2B) shipped 2026-06-11.
 > Implementation: `Services/ML/WeightOptimizer/WeightOptimizerService.cs` (rule-based `WeightRuleEngine`) + `Views/WeightOptimizerWindow.xaml` + `Services/Telemetry/OutcomeMaturationService.cs`.
-> ML training deferred — exits when `WeightChangeLog` has sufficient matured rows with class balance. See Phase 3 in `docs/plans/2026-06-11-m8-ground-truth-instrumentation.md`.
+> ML training deferred — exits when `WeightChangeLog` has sufficient matured rows with class balance. See Phase 3 in `2026-06-11-m8-ground-truth-instrumentation.md` (removed from the tracked `docs/plans/` tree 2026-08-02 as a stale duplicate; content preserved in git history and at `legacy/Archived plans/`, local-only).
 > Origin: `superpowers/specs/2026-04-26-m8-ml-suite-expansion.md` + `superpowers/plans/2026-04-26-m8-ml-suite-expansion.md` + `2026-05-04-m8-design-chosen.md`.
 
 ## Why
