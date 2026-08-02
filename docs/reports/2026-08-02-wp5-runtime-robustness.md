@@ -3,7 +3,7 @@
 **Date:** 2026-08-02
 **Package:** WP-5 (Category B) of `docs/plans/2026-07-27-post-epic1-stabilization.md`
 **Commits:** `9a175b9` (5.1 timer guard) · `54f64ca` (5.2 capacity round-trip + tests) · `c3f2286` (non-finite guard, §3.3a) · `0c489cf` (criteria signed)
-**Post-review (owner-directed):** `0e5d448` (`GenerateSchedule` termination guard) · `d425068` (single toast source)
+**Post-review (owner-directed):** `0e5d448` (`GenerateSchedule` termination guard) · `d425068` (single toast source) · `866b5be` (scan once per process)
 **Suite:** 368 → **391** passing, green in Debug and Release
 
 ---
@@ -63,8 +63,25 @@ not that it discriminates.
 | 7 | `capacity.txt` = `0.0001` → scheduler hangs until OOM | Clamped to 1.0 |
 | 8 | Garbage / missing file → 3.0 | Unchanged |
 
-**Items 2 and 3 are user-visible and belong in the release note.** Deadline
-notifications become materially less frequent. The plan flagged this; it remains true.
+Added by the post-review commits (`0e5d448`, `d425068`, `866b5be` — see §5):
+
+| # | Before | After |
+|---|---|---|
+| 9 | Opening the dashboard fired a **second** toast from `DashboardViewModel`, near-identical wording | That source is deleted; the timer is the only one |
+| 10 | Urgent tasks announced immediately on dashboard load | Announced immediately on **app launch** (`MainWindow_Loaded`), before any semester is chosen |
+| 11 | All-clear toast *"✅ Mọi thứ đang trong tầm kiểm soát"* on dashboard load | Removed entirely — not migrated |
+| 12 | Toast title read `🔥 CẢNH BÁO DEADLINE (Chạy ngầm)!` | `🔥 CẢNH BÁO DEADLINE!` — the old label implied the app was minimised, which was never what it meant |
+| 13 | Dashboard toast and timer cooldown were **independent clocks**: a steady urgent task produced one on open *and* one at the 5-minute tick | The launch scan starts the same 30-minute cooldown the timer uses, so the next repeat is at +30 min, not +5. Escalation (urgent count **grows**) still bypasses it |
+| 14 | `capacityHours` below the floor / `NaN` / `+∞` passed to `GenerateSchedule` directly → hang | Clamped inside the method; `+∞` saturates to `int.MaxValue` (terminates, everything on day 0) |
+
+**Items 2, 3, 9–13 are user-visible and belong in the release note.** Deadline
+notifications become materially less frequent, and there is now exactly one of them per
+event rather than two. The plan flagged the frequency change; it remains true.
+
+**Row 13 is the one most likely to be misread as a bug.** Launching the app twice inside
+30 minutes produces a toast only the first time, because the cooldown is per-process and a
+tray-minimised app is still the same process. A genuine restart via *Thoát hoàn toàn*
+resets it.
 
 ---
 
@@ -232,8 +249,41 @@ directories, `net10.0-windows` (stale, five months old, from before the TFM was 
 `net10.0-windows10.0.19041.0` (the real one, matching the csproj). The agent picked the
 first glob match and pointed the owner at the stale build. Running it would have exhibited
 the *pre-fix* behaviour and produced a confident FAIL on a working fix. The owner caught it
-from a missing icon on the executable. **Resolve a build output directory from the csproj's
-`TargetFramework`, never from a glob.**
+from a missing icon on the executable. **Verify that the artifact you are about to run was
+produced by the build you just ran** — compare its mtime against the build. That is the
+general form; resolving the directory from the csproj's `TargetFramework` is one instance of
+it, and it does not cover the Debug/Release or stale-publish variants of the same mistake.
+Both stale directories (`bin/` and `obj/Debug/net10.0-windows`) were deleted afterwards, so
+the specific trap is gone structurally rather than by remembering to avoid it.
+
+### 3.5a Re-verification after the post-review commits
+
+Criterion #11's signature covers the *timer* path. The post-review commits added a second
+emission point (launch) and deleted a third (dashboard), so the criterion needs one more
+observation. Recipe, built so it can fail:
+
+> **Setup.** Confirm the executable is fresh: read `<TargetFramework>` from the csproj, then
+> check `SmartStudyPlanner.exe` under `bin/Debug/<that TFM>/` has an mtime later than the
+> build. Have exactly one task scoring ≥ 80. Exit any running instance via *Thoát hoàn toàn*
+> (tray → menu), **not** the X button — the 30-minute cooldown lives in the process, and a
+> tray-minimised app is the same process.
+>
+> **Liveness first.** Click the window's X. A *"đã được thu nhỏ"* toast must appear. This
+> proves delivery works via a path (`OnClosing`) unrelated to the one under test. Skip it and
+> a zero-toast result is unfalsifiable.
+>
+> **Observation.** Launch the app. **PASS = exactly 1 toast.** **FAIL = 2** (the dashboard
+> source survived) **or 0** (the launch scan never ran, or `Loaded` did not fire).
+>
+> Then restore the window from the tray a few times with the urgent task still present.
+> **PASS = 0 additional toasts** — this is what `_daQuetLanDau` exists for.
+
+**The wording is no longer a discriminator.** The launch toast now reads exactly what the
+deleted dashboard toast read, because `(Chạy ngầm)` was dropped. The only signal is **count
+and timing**, so counting is the whole check.
+
+**Expect nothing on a second launch inside 30 minutes** — that is the cooldown (behaviour
+row 13), not a failure.
 
 ### 3.6 A revert that was not clean
 
