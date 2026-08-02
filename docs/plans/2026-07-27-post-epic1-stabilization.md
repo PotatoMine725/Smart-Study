@@ -1,8 +1,8 @@
 # Post-Epic 1 Engineering Stabilization Plan
 
-**Status:** **SUPERSEDED 2026-08-02 — all six packages landed.** Approved 2026-07-29 (revised against `docs/reports/2026-07-27-stabilization-plan-architecture-review.md`). Suite 346 → **391**, green in Debug and Release and on CI. Epic 2 entry criteria **11 of 12**; the one open item (#1, branch protection) is an owner action, not work.
+**Status:** **SUPERSEDED 2026-08-02 — all six packages landed.** Approved 2026-07-29 (revised against `docs/reports/2026-07-27-stabilization-plan-architecture-review.md`). Suite 346 → **391**, green in Debug and Release and on CI. Epic 2 entry criteria **12 of 12** — closed 2026-08-02, same day, once the owner authorised the branch-protection split (see WP-1 row below).
 **Baseline:** `fcd4b42` (tree `d3deca7`) — all line numbers are hints at this commit; see *On line numbers* below
-**Lifecycle:** Execution artifact, not living documentation. Superseded now that WP-6 has landed — **read the reports, not this file**, except for the Progress table below, which is the resumption point and is kept current.
+**Lifecycle:** Execution artifact, not living documentation, and the phase it tracks is **closed** — all six packages landed and Epic 2 entry criteria are 12 of 12. Kept in `docs/plans/` (not archived to `legacy/`) only because the Progress table below is still a useful single-table summary; **read the reports for detail, not this file.**
 **Successor docs:** one report per package under `docs/reports/`; `2026-08-02-wp6-repo-doc-hygiene.md` closes the sequence and carries the final state.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
