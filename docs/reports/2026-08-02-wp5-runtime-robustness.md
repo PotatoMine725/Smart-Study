@@ -78,10 +78,12 @@ Added by the post-review commits (`0e5d448`, `d425068`, `866b5be` — see §5):
 notifications become materially less frequent, and there is now exactly one of them per
 event rather than two. The plan flagged the frequency change; it remains true.
 
-**Row 13 is the one most likely to be misread as a bug.** Launching the app twice inside
-30 minutes produces a toast only the first time, because the cooldown is per-process and a
-tray-minimised app is still the same process. A genuine restart via *Thoát hoàn toàn*
-resets it.
+**Row 13 is the one most likely to be misread as a bug.** With a steady urgent count, one
+running instance alerts at launch and then not again for 30 minutes — the cooldown state
+lives in `MainWindow`'s instance fields, and a tray-minimised app is still the same instance.
+A genuine restart via *Thoát hoàn toàn* destroys those fields, so **every fresh launch alerts
+again**, however soon it follows the last one. Restarting is not covered by the cooldown, and
+§3.5a depends on that.
 
 ---
 
@@ -264,26 +266,57 @@ observation. Recipe, built so it can fail:
 
 > **Setup.** Confirm the executable is fresh: read `<TargetFramework>` from the csproj, then
 > check `SmartStudyPlanner.exe` under `bin/Debug/<that TFM>/` has an mtime later than the
-> build. Have exactly one task scoring ≥ 80. Exit any running instance via *Thoát hoàn toàn*
-> (tray → menu), **not** the X button — the 30-minute cooldown lives in the process, and a
-> tray-minimised app is the same process.
+> newest source file — not later than the last commit, which proves nothing about the binary.
+> Have at least one task scoring ≥ 80. Confirm **nothing is already running**: there is no
+> single-instance mutex, so launching while a tray instance is alive gives two processes and
+> a false FAIL = 2. Check the tray, and Task Manager for `SmartStudyPlanner.exe`.
 >
-> **Liveness first.** Click the window's X. A *"đã được thu nhỏ"* toast must appear. This
-> proves delivery works via a path (`OnClosing`) unrelated to the one under test. Skip it and
-> a zero-toast result is unfalsifiable.
+> **Observation.** Launch the app. **PASS = exactly 1 toast.** **FAIL = 2** (a second
+> emission source survived) **or 0** (the launch scan never ran, or `Loaded` did not fire).
+> Read the count in the toast body against the number of urgent tasks the UI shows — a
+> mismatch means the scan is reading different data than the page.
 >
-> **Observation.** Launch the app. **PASS = exactly 1 toast.** **FAIL = 2** (the dashboard
-> source survived) **or 0** (the launch scan never ran, or `Loaded` did not fire).
+> **Liveness, after the count.** Click the window's X. A *"đã được thu nhỏ"* toast must
+> appear. This proves delivery works via `OnClosing`, a path unrelated to the one under test,
+> so a 0-result is interpretable rather than ambiguous. Then tray → *Thoát hoàn toàn* to end
+> the process.
 >
-> Then restore the window from the tray a few times with the urgent task still present.
-> **PASS = 0 additional toasts** — this is what `_daQuetLanDau` exists for.
+> **On a 0-result, read `crash.log` before concluding anything.**
+> `QuetVaCanhBaoDeadlineAsync` swallows every exception into
+> `CrashLogger.Log("MainWindow.BackgroundTimer_Tick", …)`, so a failed scan is on disk, not
+> silent.
 
 **The wording is no longer a discriminator.** The launch toast now reads exactly what the
 deleted dashboard toast read, because `(Chạy ngầm)` was dropped. The only signal is **count
 and timing**, so counting is the whole check.
 
-**Expect nothing on a second launch inside 30 minutes** — that is the cooldown (behaviour
-row 13), not a failure.
+**The check is repeatable.** `_lanCanhBaoGanNhat` and `_soTaskKhanCapDaBao` are *instance*
+fields of `MainWindow`, so after *Thoát hoàn toàn* a fresh launch starts at `DateTime.MinValue`
+and toasts again immediately. The 30-minute cooldown (behaviour row 13) applies **within one
+process** — a tray-minimised app — not across restarts. An earlier draft of this section said
+to expect nothing on a second launch inside 30 minutes; that was wrong, and following it would
+have turned a correct PASS into a recorded FAIL.
+
+**The tray-restore leg has been removed, because it cannot fail.** It previously read
+*"restore from the tray a few times → PASS = 0 additional toasts — this is what
+`_daQuetLanDau` exists for."* Trace it: after the launch toast, `_soTaskKhanCapDaBao = N` and
+`_lanCanhBaoGanNhat = now`, so on restore with an unchanged urgent count
+`dangKhanCapHon = N > N` is false and `hetCooldown` is false — line 168 returns **whether or
+not `_daQuetLanDau` exists**. The cooldown subsumes the flag for 30 minutes, and at the
+30-minute mark the 5-minute timer fires on its own and resets it. There is no steady-state
+window in which the flag is observable.
+
+Lowering `ToastCooldown` to rescue the observation does not work either: a no-toast result
+still cannot separate *"the flag suppressed a second scan"* from *"`Loaded` never re-fires on
+restore anyway"* — and the latter is exactly the unproven premise the flag exists to sidestep.
+The experiment could only ever show the flag is **unnecessary**, never that it is load-bearing.
+
+**Scoped claim for `866b5be`.** Its commit message says *"without the flag, every tray restore
+with an urgent task present would fire another toast."* **That is not true** — the cooldown
+already blocks it. `_daQuetLanDau` is defense in depth against a scenario that has never been
+observed (a `Loaded` re-raise combined with an expired cooldown or a risen urgent count), it is
+cheap, and it is **not verified by any check in this report**. Recorded rather than quietly
+carried, per the evidence-scoped-claims standard in §5.
 
 ### 3.6 A revert that was not clean
 
