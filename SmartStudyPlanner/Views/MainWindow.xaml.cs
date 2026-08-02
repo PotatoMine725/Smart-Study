@@ -42,10 +42,20 @@ namespace SmartStudyPlanner
             SetupBackgroundWorker();
         }
 
+        private bool _daQuetLanDau;
+
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             MainFrame.Navigate(new SetupPage());
             _telemetry.Track("app_main_window_loaded");
+
+            // Chốt một lần: Loaded của WPF gắn với việc phần tử vào visual tree, không phải
+            // với "app vừa mở". Hide()/Show() từ khay hệ thống ĐƯỢC CHO LÀ không raise lại
+            // Loaded cho Window — nhưng "được cho là" chính là loại khẳng định đã sai hai lần
+            // trong package này. Rẻ hơn nhiều so với đi chứng minh: làm cho nó không quan
+            // trọng nữa. Thiếu cờ này thì mỗi lần restore từ tray là một lần toast.
+            if (_daQuetLanDau) return;
+            _daQuetLanDau = true;
 
             // Quét một lượt ngay khi mở app. Trước đây việc này do DashboardViewModel làm
             // (toast riêng của nó), nhưng bản đó chỉ nhìn 1 học kỳ, chỉ đếm tối đa 5 task
