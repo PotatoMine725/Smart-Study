@@ -22,7 +22,7 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
         {
             using var db = _ctxFactory();
 
-            var tasks = await db.StudyTasks.AsNoTracking().ToListAsync(ct);
+            var tasks = await db.StudyTasks.AsNoTracking().Where(t => !t.IsDeleted).ToListAsync(ct);
             int total = tasks.Count;
             int completed = tasks.Count(t => t.TrangThai == StudyTaskStatus.HoanThanh);
             int overdue = tasks.Count(t =>

@@ -2,6 +2,10 @@
 
 > Distilled 2026-07-12 from the Epic 1 closure gate — specifically finding **F5** (WAL backup gap)
 > and the T1.8 schema-upgrade seam. Concrete root causes, concrete fixes, reusable principles.
+>
+> Extended 2026-08-02 from WP-6 (repo & doc hygiene, the last package of the post-Epic-1
+> stabilization phase) — the cannot-vs-not-mine-to-decide distinction, the `enforce_admins`
+> escape hatch, and the preserve-then-destroy pattern.
 
 ## The WAL backup lie
 
@@ -80,6 +84,87 @@ across both silently skips rows that only need one of the two backfilled. This c
 exactly what a "backfill from pre-existing column X" plus "backfill missing device id" combination
 produces if collapsed into one predicate.
 
+## "Cannot" and "not mine to decide" look identical from the outside
+
+**Problem.** The post-Epic-1 stabilization plan justified deferring branch-protection setup as
+"not an agent action — enabling branch protection needs admin scope on the repository and cannot
+be done from the CLI without it." That premise was false: `gh api repos/:owner/:repo` returned
+`{"admin":true,...}` — the token had the scope, and the write would have succeeded.
+
+**Why it matters.** The step was still correctly left undone, but for a different reason: a
+required status check rejects direct pushes with no passing run, and every commit in the plan's
+six packages went straight to `dev`. Enabling it would have converted the owner's daily push-to-
+`dev` workflow into PR-per-change — a decision about how someone wants to work, not a technical
+gap. Had the permission check gone the other way, the *correct* justification would never have
+surfaced, because the plan collapsed two different blockers into one sentence.
+
+**Reusable principle.** *Unable* and *not mine to decide* produce the same visible outcome — the
+step doesn't happen — but they are fixed by completely different things: one by finding a token
+with more scope, one by asking. Before writing "cannot" as the reason to skip an action, check
+whether the actual constraint is authority (you could, but it isn't your call) rather than
+capability (you literally cannot). Naming the wrong one either invites someone to fix a
+non-problem (find more scope) or lets a real permission gap hide behind a policy-sounding excuse.
+
+## Branch protection's escape hatch exempts the account that actually pushes
+
+**Problem.** `enforce_admins=false` is a reasonable default on a solo repository — it is the
+escape hatch that stops a required check from locking the owner out of their own repo. Its
+second-order effect is easy to miss: **admins are exempt from the protection entirely**,
+including the required check and the force-push block. On a repo whose only pusher is an admin,
+the rule is configured and currently binds nobody who uses it.
+
+**How it was caught.** Same standard as the mutation-testing lesson in
+[`review-methodology.md`](review-methodology.md#a-green-check-is-evidence-only-after-youve-shown-it-can-go-red) —
+*a signal that has not been shown to go red is not yet evidence*. The push that carried the report
+recording this went straight to `dev` and succeeded, which is the actual proof: the protection
+did not block it. Reading the settings back after writing them (rather than trusting the API's
+write response) confirmed the values but not the behavior; only an observed push-that-should-have-
+been-blocked-and-wasn't (or, symmetrically, was) closes the gap between configured and enforcing.
+
+**Resolution used here:** split the setting per branch by how it is actually used, not
+uniformly. `dev` (`enforce_admins=false`) is daily iteration with no second reviewer, so
+enforcement would cost real friction for zero benefit. `main` (`enforce_admins=true`) was
+already PR-only in its entire commit history, so enforcement there costs nothing and converts an
+existing habit into a guarantee instead of a convention.
+
+**Trap: the endpoint is `POST`, not `PUT`.** `PUT …/branches/{branch}/protection/enforce_admins`
+returns `404 Not Found`, which reads like a missing resource — the kind of error that sends the
+next person looking for a typo'd branch name rather than a wrong HTTP verb.
+
+```bash
+gh api -X POST   repos/:owner/:repo/branches/main/protection/enforce_admins   # enable
+gh api -X DELETE repos/:owner/:repo/branches/main/protection/enforce_admins   # the escape hatch
+```
+
+**Reusable principle.** When a protection or gate has an admin/owner bypass, state explicitly
+who it does and does not bind, not just whether it is "on." "Configured" and "enforcing against
+the account that pushes" are different claims, and the second is the one that matters.
+
+## Preserve, then destroy — never verify, then destroy
+
+**Problem.** Retiring the untracked root `Assets/` directory required deleting data `git` cannot
+restore. The plan's safety net was `diff -r --brief Assets docs/assets/icon-source` before the
+delete, confirming the only differences were an intentionally-not-copied `icon.ico` and a new
+`README.md`.
+
+**Why a diff alone is not enough.** A `diff` proves the bytes matched *at that instant*. It does
+not survive the deletion that follows it — if the copy silently dropped a file (a shell `cp`
+losing a filename with a space in it, for instance — `Icon Preview.html` was exactly this case),
+the diff would have already run and passed before anyone looks again.
+
+**How it was solved.** The copy was committed as its own commit *before* the deletion, and the
+resulting tree was inspected with `git show --stat` — confirming all 8 files were actually
+present in git, including the space-containing filename — before `rm -rf` ran. This converts
+"verified, then destroyed" into "preserved, then destroyed": the second state has a durable
+witness (a commit) instead of a point-in-time check that a later step could invalidate.
+
+**Reusable principle.** For any step that destroys the only copy of something, prefer a
+guarantee that outlives the step (a commit, a backup with its own verification) over a
+pre-flight check performed immediately before the destructive action. The check and the action
+happen in sequence; a rollback source should not depend on nothing having gone wrong between
+them. See also the [WAL backup lesson](#the-wal-backup-lie) above — same shape, different
+irreversible step (an in-place file overwrite there, an `rm -rf` here).
+
 ## See also
 
 - [`sync-data-model.md`](sync-data-model.md) — the tombstone semantics this upgrade seam populates
@@ -95,3 +180,4 @@ produces if collapsed into one predicate.
 - [`docs/plans/2026-07-11-epic-1-closure-gate.md`](../plans/2026-07-11-epic-1-closure-gate.md) — Task A1 (WAL-safe backup fix) requirements
 - `docs/plans/2026-07-12-epic1-closure-phase1-execution.md` (archived 2026-07-26 → `legacy/Archived plans/`, local-only) — D-P1–D-P3 (fix placement, failure semantics, fixture honesty)
 - [`docs/reports/2026-07-05-epic1-m1.2-schema-upgrade-tombstones-metadata.md`](../reports/2026-07-05-epic1-m1.2-schema-upgrade-tombstones-metadata.md) — T1.8 upgrade seam, `MigrationReporter`, `AppStartupFileBasedTests`
+- [`docs/reports/2026-08-02-wp6-repo-doc-hygiene.md`](../reports/2026-08-02-wp6-repo-doc-hygiene.md) — §3.1 preserve-then-destroy, §3.5/§3.5a/§3.5b the cannot-vs-not-mine-to-decide distinction and the `enforce_admins` escape hatch

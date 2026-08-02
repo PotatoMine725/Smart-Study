@@ -99,3 +99,13 @@ artifacts/
 # Archived design scratch (kept local, superseded by shipped UI)
 # =============================
 legacy/
+
+# =============================
+# Personal tooling — local to the owner, deliberately not shared
+# =============================
+# Session prompt drafts and one-off verification scripts. These are working
+# material, not project artifacts: nothing in the build, the suite or CI reads
+# them, and they were the last two entries making `git status` noisy after WP-6
+# retired the root Assets/ folder. Owner decision, 2026-08-02.
+/Prompt/
+/tools/epic1_b2_verify.py

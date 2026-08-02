@@ -18,6 +18,11 @@ namespace SmartStudyPlanner.Data
         // from Services.Strategies.
         public Func<DateTime> Clock { get; set; } = () => DateTime.UtcNow;
 
+        // Cùng kiểu seam với Clock: composition root gán DeviceIdentity.GetId vào đây.
+        // Default vẫn là DeviceHelper.GetId (thuần tính toán, không I/O) nên test và
+        // bootstrap dựng AppDbContext trực tiếp không đụng vào %APPDATA%.
+        public Func<string> DeviceIdProvider { get; set; } = () => DeviceHelper.GetId();
+
         public AppDbContext() { }
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
@@ -100,13 +105,13 @@ namespace SmartStudyPlanner.Data
         // a no-op pass-through for all real writes — see SyncMetadataStampingTests for coverage.
         public override int SaveChanges(bool acceptAllChangesOnSuccess)
         {
-            SyncStamper.Apply(ChangeTracker, Clock, DeviceHelper.GetId());
+            SyncStamper.Apply(ChangeTracker, Clock, DeviceIdProvider());
             return base.SaveChanges(acceptAllChangesOnSuccess);
         }
 
         public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
         {
-            SyncStamper.Apply(ChangeTracker, Clock, DeviceHelper.GetId());
+            SyncStamper.Apply(ChangeTracker, Clock, DeviceIdProvider());
             return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
         }
     }

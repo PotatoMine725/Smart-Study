@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Study — Icon (Focus Cut)</title>
+<style>
+  :root{
+    --bg:#F1F3F8; --card:#FFFFFF; --text:#1A2133; --dim:#6B7A93;
+    --border:#E3E8F0; --indigo:#4F46E5;
+    --font:"Segoe UI",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{background:var(--bg);font-family:var(--font);color:var(--text);}
+  body{padding:52px 40px 80px;}
+  .wrap{max-width:1060px;margin:0 auto;}
+
+  .page-header{margin-bottom:44px;}
+  .page-header .eyebrow{font-size:11px;font-weight:700;letter-spacing:.16em;color:var(--indigo);text-transform:uppercase;}
+  .page-header h1{font-size:31px;font-weight:700;margin-top:8px;letter-spacing:-.02em;}
+  .page-header p{font-size:14px;color:var(--dim);margin-top:8px;line-height:1.6;max-width:600px;}
+
+  .section-label{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-bottom:18px;display:flex;align-items:center;gap:10px;}
+  .section-label::before{content:"";width:18px;height:3px;border-radius:2px;background:var(--indigo);}
+  .section{margin-bottom:48px;}
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;}
+
+  /* feature hero */
+  .feature{display:grid;grid-template-columns:auto 1fr;gap:34px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:30px;margin-bottom:46px;}
+  .feature .herobox{width:200px;height:200px;border-radius:18px;background:#101826;display:flex;align-items:center;justify-content:center;}
+  .feature .tag{font-size:10.5px;font-weight:700;letter-spacing:.1em;color:var(--indigo);text-transform:uppercase;}
+  .feature .name{font-size:22px;font-weight:700;margin-top:6px;}
+  .feature .desc{font-size:13.5px;color:var(--dim);margin-top:10px;line-height:1.6;max-width:520px;}
+  .feature .meaning{display:flex;gap:24px;margin-top:18px;flex-wrap:wrap;}
+  .feature .mi{font-size:12px;color:var(--text);}
+  .feature .mi b{display:block;font-size:11px;color:var(--indigo);font-weight:700;margin-bottom:2px;letter-spacing:.04em;}
+
+  .size-grid{display:flex;align-items:flex-end;gap:40px;flex-wrap:wrap;}
+  .size-item{display:flex;flex-direction:column;align-items:center;gap:12px;}
+  .size-item .sname{font-size:11.5px;font-weight:600;color:var(--dim);}
+
+  .bg-row{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+  .bg-swatch{border-radius:14px;padding:40px 32px;display:flex;align-items:center;justify-content:center;gap:30px;}
+  .bg-swatch.dark{background:#0E1421;}
+  .bg-swatch.light{background:#EDF0F6;border:1px solid var(--border);}
+
+  .browser{border-radius:12px;overflow:hidden;border:1px solid var(--border);box-shadow:0 4px 20px rgba(0,0,0,.07);}
+  .tab-strip{background:#E8EAED;border-bottom:1px solid #D0D4DC;height:38px;display:flex;align-items:flex-end;padding:0 12px;gap:4px;}
+  .tab{background:#FFF;border:1px solid #D0D4DC;border-bottom:none;border-radius:8px 8px 0 0;padding:0 14px;height:32px;display:flex;align-items:center;gap:8px;font-size:12.5px;}
+  .tab.inactive{background:#E8EAED;color:#80868B;border-color:transparent;}
+  .browser-body{background:#fff;height:84px;display:flex;align-items:center;padding:18px 22px;}
+  .bl{height:12px;border-radius:6px;background:#E9ECF2;}
+
+  .taskbar{background:#1C1C1E;border-radius:12px;padding:10px 16px;display:flex;align-items:center;gap:10px;}
+  .t-label{font-size:11.5px;color:#AEAEB2;}
+
+  .palette-row{display:flex;gap:10px;}
+  .pal{border-radius:8px;height:42px;flex:1;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="page-header">
+    <div class="eyebrow">Smart Study Planner</div>
+    <h1>Icon — Focus Cut</h1>
+    <p>Phẳng hoàn toàn, hình học với nhát cắt chéo mạnh. Hai phiến chéo song song tạo nhịp đi lên (động lực · tiến độ), khối vuông đặc cắt vào là sự tập trung và mục tiêu hoàn thành.</p>
+  </div>
+
+  <!-- feature -->
+  <div class="feature">
+    <div class="herobox">
+      <svg viewBox="0 0 512 512" width="168" height="168" xmlns="http://www.w3.org/2000/svg">
+        <defs><clipPath id="rbF"><rect width="512" height="512" rx="96"/></clipPath></defs>
+        <g clip-path="url(#rbF)">
+          <rect width="512" height="512" fill="#101826"/>
+          <polygon points="62,392 242,120 346,120 166,392" fill="#A78BFA"/>
+          <polygon points="166,392 346,120 450,120 270,392" fill="#14B8A6"/>
+          <rect x="252" y="300" width="92" height="92" fill="#F59E0B"/>
+        </g>
+      </svg>
+    </div>
+    <div>
+      <div class="tag">Concept C — đã chọn</div>
+      <div class="name">Focus Cut</div>
+      <div class="desc">Bố cục trừu tượng từ 3 mảnh phẳng cắt chéo, không dùng hình tượng cụ thể. Đồng bộ với bảng màu nhận diện môn học của Dashboard.</div>
+      <div class="meaning">
+        <div class="mi"><b>HAI PHIẾN CHÉO</b>Động lực &amp; tiến độ đi lên</div>
+        <div class="mi"><b>KHỐI VUÔNG</b>Tập trung · mục tiêu hoàn thành</div>
+        <div class="mi"><b>MÀU PHẲNG</b>Violet · Teal · Amber</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- sizes -->
+  <div class="section">
+    <div class="section-label">Kích thước</div>
+    <div class="card">
+      <div class="size-grid">
+        <div class="size-item">
+          <svg viewBox="0 0 512 512" width="160" height="160" xmlns="http://www.w3.org/2000/svg">
+            <defs><clipPath id="s1"><rect width="512" height="512" rx="96"/></clipPath></defs>
+            <g clip-path="url(#s1)"><rect width="512" height="512" fill="#101826"/>
+              <polygon points="62,392 242,120 346,120 166,392" fill="#A78BFA"/>
+              <polygon points="166,392 346,120 450,120 270,392" fill="#14B8A6"/>
+              <rect x="252" y="300" width="92" height="92" fill="#F59E0B"/></g>
+          </svg>
+          <span class="sname">512 · App / Store</span>
+        </div>
+        <div class="size-item">
+          <svg viewBox="0 0 512 512" width="96" height="96" xmlns="http://www.w3.org/2000/svg">
+            <defs><clipPath id="s2"><rect width="512" height="512" rx="96"/></clipPath></defs>
+            <g clip-path="url(#s2)"><rect width="512" height="512" fill="#101826"/>
+              <polygon points="62,392 242,120 346,120 166,392" fill="#A78BFA"/>
+              <polygon points="166,392 346,120 450,120 270,392" fill="#14B8A6"/>
+              <rect x="252" y="300" width="92" height="92" fill="#F59E0B"/></g>
+          </svg>
+          <span class="sname">128 · Taskbar</span>
+        </div>
+        <div class="size-item">
+          <svg viewBox="0 0 512 512" width="48" height="48" xmlns="http://www.w3.org/2000/svg">
+            <defs><clipPath id="s3"><rect width="512" height="512" rx="96"/></clipPath></defs>
+            <g clip-path="url(#s3)"><rect width="512" height="512" fill="#101826"/>
+              <polygon points="62,392 242,120 346,120 166,392" fill="#A78BFA"/>
+              <polygon points="166,392 346,120 450,120 270,392" fill="#14B8A6"/>
+              <rect x="252" y="300" width="92" height="92" fill="#F59E0B"/></g>
+          </svg>
+          <span class="sname">64</span>
+        </div>
+        <div class="size-item">
+          <svg viewBox="0 0 32 32" width="32" height="32" xmlns="http://www.w3.org/2000/svg">
+            <defs><clipPath id="s4"><rect width="32" height="32" rx="6"/></clipPath></defs>
+            <g clip-path="url(#s4)"><rect width="32" height="32" fill="#101826"/>
+              <polygon points="3.9,24.5 15.1,7.5 21.6,7.5 10.4,24.5" fill="#A78BFA"/>
+              <polygon points="10.4,24.5 21.6,7.5 28.1,7.5 16.9,24.5" fill="#14B8A6"/>
+              <rect x="15.75" y="18.75" width="5.75" height="5.75" fill="#F59E0B"/></g>
+          </svg>
+          <span class="sname">32 · Favicon</span>
+        </div>
+        <div class="size-item">
+          <svg viewBox="0 0 32 32" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
+            <defs><clipPath id="s5"><rect width="32" height="32" rx="6"/></clipPath></defs>
+            <g clip-path="url(#s5)"><rect width="32" height="32" fill="#101826"/>
+              <polygon points="3.9,24.5 15.1,7.5 21.6,7.5 10.4,24.5" fill="#A78BFA"/>
+              <polygon points="10.4,24.5 21.6,7.5 28.1,7.5 16.9,24.5" fill="#14B8A6"/>
+              <rect x="15.75" y="18.75" width="5.75" height="5.75" fill="#F59E0B"/></g>
+          </svg>
+          <span class="sname">16</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- backgrounds -->
+  <div class="section">
+    <div class="section-label">Trên nền tối / sáng</div>
+    <div class="bg-row">
+      <div class="bg-swatch dark">
+        <svg viewBox="0 0 512 512" width="92" height="92" xmlns="http://www.w3.org/2000/svg">
+          <defs><clipPath id="d1"><rect width="512" height="512" rx="96"/></clipPath></defs>
+          <g clip-path="url(#d1)"><rect width="512" height="512" fill="#101826"/>
+            <polygon points="62,392 242,120 346,120 166,392" fill="#A78BFA"/>
+            <polygon points="166,392 346,120 450,120 270,392" fill="#14B8A6"/>
+            <rect x="252" y="300" width="92" height="92" fill="#F59E0B"/></g>
+        </svg>
+        <svg viewBox="0 0 512 512" width="52" height="52" xmlns="http://www.w3.org/2000/svg">
+          <defs><clipPath id="d2"><rect width="512" height="512" rx="96"/></clipPath></defs>
+          <g clip-path="url(#d2)"><rect width="512" height="512" fill="#101826"/>
+            <polygon points="62,392 242,120 346,120 166,392" fill="#A78BFA"/>
+            <polygon points="166,392 346,120 450,120 270,392" fill="#14B8A6"/>
+            <rect x="252" y="300" width="92" height="92" fill="#F59E0B"/></g>
+        </svg>
+      </div>
+      <div class="bg-swatch light">
+        <svg viewBox="0 0 512 512" width="92" height="92" xmlns="http://www.w3.org/2000/svg">
+          <defs><clipPath id="l1"><rect width="512" height="512" rx="96"/></clipPath></defs>
+          <g clip-path="url(#l1)"><rect width="512" height="512" fill="#101826"/>
+            <polygon points="62,392 242,120 346,120 166,392" fill="#A78BFA"/>
+            <polygon points="166,392 346,120 450,120 270,392" fill="#14B8A6"/>
+            <rect x="252" y="300" width="92" height="92" fill="#F59E0B"/></g>
+        </svg>
+        <svg viewBox="0 0 512 512" width="52" height="52" xmlns="http://www.w3.org/2000/svg">
+          <defs><clipPath id="l2"><rect width="512" height="512" rx="96"/></clipPath></defs>
+          <g clip-path="url(#l2)"><rect width="512" height="512" fill="#101826"/>
+            <polygon points="62,392 242,120 346,120 166,392" fill="#A78BFA"/>
+            <polygon points="166,392 346,120 450,120 270,392" fill="#14B8A6"/>
+            <rect x="252" y="300" width="92" height="92" fill="#F59E0B"/></g>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- context -->
+  <div class="section">
+    <div class="section-label">Trong context</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+      <div class="browser">
+        <div class="tab-strip">
+          <div class="tab">
+            <svg viewBox="0 0 32 32" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
+              <defs><clipPath id="ft"><rect width="32" height="32" rx="6"/></clipPath></defs>
+              <g clip-path="url(#ft)"><rect width="32" height="32" fill="#101826"/>
+                <polygon points="3.9,24.5 15.1,7.5 21.6,7.5 10.4,24.5" fill="#A78BFA"/>
+                <polygon points="10.4,24.5 21.6,7.5 28.1,7.5 16.9,24.5" fill="#14B8A6"/>
+                <rect x="15.75" y="18.75" width="5.75" height="5.75" fill="#F59E0B"/></g>
+            </svg>
+            Smart Study Planner
+          </div>
+          <div class="tab inactive">Trang mới</div>
+        </div>
+        <div class="browser-body">
+          <div style="flex:1;display:flex;flex-direction:column;gap:10px;">
+            <div class="bl" style="width:42%"></div>
+            <div class="bl" style="width:66%"></div>
+            <div class="bl" style="width:30%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;">
+        <div class="taskbar" style="width:100%;">
+          <div style="width:32px;height:32px;border-radius:8px;background:#2D2D30;"></div>
+          <div style="width:32px;height:32px;border-radius:8px;background:#2D2D30;"></div>
+          <div style="width:1px;height:28px;background:#3A3A3C;margin:0 4px;"></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:5px;">
+            <svg viewBox="0 0 512 512" width="32" height="32" xmlns="http://www.w3.org/2000/svg">
+              <defs><clipPath id="tb"><rect width="512" height="512" rx="96"/></clipPath></defs>
+              <g clip-path="url(#tb)"><rect width="512" height="512" fill="#101826"/>
+                <polygon points="62,392 242,120 346,120 166,392" fill="#A78BFA"/>
+                <polygon points="166,392 346,120 450,120 270,392" fill="#14B8A6"/>
+                <rect x="252" y="300" width="92" height="92" fill="#F59E0B"/></g>
+            </svg>
+            <div style="width:20px;height:3px;border-radius:2px;background:#A78BFA;"></div>
+          </div>
+          <div style="margin-left:4px;display:flex;flex-direction:column;gap:2px;">
+            <span class="t-label" style="font-size:12px;color:#F2F2F2;">Smart Study Planner</span>
+            <span class="t-label">Dashboard · Học kỳ 2</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- palette -->
+  <div class="section">
+    <div class="section-label">Bảng màu phẳng</div>
+    <div class="card">
+      <div class="palette-row">
+        <div class="pal" style="background:#101826;color:#fff;">#101826 · Nền</div>
+        <div class="pal" style="background:#A78BFA;color:#fff;">#A78BFA · Violet</div>
+        <div class="pal" style="background:#14B8A6;color:#fff;">#14B8A6 · Teal</div>
+        <div class="pal" style="background:#F59E0B;color:#fff;">#F59E0B · Amber</div>
+      </div>
+      <div style="margin-top:18px;font-size:12.5px;color:var(--dim);line-height:1.7;">
+        Không gradient, không icon tượng hình. File đã cập nhật: <code style="background:var(--bg);padding:1px 6px;border-radius:4px;">icon/icon.svg</code> &amp; <code style="background:var(--bg);padding:1px 6px;border-radius:4px;">icon/favicon.svg</code> (Concept C — Focus Cut).
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

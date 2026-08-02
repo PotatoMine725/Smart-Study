@@ -81,7 +81,7 @@ The app sends native Windows toast notifications to remind you of upcoming deadl
 
 Version 1.5.0 — Active Development
 
-All core milestones (M1 through M8) plus the Epic 1 sync-ready data model are complete and merged — **Epic 1 Released 2026-07-20**. The test suite has 337 tests, all passing, and the build is clean with zero errors.
+All core milestones (M1 through M8) plus the Epic 1 sync-ready data model are complete and merged — **Epic 1 Released 2026-07-20**. The test suite has 391 tests, all passing, verified on every push by CI (`.github/workflows/ci.yml`, Windows, Release). The build produces zero errors; nullable-annotation warnings (`CS8618`) and two dependency advisories do remain, and are tracked as accepted debt rather than claimed clean.
 
 ### What Has Been Built
 

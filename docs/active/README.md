@@ -7,7 +7,13 @@
 > [master plan](../plans/2026-07-03-master-plan.md) — this folder only answers
 > *"what is being worked on right now, and where is its plan?"*.
 
-## Current (2026-07-26)
+**Post-Epic 1 stabilization closed 2026-08-02** — WP-1 through WP-6 all landed, suite 346 → 391,
+Epic 2 entry criteria **12 of 12**. See `docs/CHANGELOG.md` and `docs/reports/2026-08-02-wp6-repo-doc-hygiene.md`.
+**"Epic 2 entry criteria" is the stabilization plan's name for these gates, not the execution
+order** — the [master plan](../plans/2026-07-03-master-plan.md) sequences **E1 → E3 → E2 → E4**;
+Epic 3 (SOE) is next and does not require Epic 2. Nothing below was touched by stabilization.
+
+## Current (2026-08-02)
 
 | Work | Plan | State |
 |---|---|---|
@@ -29,8 +35,10 @@ M8-A `TextClassifierModelManager.RetrainAsync` consumer wiring.
 
 ## Archived from here (2026-07-07 sweep)
 
-`refactor-god-object.md` (Slices 1–8 shipped), `m8-text-classifier.md` (M8-A shipped),
-`m8-weight-optimizer.md` (M8-B rule-based + Slice 8 UI shipped) → `legacy/Archived plans/`.
+`refactor-god-object.md` (Slices 1–8 shipped), `m8-text-classifier.md` (M8-A shipped) →
+`legacy/Archived plans/`. `m8-weight-optimizer.md` was copied there too but **stays tracked
+here as well** — it is still the live tracker for the one M8-B item that hasn't shipped (ML
+training, gated on `WeightChangeLog` data volume; see Deferred items above).
 
 ## Archived from here (2026-07-26 sweep)
 

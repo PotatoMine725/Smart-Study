@@ -12,6 +12,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Threading;
+using System.Threading.Tasks;
 
 // Sử dụng alias để phân biệt các hàm của WPF và Windows Forms
 using WinForms = System.Windows.Forms;
@@ -41,10 +42,31 @@ namespace SmartStudyPlanner
             SetupBackgroundWorker();
         }
 
-        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        private bool _daQuetLanDau;
+
+        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             MainFrame.Navigate(new SetupPage());
             _telemetry.Track("app_main_window_loaded");
+
+            // Chốt một lần: Loaded của WPF gắn với việc phần tử vào visual tree, không phải
+            // với "app vừa mở". Hide()/Show() từ khay hệ thống ĐƯỢC CHO LÀ không raise lại
+            // Loaded cho Window — nhưng "được cho là" chính là loại khẳng định đã sai hai lần
+            // trong package này. Rẻ hơn nhiều so với đi chứng minh: làm cho nó không quan
+            // trọng nữa. Thiếu cờ này thì mỗi lần restore từ tray là một lần toast.
+            if (_daQuetLanDau) return;
+            _daQuetLanDau = true;
+
+            // Quét một lượt ngay khi mở app. Trước đây việc này do DashboardViewModel làm
+            // (toast riêng của nó), nhưng bản đó chỉ nhìn 1 học kỳ, chỉ đếm tối đa 5 task
+            // và đọc DiemUuTien đã lưu — nên nó vừa trùng vừa yếu hơn. Giờ chỉ còn một
+            // nguồn cảnh báo duy nhất, và nó cần chạy ở đây để người dùng không phải chờ
+            // hết 5 phút mới biết mình có deadline gấp.
+            //
+            // Đặt ở Loaded chứ KHÔNG ở constructor: SetupBackgroundWorker() chạy trong
+            // ctor, resolve ServiceLocator sớm như vậy có thể hỏng, mà try/catch bên dưới
+            // sẽ nuốt vào crash.log — hỏng im lặng, nhìn y hệt như chạy tốt.
+            await QuetVaCanhBaoDeadlineAsync();
         }
 
         private void MainFrame_Navigated(object sender, System.Windows.Navigation.NavigationEventArgs e)
@@ -87,44 +109,77 @@ namespace SmartStudyPlanner
         private void SetupBackgroundWorker()
         {
             _backgroundTimer = new DispatcherTimer();
-            // Tạm thời để 1 phút réo 1 lần để em test.
-            _backgroundTimer.Interval = TimeSpan.FromMinutes(1);
+            // 5 phút: vẫn kịp thời cho cảnh báo deadline, nhưng không quét lại toàn bộ học kỳ
+            // (mọi HocKy × MonHoc × Task + CalculatePriority) mỗi phút. Giá trị 1 phút cũ là
+            // giá trị debug, chính comment cũ đã ghi là "tạm thời để em test".
+            _backgroundTimer.Interval = TimeSpan.FromMinutes(5);
             _backgroundTimer.Tick += BackgroundTimer_Tick;
             _backgroundTimer.Start();
         }
 
+        // Chống spam toast: cùng một tình trạng khẩn cấp không réo lại trong 30 phút.
+        private static readonly TimeSpan ToastCooldown = TimeSpan.FromMinutes(30);
+        private DateTime _lanCanhBaoGanNhat = DateTime.MinValue;
+        private int _soTaskKhanCapDaBao = 0;
+
         private async void BackgroundTimer_Tick(object sender, EventArgs e)
+            => await QuetVaCanhBaoDeadlineAsync();
+
+        private async Task QuetVaCanhBaoDeadlineAsync()
         {
-            var repo = ServiceLocator.Get<IHocKyRepository>();
-            var decisionEngine = ServiceLocator.Get<IDecisionEngine>();
-
-            var danhSachHocKy = await repo.LayDanhSachHocKyAsync();
-            int soTaskKhanCap = 0;
-
-            foreach (var hk in danhSachHocKy)
+            // async void trên DispatcherTimer: exception ở đây không ai await, nó rơi thẳng
+            // vào DispatcherUnhandledException của App (App.xaml.cs:23) — mà handler đó bật
+            // MessageBox. Tức là một lỗi DB thoáng qua sẽ dựng modal dialog LẶP LẠI mỗi lượt
+            // tick, người dùng không thao tác được gì. Nuốt tại chỗ và ghi crash.log.
+            try
             {
-                foreach (var mon in hk.DanhSachMonHoc)
+                var repo = ServiceLocator.Get<IHocKyRepository>();
+                var decisionEngine = ServiceLocator.Get<IDecisionEngine>();
+
+                var danhSachHocKy = await repo.LayDanhSachHocKyAsync();
+                int soTaskKhanCap = 0;
+
+                foreach (var hk in danhSachHocKy)
                 {
-                    foreach (var task in mon.DanhSachTask)
+                    foreach (var mon in hk.DanhSachMonHoc)
                     {
-                        if (task.TrangThai != StudyTaskStatus.HoanThanh)
+                        foreach (var task in mon.DanhSachTask)
                         {
-                            double diem = decisionEngine.CalculatePriority(task, mon);
-                            if (diem >= 80) soTaskKhanCap++;
+                            if (task.TrangThai != StudyTaskStatus.HoanThanh)
+                            {
+                                double diem = decisionEngine.CalculatePriority(task, mon);
+                                if (diem >= 80) soTaskKhanCap++;
+                            }
                         }
                     }
                 }
-            }
 
-            // Nếu phát hiện có deadline rực lửa, bắn thông báo hệ thống!
-            if (soTaskKhanCap > 0)
-            {
+                if (soTaskKhanCap == 0)
+                {
+                    // Hết khẩn cấp -> quên trạng thái cũ, lần khẩn cấp sau được báo ngay.
+                    _soTaskKhanCapDaBao = 0;
+                    return;
+                }
+
+                // Báo lại sớm CHỈ khi mức khẩn cấp tăng (có task mới vượt ngưỡng — đó là tin
+                // mới). Số giảm đi thì không đáng để réo, cứ chờ hết cooldown.
+                bool dangKhanCapHon = soTaskKhanCap > _soTaskKhanCapDaBao;
+                bool hetCooldown = DateTime.Now - _lanCanhBaoGanNhat >= ToastCooldown;
+                if (!dangKhanCapHon && !hetCooldown) return;
+
+                _lanCanhBaoGanNhat = DateTime.Now;
+                _soTaskKhanCapDaBao = soTaskKhanCap;
+
                 new ToastContentBuilder()
-                    .AddText("🔥 CẢNH BÁO DEADLINE (Chạy ngầm)!")
+                    .AddText("🔥 CẢNH BÁO DEADLINE!")
                     .AddText($"Bạn đang có {soTaskKhanCap} bài tập KHẨN CẤP chưa làm!")
                     .AddText("Click vào đây để mở app và giải quyết ngay!")
                     .AddAudio(new Uri("ms-winsoundevent:Notification.Default"))
                     .Show();
+            }
+            catch (Exception ex)
+            {
+                CrashLogger.Log("MainWindow.BackgroundTimer_Tick", ex);
             }
         }
 

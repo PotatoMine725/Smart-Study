@@ -24,7 +24,10 @@ namespace SmartStudyPlanner.Models
         public string TrangThai { get; set; }
         public LoaiCongViec LoaiTask { get; set; }
         public double DiemUuTien { get; set; }
-        public string MucDoCanhBao { get; set; }
+        // NOT NULL trong schema. VM stamp lại giá trị thật qua TinhDiemVaSapXep()
+        // (QuanLyTaskViewModel:107-110); default ở đây để mọi write path KHÔNG qua UI
+        // — sync-apply, import, test — không đâm vào SQLite Error 19.
+        public string MucDoCanhBao { get; set; } = "An toàn";
         public int DoKho { get; set; }
 
         public int ThoiGianDaHoc { get; set; } = 0;

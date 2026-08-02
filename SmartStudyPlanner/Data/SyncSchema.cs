@@ -53,7 +53,12 @@ namespace SmartStudyPlanner.Data
             // backfilled independently -- a row already reconciled from UpdatedAtUtc has a
             // non-null ModifiedAtUtc but still needs ModifiedByDeviceId stamped.
             var now = db.Clock();
-            var deviceId = DeviceHelper.GetId();
+            // Lấy qua seam của context, đối xứng với db.Clock() ở trên: backfill phải dùng
+            // đúng danh tính mà mọi write sau này dùng, nếu không row cũ và row mới của
+            // cùng một máy sẽ mang hai device id khác nhau. KHÔNG tự dựng DeviceIdentity ở
+            // đây — EnsureColumns bị 6 test gọi trực tiếp, và default không-I/O của context
+            // là thứ giữ cho chúng không ghi device-id.txt vào profile thật của người chạy.
+            var deviceId = db.DeviceIdProvider();
             foreach (var table in SyncTables)
             {
                 db.Database.ExecuteSqlRaw(

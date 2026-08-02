@@ -22,6 +22,12 @@ The project has `nullable enable`. Most pre-existing warnings are about pre-`ena
 ### `Random(seed)` for reproducible test data
 `DbSeedTests` uses `new Random(42)` so the same 180 synthetic logs are produced every run. Gaussian-style noise via `(rng.NextSingle() - 0.5f) * 0.3f` gives ±15% variation without external dependencies. Reproducible tests are debuggable; non-deterministic ones rot.
 
+### The two-argument `double.TryParse` allows thousands separators — it fails *open*, not closed
+`double.TryParse(s, out v)` implies `NumberStyles.Float | NumberStyles.AllowThousands` against `CurrentCulture`. Measured on .NET 10 under `en-US`: `"4,5"` parses **`true`/`45`** and `"4,500"` parses **`true`/`4500`**. So a value written on a `vi-VN` machine does not fail over to your default on an `en-US` one — it silently becomes an order of magnitude larger. This is live in `WorkloadServiceImpl.GetCapacity` (WP-5.2 owns the fix). **When parsing a persisted number, always pass explicit `NumberStyles.Float` and an explicit culture**; `NumberStyles.Float` excludes `AllowThousands`, so `"4,5"` correctly returns `false` under invariant and `en-US`, and `true`/`4.5` under `vi-VN`.
+
+### `ToString("dd/MM/yyyy")` renders `/` as the *culture's* date separator, not a slash
+The `/` in a custom date format is a placeholder, so the rendered string changes with `CurrentCulture`. A test asserting `Assert.Equal("13/04/2026", …)` passes on a dev machine and can break on a CI runner with a different culture. Assert against the same format expression (`expected.ToString("dd/MM/yyyy")`) — it still fails if someone changes the format to `MM/dd` or `ddd`, which is the regression worth catching, and it is culture-portable. (The `/` behaviour above is measured; by the same documented mechanism `:` in a time format should be the culture's `TimeSeparator` — that half is inferred, not tested here.)
+
 ### `[Trait("Category", "...")]` on xUnit lets you slice CI
 - `[Trait("Category", "Seed")]` for dev tools you only run manually.
 - `[Trait("Category", "ML")]` for slow training tests (~2-3 s each).

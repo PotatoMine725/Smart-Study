@@ -17,7 +17,7 @@
 | Build | green (`dotnet build SmartStudyPlanner.slnx`) |
 | Tests | green — exact count lives in the README / CI (`dotnet test --no-build`); not hard-coded here |
 | Version | `1.5.0` |
-| GitNexus index | 3,333 symbols / 7,953 relationships / 127 execution flows (commit `5e54220`) |
+| GitNexus index | 4,291 symbols / 9,848 relationships / 120 execution flows (re-indexed at commit `12291d0`, 2026-08-02) |
 
 ## A.2 Completed milestones
 
@@ -87,6 +87,19 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
    **Mechanics frozen 2026-07-02 ([D-I](../plans/2026-07-02-architecture-freeze-decisions.md)):** 3-way merge vs. last-synced base; tie-break `ModifiedAtUtc` → `DeviceId`; delete-vs-edit → tombstone wins,
    losing side kept in a conflict record; no HLC. *Cascade policy decided + implemented (G1, cascade-tombstone —
    Epic 1 / M1.2). Still open: tombstone retention/purge authority (master plan gate G4).*
+
+   > **Gate G4 is a planning-agenda item for this epic — it must be decided before implementation, not during.**
+   > Added 2026-08-02 by WP-6 of the post-Epic-1 stabilization plan, which satisfies its Epic 2
+   > entry criterion #10 (*"G4 is explicitly on the Epic 2 planning agenda … must not be silently
+   > inherited"*). Stabilization deliberately did **not** decide it: WP-3.1 made tombstones invisible
+   > to every read path, but **how long they live and who may purge them is a policy question Epic 2
+   > owns**, and settling it from the stabilization side would have been guessing.
+   > Three things make it load-bearing rather than housekeeping: a tombstone purged on one peer but
+   > not another resurrects the row on the next merge; retention interacts with D-I's 3-way merge,
+   > which needs the last-synced base to still exist; and unbounded retention means the tombstone
+   > table grows without limit on a device that never syncs.
+   > **Recording it here makes the criterion true; it does not make the decision.** The agenda item
+   > is open until Epic 2 planning resolves it.
 4. **M8-C** — retrain the Study Time Predictor on real Focus-session telemetry (replace synthetic seed).
 5. **M9** — natural-language deadline parsing (Part B §9.1) and cross-semester analytics.
 

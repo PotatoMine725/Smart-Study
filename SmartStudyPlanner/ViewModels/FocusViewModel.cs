@@ -27,6 +27,13 @@ namespace SmartStudyPlanner.ViewModels
         private readonly IStudyTimeOutcomeLogRepository _outcomeLogRepo;
         private readonly IStreakManager _streak;
 
+        // StudyLog.DeviceId = thiết bị TẠO log (khác ModifiedByDeviceId do SyncStamper
+        // đóng dấu). Cùng một row mà hai trường mang hai danh tính khác nhau sau khi
+        // user đổi hostname thì Epic 2 không cách nào hoà giải, nên nó cũng phải đi qua
+        // DeviceIdentity. Default là DeviceHelper.GetId — thuần tính toán, không I/O —
+        // để các ctor test-facing giữ đúng cam kết "không chạm đĩa" ở trên.
+        private readonly Func<string> _deviceIdProvider;
+
         public TaskDashboardItem TaskHienTai { get; set; }
 
         [ObservableProperty] private string tieuDeTask;
@@ -44,7 +51,7 @@ namespace SmartStudyPlanner.ViewModels
 
         // Production: resolve streak thật (disk-backed) qua ServiceLocator.
         public FocusViewModel(TaskDashboardItem task)
-            : this(task, ServiceLocator.Get<IStudyLogRepository>(), ServiceLocator.Get<IStudyTelemetry>(), ServiceLocator.Get<IStudyTimeOutcomeLogRepository>(), ServiceLocator.Get<IStreakManager>())
+            : this(task, ServiceLocator.Get<IStudyLogRepository>(), ServiceLocator.Get<IStudyTelemetry>(), ServiceLocator.Get<IStudyTimeOutcomeLogRepository>(), ServiceLocator.Get<IStreakManager>(), ServiceLocator.Get<DeviceIdentity>().GetId)
         {
             NotifyUser = message => System.Windows.MessageBox.Show(message, "Lỗi lưu dữ liệu", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
         }
@@ -56,13 +63,14 @@ namespace SmartStudyPlanner.ViewModels
         public FocusViewModel(TaskDashboardItem task, IStudyLogRepository studyLogRepository, IStudyTelemetry telemetry, IStudyTimeOutcomeLogRepository outcomeLogRepo)
             : this(task, studyLogRepository, telemetry, outcomeLogRepo, new NullStreakManager()) { }
 
-        public FocusViewModel(TaskDashboardItem task, IStudyLogRepository studyLogRepository, IStudyTelemetry telemetry, IStudyTimeOutcomeLogRepository outcomeLogRepo, IStreakManager streak)
+        public FocusViewModel(TaskDashboardItem task, IStudyLogRepository studyLogRepository, IStudyTelemetry telemetry, IStudyTimeOutcomeLogRepository outcomeLogRepo, IStreakManager streak, Func<string>? deviceIdProvider = null)
         {
             TaskHienTai = task;
             _studyLogRepository = studyLogRepository;
             _telemetry = telemetry;
             _outcomeLogRepo = outcomeLogRepo;
             _streak = streak;
+            _deviceIdProvider = deviceIdProvider ?? DeviceHelper.GetId;
             TieuDeTask = $"Đang Focus: {task.TenTask} ({task.TenMonHoc})";
 
             ThietLapPomodoro(true);
@@ -155,7 +163,7 @@ namespace SmartStudyPlanner.ViewModels
                 SoPhutHoc    = phutDaHoc,
                 SoPhutDuKien = 0,
                 DaHoanThanh  = daHoanThanh,
-                DeviceId     = DeviceHelper.GetId(),
+                DeviceId     = _deviceIdProvider(),
             });
         }
 

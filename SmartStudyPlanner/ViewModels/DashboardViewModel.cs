@@ -1,6 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Toolkit.Uwp.Notifications;
 using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Infrastructure.Persistence.Repositories;
 using SmartStudyPlanner.Models;
@@ -27,7 +26,6 @@ namespace SmartStudyPlanner.ViewModels
         private readonly IStudyTelemetry _telemetry;
         private readonly IStreakManager _streak;
         private HocKy _hocKyHienTai;
-        private static bool _daThongBao;
 
         [ObservableProperty] private string tieuDe;
         [ObservableProperty] private string thongKe;
@@ -123,7 +121,6 @@ namespace SmartStudyPlanner.ViewModels
                 ApplySchedule(summary.ScheduleDay);
                 ApplyAdaptations(pipelineResult.Adaptations);
                 ApplyStreak();
-                RaiseNotification(summary.TopTasks);
 
                 HasData = summary.TopTasks.Count > 0 || summary.ScheduleDay?.Tasks.Count > 0;
                 if (!HasData)
@@ -281,31 +278,6 @@ namespace SmartStudyPlanner.ViewModels
         {
             var dataStreak = _streak.GetCurrentStreak();
             ChuoiStreak = $"🔥 {dataStreak.StreakCount} Ngày";
-        }
-
-        private void RaiseNotification(IReadOnlyList<TaskDashboardItem> topTasks)
-        {
-            if (_daThongBao) return;
-
-            int urgentCount = topTasks.Count(t => t.MucDoCanhBao == "Khẩn cấp");
-            if (urgentCount > 0)
-            {
-                new ToastContentBuilder()
-                    .AddText("🔥 CẢNH BÁO DEADLINE!")
-                    .AddText($"Bạn đang có {urgentCount} bài tập KHẨN CẤP cần xử lý ngay lập tức!")
-                    .AddText("Hãy kiểm tra Smart Study Planner để xem gợi ý lịch học.")
-                    .AddAudio(new Uri("ms-winsoundevent:Notification.Default"))
-                    .Show();
-                _daThongBao = true;
-            }
-            else if (topTasks.Count > 0)
-            {
-                new ToastContentBuilder()
-                    .AddText("✅ Mọi thứ đang trong tầm kiểm soát!")
-                    .AddText($"Bạn có {topTasks.Count} bài tập, nhưng chưa có gì quá hạn.")
-                    .Show();
-                _daThongBao = true;
-            }
         }
 
         private static string GetWarningLevel(StudyTask task)

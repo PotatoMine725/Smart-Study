@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    name: Build & Test (Windows)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore SmartStudyPlanner.slnx
+
+      - name: Build
+        run: dotnet build SmartStudyPlanner.slnx --no-restore --configuration Release
+
+      - name: Test
+        run: >
+          dotnet test SmartStudyPlanner.Tests/SmartStudyPlanner.Tests.csproj
+          --no-build
+          --configuration Release
+          --logger "trx;LogFileName=test-results.trx"
+          --results-directory ${{ github.workspace }}/TestResults
+
+      # WP-2.2 removed the tests that wrote into the developer's real profile; WP-3.2
+      # very nearly put them back through two seams nobody had listed. A green suite
+      # says nothing about this — the leak was only found by looking at the disk.
+      # The runner never launches the app, so any SmartStudyPlanner directory here was
+      # created by a test, and that is always a defect.
+      - name: Assert tests did not write to the user profile
+        shell: pwsh
+        run: |
+          $leaks = @()
+          foreach ($d in @("$env:APPDATA\SmartStudyPlanner", "$env:LOCALAPPDATA\SmartStudyPlanner")) {
+            if (Test-Path $d) { $leaks += Get-ChildItem $d -Recurse -Force -File }
+          }
+          if ($leaks.Count -gt 0) {
+            Write-Host "::error::Tests wrote $($leaks.Count) file(s) into the real user profile:"
+            $leaks | ForEach-Object { Write-Host "::error::  $($_.FullName)" }
+            exit 1
+          }
+          Write-Host "No profile writes detected."
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults/*.trx
