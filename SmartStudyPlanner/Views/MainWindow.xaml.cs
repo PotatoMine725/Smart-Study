@@ -12,6 +12,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Threading;
+using System.Threading.Tasks;
 
 // Sử dụng alias để phân biệt các hàm của WPF và Windows Forms
 using WinForms = System.Windows.Forms;
@@ -41,10 +42,21 @@ namespace SmartStudyPlanner
             SetupBackgroundWorker();
         }
 
-        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             MainFrame.Navigate(new SetupPage());
             _telemetry.Track("app_main_window_loaded");
+
+            // Quét một lượt ngay khi mở app. Trước đây việc này do DashboardViewModel làm
+            // (toast riêng của nó), nhưng bản đó chỉ nhìn 1 học kỳ, chỉ đếm tối đa 5 task
+            // và đọc DiemUuTien đã lưu — nên nó vừa trùng vừa yếu hơn. Giờ chỉ còn một
+            // nguồn cảnh báo duy nhất, và nó cần chạy ở đây để người dùng không phải chờ
+            // hết 5 phút mới biết mình có deadline gấp.
+            //
+            // Đặt ở Loaded chứ KHÔNG ở constructor: SetupBackgroundWorker() chạy trong
+            // ctor, resolve ServiceLocator sớm như vậy có thể hỏng, mà try/catch bên dưới
+            // sẽ nuốt vào crash.log — hỏng im lặng, nhìn y hệt như chạy tốt.
+            await QuetVaCanhBaoDeadlineAsync();
         }
 
         private void MainFrame_Navigated(object sender, System.Windows.Navigation.NavigationEventArgs e)
@@ -101,6 +113,9 @@ namespace SmartStudyPlanner
         private int _soTaskKhanCapDaBao = 0;
 
         private async void BackgroundTimer_Tick(object sender, EventArgs e)
+            => await QuetVaCanhBaoDeadlineAsync();
+
+        private async Task QuetVaCanhBaoDeadlineAsync()
         {
             // async void trên DispatcherTimer: exception ở đây không ai await, nó rơi thẳng
             // vào DispatcherUnhandledException của App (App.xaml.cs:23) — mà handler đó bật
@@ -146,7 +161,7 @@ namespace SmartStudyPlanner
                 _soTaskKhanCapDaBao = soTaskKhanCap;
 
                 new ToastContentBuilder()
-                    .AddText("🔥 CẢNH BÁO DEADLINE (Chạy ngầm)!")
+                    .AddText("🔥 CẢNH BÁO DEADLINE!")
                     .AddText($"Bạn đang có {soTaskKhanCap} bài tập KHẨN CẤP chưa làm!")
                     .AddText("Click vào đây để mở app và giải quyết ngay!")
                     .AddAudio(new Uri("ms-winsoundevent:Notification.Default"))
