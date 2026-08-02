@@ -208,17 +208,31 @@ exercises the legacy-migration branch the original never touched:
 > page. **Expected: the capacity reads 4.5 — not 45, and not the 3.0 default — and the file
 > is rewritten as `4.5` with a dot.** Pre-fix, the same file read as 45 on an en-US machine.
 
-**Criterion #11 (deadline toast fires once) is not verified, and I did not verify it.**
-It needs a running WPF app, a database containing a task scoring ≥80, and a human
-watching Windows notifications. I did not run it, so I have not signed it. The
-discriminating recipe for whoever does — knowing what failure looks like is what makes
-the observation evidence:
+**Criterion #11 (deadline toast fires once) — PASSED, verified by the owner on 2026-08-02.**
+The recipe used, and why each step was needed:
 
-> Temporarily set the interval in `SetupBackgroundWorker` to `TimeSpan.FromSeconds(10)`,
-> launch with at least one urgent task present, and watch for ~60 s. **Expected: exactly
-> one toast, then silence.** The pre-fix behaviour was one toast per tick — so if you see
-> six, the de-dup is not wired. Then restore `FromMinutes(5)` and confirm with `git diff`
-> that nothing else moved.
+> Interval temporarily at `TimeSpan.FromSeconds(10)`, run against the real database with
+> one task scoring 100. **Expected: exactly one toast; pre-fix behaviour was one per tick.**
+> Result: **one** background toast across 12+ ticks over several minutes. Interval restored
+> to `FromMinutes(5)` and the tree confirmed identical to HEAD.
+
+Two things made the observation evidence rather than an impression:
+
+1. **A stated failure count.** "One toast" only means something next to "six would mean
+   broken." Without the second number the observation cannot fail.
+2. **An independent liveness check.** Zero toasts would have looked identical to a working
+   cooldown, and unpackaged WPF toast delivery can fail for unrelated reasons. Clicking the
+   window's X button fires a toast from a completely separate path (`OnClosing`), which
+   establishes delivery works before the timer result is read. Without it, a pass would
+   have been unfalsifiable.
+
+The run also cost one false start worth recording: `bin/Debug/` held **two** output
+directories, `net10.0-windows` (stale, five months old, from before the TFM was pinned) and
+`net10.0-windows10.0.19041.0` (the real one, matching the csproj). The agent picked the
+first glob match and pointed the owner at the stale build. Running it would have exhibited
+the *pre-fix* behaviour and produced a confident FAIL on a working fix. The owner caught it
+from a missing icon on the executable. **Resolve a build output directory from the csproj's
+`TargetFramework`, never from a glob.**
 
 ### 3.6 A revert that was not clean
 
@@ -253,7 +267,30 @@ missed entirely: a BOM breaks neither.
    first piece of non-trivial *logic* to live there. If more accumulates, the Category C
    entry deserves revisiting — but establishing an STA/UI test harness is a project of
    its own and is correctly out of scope here.
-5. **Entry criterion #11 needs an owner verifier and date** (§3.5).
+5. **Two independent toast sources announce the same thing, seconds apart — found during
+   the #11 verification.** `MainWindow.BackgroundTimer_Tick:150` emits *"CẢNH BÁO DEADLINE
+   (Chạy ngầm)! … 1 bài tập KHẨN CẤP chưa làm"* while `DashboardViewModel.RaiseNotification:294`
+   emits *"CẢNH BÁO DEADLINE! … 1 bài tập KHẨN CẤP cần xử lý ngay lập tức"*. Opening the
+   dashboard with an urgent task present produces both in the same second, about the same
+   task, in near-identical words.
+
+   Neither is a defect on its own — the dashboard toast is guarded by a `private static
+   bool _daThongBao` (`DashboardViewModel.cs:30`), so it fires at most once per process, and
+   the timer's cooldown now works. The gap is that **nothing coordinates them**: there is no
+   notification service, so each path throttles only itself. Deliberately not fixed — the
+   CSA scoped WP-5 to the timer, and a shared throttle is a new seam, which the plan's *Out
+   of Scope* excludes. It belongs wherever notifications get an owner.
+
+   Cosmetic sub-item for the same fix: **"(Chạy ngầm)" is misleading.** It reads as "the app
+   is minimised", but `SetupBackgroundWorker` starts in the constructor and the timer runs
+   whether the window is open or not. This is precisely what made the duplicate look like a
+   de-dup failure during verification.
+
+6. **Entry criteria #11 and #12 are now both signed** (§3.5), taking Epic 2 entry criteria to
+   **9 of 12**: met are #2–#7, #9, #11, #12. The three outstanding are **#1** (require
+   `build-test` on `dev`/`main` — owner action, needs admin scope), **#8** (README test count,
+   owned by WP-6), and **#10** (gate G4 on the Epic 2 planning agenda — owner). None is
+   blocked on engineering work in this plan.
 
 ---
 
