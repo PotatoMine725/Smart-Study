@@ -617,7 +617,7 @@ Confirmed only — each item was observed in code at `d3deca7`. No speculation.
 | `AutoApplyThreshold` dead on the parsing path | `IntentClassifierAdapter.cs:34-36` |
 | `capacity.txt` parsed culture-sensitively | Config |
 | `DeviceId` recomputed, never persisted | Sync |
-| Notification timer is `async void`, no `try`/`catch`, no toast de-dup | `App.xaml.cs` |
+| Notification timer is `async void`, no `try`/`catch`, no toast de-dup | `App.xaml.cs` — **Corrected: `Views/MainWindow.xaml.cs:96`** (see Corrections, item 3) |
 | `Verify.CommunityToolkit.Mvvm` referenced by the production csproj, unused by both projects | csproj |
 | 3 fire-and-forget persistence writes | `:219`, `:123`, `:90-101` |
 
@@ -631,7 +631,7 @@ negative — is currently evidence-backed.
 | Item | Detail |
 |---|---|
 | **No CI** | `.github/workflows/` is empty and untracked |
-| 11 of 346 cases are pure duplicates | three byte-identical file pairs |
+| 11 of 346 cases are pure duplicates | three byte-identical file pairs — **Corrected: does not reproduce** (see Corrections, item 2) |
 | Zero-coverage directories | `Views/` (9), `Converters/` (11), `Controls/` (DonutChart), `Core/Parsing/Engines/` (2), `Core/Scheduling/Evaluators/` (PriorityEvaluator), `Core/Risk/Aggregators/` (RiskAggregator) |
 | Additional untested types | `ProgressGapRiskEvaluator`, `WorkloadServiceImpl`, `SystemClock`, `DashboardViewModel`, `SetupViewModel`, `WorkloadBalancerViewModel`, `MLModelManager`, `SeedDataGenerator`, `TaskCascadeHelper`, `SyncStamper`, `ThemeManager` |
 | **A false green exists** | see below |
@@ -929,6 +929,13 @@ whoever sequences the work.
     with 0 errors **and produced `SmartStudyPlanner.exe`** under
     `bin/Debug/net10.0-windows10.0.19041.0/`. The missing icon does not break the build;
     it simply is not in the repository.
+
+    > **Corrected (2026-08-02).** The premise is wrong, though the observation was right.
+    > `SmartStudyPlanner.csproj` sits *inside* `SmartStudyPlanner/`, so both references are
+    > project-relative and resolve to `SmartStudyPlanner/Assets/icon.ico` — which **is
+    > tracked**. The untracked directory was the *root* `Assets/`, referenced by nothing.
+    > The clean clone built because the icon it needs is committed, not in spite of a missing
+    > one, and the icon was never actually missing. See Corrections, item 1.
 16. **Two doc claims are stale:** README says 337 tests (actual 346); roadmap §A.1 and
     `CLAUDE.md` disagree on the GitNexus symbol count and both predate `d3deca7`.
 17. **Analytics computation is split between the service and the ViewModel.**
@@ -1087,10 +1094,62 @@ creates no tasks and sequences nothing.
 - README's "337 tests" and the roadmap/`CLAUDE.md` GitNexus symbol counts are stale.
 - `.github/workflows/` is untracked and empty.
 - `Assets/` is untracked and not gitignored while being referenced twice by the
-  production csproj.
+  production csproj. — **Corrected 2026-08-02:** the csproj's two references are
+  project-relative and resolve to the *tracked* `SmartStudyPlanner/Assets/icon.ico`; the
+  untracked directory was the unreferenced *root* `Assets/`. **Closed** — its unique design
+  sources moved to `docs/assets/icon-source/` and the root folder was deleted (WP-6 Task 6.1).
 - Gates **G2** (SOE pass semantics) and **G4** (tombstone retention) remain open.
 - `docs/plans/2026-07-20-analytics-two-section-redesign.md` is designed and uncoded.
 - Two dependency advisories (NU1903 high, NU1904 critical) surface on every build — both
   already on the roadmap's deferred ledger (`system_roadmap.md:100-102`).
 - The #46/#47 redesign remains parked in history and un-integrated; the owner has a
   standing ask to be reminded it exists.
+
+---
+
+## Corrections (2026-08-02)
+
+Appended by WP-6 Task 6.2 of `docs/plans/2026-07-27-post-epic1-stabilization.md`. The body
+above is **not** rewritten — this report is the record of what was assessed on 2026-07-27,
+and editing it silently would destroy that. Three of its statements did not survive contact
+with the files when the stabilization plan was written against them. Each is corrected here
+and flagged inline at its anchor.
+
+The plan's governing instruction was to *assume every finding is verified* and schedule no
+re-review. That instruction held for the findings themselves; it did not hold for the
+**anchors and paths** attached to them. All three errors below are of that kind — the
+observed symptom was real, the location or the mechanism was not.
+
+**1. Finding 15 and the matching follow-up: `Assets/` was never a build dependency.**
+`SmartStudyPlanner.csproj` lives *inside* `SmartStudyPlanner/`, so its two references
+(`<ApplicationIcon>` at `:13`, `<Resource Include>` at `:34`) are project-relative and
+resolve to `SmartStudyPlanner/Assets/icon.ico` — confirmed tracked by `git ls-files`. The
+untracked directory was the **root** `Assets/`, which nothing in the build referenced. The
+clean clone therefore built for an ordinary reason. The root copy's `icon.ico` was
+byte-identical to the tracked one (md5 `d2bc90edcb01d398ce82ded7ff497177`); the rest of it
+was unique design source. **Now closed:** those sources are committed at
+`docs/assets/icon-source/` and the root directory is deleted (WP-6 Task 6.1).
+
+**2. §8.4's "11 of 346 cases are pure duplicates — three byte-identical file pairs" does not
+reproduce.** The only byte-identical `.cs` pairs anywhere under `SmartStudyPlanner.Tests/`
+are generated build artifacts beneath `obj/` — `.NETCoreApp,Version=v10.0.AssemblyAttributes.cs`,
+`SmartStudyPlanner.Tests.GlobalUsings.g.cs`, `Verify.Attributes.cs` — each a Debug/Release
+copy of the same generated file. No duplicated test *source* exists. No dedup work was
+scheduled as a result; had the claim been taken at face value, the plan would have carried a
+work item with nothing behind it.
+
+**3. §8.2 anchors the unguarded notification timer to `App.xaml.cs`. Wrong file.**
+`App.xaml.cs` already wraps all three of its background `Task.Run` bodies in `try`/`catch`.
+The unguarded `async void` was `Views/MainWindow.xaml.cs:96` (`BackgroundTimer_Tick`), with
+the 1-minute interval at `:87-94`. The defect was real and is now fixed (WP-5.1, `9a175b9`),
+but a reader following the anchor would have found already-correct code and concluded the
+finding was spurious.
+
+### One figure that has since moved
+
+§8.6's **192 build warnings** no longer reproduces either, but this is drift rather than an
+error — packages and code changed across six work packages. Measured at WP-6 (Debug,
+`--no-incremental`): **184 warning lines**, which MSBuild summarises as **94 Warning(s)**
+after per-project de-duplication. The two counts differ because the same warning is emitted
+once per referencing project. `CS8618` remains the bulk of it and stays Category C. The
+figure is a measurement, not a target; CI now records it on every run.
