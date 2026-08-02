@@ -4,7 +4,7 @@
 **Package:** WP-6 (Category B) of `docs/plans/2026-07-27-post-epic1-stabilization.md` — the last of six
 **Commits:** `12291d0` (6.1a, design sources) · `6416e50` (6.1b delete + 6.2 docs/counts/CSA/G4)
 **Suite:** **391** passing, unchanged by this package — it adds no tests and no production logic
-**Closes:** Epic 2 entry criteria **#8** and **#10**. Criteria now **11 of 12**.
+**Closes:** Epic 2 entry criteria **#8** and **#10**; **#1** closed the same day once the owner authorised branch protection. Criteria now **12 of 12** — see §3.5a for the one property that is configured but not yet demonstrated.
 
 ---
 
@@ -121,19 +121,46 @@ The distinction matters beyond this instance: *unable* and *not mine to decide* 
 blockers, and only one of them is fixed by finding a token with more scope. The plan collapsed
 them, and had the token check gone the other way the error would never have surfaced.
 
-Ready when the owner is:
+**Resolved the same day.** The owner authorised it, and protection is now enabled on **both**
+`dev` and `main`:
 
-```bash
-gh api -X PUT repos/:owner/:repo/branches/dev/protection \
-  -F required_status_checks.strict=true \
-  -f 'required_status_checks.contexts[]=build-test' \
-  -F enforce_admins=false \
-  -F required_pull_request_reviews=null \
-  -F restrictions=null
+```json
+{ "required_status_checks": { "strict": true, "contexts": ["build-test"] },
+  "enforce_admins": false, "required_pull_request_reviews": null, "restrictions": null }
 ```
 
-`enforce_admins=false` is deliberate — it leaves the owner an escape hatch on a solo repository.
-Repeat for `main`.
+Applied with `gh api -X PUT repos/:owner/:repo/branches/{dev,main}/protection --input …` and
+then **read back with a separate `GET`** rather than trusting the write response:
+`contexts:["build-test"], strict:true, enforce_admins:false, allow_force_pushes:false,
+allow_deletions:false` on both. Criterion #1 closes; entry criteria reach **12 of 12**.
+
+### 3.5a The gate is configured but not yet demonstrated
+
+`enforce_admins=false` was deliberate — an escape hatch on a solo repository. It has a second
+consequence worth naming rather than leaving for someone to discover: **admins are exempt from
+the protections entirely**, including the required check and the force-push block. On a
+repository whose only pusher is an admin, the gate is configured and currently binds nobody.
+
+That is exactly the failure mode this project already has a standard for — *a signal that has
+not been shown to go red is not yet evidence* (see the WP-4/WP-5 mutation work). The push that
+carried this report went straight to `dev` and succeeded, which is the proof: the protection did
+not block it.
+
+So the honest statement is layered:
+
+- **Configured:** yes, verified by read-back on both branches.
+- **Enforcing against non-admins:** yes, by construction.
+- **Enforcing against the account that actually pushes:** no.
+
+Criterion #1 is met as worded — it asks for a required status check, and there is one. Closing
+the remaining gap is one flag, and it is a workflow decision rather than a missing step: with
+`enforce_admins=true` the owner must open a PR for every change to `dev` and `main` and cannot
+bypass a red check, and the escape hatch becomes "toggle the setting off", which is itself one
+API call.
+
+```bash
+gh api -X PUT repos/:owner/:repo/branches/dev/protection/enforce_admins   # and main
+```
 
 ### 3.6 Criterion #10 is satisfied by writing it down, which is weaker than it sounds
 
@@ -260,8 +287,11 @@ cheaper than discovering it mid-task.
 
 ## 6. Follow-ups
 
-1. **Criterion #1 (branch protection) is the only Epic 2 entry criterion still open.** Owner
-   action; the exact command is in §3.5. Until it is set, WP-1 measures without enforcing.
+1. ~~**Criterion #1 (branch protection) is the only Epic 2 entry criterion still open.**~~
+   **CLOSED 2026-08-02**, owner-authorised — `build-test` required on `dev` and `main`,
+   verified by read-back. **Epic 2 entry criteria: 12 of 12.** One open sub-question remains,
+   deliberately not decided here: `enforce_admins=false` means the gate does not bind the
+   owner's own pushes (§3.5a). Flipping it is one API call and a real workflow change.
 2. **`Prompt/` and `tools/epic1_b2_verify.py` remain untracked.** Out of WP-6's scope, which the
    plan limited to root `Assets/`. Both are real artifacts (session prompts and a verification
    script) and neither is gitignored, so `git status` stays noisier than it needs to be. Worth a
