@@ -1486,7 +1486,9 @@ Expected: 0 errors, `Failed: 0`.
 
 - [ ] **Step 4: Verify the round-trip by hand**
 
-Launch the app, set capacity to a fractional value (e.g. 4.5 hours) in the workload UI, close, and inspect `capacity.txt` under the build output directory. Expected content: `4.5` (a dot, regardless of system locale). Reopen the app and confirm the value survives.
+> **Corrected 2026-08-02 (WP-5 execution).** As written this step cannot be performed: the capacity slider is `Minimum="1" Maximum="8" TickFrequency="1" IsSnapToTickEnabled="True"` (`WorkloadBalancerPage.xaml:68`), so a fractional value is not reachable through the UI — and an integer proves nothing, since integers format identically in every culture (measured: `5.0.ToString(vi-VN)` == `"5"` == `.ToString(Invariant)`). Use the replacement below; it is discriminating *and* it exercises the legacy-migration branch the original never touched.
+
+Put `4,5` (with a comma) in `capacity.txt` next to the executable, launch the app, and open the workload page. Expected: capacity reads **4.5** — not 45, and not the 3.0 default — and the file is rewritten as `4.5` with a dot. Pre-fix, that same file read as **45** on an en-US machine. Reopen and confirm the value survives.
 
 - [ ] **Step 5: Commit**
 

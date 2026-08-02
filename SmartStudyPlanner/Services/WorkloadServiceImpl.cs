@@ -60,6 +60,13 @@ namespace SmartStudyPlanner.Services
                 return DefaultCapacityHours;
             }
 
+            // NumberStyles.Float vẫn nhận "NaN"/"Infinity", và "1e400" tràn thành +∞ mà vẫn
+            // trả true. Math.Max(NaN, x) = NaN chứ không chọn toán hạng kia, nên riêng cái sàn
+            // KHÔNG chặn được: NaN lọt xuống thành (int)(NaN*60) = 0 — đúng lại lỗi treo mà
+            // sàn sinh ra để chặn — còn +∞ cast ra int.MinValue làm spaceLeft âm và
+            // remainingMinutes TĂNG mỗi vòng lặp. Không hữu hạn thì coi như rác.
+            if (!double.IsFinite(val)) return DefaultCapacityHours;
+
             return Math.Max(val, MinCapacityHours);
         }
 

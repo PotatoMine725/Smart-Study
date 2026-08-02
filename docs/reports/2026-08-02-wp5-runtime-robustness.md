@@ -2,8 +2,8 @@
 
 **Date:** 2026-08-02
 **Package:** WP-5 (Category B) of `docs/plans/2026-07-27-post-epic1-stabilization.md`
-**Commits:** `9a175b9` (5.1 timer guard) · `54f64ca` (5.2 capacity round-trip + tests)
-**Suite:** 368 → 379 passing, green in Debug and Release
+**Commits:** `9a175b9` (5.1 timer guard) · `54f64ca` (5.2 capacity round-trip + tests) · `+1` (non-finite guard, §3.3a)
+**Suite:** 368 → 383 passing, green in Debug and Release
 
 ---
 
@@ -41,6 +41,7 @@ evidence that a fix is pinned. Three mutations, each reverting one half of the f
 | Restore the two-argument `double.TryParse` | RED | `..._DauPhayTrenMayEnUS_...`, `..._SoInvariant_DocDungTrenMoiCulture` |
 | Drop `Math.Max(val, MinCapacityHours)` | RED | `..._GiaTriQuaNho_BiKepLenSanToiThieu` (all 3 `InlineData` rows) |
 | Restore `capacity.ToString()` | RED | `SaveCapacity_LuonGhiDauCham...`, `Capacity_GhiTrenViVN_DocLaiTrenEnUS...` |
+| Drop `!double.IsFinite(val)` | RED | `..._GiaTriKhongHuuHan_VanTraVeSoDungDuoc` (3 of 4 rows) |
 | **Control — no mutation** | **GREEN** | — |
 
 The control row matters: without it, three REDs only prove the harness reports RED,
@@ -102,6 +103,19 @@ write without the `NumberStyles.Float` read, it would have **introduced** a 45-h
 capacity on every vi-VN install. The two halves were correctly specified as inseparable;
 this is the concrete reason why.
 
+**But the app itself never writes a value any of this can affect.** The capacity slider is
+`Minimum="1" Maximum="8" TickFrequency="1" IsSnapToTickEnabled="True"`
+(`WorkloadBalancerPage.xaml:68`), so every value the UI produces is an integer — and
+integers format identically in every culture (measured: `5.0.ToString(vi-VN)` and
+`.ToString(Invariant)` are both `"5"`; only `4.5` diverges to `"4,5"`/`"4.5"`).
+
+So the plan's framing — *"a locale change, a hand edit, or any config sync breaks it
+silently"* — overstates the locale half. A locale change alone cannot break a file
+containing `5`. The actual threat model for **all three** `capacity.txt` defects is the
+same one: a **non-integer or otherwise hand-authored file**. That unifies them into one
+story rather than three, and it is why defect 5 (the hang) is the sharpest of the three —
+hand-editing the file is precisely how a value below 1/60 arrives.
+
 ### 3.3 The clamp goes in the reader, at the floor only
 
 `WorkloadBalancerViewModel`'s constructor does `CapacityHours = GetCapacity()` and then
@@ -114,8 +128,8 @@ surface this task owns.
 Every production path into `GenerateSchedule`'s `capacityHours` was traced and each
 originates at `GetCapacity` or the slider: `WorkloadBalancerViewModel:26`,
 `DashboardViewModel:116` (which is the only production site constructing
-`PipelineUserSettings`, feeding `BalanceWorkloadStage:40`). Clamping the reader closes
-all of them.
+`PipelineUserSettings`, feeding `BalanceWorkloadStage:40`). Closing the reader therefore
+closes all of them — but *closing the reader* took two guards, not one (§3.3a).
 
 Three deliberate choices:
 
@@ -128,6 +142,40 @@ Three deliberate choices:
   app's existing statement of its smallest supported capacity, and because
   `BuildSchedule` calls `SaveCapacity` immediately, the clamped value persists as
   something the UI can actually display.
+
+### 3.3a The floor alone did not close the hang — `NaN` and `Infinity` walked straight through it
+
+**This corrects a claim that was published in `54f64ca` before it was checked.** That
+commit's message and this report's first draft both said the clamp closed the file
+ingress to the hang. It did not, and the gap was found in review afterwards.
+
+`NumberStyles.Float` still accepts `"NaN"`, `"Infinity"` and `"-Infinity"`, and on .NET
+Core an overflowing literal like `"1e400"` returns `true` with `+∞` rather than failing.
+`Math.Max` **propagates** `NaN` instead of choosing the non-`NaN` operand, so
+`Math.Max(NaN, 1.0)` is `NaN`. Measured, not reasoned — the test printed
+`GetCapacity trả về NaN cho input NaN` and `∞ cho input 1e400`.
+
+Downstream, both are worse than the original defect:
+
+| Input | `capacityMinutes = (int)(h * 60)` | Effect in the allocator |
+|---|---|---|
+| `NaN` | `0` | Exactly the WP-4 §3.1 infinite loop the clamp existed to close |
+| `Infinity` | `int.MinValue` | `spaceLeft` negative → `chunk` negative → `remainingMinutes` **grows** each iteration |
+| `-Infinity` | — | Caught: `Math.Max(-∞, 1.0)` is `1.0` |
+
+Three of the four cases were live. Fixed with a `!double.IsFinite(val)` guard that treats
+non-finite values as garbage, i.e. the same as an unparseable file.
+
+The tests assert the **postcondition** — `GetCapacity` returns a finite value ≥
+`MinCapacityHours` for every input — rather than trying to observe the hang. Same shape as
+the floor test, and mutation-verifiable the same way (dropping the guard turns 3 rows red).
+
+**Why this is worth a section.** `docs/knowledge/review-methodology.md` says a claim that
+sets another package's severity must be measured, not derived. "Clamping the reader closes
+all of them" is exactly such a claim: it set the residual risk that Follow-up 1 hands to
+Epic 3. It was derived from the shape of the fix rather than from trying inputs, and a
+two-minute test refuted it. The lesson from WP-4 was applied to the *tests* and not to the
+*prose*, which is where it was needed.
 
 ### 3.4 The cooldown keys on growth, not on the count
 
@@ -149,6 +197,16 @@ deviation from the written plan, not an implementation detail.
 is the whole of the round-trip; a process restart adds only the assertion that the
 installed layout's `BaseDirectory` is writable. The 30-second manual check is still
 worth doing, but it is no longer the only evidence.
+
+**The plan's manual recipe for #12 cannot be performed as written.** It says to *"set
+capacity to a fractional value (e.g. 4.5 hours) in the workload UI"* — but the slider
+snaps to integers (§3.2), so 4.5 is not reachable through the UI, and an integer file
+would demonstrate nothing anyway. Replacement recipe, which is discriminating *and*
+exercises the legacy-migration branch the original never touched:
+
+> Put `4,5` (comma) in `capacity.txt` next to the executable, launch, and open the workload
+> page. **Expected: the capacity reads 4.5 — not 45, and not the 3.0 default — and the file
+> is rewritten as `4.5` with a dot.** Pre-fix, the same file read as 45 on an en-US machine.
 
 **Criterion #11 (deadline toast fires once) is not verified, and I did not verify it.**
 It needs a running WPF app, a database containing a task scoring ≥80, and a human
@@ -221,7 +279,12 @@ therefore WP-4's characterization — untouched.
 *Experience:* The deciding argument was testability, not elegance. A guard inside
 `GenerateSchedule` is arguably the more robust placement, but it cannot be verified
 without risking the hang it prevents, so it would have shipped as an assertion rather
-than a demonstrated fix.
+than a demonstrated fix. **The floor alone turned out to be insufficient** (§3.3a): `NaN`
+and `Infinity` parse successfully and survive `Math.Max`, so the clamp needed a
+finiteness guard beside it. Worth sitting with — the floor was mutation-tested and green,
+and it still did not do what its commit message claimed, because the mutation sweep can
+only test inputs the tests thought to supply. Non-vacuity proves a test *discriminates*;
+it does not prove the input space was covered.
 
 **Decision: key the toast cooldown on urgency *growth* rather than on count equality.**
 *Why:* The plan's version re-fires on any count change, and the count changes routinely —

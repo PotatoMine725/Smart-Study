@@ -133,6 +133,26 @@ namespace SmartStudyPlanner.Tests.Services
             WithCulture("en-US", () => Assert.Equal(1.0, Sut().GetCapacity()));
         }
 
+        [Theory]
+        [InlineData("NaN")]
+        [InlineData("Infinity")]
+        [InlineData("-Infinity")]
+        [InlineData("1e400")]      // tràn double -> +Infinity (.NET Core trả true, không fail)
+        public void GetCapacity_GiaTriKhongHuuHan_VanTraVeSoDungDuoc(string noiDung)
+        {
+            // NumberStyles.Float vẫn nhận "NaN"/"Infinity", và Math.Max(NaN, 1.0) = NaN chứ
+            // KHÔNG chọn toán hạng khác NaN — nên sàn tối thiểu một mình không chặn được.
+            // Lọt xuống GenerateSchedule thì (int)(NaN * 60) = 0 -> đúng lại lỗi treo vô hạn
+            // mà sàn này sinh ra để chặn; còn Infinity thì cast ra int.MinValue, spaceLeft âm,
+            // remainingMinutes TĂNG mỗi vòng. Hậu điều kiện phải là: luôn hữu hạn và >= sàn.
+            GivenFile(noiDung);
+
+            double val = Sut().GetCapacity();
+
+            Assert.True(double.IsFinite(val), $"GetCapacity trả về {val} cho input {noiDung}");
+            Assert.True(val >= 1.0, $"GetCapacity trả về {val} cho input {noiDung}");
+        }
+
         [Fact]
         public void SaveCapacity_LuonGhiDauCham_KeCaTrenCultureVietNam()
         {
