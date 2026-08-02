@@ -152,15 +152,40 @@ So the honest statement is layered:
 - **Enforcing against non-admins:** yes, by construction.
 - **Enforcing against the account that actually pushes:** no.
 
-Criterion #1 is met as worded — it asks for a required status check, and there is one. Closing
-the remaining gap is one flag, and it is a workflow decision rather than a missing step: with
-`enforce_admins=true` the owner must open a PR for every change to `dev` and `main` and cannot
-bypass a red check, and the escape hatch becomes "toggle the setting off", which is itself one
-API call.
+Criterion #1 is met as worded — it asks for a required status check, and there is one.
+
+### 3.5b Resolution: enforce on `main`, stay out of the way on `dev`
+
+Owner-directed, 2026-08-02: *"choose the one that suits my solo work."* The setting is now
+**split**, because the two branches are used in genuinely different ways:
+
+| Branch | `enforce_admins` | Why |
+|---|---|---|
+| `dev` | **false** | Daily work. Every commit in this plan's six packages went here directly. Forcing a PR per doc fix buys nothing when there is no second reviewer. |
+| `main` | **true** | Released state. **Already only ever reached by PR** — #42, #43, #45, #48, #49 are all merges, with no direct pushes in its history. Enforcement therefore costs zero friction and is not theoretical. |
+
+This is what makes the split defensible rather than a compromise: turning enforcement on for
+`main` did not change how anyone works, because nobody was pushing to `main` directly. It
+converts an existing habit into a guarantee. Turning it on for `dev` *would* have changed the
+workflow, and there is no second person for that ceremony to protect against.
+
+The honest layered statement from §3.5a now reads: on `main`, configured **and** binding on
+every account including the owner. On `dev`, configured, binding on non-admins, advisory for
+the owner — deliberately, because `dev` is where iteration happens and the owner is the only
+one iterating.
+
+**Correction to the command published in the first draft of this section:** it used `-X PUT`.
+The endpoint is **`POST`** — `PUT` returns `404 Not Found`, which reads like a missing resource
+rather than a wrong verb and would have sent the next reader looking for the wrong problem.
 
 ```bash
-gh api -X PUT repos/:owner/:repo/branches/dev/protection/enforce_admins   # and main
+gh api -X POST   repos/:owner/:repo/branches/main/protection/enforce_admins   # enable
+gh api -X DELETE repos/:owner/:repo/branches/main/protection/enforce_admins   # the escape hatch
 ```
+
+The escape hatch survives: an admin can `DELETE` that sub-resource in one call. What is gone is
+the *silent* bypass — turning enforcement off is now a deliberate act that leaves a trace,
+rather than something that happens by default on every push.
 
 ### 3.6 Criterion #10 is satisfied by writing it down, which is weaker than it sounds
 
@@ -292,10 +317,14 @@ cheaper than discovering it mid-task.
    verified by read-back. **Epic 2 entry criteria: 12 of 12.** One open sub-question remains,
    deliberately not decided here: `enforce_admins=false` means the gate does not bind the
    owner's own pushes (§3.5a). Flipping it is one API call and a real workflow change.
-2. **`Prompt/` and `tools/epic1_b2_verify.py` remain untracked.** Out of WP-6's scope, which the
-   plan limited to root `Assets/`. Both are real artifacts (session prompts and a verification
-   script) and neither is gitignored, so `git status` stays noisier than it needs to be. Worth a
-   decision — track, ignore, or delete — but not one to make silently.
+2. ~~**`Prompt/` and `tools/epic1_b2_verify.py` remain untracked.**~~ **CLOSED 2026-08-02**,
+   owner-directed: both are personal tooling and are now gitignored. The rules are written
+   narrowly — `/Prompt/` and `/tools/epic1_b2_verify.py`, anchored, the *file* rather than
+   `tools/` — because `tools/TextClassifierEval/` is tracked source and an unanchored or
+   directory-wide rule would have swallowed it. Verified with `git check-ignore -v` (both hit,
+   at `.gitignore:110` and `:111`) and by confirming `git ls-files tools/` still lists
+   `TextClassifierEval/Program.cs` and its csproj. `git status` is now clean apart from
+   unrelated `.claude/` local settings.
 3. **The GitNexus index goes stale on the next commit, by construction.** The counts in
    `system_roadmap.md` and `CLAUDE.md` carry the commit they were taken at (`12291d0`) so a
    reader can tell. Chasing exactness here is a treadmill; the commit reference is the fix.
