@@ -17,7 +17,7 @@
 | Build | green (`dotnet build SmartStudyPlanner.slnx`) |
 | Tests | green — exact count lives in the README / CI (`dotnet test --no-build`); not hard-coded here |
 | Version | `1.5.0` |
-| GitNexus index | 4,291 symbols / 9,848 relationships / 120 execution flows (re-indexed at commit `12291d0`, 2026-08-02) |
+| GitNexus index | 4,254 symbols / 9,791 relationships / 120 execution flows (re-indexed at commit `5bf7342`, 2026-08-04) |
 
 ## A.2 Completed milestones
 
