@@ -280,9 +280,23 @@ field" change to a synced entity is also a merge-surface change and gets reviewe
 
 ---
 
-## L8 — **OPEN** — Granularity of evaluation ≠ granularity of commitment (optimization-pass semantics)
+## L8 — **RESOLVED (pending CP-1 ratification)** — Granularity of evaluation ≠ granularity of commitment (optimization-pass semantics)
 
-> **Status: OPEN by explicit decision (2026-07-02).** The defect analysis below is agreed;
+> **Status 2026-08-04 — resolution recorded, awaiting owner ratification at CP-1.** Gate **G2**
+> is closed as a decision note:
+> [`../plans/2026-08-04-g2-optimization-pass-semantics.md`](../plans/2026-08-04-g2-optimization-pass-semantics.md)
+> (**G2-1 … G2-6**). The mechanism is *run-all, commit-best-prefix*: every stage runs unconditionally,
+> each produces a checkpoint, and the pass commits the best **admissible** checkpoint (D-H first, then
+> quality). The **all-or-nothing veto** is structurally impossible — four gains are never discarded for
+> a fifth regression. The **determinism paradox** is dissolved by naming what varies: the committed
+> schedule state, and nothing else; a pass that commits nothing is the fixed point and stops the loop
+> immediately. The objective non-worsening threshold is strict, with a relative numerical-noise guard
+> only. The defect analysis below is unchanged and still correct — it is *why* the resolution takes the
+> shape it does. **Until CP-1 ratifies the note, the historical status directly below still governs
+> what may be implemented.** On ratification, drop the "pending" qualifier here and in the note.
+
+> **Status: OPEN by explicit decision (2026-07-02).** *(Historical — superseded 2026-08-04 by the
+> note linked above; preserved per "Using this document".)* The defect analysis below is agreed;
 > the *resolution* is not. Do not implement, and do not treat any candidate mechanism here as
 > chosen.
 
