@@ -75,8 +75,9 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
    archived 2026-07-26 → `legacy/Archived plans/`, local-only),
    superseding the earlier "do not release yet" hold. **Post-release backlog:** the Analytics
    **two-section redesign** + subject-filter / range-vs-trend semantics
-   ([design brief](../plans/2026-07-20-analytics-two-section-redesign.md), design-only) and the
-   latent `MucDoCanhBao` ctor gap (§A.4). The last-synced base-snapshot store for 3-way merge
+   ([design brief](../plans/2026-07-20-analytics-two-section-redesign.md), design-only). *(The
+   latent `MucDoCanhBao` ctor gap listed here has since been closed — §A.4.)* The last-synced
+   base-snapshot store for 3-way merge
    lands with the LAN-sync epic, co-designed with its consumer (master plan M2.1). See
    [`../architecture/data-model.md`](../architecture/data-model.md) §8.
 2. **Study Optimization Engine** *(on top of the sync-ready data model — D-B)* — evolves the Balancer (Part B §7.3).
@@ -113,16 +114,13 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
 - **`System.Drawing.Common` NU1904** vulnerability — ~30 min, independent.
 - **`SQLitePCLRaw` NU1903** high-severity advisory — visible in every build; not Epic-1-caused,
   tracked but not yet scheduled (closure-verdict carry-forward ledger #8).
-- **`StudyTask.MucDoCanhBao` unstamped-by-constructor gap** — latent, surfaced 2026-07-19 during the
-  B4 reopen. The column is `NOT NULL` in the schema, but the 4-arg `StudyTask` ctor leaves it null;
-  today every persisted task is safe only because `QuanLyTaskViewModel.TinhDiemVaSapXep()` stamps it
-  before each save. This is the *same shape* as the `MaMonHoc` bug that caused B4 — a constructor that
-  doesn't establish an invariant the persistence layer requires. Any future call site that saves a
-  `StudyTask` without routing through the ViewModel will hit `SQLite Error 19: NOT NULL constraint
-  failed`. Not fixed in the reopen (out of its minimal P0 scope) and **not surveyed** — no audit of
-  existing call sites was performed. Candidate fix: establish the default in the ctor, or make the
-  column nullable with a computed read. See `2026-07-19-epic1-reopen-fix-plan.md` (archived
-  2026-07-26 → `legacy/Archived plans/`, local-only).
+- *(Closed 2026-07-31, no longer deferred: the **`StudyTask.MucDoCanhBao` unstamped-by-constructor
+  gap** — latent since 2026-07-19, the same shape as the `MaMonHoc` bug that caused B4 — was fixed by
+  WP-3.3 of the post-Epic-1 stabilization (`78f16bb`). `StudyTask.MucDoCanhBao` now defaults to
+  `"An toàn"` at declaration (`Models/StudyTask.cs:30`), so a task built from its constructor saves
+  without `SQLite Error 19` and no longer depends on `QuanLyTaskViewModel.TinhDiemVaSapXep()` stamping
+  it first. Pinned by `TaskDungTuCtor_LuuDuocMaKhongCanUIStampMucDoCanhBao`, which failed with exactly
+  that error beforehand.)*
 - *(Promoted out of "deferred": the old "Core/Sync + PostgreSQL — far-future Phase 4" item is now the
   planned **LAN-sync epic** in A.3, targeting LAN two-way merge rather than PostgreSQL/cloud.)*
 

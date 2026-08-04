@@ -18,7 +18,7 @@ Epic 3 (SOE) is next and does not require Epic 2. Nothing below was touched by s
 | Work | Plan | State |
 |---|---|---|
 | **Analytics two-section redesign** | [`../plans/2026-07-20-analytics-two-section-redesign.md`](../plans/2026-07-20-analytics-two-section-redesign.md) | QUEUED — design brief only (owner post-release backlog); not implemented. Phase 3 unlocked, not started |
-| **UI fidelity + mobile-ready polish** | [`../plans/2026-07-05-ui-mobile-ready-polish.md`](../plans/2026-07-05-ui-mobile-ready-polish.md) | PROPOSED (branch `ui_rf`) |
+| **UI fidelity + mobile-ready polish** | [`../plans/2026-07-05-ui-mobile-ready-polish.md`](../plans/2026-07-05-ui-mobile-ready-polish.md) | PROPOSED, on `dev` — `ui_rf` was adopted as the tested trunk and merged (PR #49, 2026-07-26), so the plan is no longer branch-scoped; it remains unimplemented |
 
 Deferred items that exit via *data*, not code (tracked in the roadmap, not here):
 M8-B ML training (waits for matured `WeightChangeLog` rows with class balance);
