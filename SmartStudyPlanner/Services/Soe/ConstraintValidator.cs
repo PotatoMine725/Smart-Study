@@ -24,15 +24,26 @@ namespace SmartStudyPlanner.Services.Soe
     ///
     /// Predicate này CĂN THEO định nghĩa KHÔNG VÁCH ĐÁ của <c>DeadlineUrgencyRiskEvaluator</c>, và
     /// từ chối định nghĩa "vách đá 3 ngày" của <c>IUrgencyRule</c> — không phải vì thích hơn, mà vì
-    /// vách đá KHÔNG DÙNG ĐƯỢC ở đây: D-H's khóa so sánh thứ hai (tổng số phút trễ hạn) đòi hỏi
-    /// magnitude phải ĐƠN ĐIỆU TĂNG theo mức độ trễ — một task trễ 10 ngày phải nặng hơn một task
-    /// trễ 1 ngày. Nếu áp vách đá 3-ngày (biến "vi phạm" thành 0 sau khi quá 3 ngày, đúng như
-    /// <c>OverdueRule</c> làm với ĐIỂM ưu tiên), một chunk trễ 10 ngày và một chunk trễ 30 ngày sẽ
-    /// không thể phân biệt được nữa (cả hai đều "quá vách đá") — vi phạm thẳng chính bất biến D-H
-    /// mà validator này tồn tại để phục vụ. Đây là một khẳng định về TÍNH TƯƠNG THÍCH cấu trúc, không
-    /// phải một sở thích: định nghĩa vách đá không tương thích với một magnitude đơn điệu; định
-    /// nghĩa không-vách-đá thì có. Việc HAI component (Decision Engine, Risk Analyzer) bất đồng với
-    /// nhau là DF-1 — không phải việc của T3.1 để hoà giải (đã hoãn, chủ sở hữu: DP-1).
+    /// vách đá phá vỡ chính TÍNH TOÀN VẸN của một hard filter (D-J), không phải vì lý do
+    /// "monotonicity" của magnitude (đã sửa — xem CHÚ Ý bên dưới). Nếu áp vách đá 3-ngày (một chunk
+    /// quá 3 ngày trễ không còn được coi là "vi phạm" nữa, đúng như <c>OverdueRule</c> làm với ĐIỂM
+    /// ưu tiên — rơi về 0 nghĩa là "bỏ cuộc", không phải "hết hạn"), một chunk trễ 30 ngày có thể
+    /// đọc thành KHÔNG VI PHẠM, khiến <c>IsFeasible</c> trả về true cho một lịch biểu trễ hạn thảm
+    /// khốc — đây mới là lý do loại vách đá: nó làm biến mất chính predicate feasible/infeasible mà
+    /// D-J yêu cầu là tuyệt đối, không phải một chuyện về độ lớn magnitude. Việc HAI component
+    /// (Decision Engine, Risk Analyzer) bất đồng với nhau là DF-1 — không phải việc của T3.1 để hoà
+    /// giải (đã hoãn, chủ sở hữu: DP-1).
+    ///
+    /// <b>CHÚ Ý — lỗi lập luận đã sửa (2026-08-05, sau code review):</b> bản gốc của đoạn trên từng
+    /// lập luận rằng vách đá bị loại vì nó phá "tính đơn điệu theo mức độ trễ" của
+    /// <see cref="ConstraintValidationResult.TotalOverdueMinutes"/>. Sai: <c>TotalOverdueMinutes</c>
+    /// cộng dồn <c>item.SoPhut</c> — THỜI LƯỢNG của chunk — chứ không phải MỨC ĐỘ TRỄ của nó (số
+    /// ngày trễ). Nó đo "bao nhiêu phút công việc bị xếp sau hạn chót", không đo "xếp sau hạn chót
+    /// bao xa". Test <c>Validate_NhieuTaskCungViPham_TongSoPhutTreHan_CongDungTuMoiChunkViPham</c>
+    /// (<c>ConstraintValidatorTests.cs</c>) tự nó đã chứng minh KHÔNG có tính đơn điệu đó: task A
+    /// trễ 1 ngày góp 70 phút, task B trễ 5 ngày (trễ HƠN) chỉ góp 55 phút — trễ nhiều hơn nhưng
+    /// đóng góp magnitude nhỏ hơn. Kết luận (loại vách đá) vẫn ĐÚNG, nhưng vì lý do integrity của
+    /// hard filter ở đoạn trên, không phải vì lý do monotonicity đã bị gỡ bỏ ở đây.
     /// </summary>
     public sealed class ConstraintValidator : IConstraintValidator
     {
