@@ -122,6 +122,18 @@ namespace SmartStudyPlanner.Tests.Services.Soe
             "AvgRuntimeMsPerSchedule, which are wall-clock capture metadata and vary by construction. " +
             "That block is clearly separated so the deterministic core (methodology + aggregate + " +
             "per-schedule records) can be diffed independently.";
+
+        [JsonPropertyOrder(8)]
+        public string RegenerationProcedure { get; set; } =
+            "This artifact is a FROZEN pre-T3.3 baseline (execution plan PD-3/R8): a baseline " +
+            "captured after T3.3 reworks the allocator is worthless. Routine `dotnet test` runs " +
+            "(SoeBaselineCaptureTests.CaptureBaseline_VerifiesFrozenArtifact_OrBootstrapsIfMissing) " +
+            "verify freshly-computed metrics against this committed file and fail loudly on drift; " +
+            "they never overwrite it. To intentionally regenerate (e.g. after a reviewed corpus or " +
+            "methodology change made BEFORE T3.3 lands), set the environment variable " +
+            "SOE_BASELINE_REGENERATE=1 and re-run that test, then review the resulting diff before " +
+            "committing. Do not regenerate after T3.3 has changed the allocator -- capture a new, " +
+            "separately-named artifact instead if a post-rework comparison is ever needed.";
     }
 
     public sealed class CategoryCount

@@ -6,6 +6,8 @@ using System.Linq;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using System.Text.Unicode;
 using SmartStudyPlanner.Models;
 using Xunit;
@@ -15,17 +17,49 @@ namespace SmartStudyPlanner.Tests.Services.Soe
     /// <summary>
     /// T3.6a/b harness: sinh corpus (<see cref="SoeCorpusGenerator"/>), chạy allocator hiện tại
     /// (<see cref="SmartStudyPlanner.Services.WorkloadServiceImpl.GenerateSchedule"/>, KHÔNG sửa)
-    /// qua từng scenario, đo baseline theo <see cref="SoeScheduleMetrics"/>, và ghi/refresh
+    /// qua từng scenario, đo baseline theo <see cref="SoeScheduleMetrics"/>, và verify/bootstrap
     /// artifact JSON committed dưới <c>docs/reports/data/</c>.
     ///
     /// Đây LÀ nguồn baseline dùng cho T3.4's A6 cross-check (execution plan §3.6, criterion 10) --
     /// các assertion dưới đây giữ corpus không thoái hoá về mức tầm thường (0 bất khả thi,
     /// 0 inversion) mà chính execution plan §1.6/§1.7 cảnh báo.
+    ///
+    /// QUAN TRỌNG (PD-3/R8): artifact này là baseline ĐÓNG BĂNG đo TRƯỚC KHI T3.3 sửa allocator.
+    /// Một lần `dotnet test` bình thường (CI, một agent Card khác chạy full suite để kiểm tra hồi
+    /// quy...) KHÔNG được phép âm thầm ghi đè file này -- nếu chạy sau khi T3.3 đã đổi allocator,
+    /// việc ghi đè sẽ xoá mất chính bằng chứng T3.3 phải được đo đối chiếu. Vì vậy:
+    ///   - Nếu artifact CHƯA tồn tại (bootstrap lần đầu), test ghi nó ra.
+    ///   - Nếu artifact ĐÃ tồn tại, test chỉ SO SÁNH số đo mới tính với file đã commit (bỏ qua
+    ///     khối CaptureProvenance vốn luôn đổi theo wall-clock) và FAIL to nếu lệch -- KHÔNG bao
+    ///     giờ ghi đè.
+    ///   - Để chủ ý tái tạo lại artifact (ví dụ: corpus/methodology đổi một cách có review, TRƯỚC
+    ///     khi T3.3 chạm vào allocator), set biến môi trường SOE_BASELINE_REGENERATE=1 rồi chạy
+    ///     lại đúng test này, sau đó tự xem lại diff trước khi commit.
     /// </summary>
     public class SoeBaselineCaptureTests
     {
+        private const string RegenerateEnvVar = "SOE_BASELINE_REGENERATE";
+
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.Create(UnicodeRanges.All),
+            // CapacityHours giờ phủ luôn NaN/NegativeInfinity (capacity-edge category) -- mặc định
+            // System.Text.Json ném NotSupportedException khi serialize các giá trị double này.
+            NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
+        };
+
+        // Khớp đúng 3 field wall-clock trong CaptureProvenance (xem MethodologyNote.DeterminismNote)
+        // -- đây là phần DUY NHẤT được phép khác nhau giữa artifact đã commit và số đo mới.
+        private static readonly Regex VolatileFieldRegex = new(
+            "\"(CapturedAtUtc|TotalRuntimeMs|AvgRuntimeMsPerSchedule)\": [^,\r\n]+",
+            RegexOptions.Compiled);
+
+        private static string CanonicalizeForComparison(string json)
+            => VolatileFieldRegex.Replace(json, m => $"\"{m.Groups[1].Value}\": \"<volatile>\"");
+
         [Fact]
-        public void CaptureBaseline_WritesDeterministicArtifact()
+        public void CaptureBaseline_VerifiesFrozenArtifact_OrBootstrapsIfMissing()
         {
             var scenarios = SoeCorpusGenerator.Generate();
 
@@ -103,16 +137,31 @@ namespace SmartStudyPlanner.Tests.Services.Soe
                 Schedules = records,
             };
 
-            var jsonOptions = new JsonSerializerOptions
-            {
-                WriteIndented = true,
-                Encoder = JavaScriptEncoder.Create(UnicodeRanges.All),
-            };
-            string json = JsonSerializer.Serialize(artifact, jsonOptions);
-
+            string freshJson = JsonSerializer.Serialize(artifact, JsonOptions);
             string outPath = Path.Combine(repoRoot, "docs", "reports", "data", "2026-08-05-soe-t36-baseline.json");
-            Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
-            File.WriteAllText(outPath, json, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            bool forceRegenerate = Environment.GetEnvironmentVariable(RegenerateEnvVar) == "1";
+
+            if (!File.Exists(outPath) || forceRegenerate)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
+                File.WriteAllText(outPath, freshJson, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+                return; // bootstrap hoặc regenerate có chủ đích -- xem class doc-comment
+            }
+
+            // Đường đi mặc định của `dotnet test`: artifact ĐÃ tồn tại và KHÔNG có opt-in --
+            // đây là baseline đóng băng (PD-3/R8), chỉ xác minh, không bao giờ ghi đè.
+            string committedJson = File.ReadAllText(outPath);
+            string committedCanon = CanonicalizeForComparison(committedJson);
+            string freshCanon = CanonicalizeForComparison(freshJson);
+
+            Assert.True(committedCanon == freshCanon,
+                $"Số đo baseline mới tính KHÁC với artifact đã commit tại '{outPath}'. " +
+                "Artifact này là baseline ĐÓNG BĂNG trước T3.3 (execution plan PD-3/R8) -- test " +
+                "chỉ xác minh, không tự ghi đè. Nếu lệch này là một thay đổi corpus/methodology " +
+                "có chủ đích và đã review (KHÔNG phải vì T3.3 đã sửa allocator -- nếu vậy thì " +
+                "artifact này hết tác dụng, đừng tái tạo lại nó), set " +
+                $"{RegenerateEnvVar}=1 rồi chạy lại đúng test này để tái tạo có chủ đích, sau đó " +
+                "tự xem lại diff trước khi commit.");
         }
 
         // ---- PD-7 self-check: chứng minh check THẬT SỰ bắt được ambiguity, không chỉ luôn xanh ----

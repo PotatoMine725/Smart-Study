@@ -339,13 +339,17 @@ namespace SmartStudyPlanner.Tests.Services.Soe
         }
 
         // ---- category: capacity floor edge values (10) ----
-        // capacityHours = 0.5h / 0.01h -- đúng giá trị đã pin bởi
-        // GenerateSchedule_CapacityDuoiSan_BiKepVeMotGio_KhongTreo. Cả hai đều kẹp về 60 phút/ngày
-        // qua ClampCapacityMinutes -- hành vi mong đợi, không phải bug.
+        // Đúng 5 giá trị được [Theory][InlineData] pin bởi
+        // GenerateSchedule_CapacityDuoiSan_BiKepVeMotGio_KhongTreo
+        // (WorkloadServiceScheduleTests.cs:222-226): 0.0, -5.0, 0.001 (lớp hang WP-4 §3.1,
+        // (int)(0.001*60)=0), NaN (lọt qua Math.Max ở GetCapacity vì Math.Max(NaN,x)=NaN), và
+        // NegativeInfinity. Cả 5 đều kẹp về đúng 60 phút/ngày qua ClampCapacityMinutes -- hành vi
+        // mong đợi, không phải bug. Corpus phải phủ ĐÚNG các giá trị này (không phải một proxy số
+        // học nào khác) để "capacity edge coverage" của T3.6a thật sự truy vết được về pinned test.
         private static List<SoeScenario> GenerateCapacityEdgeScenarios(ref int seq, ref int loaiIdx)
         {
             var result = new List<SoeScenario>();
-            double[] capacityChoices = { 0.5, 0.01 };
+            double[] capacityChoices = { 0.0, -5.0, 0.001, double.NaN, double.NegativeInfinity };
 
             for (int i = 0; i < 10; i++)
             {
