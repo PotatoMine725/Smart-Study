@@ -137,12 +137,12 @@ classified as boundary (constraint) or preference (score term) before it enters 
 
 ## 3. OPEN — optimization-pass accept/commit semantics (explicitly not decided)
 
-> **Update 2026-08-04:** closed as gate **G2** by
+> **Update 2026-08-04, ratified 2026-08-05 (CP-1):** closed as gate **G2** by
 > [`2026-08-04-g2-optimization-pass-semantics.md`](2026-08-04-g2-optimization-pass-semantics.md)
 > (**G2-1 … G2-6**) — *run-all, commit-best-prefix*, a deterministic fixed-point pass loop, and a
-> strict objective non-worsening threshold. **Pending owner ratification at CP-1**; the section body
-> below is preserved unchanged and still governs what may be implemented until then. The
-> "frozen regardless" list came through untouched (see the note's §4).
+> strict objective non-worsening threshold. **Ratified as written**; the section body below is
+> preserved unchanged for the historical record and no longer governs new implementation — the G2
+> note does. The "frozen regardless" list came through untouched (see the note's §4).
 
 By **explicit decision (2026-07-02)** this remains open; do not implement, do not treat any
 candidate as chosen.

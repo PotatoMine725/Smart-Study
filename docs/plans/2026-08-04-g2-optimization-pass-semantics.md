@@ -1,8 +1,11 @@
 # GATE G2 — SOE optimization-pass accept/commit semantics
 
 **Date:** 2026-08-04 · **Gate:** G2 (master plan) · **Closes:** architecture-freeze record §3, lesson **L8** ·
-**Status:** **Resolution proposed — pending owner ratification at CP-1.** Decisions **G2-1 … G2-6** below are
-written to be implemented as-is; they are not yet ratified. Nothing here changes code.
+**Status:** **Ratified at CP-1 (2026-08-05).** Decisions **G2-1 … G2-6** below are ratified as written.
+Both §6 open sub-questions resolved as recommended: (1) best-checkpoint selection over the pass's own
+trajectory does **not** read as global search under D-E core — G2-1 stands unchanged; (2) arm 2 of G2-5
+stays a **reported finding**, not an automatic M3.2 block. Nothing here changes code; T3.3/T3.4/T3.7
+implement against this note.
 
 **Reads with:**
 [architecture freeze 2026-07-02](2026-07-02-architecture-freeze-decisions.md) §3 (the OPEN item this closes)
@@ -406,7 +409,12 @@ randomness. G2-4 supplies a varying quantity that costs neither — the committe
 
 ---
 
-## 6. Open sub-questions for CP-1
+## 6. Open sub-questions for CP-1 — resolved 2026-08-05
+
+Both resolved as recommended; ruling below, arguments preserved unchanged for the record.
+
+1. **Resolution: not global search.** G2-1's mechanism stands as written.
+2. **Resolution: finding, not blocking.** Arm 2 of G2-5 stays a reported finding.
 
 Two, both narrow. Neither blocks writing the implementation against this note; both are places where
 the owner's ruling would change a line rather than the design.

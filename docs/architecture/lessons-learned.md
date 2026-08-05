@@ -280,9 +280,9 @@ field" change to a synced entity is also a merge-surface change and gets reviewe
 
 ---
 
-## L8 — **RESOLVED (pending CP-1 ratification)** — Granularity of evaluation ≠ granularity of commitment (optimization-pass semantics)
+## L8 — **RESOLVED, ratified 2026-08-05** — Granularity of evaluation ≠ granularity of commitment (optimization-pass semantics)
 
-> **Status 2026-08-04 — resolution recorded, awaiting owner ratification at CP-1.** Gate **G2**
+> **Status: ratified at CP-1 (2026-08-05).** Gate **G2**
 > is closed as a decision note:
 > [`../plans/2026-08-04-g2-optimization-pass-semantics.md`](../plans/2026-08-04-g2-optimization-pass-semantics.md)
 > (**G2-1 … G2-6**). The mechanism is *run-all, commit-best-prefix*: every stage runs unconditionally,
