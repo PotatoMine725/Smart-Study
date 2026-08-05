@@ -16,8 +16,18 @@ namespace SmartStudyPlanner.Tests.Services.Soe
     /// T3.8 (Epic 3, Card C) — chốt hành vi của <see cref="WorkloadServiceImpl.GenerateScheduleWithIdentity"/>:
     /// mỗi <see cref="ScheduledItem"/> phải mang đúng <c>MaTask</c>/<c>HanChot</c> của task nguồn, và
     /// việc chiếu (project) sang <c>ScheduledTask</c>/<c>ScheduleDay</c> (seam công khai qua
-    /// <see cref="WorkloadServiceImpl.GenerateSchedule"/>) phải trùng khớp 1:1 với các item này —
-    /// không phải một phép tính lại độc lập có thể lệch.
+    /// <see cref="WorkloadServiceImpl.GenerateSchedule"/>) phải trùng khớp với các item này.
+    ///
+    /// <b>Hợp đồng đúng giữa <c>Items</c> và <c>Days</c> là theo <see cref="ScheduledItem.Date"/>,
+    /// KHÔNG phải theo vị trí phẳng.</b> Trong <c>days.SelectMany(d =&gt; d.Tasks)</c>
+    /// ("day-major flatten"), một item có thể xuất hiện SAU các item của những ngày có index cao
+    /// hơn: <c>OrderBy(d =&gt; d.TotalMinutes)</c> là stable sort, nên khi nhiều ngày hoà điểm
+    /// TotalMinutes, ngày index thấp nhất luôn thắng tie-break — một chunk xếp SAU về mặt thời
+    /// gian (thứ tự trong <c>Items</c>) hoàn toàn có thể quay lại một ngày sớm đã dùng trước đó.
+    /// Xem <see cref="GenerateSchedule_ChieuTuItems_TrungKhopTheoTungNgay_KhongTheoViTri"/> cho
+    /// phản ví dụ cụ thể. Bất biến thật là <b>within-day order</b>: mỗi <c>ScheduleDay.Tasks</c>
+    /// được append CÙNG một vòng lặp với <c>ScheduledItem</c> khớp của nó, nên lọc
+    /// <c>items.Where(i =&gt; i.Date == day.Date)</c> rồi so theo thứ tự chèn luôn đúng.
     ///
     /// Đây KHÔNG test tính đúng đắn của thuật toán phân bổ (đã có
     /// <c>WorkloadServiceScheduleTests</c> lo việc đó) — chỉ test rằng identity đi kèm đúng chunk,
@@ -47,6 +57,7 @@ namespace SmartStudyPlanner.Tests.Services.Soe
             Assert.Equal(task.MaTask, item.MaTask);
             Assert.Equal(task.HanChot, item.HanChot);
             Assert.Equal("Bài Toán", item.TenTaskGoc);
+            Assert.Equal("Bài Toán", item.TenHienThi); // không bị cắt -> không hậu tố "(Phần n)"
             Assert.Equal("Toán", item.TenMon);
             Assert.Equal(30, item.SoPhut);
             Assert.Equal(Today, item.Date);
@@ -100,10 +111,60 @@ namespace SmartStudyPlanner.Tests.Services.Soe
         }
 
         [Fact]
-        public void GenerateSchedule_ChieuTuItems_TrungKhopVoiScheduledTask()
+        public void GenerateSchedule_ChieuTuItems_TrungKhopTheoTungNgay_KhongTheoViTri()
         {
-            // Seam công khai (GenerateSchedule) phải khớp 1:1 với GenerateScheduleWithIdentity —
-            // project không được tính lại độc lập, phải cùng nguồn dữ liệu.
+            // PHẢN VÍ DỤ cho "khớp theo vị trí phẳng": 8 task x 40 phút, sức chứa 120 phút/ngày
+            // (3 chunk vừa một ngày). A..G lần lượt chiếm các ngày 0..6 (mỗi ngày đang rỗng khi
+            // task đó tới lượt xếp). Đến task H, cả 7 ngày đều đang hoà 40 phút — OrderBy là
+            // stable sort nên tie-break chọn ngày index THẤP NHẤT, tức ngày 0 (đã có A). Kết quả:
+            //   - Items (thứ tự xếp theo thời gian): A, B, C, D, E, F, G, H
+            //   - Days flatten (day-major, ngày 0 trước): A, H, B, C, D, E, F, G
+            // Hai thứ tự này KHÁC NHAU — khớp theo index sẽ sai ngay từ vị trí 1 (B vs H). Đây
+            // chính xác là bug mà bản test cũ (khớp theo index, chỉ có 1 task) không lộ ra được.
+            var hocKy = new HocKy("HK Identity Multi", Today);
+            var mon = new MonHoc("Toán", 3) { MaHocKy = hocKy.MaHocKy };
+            var engine = new StubDecisionEngine();
+            var tenTheoThuTu = new[] { "A", "B", "C", "D", "E", "F", "G", "H" };
+            double pri = 80;
+            foreach (var ten in tenTheoThuTu)
+            {
+                mon.DanhSachTask.Add(new StudyTask(ten, FixedNow.AddDays(5), LoaiCongViec.BaiTapVeNha, 2));
+                engine.Priorities[ten] = pri;
+                engine.Minutes[ten] = 40;
+                pri -= 10; // giữ nguyên thứ tự sort ưu tiên A..H, không có hoà điểm ưu tiên
+            }
+            hocKy.DanhSachMonHoc.Add(mon);
+
+            var (days, items) = Sut(engine).GenerateScheduleWithIdentity(hocKy, capacityHours: 2.0); // 120 phút/ngày
+
+            // Chứng minh phản ví dụ có thật trước khi dựa vào nó.
+            Assert.Equal(tenTheoThuTu, items.Select(i => i.TenTaskGoc).ToList());
+            Assert.Equal(
+                new[] { "A", "H", "B", "C", "D", "E", "F", "G" },
+                days.SelectMany(d => d.Tasks).Select(t => t.TenTask).ToList());
+
+            // Hợp đồng ĐÚNG: correlate theo Date, so trong từng ngày theo thứ tự chèn — không
+            // đụng tới vị trí phẳng toàn cục.
+            foreach (var day in days)
+            {
+                var itemsCuaNgay = items.Where(i => i.Date == day.Date).ToList();
+                Assert.Equal(itemsCuaNgay.Count, day.Tasks.Count);
+                for (int i = 0; i < itemsCuaNgay.Count; i++)
+                {
+                    Assert.Equal(itemsCuaNgay[i].TenHienThi, day.Tasks[i].TenTask);
+                    Assert.Equal(itemsCuaNgay[i].TenMon, day.Tasks[i].TenMon);
+                    Assert.Equal(itemsCuaNgay[i].SoPhut, day.Tasks[i].SoPhut);
+                }
+            }
+        }
+
+        [Fact]
+        public void GenerateSchedule_ChieuTuItems_TrungKhopVoiScheduledTask_MotTask()
+        {
+            // Trường hợp đơn giản (1 task bị cắt nhỏ): items và day-major flatten trùng thứ tự vì
+            // chỉ một task duy nhất tồn tại nên không có cơ hội tie-break quay lại ngày cũ. Giữ
+            // lại test này để chốt trường hợp cơ bản; hợp đồng tổng quát (theo Date) đã được
+            // GenerateSchedule_ChieuTuItems_TrungKhopTheoTungNgay_KhongTheoViTri chứng minh riêng.
             var hocKy = new HocKy("HK Identity", Today);
             var mon = new MonHoc("Toán", 3) { MaHocKy = hocKy.MaHocKy };
             var task = new StudyTask("Dài", FixedNow.AddDays(5), LoaiCongViec.BaiTapVeNha, 2);

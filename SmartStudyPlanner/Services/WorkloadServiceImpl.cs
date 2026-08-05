@@ -185,16 +185,14 @@ namespace SmartStudyPlanner.Services
                     // nên tách "quyết định xếp vào đâu" ra khỏi "ghi lại đã xếp gì" thành hai lượt
                     // độc lập sẽ phải mô phỏng lại đúng thuật toán này — rủi ro lệch hành vi không
                     // cần thiết cho một seam chỉ cần tồn tại, chưa cần được tiêu thụ ở card này.
-                    var item = new ScheduledItem
-                    {
-                        MaTask = task.MaTask,
-                        HanChot = task.HanChot,
-                        TenTaskGoc = task.TenTask,
-                        TenHienThi = tenHienThi,
-                        TenMon = dictMonHoc[task].TenMonHoc,
-                        Date = targetDay.Date,
-                        SoPhut = chunk
-                    };
+                    var item = new ScheduledItem(
+                        MaTask: task.MaTask,
+                        HanChot: task.HanChot,
+                        TenTaskGoc: task.TenTask,
+                        TenHienThi: tenHienThi,
+                        TenMon: dictMonHoc[task].TenMonHoc,
+                        Date: targetDay.Date,
+                        SoPhut: chunk);
                     scheduledItems.Add(item);
 
                     targetDay.Tasks.Add(new ScheduledTask
