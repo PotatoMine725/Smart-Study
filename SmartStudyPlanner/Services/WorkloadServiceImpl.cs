@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using SmartStudyPlanner.Models;
+using SmartStudyPlanner.Services.Soe;
 using SmartStudyPlanner.Services.Strategies;
 
 namespace SmartStudyPlanner.Services
@@ -100,6 +101,23 @@ namespace SmartStudyPlanner.Services
         }
 
         public List<ScheduleDay> GenerateSchedule(HocKy hocKy, double capacityHours)
+            => GenerateScheduleWithIdentity(hocKy, capacityHours).Days;
+
+        /// <summary>
+        /// T3.8 (Epic 3, Card C) — cùng thuật toán với <see cref="GenerateSchedule"/> (không đổi
+        /// hành vi phân bổ: sort ưu tiên, least-loaded placement, mở ngày tràn — characterization
+        /// suite <c>WorkloadServiceScheduleTests</c> chốt việc này), nhưng còn trả về danh sách
+        /// <see cref="ScheduledItem"/> — mang <c>MaTask</c> + <c>HanChot</c> mà
+        /// <c>List&lt;ScheduleDay&gt;</c> không có chỗ chứa.
+        ///
+        /// <c>internal</c> (InternalsVisibleTo SmartStudyPlanner.Tests, AssemblyInfo.cs:4) vì đây
+        /// chưa phải seam công khai — <c>IWorkloadService</c> giữ nguyên chỉ một member
+        /// <c>GenerateSchedule</c>. Đây là chỗ Card D (<c>IConstraintValidator</c>) / Card E
+        /// (<c>IObjectiveEvaluator</c>) sẽ nối vào tiếp, thay vì đọc ngược từ
+        /// <c>List&lt;ScheduleDay&gt;</c> đã mất identity.
+        /// </summary>
+        internal (List<ScheduleDay> Days, List<ScheduledItem> Items) GenerateScheduleWithIdentity(
+            HocKy hocKy, double capacityHours)
         {
             int capacityMinutes = ClampCapacityMinutes(capacityHours);
             var tatCaTask = new List<StudyTask>();
@@ -117,6 +135,7 @@ namespace SmartStudyPlanner.Services
 
             var sortedTasks = tatCaTask.OrderByDescending(t => t.DiemUuTien).ToList();
             var days = new List<ScheduleDay>();
+            var scheduledItems = new List<ScheduledItem>();
 
             DateTime today = _clock.Now.Date;
             for (int i = 0; i < 7; i++)
@@ -155,11 +174,34 @@ namespace SmartStudyPlanner.Services
                     int spaceLeft = capacityMinutes - targetDay.TotalMinutes;
                     int chunk = Math.Min(remainingMinutes, spaceLeft);
 
+                    string tenHienThi = (minutesNeeded > spaceLeft || part > 1)
+                        ? $"{task.TenTask} (Phần {part})"
+                        : task.TenTask;
+
+                    // Xây ScheduledItem (mang identity) TRƯỚC, rồi chiếu sang ScheduledTask —
+                    // đúng thứ tự "build internal representation, then project" của T3.8, chỉ làm
+                    // theo từng chunk thay vì một lượt riêng sau khi vòng lặp kết thúc: vòng lặp
+                    // đóng ngày mới dựa trên trạng thái TotalMinutes tích luỹ (greedy, có thứ tự),
+                    // nên tách "quyết định xếp vào đâu" ra khỏi "ghi lại đã xếp gì" thành hai lượt
+                    // độc lập sẽ phải mô phỏng lại đúng thuật toán này — rủi ro lệch hành vi không
+                    // cần thiết cho một seam chỉ cần tồn tại, chưa cần được tiêu thụ ở card này.
+                    var item = new ScheduledItem
+                    {
+                        MaTask = task.MaTask,
+                        HanChot = task.HanChot,
+                        TenTaskGoc = task.TenTask,
+                        TenHienThi = tenHienThi,
+                        TenMon = dictMonHoc[task].TenMonHoc,
+                        Date = targetDay.Date,
+                        SoPhut = chunk
+                    };
+                    scheduledItems.Add(item);
+
                     targetDay.Tasks.Add(new ScheduledTask
                     {
-                        TenTask = (minutesNeeded > spaceLeft || part > 1) ? $"{task.TenTask} (Phần {part})" : task.TenTask,
-                        TenMon = dictMonHoc[task].TenMonHoc,
-                        SoPhut = chunk
+                        TenTask = item.TenHienThi,
+                        TenMon = item.TenMon,
+                        SoPhut = item.SoPhut
                     });
                     targetDay.TotalMinutes += chunk;
                     remainingMinutes -= chunk;
@@ -167,7 +209,7 @@ namespace SmartStudyPlanner.Services
                 }
             }
 
-            return days;
+            return (days, scheduledItems);
         }
     }
 }
