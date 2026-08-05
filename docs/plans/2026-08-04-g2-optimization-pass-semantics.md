@@ -65,10 +65,12 @@ stated fixed-point iteration (G2-4).
 
 **How this resolves the all-or-nothing veto.** Take L8's own counterexample: stages 1–4 improve the
 schedule, stage 5 regresses it enough to drag the aggregate below the entry state. The pass records
-`C₀ … C₅`. `C₄` is admissible and best; `k* = 4`. The four gains are kept and stage 5's regression is
-discarded, with reason code `Superseded_ByLaterCheckpoint` on nothing and `Rejected_LowerScore` on
-`C₅`. Whole-pass semantics would have thrown away all four. **The veto is structurally impossible:
-the engine never discards a gain it has already measured.**
+`C₀ … C₅`. `C₄` is admissible and best; `k* = 4`. The four gains are kept: `C₁`, `C₂`, and `C₃` each
+carry reason code `Superseded_ByLaterCheckpoint` (each was admissible and better than the entry state,
+but a later checkpoint beat it), `C₄` carries `Selected`, and `C₅` carries `Rejected_LowerScore`.
+Whole-pass semantics would have thrown away all four. **The veto is structurally impossible: the
+engine never discards a gain it has already measured — the reason-code trail names exactly which
+gains were superseded rather than vetoed.**
 
 **How this avoids re-importing the per-step defect.** Take the mirror case: stage 3 dips, stage 4
 recovers past stage 2. Because no stage is rolled back *during* the run, `C₄` exists and is
@@ -268,7 +270,7 @@ per arm. No global percentages, no invented tolerances.
 | Arm | Condition | Quality rule | Disposition |
 |---|---|---|---|
 | **1** | `CompareFeasibility(S, B) < 0` — the SOE is strictly more feasible | **No quality floor.** | Report the delta. A negative delta here is **expected and accepted.** |
-| **2** | `CompareFeasibility(S, B) == 0` — identical feasibility | `Score(S) ≥ Score(B) − 1e-9·max(1,\|Score(B)\|)` — the same epsilon-guarded strict non-worsening as G2-3 | Failures are **findings**: each is listed in the M3.2 report with a named cause and an explicit fix-or-waive decision. Not silently softened; not automatically blocking. |
+| **2** | `CompareFeasibility(S, B) == 0` — identical feasibility | `Score(S) ≥ Score(B) − 1e-9·max(1,\|Score(B)\|)` — a non-worsening test (`S` may not fall more than epsilon below `B`), using the same relative-epsilon guard as G2-3's strict-improvement test but not the identical inequality | Failures are **findings**: each is listed in the M3.2 report with a named cause and an explicit fix-or-waive decision. Not silently softened; not automatically blocking. |
 | **3** | `CompareFeasibility(S, B) > 0` — the SOE is strictly less feasible | n/a | **Hard fail, no waiver.** |
 
 **Why arm 1 has no floor.** D-G puts deadline feasibility in the constraint validator precisely so it
