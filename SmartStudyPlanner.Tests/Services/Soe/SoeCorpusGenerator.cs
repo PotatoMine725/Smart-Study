@@ -42,7 +42,8 @@ namespace SmartStudyPlanner.Tests.Services.Soe
     /// <summary>Mirror thuần của <c>WorkloadServiceImpl.ClampCapacityMinutes</c> (method đó là
     /// private, harness không gọi được trực tiếp). Corpus cần con số CAPACITY SAU KHI KẸP để tính
     /// nhãn khả thi thiết kế cho khớp với capacity mà allocator thật sự dùng -- nếu không, chính
-    /// các case 0.5h/0.01h (capacity edge bắt buộc của T3.6a) sẽ có nhãn sai ngay từ đầu.</summary>
+    /// chính các case capacity edge (0.0, -5.0, 0.001, NaN, NegativeInfinity -- bắt buộc của
+    /// T3.6a) sẽ có nhãn sai ngay từ đầu.</summary>
     internal static class CapacityMath
     {
         private const double MinCapacityHours = 1.0;
@@ -91,7 +92,9 @@ namespace SmartStudyPlanner.Tests.Services.Soe
     /// T3.6a — corpus generator. Sinh ≥200 schedule, ≥25% bất khả thi, seed cố định
     /// (<see cref="Seed"/>), hạn chót đa dạng theo đúng danh sách bắt buộc của execution plan
     /// §3.6 (deadline inversions; ties; trong/ngoài cửa sổ 7 ngày; task quá hạn; trộn
-    /// exam-vs-homework; học kỳ bất khả thi; capacity edge 0.5h/0.01h).
+    /// exam-vs-homework; học kỳ bất khả thi; capacity edge đúng 5 giá trị pin bởi
+    /// GenerateSchedule_CapacityDuoiSan_BiKepVeMotGio_KhongTreo: 0.0, -5.0, 0.001, NaN,
+    /// NegativeInfinity).
     ///
     /// Tên task base (TenTask trước khi allocator gắn "(Phần n)") được cấp phát từ một bộ đếm
     /// toàn cục tăng dần tuyệt đối, đảm bảo DUY NHẤT trên toàn corpus theo cấu trúc -- đây là vế

@@ -6,11 +6,12 @@ using System.Linq;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 using System.Text.Unicode;
 using SmartStudyPlanner.Models;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace SmartStudyPlanner.Tests.Services.Soe
 {
@@ -30,8 +31,10 @@ namespace SmartStudyPlanner.Tests.Services.Soe
     /// việc ghi đè sẽ xoá mất chính bằng chứng T3.3 phải được đo đối chiếu. Vì vậy:
     ///   - Nếu artifact CHƯA tồn tại (bootstrap lần đầu), test ghi nó ra.
     ///   - Nếu artifact ĐÃ tồn tại, test chỉ SO SÁNH số đo mới tính với file đã commit (bỏ qua
-    ///     khối CaptureProvenance vốn luôn đổi theo wall-clock) và FAIL to nếu lệch -- KHÔNG bao
-    ///     giờ ghi đè.
+    ///     khối CaptureProvenance wall-clock VÀ top-level HeadSha -- cả hai đều là "sự thật tại
+    ///     thời điểm capture", không phải bất biến phải luôn khớp HEAD hiện tại; xem
+    ///     ExcludedFromFrozenComparison) và FAIL to nếu phần còn lại (230 schedule record, toàn
+    ///     bộ metric, khối methodology) lệch -- KHÔNG bao giờ ghi đè.
     ///   - Để chủ ý tái tạo lại artifact (ví dụ: corpus/methodology đổi một cách có review, TRƯỚC
     ///     khi T3.3 chạm vào allocator), set biến môi trường SOE_BASELINE_REGENERATE=1 rồi chạy
     ///     lại đúng test này, sau đó tự xem lại diff trước khi commit.
@@ -39,6 +42,13 @@ namespace SmartStudyPlanner.Tests.Services.Soe
     public class SoeBaselineCaptureTests
     {
         private const string RegenerateEnvVar = "SOE_BASELINE_REGENERATE";
+
+        private readonly ITestOutputHelper _output;
+
+        public SoeBaselineCaptureTests(ITestOutputHelper output)
+        {
+            _output = output;
+        }
 
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
@@ -49,14 +59,40 @@ namespace SmartStudyPlanner.Tests.Services.Soe
             NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
         };
 
-        // Khớp đúng 3 field wall-clock trong CaptureProvenance (xem MethodologyNote.DeterminismNote)
-        // -- đây là phần DUY NHẤT được phép khác nhau giữa artifact đã commit và số đo mới.
-        private static readonly Regex VolatileFieldRegex = new(
-            "\"(CapturedAtUtc|TotalRuntimeMs|AvgRuntimeMsPerSchedule)\": [^,\r\n]+",
-            RegexOptions.Compiled);
+        // Top-level field KHÔNG được đưa vào so sánh chặt: HeadSha ghi lại "allocator tại commit
+        // nào được đo lúc capture" -- một sự kiện lịch sử đóng băng, KHÔNG phải bất biến phải
+        // luôn bằng HEAD hiện tại. Coi nó như CaptureProvenance: nếu bị đưa vào so sánh chặt, MỌI
+        // commit sau lần capture (kể cả không liên quan) sẽ làm HEAD trôi khỏi giá trị đã đóng
+        // băng và khiến test đỏ vĩnh viễn -- đúng lỗi đã xảy ra ở 8d938b9.
+        private static readonly string[] ExcludedTopLevelFields = { "HeadSha" };
 
-        private static string CanonicalizeForComparison(string json)
-            => VolatileFieldRegex.Replace(json, m => $"\"{m.Groups[1].Value}\": \"<volatile>\"");
+        // 3 field wall-clock trong CaptureProvenance (xem MethodologyNote.DeterminismNote) --
+        // cùng lý do loại trừ như HeadSha ở trên.
+        private static readonly string[] ExcludedCaptureProvenanceFields =
+            { "CapturedAtUtc", "TotalRuntimeMs", "AvgRuntimeMsPerSchedule" };
+
+        /// <summary>
+        /// So sánh CẤU TRÚC (JsonNode, không phải text thô) sau khi loại bỏ các field được miễn
+        /// trừ ở trên -- bền hơn so-sánh-text trước những thay đổi định dạng không cố ý, miễn là
+        /// JsonPropertyOrder vẫn ghim thứ tự property lúc serialize (đã ghim, xem các DTO trong
+        /// SoeBaselineMetrics.cs).
+        /// </summary>
+        private static JsonNode CanonicalizeForComparison(JsonNode root)
+        {
+            var obj = root.AsObject();
+            foreach (var field in ExcludedTopLevelFields)
+            {
+                obj.Remove(field);
+            }
+            if (obj["CaptureProvenance"] is JsonObject provenance)
+            {
+                foreach (var field in ExcludedCaptureProvenanceFields)
+                {
+                    provenance.Remove(field);
+                }
+            }
+            return obj;
+        }
 
         [Fact]
         public void CaptureBaseline_VerifiesFrozenArtifact_OrBootstrapsIfMissing()
@@ -150,16 +186,32 @@ namespace SmartStudyPlanner.Tests.Services.Soe
 
             // Đường đi mặc định của `dotnet test`: artifact ĐÃ tồn tại và KHÔNG có opt-in --
             // đây là baseline đóng băng (PD-3/R8), chỉ xác minh, không bao giờ ghi đè.
-            string committedJson = File.ReadAllText(outPath);
-            string committedCanon = CanonicalizeForComparison(committedJson);
-            string freshCanon = CanonicalizeForComparison(freshJson);
+            var committedNode = JsonNode.Parse(File.ReadAllText(outPath))!;
+            var freshNode = JsonNode.Parse(freshJson)!;
 
-            Assert.True(committedCanon == freshCanon,
-                $"Số đo baseline mới tính KHÁC với artifact đã commit tại '{outPath}'. " +
-                "Artifact này là baseline ĐÓNG BĂNG trước T3.3 (execution plan PD-3/R8) -- test " +
-                "chỉ xác minh, không tự ghi đè. Nếu lệch này là một thay đổi corpus/methodology " +
-                "có chủ đích và đã review (KHÔNG phải vì T3.3 đã sửa allocator -- nếu vậy thì " +
-                "artifact này hết tác dụng, đừng tái tạo lại nó), set " +
+            string committedHeadSha = committedNode["HeadSha"]?.GetValue<string>() ?? "?";
+            if (!string.Equals(committedHeadSha, headSha, StringComparison.Ordinal))
+            {
+                // Thông tin, KHÔNG fail: HeadSha ghi lại commit lúc capture, không phải bất biến
+                // phải bám theo HEAD hiện tại (xem ExcludedTopLevelFields).
+                _output.WriteLine(
+                    $"[info] artifact HeadSha='{committedHeadSha}' (đo tại thời điểm capture) khác " +
+                    $"HEAD hiện tại='{headSha}'. Đây là điều BÌNH THƯỜNG khi có commit mới sau lần " +
+                    "capture -- không phải dấu hiệu allocator/corpus lệch.");
+            }
+
+            var committedCanon = CanonicalizeForComparison(committedNode);
+            var freshCanon = CanonicalizeForComparison(freshNode);
+
+            bool structurallyEqual = JsonNode.DeepEquals(committedCanon, freshCanon);
+
+            Assert.True(structurallyEqual,
+                $"Số đo baseline mới tính KHÁC với artifact đã commit tại '{outPath}' (đã loại trừ " +
+                "HeadSha + CaptureProvenance wall-clock, xem ExcludedTopLevelFields/" +
+                "ExcludedCaptureProvenanceFields). Artifact này là baseline ĐÓNG BĂNG trước T3.3 " +
+                "(execution plan PD-3/R8) -- test chỉ xác minh, không tự ghi đè. Nếu lệch này là " +
+                "một thay đổi corpus/methodology có chủ đích và đã review (KHÔNG phải vì T3.3 đã " +
+                "sửa allocator -- nếu vậy thì artifact này hết tác dụng, đừng tái tạo lại nó), set " +
                 $"{RegenerateEnvVar}=1 rồi chạy lại đúng test này để tái tạo có chủ đích, sau đó " +
                 "tự xem lại diff trước khi commit.");
         }
