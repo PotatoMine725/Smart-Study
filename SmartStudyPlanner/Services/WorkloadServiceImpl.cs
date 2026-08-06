@@ -124,25 +124,29 @@ namespace SmartStudyPlanner.Services
             var tatCaTask = new List<StudyTask>();
             var dictMonHoc = new Dictionary<StudyTask, MonHoc>();
 
-            // T3.3 (Epic 3, Card F, CP-2 2026-08-05): điểm ưu tiên được tính vào một cấu trúc
-            // cục bộ thay vì ghi thẳng vào task.DiemUuTien -- GenerateSchedule không còn tác
-            // dụng phụ lên model của caller nữa. PrioritizeStage và
-            // QuanLyTaskViewModel.CapNhatDiem đã tự chấm lại DiemUuTien độc lập ở chỗ khác; UI
-            // Workload Balancer không bind DiemUuTien -- xác nhận bằng grep trước khi bỏ dòng
-            // ghi đè này, không phải suy đoán.
-            var diemUuTienTheoTask = new Dictionary<StudyTask, double>();
-
+            // CP-2 AMENDED (2026-08-06, docs/plans/2026-08-06-cp2-amended-diemuutien-writethrough-restored.md):
+            // T3.3 round 1 tried moving điểm ưu tiên vào một Dictionary cục bộ, để bỏ tác dụng
+            // phụ lên model của caller. Bị REVERT: _decisionEngine.CalculateRawSuggestedMinutes
+            // (gọi bên dưới, cùng method) đi qua RawMinutesCalculator.Calculate, đọc thẳng
+            // task.DiemUuTien TRÊN MODEL (không nhận tham số) --
+            // Core/Scheduling/Engines/RawMinutesCalculator.cs:11: "task.DiemUuTien <= 0 return 0".
+            // StudyTask.DiemUuTien không có initializer (mặc định 0.0), và
+            // WorkloadBalancerViewModel gọi GenerateSchedule thẳng trong constructor, không có
+            // bước chấm điểm nào chạy trước. Bỏ ghi-đè làm MỌI task chưa được chấm điểm ở nơi
+            // khác (Dashboard pipeline / QuanLyTaskViewModel.TinhDiemVaSapXep) âm thầm rớt khỏi
+            // lịch (0 phút cần xếp) -- một regression đúng nghĩa, không phải impurity thừa. Ghi
+            // thẳng vào task.DiemUuTien lại là ĐÚNG, dù có tác dụng phụ lên model của caller.
             foreach (var mon in hocKy.DanhSachMonHoc)
             {
                 foreach (var task in mon.DanhSachTask.Where(t => t.TrangThai != StudyTaskStatus.HoanThanh))
                 {
-                    diemUuTienTheoTask[task] = _decisionEngine.CalculatePriority(task, mon);
+                    task.DiemUuTien = _decisionEngine.CalculatePriority(task, mon);
                     tatCaTask.Add(task);
                     dictMonHoc[task] = mon;
                 }
             }
 
-            var sortedTasks = tatCaTask.OrderByDescending(t => diemUuTienTheoTask[t]).ToList();
+            var sortedTasks = tatCaTask.OrderByDescending(t => t.DiemUuTien).ToList();
             var days = new List<ScheduleDay>();
             var scheduledItems = new List<ScheduledItem>();
 

@@ -19,12 +19,23 @@ namespace SmartStudyPlanner.Tests.Services
     /// WorkloadServiceImpl.cs trước — implementation là spec, và câu hỏi đầu tiên luôn là
     /// "hành vi có đổi không", không phải "sửa production cho test xanh".
     ///
-    /// T3.3 (Epic 3, Card F, CP-3 2026-08-05): allocator giờ CÓ đọc <c>HanChot</c> để chọn
-    /// ngày — "earliest-feasible": ngày sớm nhất còn chỗ, trong số các ngày không vượt hạn
-    /// chót, ưu tiên hơn "ngày ít tải nhất" (least-loaded, quy tắc cũ). Thứ tự ưu tiên
+    /// T3.3 (Epic 3, Card F, CP-3 2026-08-05): allocator giờ ĐỌC <c>HanChot</c> để chọn ngày —
+    /// "earliest-feasible": ngày sớm nhất còn chỗ, trong số các ngày không vượt hạn chót, thay
+    /// cho "ngày ít tải nhất" (least-loaded, quy tắc cũ). Thứ tự ưu tiên
     /// (<c>OrderByDescending(t => DiemUuTien)</c>) không đổi — deadline chỉ chi phối CHỌN
     /// NGÀY, không chi phối thứ tự xếp task. Xem
     /// GenerateSchedule_ChonNgaySomNhatConCho_ChuKhongPhaiNgayItTaiNhat cho test pin quy tắc mới.
+    ///
+    /// <b>Đọc, nhưng ĐÃ CHỨNG MINH BẰNG ĐẠI SỐ là KHÔNG BAO GIỜ đổi ngày được chọn, với BẤT KỲ
+    /// input nào</b> (2026-08-06 review round; xem doc-comment đầy đủ ở
+    /// <c>WorkloadServiceImpl.cs</c>, khối vòng lặp phân bổ). Gọi E = "ngày sớm nhất còn chỗ,
+    /// bỏ qua hạn chót": nếu E &lt;= HanChot, nhánh lọc theo hạn tự trả về E (E đã thoả và là min
+    /// toàn tập); nếu E &gt; HanChot, mọi ngày &lt;= HanChot chắc chắn đã đầy nên nhánh lọc rỗng,
+    /// rơi về nhánh bỏ qua hạn — vẫn ra E. Nhánh lọc theo HanChot vì vậy KHÔNG THỂ có mutation
+    /// check: không có mutation nào của nó làm đổi output trên bất kỳ input nào hôm nay. Đừng đọc
+    /// dòng trên là "deadline chi phối vị trí xếp" — nó chi phối về MẶT CODE, nhưng provably
+    /// inert về mặt OUTPUT với thuật toán hiện tại; trở thành sống khi có cơ chế làm ngày "mất
+    /// chỗ" không đơn điệu (T3.9 Optimize() seam) hoặc IConstraintValidator từ chối một placement.
     /// </summary>
     public class WorkloadServiceScheduleTests
     {
@@ -73,6 +84,32 @@ namespace SmartStudyPlanner.Tests.Services
             var days = Sut(engine).GenerateSchedule(hocKy, capacityHours: 3.0);
 
             Assert.All(days, d => Assert.Empty(d.Tasks));
+        }
+
+        [Fact]
+        public void GenerateSchedule_GhiDeDiemUuTien_ChiTrenTaskChuaHoanThanh()
+        {
+            // CP-2 AMENDED (2026-08-06, docs/plans/2026-08-06-cp2-amended-diemuutien-writethrough-restored.md):
+            // test này bị Card F round 1 xoá (5197784) khi ghi-đè DiemUuTien tưởng như là một
+            // impurity thừa, rồi được PHỤC HỒI khi review phát hiện RawMinutesCalculator.Calculate
+            // (gọi từ CalculateRawSuggestedMinutes ngay trong GenerateScheduleWithIdentity) đọc
+            // thẳng task.DiemUuTien TRÊN MODEL, không qua tham số nào -- bỏ ghi-đè làm task chưa
+            // được chấm điểm ở nơi khác âm thầm rớt khỏi lịch (0 phút cần xếp). Đây không phải
+            // impurity tuỳ tiện: nó là điều kiện tiên quyết bắt buộc cho bước tính phút bên dưới.
+            //
+            // GenerateSchedule KHÔNG thuần: nó ghi thẳng DiemUuTien vào model của caller
+            // (WorkloadServiceImpl.cs, dòng "task.DiemUuTien = ..." trong vòng lặp populate
+            // tatCaTask), và chỉ cho những task lọt qua bộ lọc TrangThai != HoanThanh ngay trên
+            // dòng đó.
+            var (hocKy, engine) = BuildFixture(("Chưa làm", 42.5, 0), ("Đã xong", 99, 0));
+            var tasks = hocKy.DanhSachMonHoc[0].DanhSachTask;
+            tasks[1].TrangThai = StudyTaskStatus.HoanThanh;
+            tasks[1].DiemUuTien = -1;
+
+            Sut(engine).GenerateSchedule(hocKy, capacityHours: 3.0);
+
+            Assert.Equal(42.5, tasks[0].DiemUuTien);
+            Assert.Equal(-1, tasks[1].DiemUuTien); // task đã xong không bị chấm lại
         }
 
         [Fact]
