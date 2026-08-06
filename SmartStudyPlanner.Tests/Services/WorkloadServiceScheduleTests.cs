@@ -16,12 +16,15 @@ namespace SmartStudyPlanner.Tests.Services
     ///
     /// Đây KHÔNG phải test tính đúng đắn. Chúng ghi lại hành vi hiện tại để một thay đổi
     /// sau này phải là chủ ý chứ không phải vô tình. Nếu một test ở đây đỏ, hãy đọc
-    /// WorkloadServiceImpl.cs:40-109 trước — implementation là spec, và câu hỏi đầu tiên
-    /// luôn là "hành vi có đổi không", không phải "sửa production cho test xanh".
+    /// WorkloadServiceImpl.cs trước — implementation là spec, và câu hỏi đầu tiên luôn là
+    /// "hành vi có đổi không", không phải "sửa production cho test xanh".
     ///
-    /// Cố ý KHÔNG assert thứ tự theo deadline: HanChot không xuất hiện ở đâu trong
-    /// allocator (CSA 2026-07-27, Key Finding 3). Deadline-awareness là Epic 3 / SOE
-    /// sau gate G2, không phải thiếu sót cần vá ở đây.
+    /// T3.3 (Epic 3, Card F, CP-3 2026-08-05): allocator giờ CÓ đọc <c>HanChot</c> để chọn
+    /// ngày — "earliest-feasible": ngày sớm nhất còn chỗ, trong số các ngày không vượt hạn
+    /// chót, ưu tiên hơn "ngày ít tải nhất" (least-loaded, quy tắc cũ). Thứ tự ưu tiên
+    /// (<c>OrderByDescending(t => DiemUuTien)</c>) không đổi — deadline chỉ chi phối CHỌN
+    /// NGÀY, không chi phối thứ tự xếp task. Xem
+    /// GenerateSchedule_ChonNgayItaiNhat_ChuKhongPhaiNgayItTaiNhat cho test pin quy tắc mới.
     /// </summary>
     public class WorkloadServiceScheduleTests
     {
@@ -53,8 +56,9 @@ namespace SmartStudyPlanner.Tests.Services
 
             var days = Sut(engine).GenerateSchedule(hocKy, capacityHours: 1.0);
 
-            // Ngày mở thêm lấy offset từ days.Count đang lớn dần (WorkloadServiceImpl.cs:83-84).
-            // Một off-by-one ở đó sẽ tạo lỗ hổng hoặc ngày trùng mà không assert nào khác bắt được.
+            // Ngày mở thêm lấy offset từ days.Count đang lớn dần (WorkloadServiceImpl.cs, nhánh
+            // "if (targetDay == null)" trong vòng phân bổ). Một off-by-one ở đó sẽ tạo lỗ hổng
+            // hoặc ngày trùng mà không assert nào khác bắt được.
             Assert.Equal(
                 Enumerable.Range(0, days.Count).Select(i => Today.AddDays(i)).ToList(),
                 days.Select(d => d.Date).ToList());
@@ -69,22 +73,6 @@ namespace SmartStudyPlanner.Tests.Services
             var days = Sut(engine).GenerateSchedule(hocKy, capacityHours: 3.0);
 
             Assert.All(days, d => Assert.Empty(d.Tasks));
-        }
-
-        [Fact]
-        public void GenerateSchedule_GhiDeDiemUuTien_ChiTrenTaskChuaHoanThanh()
-        {
-            // GenerateSchedule KHÔNG thuần: nó ghi thẳng DiemUuTien vào model của caller
-            // (WorkloadServiceImpl.cs:50), và chỉ cho những task lọt qua bộ lọc ở :48.
-            var (hocKy, engine) = BuildFixture(("Chưa làm", 42.5, 0), ("Đã xong", 99, 0));
-            var tasks = hocKy.DanhSachMonHoc[0].DanhSachTask;
-            tasks[1].TrangThai = StudyTaskStatus.HoanThanh;
-            tasks[1].DiemUuTien = -1;
-
-            Sut(engine).GenerateSchedule(hocKy, capacityHours: 3.0);
-
-            Assert.Equal(42.5, tasks[0].DiemUuTien);
-            Assert.Equal(-1, tasks[1].DiemUuTien); // task đã xong không bị chấm lại
         }
 
         [Fact]
@@ -136,14 +124,18 @@ namespace SmartStudyPlanner.Tests.Services
         [Fact]
         public void GenerateSchedule_ViecVuaDuMotNgay_KhongBiDanhSoPhan()
         {
-            // Ranh giới đặt tên ở WorkloadServiceImpl.cs:98: chỉ gắn "(Phần n)" khi thực sự
-            // phải cắt. Vừa khít sức học vẫn là tên trần.
+            // Ranh giới đặt tên: chỉ gắn "(Phần n)" khi thực sự phải cắt. Vừa khít sức học
+            // vẫn là tên trần. Decouple khỏi days[0] (T3.3): assertion chỉ cần "ngày nào có
+            // task thì đúng nội dung", không cần đúng VỊ TRÍ trong list — vị trí là chi tiết
+            // của quy tắc chọn ngày (least-loaded cũ / earliest-feasible mới), không phải bất
+            // biến mà test này nhắm tới.
             var (hocKy, engine) = BuildFixture(("Vừa đủ", 90, 60));
 
             var days = Sut(engine).GenerateSchedule(hocKy, capacityHours: 1.0);
+            var ngayCoTask = days.First(d => d.Tasks.Count > 0);
 
-            Assert.Equal("Vừa đủ", Assert.Single(days[0].Tasks).TenTask);
-            Assert.Equal(60, days[0].TotalMinutes);
+            Assert.Equal("Vừa đủ", Assert.Single(ngayCoTask.Tasks).TenTask);
+            Assert.Equal(60, ngayCoTask.TotalMinutes);
         }
 
         [Fact]
@@ -170,20 +162,26 @@ namespace SmartStudyPlanner.Tests.Services
         }
 
         [Fact]
-        public void GenerateSchedule_ChonNgayITAINHAT_ChuKhongPhaiNgaySomNhatConCho()
+        public void GenerateSchedule_ChonNgayItaiNhat_ChuKhongPhaiNgayItTaiNhat()
         {
-            // "Cao" chiếm trọn ngày 0 và 30 phút của ngày 1, để ngày 1 còn trống 30 phút —
-            // vừa đủ chứa "Thấp". Nhưng allocator sắp theo TotalMinutes tăng dần
-            // (WorkloadServiceImpl.cs:77-79), nên nó chọn ngày 2 đang rỗng. Công việc bị
-            // TRẢI RA chứ không dồn vào các ngày sớm.
+            // T3.3 (CP-3 2026-08-05): earliest-feasible thay least-loaded. "Cao" (90p, cắt
+            // theo capacity 60p/ngày) chiếm trọn ngày 0 (60p) rồi 30p đầu ngày 1, để ngày 1
+            // còn trống đúng 30 phút. "Thấp" (30p, xếp sau vì ưu tiên thấp hơn) giờ phải rơi
+            // vào ngày SỚM NHẤT còn chỗ — ngày 1 — chứ không phải ngày 2 đang rỗng (đó là kết
+            // quả của quy tắc least-loaded CŨ, đã bị thay thế).
+            //
+            // Cả hai task cùng HanChot (NewTask: FixedNow.AddDays(5)), xa hơn nhiều so với
+            // ngày 0/1/2 dùng ở đây — nên "trong hạn chót" không loại bất kỳ ngày nào trong
+            // phạm vi test này; điều phân biệt hai quy tắc thuần tuý là "sớm nhất" so với "ít
+            // tải nhất" giữa các ngày còn chỗ.
             var (hocKy, engine) = BuildFixture(("Cao", 90, 90), ("Thấp", 10, 30));
 
             var days = Sut(engine).GenerateSchedule(hocKy, capacityHours: 1.0);
 
             Assert.Equal(60, days[0].TotalMinutes);
-            Assert.Equal(30, days[1].TotalMinutes);
-            Assert.Equal(30, days[2].TotalMinutes);
-            Assert.Equal("Thấp", Assert.Single(days[2].Tasks).TenTask);
+            Assert.Equal(60, days[1].TotalMinutes);
+            Assert.Equal(0, days[2].TotalMinutes);
+            Assert.Equal("Thấp", Assert.Single(days[1].Tasks, t => t.TenTask == "Thấp").TenTask);
         }
 
         [Fact]
@@ -255,7 +253,8 @@ namespace SmartStudyPlanner.Tests.Services
 
             Assert.Equal(180, days.Sum(d => d.TotalMinutes));
             Assert.Single(days.Where(d => d.Tasks.Count > 0));
-            Assert.Equal(180, days[0].TotalMinutes);
+            // Decouple khỏi days[0] (T3.3): chỉ ngày DUY NHẤT có task mới cần đúng tổng phút.
+            Assert.Equal(180, days.First(d => d.Tasks.Count > 0).TotalMinutes);
         }
 
         [Fact]

@@ -105,8 +105,9 @@ namespace SmartStudyPlanner.Services
 
         /// <summary>
         /// T3.8 (Epic 3, Card C) — cùng thuật toán với <see cref="GenerateSchedule"/> (không đổi
-        /// hành vi phân bổ: sort ưu tiên, least-loaded placement, mở ngày tràn — characterization
-        /// suite <c>WorkloadServiceScheduleTests</c> chốt việc này), nhưng còn trả về danh sách
+        /// hành vi phân bổ so với <see cref="GenerateSchedule"/>: sort ưu tiên, earliest-feasible
+        /// placement (T3.3, CP-3 2026-08-05), mở ngày tràn — characterization suite
+        /// <c>WorkloadServiceScheduleTests</c> chốt việc này), nhưng còn trả về danh sách
         /// <see cref="ScheduledItem"/> — mang <c>MaTask</c> + <c>HanChot</c> mà
         /// <c>List&lt;ScheduleDay&gt;</c> không có chỗ chứa.
         ///
@@ -123,17 +124,25 @@ namespace SmartStudyPlanner.Services
             var tatCaTask = new List<StudyTask>();
             var dictMonHoc = new Dictionary<StudyTask, MonHoc>();
 
+            // T3.3 (Epic 3, Card F, CP-2 2026-08-05): điểm ưu tiên được tính vào một cấu trúc
+            // cục bộ thay vì ghi thẳng vào task.DiemUuTien -- GenerateSchedule không còn tác
+            // dụng phụ lên model của caller nữa. PrioritizeStage và
+            // QuanLyTaskViewModel.CapNhatDiem đã tự chấm lại DiemUuTien độc lập ở chỗ khác; UI
+            // Workload Balancer không bind DiemUuTien -- xác nhận bằng grep trước khi bỏ dòng
+            // ghi đè này, không phải suy đoán.
+            var diemUuTienTheoTask = new Dictionary<StudyTask, double>();
+
             foreach (var mon in hocKy.DanhSachMonHoc)
             {
                 foreach (var task in mon.DanhSachTask.Where(t => t.TrangThai != StudyTaskStatus.HoanThanh))
                 {
-                    task.DiemUuTien = _decisionEngine.CalculatePriority(task, mon);
+                    diemUuTienTheoTask[task] = _decisionEngine.CalculatePriority(task, mon);
                     tatCaTask.Add(task);
                     dictMonHoc[task] = mon;
                 }
             }
 
-            var sortedTasks = tatCaTask.OrderByDescending(t => t.DiemUuTien).ToList();
+            var sortedTasks = tatCaTask.OrderByDescending(t => diemUuTienTheoTask[t]).ToList();
             var days = new List<ScheduleDay>();
             var scheduledItems = new List<ScheduledItem>();
 
@@ -155,8 +164,30 @@ namespace SmartStudyPlanner.Services
 
                 while (remainingMinutes > 0)
                 {
-                    var targetDay = days.Where(d => d.TotalMinutes < capacityMinutes)
-                                       .OrderBy(d => d.TotalMinutes)
+                    // T3.3 (Epic 3, Card F, CP-3 2026-08-05): earliest-feasible thay least-loaded
+                    // (OrderBy(d => d.TotalMinutes)). Ưu tiên ngày SỚM NHẤT còn chỗ mà không vượt
+                    // HanChot của task; nếu không ngày nào trong hạn còn chỗ, rơi về ngày sớm nhất
+                    // còn chỗ bất kể hạn chót (KHÔNG từ chối xếp -- đó là việc của
+                    // IConstraintValidator ở một bước validate sau, không phải allocator này).
+                    // Deadline chỉ chi phối CHỌN NGÀY, chưa bao giờ chi phối có xếp hay không.
+                    //
+                    // Lưu ý (advisor-verified 2026-08-06): vì capacity của một ngày chỉ TĂNG (không
+                    // bao giờ giảm) và days được duyệt theo Date tăng dần, "ngày sớm nhất còn chỗ
+                    // trong hạn" và "ngày sớm nhất còn chỗ bất kể hạn" LUÔN trùng nhau với cấu trúc
+                    // vòng lặp hiện tại (không có gì làm rỗng lại một ngày đã lấp). Nhánh lọc theo
+                    // HanChot vì vậy hiện KHÔNG đổi kết quả chọn ngày trên bất kỳ input nào hôm nay
+                    // -- nó trở thành có tác dụng thật khi có cơ chế làm ngày "mất chỗ" không đơn
+                    // điệu (vd. reorder/reject của Optimize() seam, T3.9, chưa xây ở card này) hoặc
+                    // khi IConstraintValidator từ chối một placement và allocator phải thử lại.
+                    // Giữ nhánh này đúng như ratify thay vì rút gọn, vì nó là phần "deadline-aware"
+                    // mà card này được giao xây, chỉ là chưa có input nào bộc lộ nó còn inert.
+                    DateTime hanChotDate = task.HanChot.Date;
+
+                    var targetDay = days.Where(d => d.TotalMinutes < capacityMinutes && d.Date <= hanChotDate)
+                                       .OrderBy(d => d.Date)
+                                       .FirstOrDefault()
+                                   ?? days.Where(d => d.TotalMinutes < capacityMinutes)
+                                       .OrderBy(d => d.Date)
                                        .FirstOrDefault();
 
                     if (targetDay == null)
