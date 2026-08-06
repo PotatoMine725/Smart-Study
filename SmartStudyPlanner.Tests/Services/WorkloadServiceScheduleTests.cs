@@ -24,7 +24,7 @@ namespace SmartStudyPlanner.Tests.Services
     /// chót, ưu tiên hơn "ngày ít tải nhất" (least-loaded, quy tắc cũ). Thứ tự ưu tiên
     /// (<c>OrderByDescending(t => DiemUuTien)</c>) không đổi — deadline chỉ chi phối CHỌN
     /// NGÀY, không chi phối thứ tự xếp task. Xem
-    /// GenerateSchedule_ChonNgayItaiNhat_ChuKhongPhaiNgayItTaiNhat cho test pin quy tắc mới.
+    /// GenerateSchedule_ChonNgaySomNhatConCho_ChuKhongPhaiNgayItTaiNhat cho test pin quy tắc mới.
     /// </summary>
     public class WorkloadServiceScheduleTests
     {
@@ -162,7 +162,7 @@ namespace SmartStudyPlanner.Tests.Services
         }
 
         [Fact]
-        public void GenerateSchedule_ChonNgayItaiNhat_ChuKhongPhaiNgayItTaiNhat()
+        public void GenerateSchedule_ChonNgaySomNhatConCho_ChuKhongPhaiNgayItTaiNhat()
         {
             // T3.3 (CP-3 2026-08-05): earliest-feasible thay least-loaded. "Cao" (90p, cắt
             // theo capacity 60p/ngày) chiếm trọn ngày 0 (60p) rồi 30p đầu ngày 1, để ngày 1
