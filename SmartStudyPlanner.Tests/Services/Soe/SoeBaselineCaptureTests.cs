@@ -94,7 +94,23 @@ namespace SmartStudyPlanner.Tests.Services.Soe
             return obj;
         }
 
-        [Fact]
+        // T3.3 (Epic 3, Card F, 2026-08-06 review round) đổi placement rule của
+        // WorkloadServiceImpl (least-loaded -> earliest-feasible), nên code hiện tại KHÔNG thể
+        // tái tạo baseline đóng băng TRƯỚC T3.3 mà test dưới đây so sánh vào -- đây là hệ quả dự
+        // kiến, không phải bug (xem doc-comment class ở trên, đoạn "QUAN TRỌNG (PD-3/R8)").
+        // Artifact (docs/reports/data/2026-08-05-soe-t36-baseline.json) CHỦ Ý KHÔNG được tái tạo
+        // lại: nó vẫn là mốc "before" bất biến cho T3.4/Card G đo delta, không còn vai trò
+        // regression-guard cho riêng phép so sánh này nữa. Skip có chủ đích thay vì để đỏ vĩnh
+        // viễn -- một suite đỏ sẵn phá tín hiệu "suite xanh" mà các card sau (đặc biệt T3.4) cần
+        // để chứng minh acceptance criteria trên một lần chạy sạch. Các bất biến về
+        // corpus/methodology (không phụ thuộc allocator cụ thể nào) được tách ra
+        // CorpusMethodology_KhongThoaiHoa_LuonChayDuLieuMoi ngay dưới đây để KHÔNG "chết theo"
+        // cùng test bị Skip -- chúng vẫn chạy mỗi lần suite chạy.
+        [Fact(Skip =
+            "T3.3 (2026-08-06) đổi allocator (least-loaded -> earliest-feasible) nên không thể " +
+            "tái tạo baseline đóng băng trước T3.3 -- hệ quả dự kiến, xem PD-3/R8 ở doc-comment " +
+            "class. Artifact vẫn là mốc 'before' bất biến cho T3.4/Card G, KHÔNG được tái tạo. " +
+            "Corpus/methodology sanity đã tách sang CorpusMethodology_KhongThoaiHoa_LuonChayDuLieuMoi.")]
         public void CaptureBaseline_VerifiesFrozenArtifact_OrBootstrapsIfMissing()
         {
             var scenarios = SoeCorpusGenerator.Generate();
@@ -214,6 +230,51 @@ namespace SmartStudyPlanner.Tests.Services.Soe
                 "sửa allocator -- nếu vậy thì artifact này hết tác dụng, đừng tái tạo lại nó), set " +
                 $"{RegenerateEnvVar}=1 rồi chạy lại đúng test này để tái tạo có chủ đích, sau đó " +
                 "tự xem lại diff trước khi commit.");
+        }
+
+        /// <summary>
+        /// T3.3 (Epic 3, Card F, 2026-08-06 review round): tách khỏi
+        /// <see cref="CaptureBaseline_VerifiesFrozenArtifact_OrBootstrapsIfMissing"/> (giờ bị
+        /// <c>Skip</c> vì so sánh với baseline ĐÓNG BĂNG trước T3.3, xem lý do ở đó). Các bất
+        /// biến ở đây KHÔNG phụ thuộc allocator cụ thể nào (chỉ về corpus generator + methodology
+        /// đo lường), nên phải tiếp tục chạy mỗi lần suite chạy chứ không được "chết theo" cùng
+        /// test bị Skip -- nếu không, một corpus generator hỏng (thoái hoá về tầm thường, xem
+        /// execution plan §1.6/§1.7) sẽ không còn ai bắt được.
+        /// </summary>
+        [Fact]
+        public void CorpusMethodology_KhongThoaiHoa_LuonChayDuLieuMoi()
+        {
+            var scenarios = SoeCorpusGenerator.Generate();
+
+            Assert.True(scenarios.Count >= 200, $"corpus có {scenarios.Count} schedule, cần >=200.");
+
+            var allTasks = scenarios.SelectMany(s => s.Tasks).ToList();
+            var byNameGlobal = new Dictionary<string, SoeTaskDef>();
+            foreach (var t in allTasks)
+            {
+                Assert.True(byNameGlobal.TryAdd(t.TenTask, t), $"trùng tên task base trên toàn corpus: '{t.TenTask}'.");
+            }
+
+            int infeasibleCount = scenarios.Count(s => !s.DesignedFeasible);
+            double infeasiblePct = 100.0 * infeasibleCount / scenarios.Count;
+            Assert.True(infeasiblePct >= 25.0, $"chỉ {infeasiblePct:F1}% bất khả thi, cần >=25%.");
+
+            var records = new List<ScheduleRecord>(scenarios.Count);
+            foreach (var scenario in scenarios)
+            {
+                // Cùng lý do như bản gốc: đi qua SoeScheduleMetrics.ResolveExactlyOne cho từng
+                // item -- chỗ tự-kiểm PD-7 thật sự thực thi.
+                records.Add(SoeScheduleMetrics.RunScenario(scenario));
+            }
+
+            int totalInversions = records.Sum(r => r.SelfInversions) + records.Sum(r => r.PairwiseInversions);
+            int feasibleButImprovableCount = records.Count(r => r.FeasibleButImprovable);
+
+            Assert.True(totalInversions > 0,
+                "baseline inversion count = 0 -- corpus vẫn thoái hoá (execution plan §1.6/§1.7): " +
+                "không có bằng chứng để đo cải thiện.");
+            Assert.True(feasibleButImprovableCount > 0,
+                "không có schedule nào feasible-but-improvable -- objective delta sẽ không có gì để đo.");
         }
 
         // ---- PD-7 self-check: chứng minh check THẬT SỰ bắt được ambiguity, không chỉ luôn xanh ----

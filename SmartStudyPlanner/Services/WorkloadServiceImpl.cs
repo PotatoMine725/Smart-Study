@@ -171,16 +171,25 @@ namespace SmartStudyPlanner.Services
                     // IConstraintValidator ở một bước validate sau, không phải allocator này).
                     // Deadline chỉ chi phối CHỌN NGÀY, chưa bao giờ chi phối có xếp hay không.
                     //
-                    // Lưu ý (advisor-verified 2026-08-06): vì capacity của một ngày chỉ TĂNG (không
-                    // bao giờ giảm) và days được duyệt theo Date tăng dần, "ngày sớm nhất còn chỗ
-                    // trong hạn" và "ngày sớm nhất còn chỗ bất kể hạn" LUÔN trùng nhau với cấu trúc
-                    // vòng lặp hiện tại (không có gì làm rỗng lại một ngày đã lấp). Nhánh lọc theo
-                    // HanChot vì vậy hiện KHÔNG đổi kết quả chọn ngày trên bất kỳ input nào hôm nay
-                    // -- nó trở thành có tác dụng thật khi có cơ chế làm ngày "mất chỗ" không đơn
-                    // điệu (vd. reorder/reject của Optimize() seam, T3.9, chưa xây ở card này) hoặc
-                    // khi IConstraintValidator từ chối một placement và allocator phải thử lại.
-                    // Giữ nhánh này đúng như ratify thay vì rút gọn, vì nó là phần "deadline-aware"
-                    // mà card này được giao xây, chỉ là chưa có input nào bộc lộ nó còn inert.
+                    // ĐÃ CHỨNG MINH BẰNG ĐẠI SỐ (2026-08-06 review round, không chỉ thử nghiệm),
+                    // rồi xác nhận lại bằng nhiều tổ hợp deadline/priority xen kẽ (kể cả deadline
+                    // trong quá khứ): nhánh lọc theo HanChot ở trên KHÔNG BAO GIỜ đổi ngày được
+                    // chọn, với BẤT KỲ input nào. Gọi E = "ngày sớm nhất (theo Date) còn chỗ trong
+                    // days hiện tại" (bỏ qua hạn chót). Vì capacity một ngày chỉ TĂNG (không có gì
+                    // làm rỗng lại một ngày đã lấp) và days được duyệt theo Date tăng dần:
+                    //   - Nếu E &lt;= HanChot: E tự thoả điều kiện lọc, nên tier-1 trả về đúng E
+                    //     (E là min của toàn tập, cũng là min của bất kỳ tập con nào chứa E).
+                    //   - Nếu E &gt; HanChot: mọi ngày &lt;= HanChot chắc chắn đã đầy (vì E là ngày
+                    //     sớm nhất CÒN CHỖ), nên tier-1 rỗng, rơi về tier-2 (bỏ qua hạn) -- vẫn ra E.
+                    // Hai nhánh trên tính LUÔN ra E, không có input nào lọt qua kẽ hở. Vì vậy nhánh
+                    // này KHÔNG THỂ có mutation check: không có mutation nào của điều kiện lọc HanChot
+                    // làm thay đổi output trên bất kỳ input nào -- đây là dạng "provably inert" mạnh
+                    // nhất, không phải "chưa test tới". Nó trở thành có tác dụng thật khi có cơ chế
+                    // làm ngày "mất chỗ" không đơn điệu (vd. reorder/reject của Optimize() seam,
+                    // T3.9, chưa xây ở card này) hoặc khi IConstraintValidator từ chối một placement
+                    // và allocator phải thử lại. Giữ nhánh này đúng như ratify (CP-3) thay vì rút
+                    // gọn thành "luôn chọn E" -- nó là phần "deadline-aware" mà card này được giao
+                    // xây, và trở thành sống khi input/cơ chế phía trên đổi, dù hôm nay chưa có.
                     DateTime hanChotDate = task.HanChot.Date;
 
                     var targetDay = days.Where(d => d.TotalMinutes < capacityMinutes && d.Date <= hanChotDate)

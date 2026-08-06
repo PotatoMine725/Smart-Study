@@ -20,14 +20,22 @@ namespace SmartStudyPlanner.Tests.Services.Soe
     ///
     /// <b>Hợp đồng đúng giữa <c>Items</c> và <c>Days</c> là theo <see cref="ScheduledItem.Date"/>,
     /// KHÔNG phải theo vị trí phẳng.</b> Trong <c>days.SelectMany(d =&gt; d.Tasks)</c>
-    /// ("day-major flatten"), một item có thể xuất hiện SAU các item của những ngày có index cao
-    /// hơn: <c>OrderBy(d =&gt; d.TotalMinutes)</c> là stable sort, nên khi nhiều ngày hoà điểm
-    /// TotalMinutes, ngày index thấp nhất luôn thắng tie-break — một chunk xếp SAU về mặt thời
-    /// gian (thứ tự trong <c>Items</c>) hoàn toàn có thể quay lại một ngày sớm đã dùng trước đó.
-    /// Xem <see cref="GenerateSchedule_ChieuTuItems_TrungKhopTheoTungNgay_KhongTheoViTri"/> cho
-    /// phản ví dụ cụ thể. Bất biến thật là <b>within-day order</b>: mỗi <c>ScheduleDay.Tasks</c>
-    /// được append CÙNG một vòng lặp với <c>ScheduledItem</c> khớp của nó, nên lọc
-    /// <c>items.Where(i =&gt; i.Date == day.Date)</c> rồi so theo thứ tự chèn luôn đúng.
+    /// ("day-major flatten"), về NGUYÊN TẮC một item có thể xuất hiện SAU các item của những
+    /// ngày có index cao hơn -- không có gì trong shape {Items, Days} đảm bảo ngược lại. Bất biến
+    /// thật là <b>within-day order</b>: mỗi <c>ScheduleDay.Tasks</c> được append CÙNG một vòng lặp
+    /// với <c>ScheduledItem</c> khớp của nó, nên lọc <c>items.Where(i =&gt; i.Date == day.Date)</c>
+    /// rồi so theo thứ tự chèn luôn đúng.
+    ///
+    /// T3.3 (2026-08-06 review round): allocator hiện tại (earliest-feasible, CP-3) đã được CHỨNG
+    /// MINH bằng đại số là chọn ngày đơn điệu không giảm qua toàn bộ vòng chạy, với BẤT KỲ input
+    /// nào -- kể cả deadline lệch nhau xen kẽ thứ tự ưu tiên (xác nhận cả bằng chứng minh lẫn thử
+    /// nghiệm thực tế nhiều tổ hợp trước khi kết luận). Nghĩa là "day-major flatten" và thứ tự
+    /// chèn <c>Items</c> giờ LUÔN trùng nhau với allocator thật hôm nay -- phản ví dụ không còn
+    /// tái tạo được qua <c>GenerateScheduleWithIdentity</c> với BẤT KỲ fixture nào. Vì vậy
+    /// <see cref="GenerateSchedule_ChieuTuItems_TrungKhopTheoTungNgay_KhongTheoViTri"/> dựng thẳng
+    /// {Items, Days} bằng tay thay vì gọi allocator, để chứng minh hợp đồng tiêu thụ đúng độc lập
+    /// với việc thuật toán cụ thể hôm nay có bộc lộ nó hay không -- hợp đồng vẫn phải giữ cho một
+    /// allocator tương lai (vd. T3.9 Optimize() seam, có thể không đơn điệu).
     ///
     /// Đây KHÔNG test tính đúng đắn của thuật toán phân bổ (đã có
     /// <c>WorkloadServiceScheduleTests</c> lo việc đó) — chỉ test rằng identity đi kèm đúng chunk,
@@ -113,34 +121,77 @@ namespace SmartStudyPlanner.Tests.Services.Soe
         [Fact]
         public void GenerateSchedule_ChieuTuItems_TrungKhopTheoTungNgay_KhongTheoViTri()
         {
-            // PHẢN VÍ DỤ cho "khớp theo vị trí phẳng": 8 task x 40 phút, sức chứa 120 phút/ngày
-            // (3 chunk vừa một ngày). A..G lần lượt chiếm các ngày 0..6 (mỗi ngày đang rỗng khi
-            // task đó tới lượt xếp). Đến task H, cả 7 ngày đều đang hoà 40 phút — OrderBy là
-            // stable sort nên tie-break chọn ngày index THẤP NHẤT, tức ngày 0 (đã có A). Kết quả:
-            //   - Items (thứ tự xếp theo thời gian): A, B, C, D, E, F, G, H
-            //   - Days flatten (day-major, ngày 0 trước): A, H, B, C, D, E, F, G
-            // Hai thứ tự này KHÁC NHAU — khớp theo index sẽ sai ngay từ vị trí 1 (B vs H). Đây
-            // chính xác là bug mà bản test cũ (khớp theo index, chỉ có 1 task) không lộ ra được.
-            var hocKy = new HocKy("HK Identity Multi", Today);
-            var mon = new MonHoc("Toán", 3) { MaHocKy = hocKy.MaHocKy };
-            var engine = new StubDecisionEngine();
-            var tenTheoThuTu = new[] { "A", "B", "C", "D", "E", "F", "G", "H" };
-            double pri = 80;
-            foreach (var ten in tenTheoThuTu)
+            // T3.3 (Epic 3, Card F, 2026-08-06 review round): trước T3.3, allocator dùng
+            // least-loaded (OrderBy(d => d.TotalMinutes)); với stable-sort tie-break, một task
+            // xếp SAU (H) có thể "quay lại" một ngày index THẤP mà task khác (A) đã dùng trước
+            // đó -- đó là phản ví dụ gốc của test này, chứng minh khớp theo vị trí phẳng SAI.
+            //
+            // T3.3 đổi placement rule sang earliest-feasible. Đã CHỨNG MINH bằng đại số (không
+            // chỉ thử nghiệm) rằng với thuật toán hiện tại, quyết định chọn ngày ở MỌI chunk luôn
+            // quy về đúng một giá trị E = "ngày sớm nhất (theo Date) còn chỗ trong danh sách
+            // days hiện tại", BẤT KỂ có lọc theo HanChot hay không -- vì:
+            //   - Nếu E <= HanChot: E tự nó đã thoả điều kiện lọc, nên tier-1 (lọc theo hạn) trả
+            //     về đúng E (E là min của toàn tập, cũng là min của một tập con chứa E).
+            //   - Nếu E > HanChot: mọi ngày <= HanChot đều KHÔNG còn chỗ (vì E là ngày sớm nhất
+            //     CÒN CHỖ, nên mọi ngày trước E chắc chắn đã đầy) -- tier-1 rỗng, rơi về tier-2
+            //     (bỏ qua hạn), vẫn ra E.
+            // Vì capacity một ngày chỉ TĂNG (không có gì làm rỗng lại một ngày đã lấp), E chỉ có
+            // thể đứng yên hoặc tăng qua từng chunk -- KHÔNG BAO GIỜ giảm. Kết luận: chuỗi ngày
+            // được chọn qua toàn bộ vòng chạy luôn ĐƠN ĐIỆU KHÔNG GIẢM, với BẤT KỲ input nào --
+            // kể cả deadline trải rộng/xen kẽ thứ tự ưu tiên (đã thử nghiệm thực tế với nhiều tổ
+            // hợp deadline lệch nhau, kể cả deadline trong quá khứ, trước khi kết luận). Nghĩa là
+            // "day-major flatten" và "thứ tự chèn Items" giờ LUÔN trùng nhau -- phản ví dụ gốc
+            // (dựa vào allocator thật) không còn tái tạo được với BẤT KỲ fixture nào nữa.
+            //
+            // Vì vậy test này giờ CHỦ Ý KHÔNG gọi allocator thật -- nó dựng thẳng
+            // ScheduledItem/ScheduleDay bằng tay để chứng minh HỢP ĐỒNG tiêu thụ (correlate theo
+            // Date, không theo vị trí phẳng) một cách độc lập với việc thuật toán CỤ THỂ hôm nay
+            // có tạo ra tình huống này hay không. Hợp đồng này vẫn phải đúng cho MỌI {Items, Days}
+            // thoả hai bất biến mà GenerateScheduleWithIdentity đảm bảo (dù allocator nào sinh ra
+            // chúng): (1) trong một ngày, thứ tự ScheduledTask = thứ tự chèn của các ScheduledItem
+            // cùng Date đó; (2) không có gì đảm bảo thứ tự flatten theo ngày trùng thứ tự Items.
+            // Bất biến (2) là điều IConstraintValidator/IObjectiveEvaluator (Card D/E) và một
+            // allocator tương lai (T3.9 Optimize() seam, có thể không đơn điệu) phải tiếp tục dựa
+            // vào -- nên test vẫn cần tồn tại, chỉ là nguồn dữ liệu đổi từ "allocator thật" sang
+            // "dựng tay", đúng cách hợp đồng consumption độc lập với implementation cụ thể.
+            var maA = Guid.NewGuid();
+            var maB = Guid.NewGuid();
+            var hanChot = FixedNow.AddDays(5);
+
+            // Items (thứ tự chèn theo thời gian, mô phỏng "task ưu tiên cao xếp trước rồi mới
+            // quay lại ngày đầu"): A@ngày0, B@ngày1, rồi MỘT CHUNK KHÁC của A quay lại ngày0.
+            var items = new List<ScheduledItem>
             {
-                mon.DanhSachTask.Add(new StudyTask(ten, FixedNow.AddDays(5), LoaiCongViec.BaiTapVeNha, 2));
-                engine.Priorities[ten] = pri;
-                engine.Minutes[ten] = 40;
-                pri -= 10; // giữ nguyên thứ tự sort ưu tiên A..H, không có hoà điểm ưu tiên
-            }
-            hocKy.DanhSachMonHoc.Add(mon);
+                new ScheduledItem(maA, hanChot, "A", "A (Phần 1)", "Toán", Today, 40),
+                new ScheduledItem(maB, hanChot, "B", "B", "Toán", Today.AddDays(1), 40),
+                new ScheduledItem(maA, hanChot, "A", "A (Phần 2)", "Toán", Today, 40),
+            };
 
-            var (days, items) = Sut(engine).GenerateScheduleWithIdentity(hocKy, capacityHours: 2.0); // 120 phút/ngày
+            // Days: ScheduledTask trong từng ngày phải theo ĐÚNG thứ tự chèn của các item cùng
+            // Date đó (bất biến (1) ở trên) -- ngày 0 có "A (Phần 1)" TRƯỚC "A (Phần 2)" vì đó là
+            // thứ tự items[0] rồi items[2] được chèn, mặc dù items[1] (B) nằm GIỮA chúng theo vị
+            // trí phẳng toàn cục.
+            var days = new List<ScheduleDay>
+            {
+                new ScheduleDay
+                {
+                    Date = Today,
+                    Tasks = { new ScheduledTask { TenTask = "A (Phần 1)", TenMon = "Toán", SoPhut = 40 },
+                              new ScheduledTask { TenTask = "A (Phần 2)", TenMon = "Toán", SoPhut = 40 } },
+                },
+                new ScheduleDay
+                {
+                    Date = Today.AddDays(1),
+                    Tasks = { new ScheduledTask { TenTask = "B", TenMon = "Toán", SoPhut = 40 } },
+                },
+            };
 
-            // Chứng minh phản ví dụ có thật trước khi dựa vào nó.
-            Assert.Equal(tenTheoThuTu, items.Select(i => i.TenTaskGoc).ToList());
+            // Chứng minh phản ví dụ có thật: khớp theo vị trí phẳng SAI ngay từ vị trí 1.
             Assert.Equal(
-                new[] { "A", "H", "B", "C", "D", "E", "F", "G" },
+                new[] { "A (Phần 1)", "B", "A (Phần 2)" },
+                items.Select(i => i.TenHienThi).ToList());
+            Assert.Equal(
+                new[] { "A (Phần 1)", "A (Phần 2)", "B" },
                 days.SelectMany(d => d.Tasks).Select(t => t.TenTask).ToList());
 
             // Hợp đồng ĐÚNG: correlate theo Date, so trong từng ngày theo thứ tự chèn — không
