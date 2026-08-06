@@ -26,16 +26,16 @@ namespace SmartStudyPlanner.Tests.Services.Soe
     /// với <c>ScheduledItem</c> khớp của nó, nên lọc <c>items.Where(i =&gt; i.Date == day.Date)</c>
     /// rồi so theo thứ tự chèn luôn đúng.
     ///
-    /// T3.3 (2026-08-06 review round): allocator hiện tại (earliest-feasible, CP-3) đã được CHỨNG
-    /// MINH bằng đại số là chọn ngày đơn điệu không giảm qua toàn bộ vòng chạy, với BẤT KỲ input
-    /// nào -- kể cả deadline lệch nhau xen kẽ thứ tự ưu tiên (xác nhận cả bằng chứng minh lẫn thử
-    /// nghiệm thực tế nhiều tổ hợp trước khi kết luận). Nghĩa là "day-major flatten" và thứ tự
-    /// chèn <c>Items</c> giờ LUÔN trùng nhau với allocator thật hôm nay -- phản ví dụ không còn
-    /// tái tạo được qua <c>GenerateScheduleWithIdentity</c> với BẤT KỲ fixture nào. Vì vậy
-    /// <see cref="GenerateSchedule_ChieuTuItems_TrungKhopTheoTungNgay_KhongTheoViTri"/> dựng thẳng
-    /// {Items, Days} bằng tay thay vì gọi allocator, để chứng minh hợp đồng tiêu thụ đúng độc lập
-    /// với việc thuật toán cụ thể hôm nay có bộc lộ nó hay không -- hợp đồng vẫn phải giữ cho một
-    /// allocator tương lai (vd. T3.9 Optimize() seam, có thể không đơn điệu).
+    /// T3.3 (2026-08-06 review round): allocator hiện tại (earliest-feasible, CP-3) chọn ngày
+    /// đơn điệu không giảm qua toàn bộ vòng chạy, với BẤT KỲ input nào -- hệ quả trực tiếp của
+    /// nhánh lọc theo HanChot provably inert về output (chứng minh đầy đủ, canonical: xem
+    /// docs/plans/2026-08-06-deadline-tier-provably-inert.md, đừng chép lại ở đây). Nghĩa là
+    /// "day-major flatten" và thứ tự chèn <c>Items</c> giờ LUÔN trùng nhau với allocator thật hôm
+    /// nay -- phản ví dụ không còn tái tạo được qua <c>GenerateScheduleWithIdentity</c> với BẤT KỲ
+    /// fixture nào. Vì vậy <see cref="GenerateSchedule_ChieuTuItems_TrungKhopTheoTungNgay_KhongTheoViTri"/>
+    /// dựng thẳng {Items, Days} bằng tay thay vì gọi allocator, để chứng minh hợp đồng tiêu thụ
+    /// đúng độc lập với việc thuật toán cụ thể hôm nay có bộc lộ nó hay không -- hợp đồng vẫn phải
+    /// giữ cho một allocator tương lai (vd. T3.9 Optimize() seam, có thể không đơn điệu).
     ///
     /// Đây KHÔNG test tính đúng đắn của thuật toán phân bổ (đã có
     /// <c>WorkloadServiceScheduleTests</c> lo việc đó) — chỉ test rằng identity đi kèm đúng chunk,

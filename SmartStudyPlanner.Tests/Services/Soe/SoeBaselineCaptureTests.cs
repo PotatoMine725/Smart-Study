@@ -233,6 +233,60 @@ namespace SmartStudyPlanner.Tests.Services.Soe
         }
 
         /// <summary>
+        /// T3.3 (Epic 3, Card F, 2026-08-06 review round 3): tách khỏi
+        /// <see cref="CaptureBaseline_VerifiesFrozenArtifact_OrBootstrapsIfMissing"/> (giờ bị
+        /// <c>Skip</c>) vì <c>Skip</c> vô tình bỏ luôn phần "artifact TỒN TẠI và parse được" mà
+        /// chính tên method đó hứa ("...OrBootstrapsIfMissing") -- nếu file bị xoá hay hỏng sau
+        /// khi test kia bị Skip, cả suite vẫn xanh và Card G (T3.4) sẽ âm thầm mất mốc "before"
+        /// mà không ai flag. Test này CHỦ Ý chỉ kiểm tra CẤU TRÚC TĨNH của artifact đã commit
+        /// (tồn tại, JSON hợp lệ, đủ field top-level, đủ số schedule record) -- KHÔNG so sánh với
+        /// số đo từ allocator hiện tại (đó chính xác là phần đã đóng băng/off-limits, thuộc về
+        /// test bị Skip). Không đọc file nào khác ngoài artifact đã commit -- không chạy corpus,
+        /// không gọi allocator.
+        /// </summary>
+        [Fact]
+        public void BaselineArtifact_TonTaiVaCoCauTrucHopLe()
+        {
+            string repoRoot = RepoLocator.FindRepoRoot();
+            string outPath = Path.Combine(repoRoot, "docs", "reports", "data", "2026-08-05-soe-t36-baseline.json");
+
+            Assert.True(File.Exists(outPath),
+                $"Baseline artifact không tồn tại tại '{outPath}' -- T3.4/Card G sẽ mất mốc " +
+                "'before' để đo delta mà không có bất kỳ tín hiệu nào cảnh báo, vì test so sánh " +
+                "(CaptureBaseline_VerifiesFrozenArtifact_OrBootstrapsIfMissing) đang bị Skip.");
+
+            JsonNode? node;
+            try
+            {
+                node = JsonNode.Parse(File.ReadAllText(outPath));
+            }
+            catch (JsonException ex)
+            {
+                throw new Xunit.Sdk.XunitException(
+                    $"Baseline artifact tại '{outPath}' không parse được thành JSON hợp lệ: {ex.Message}");
+            }
+
+            Assert.NotNull(node);
+            var obj = node!.AsObject();
+
+            // Shape top-level tối thiểu (khớp BaselineArtifact trong SoeBaselineMetrics.cs) --
+            // không kiểm tra GIÁ TRỊ (đó là việc bị đóng băng), chỉ kiểm tra SHAPE còn nguyên.
+            foreach (var field in new[] { "HeadSha", "Seed", "TodayReference", "Aggregate", "Schedules" })
+            {
+                Assert.True(obj.ContainsKey(field), $"Baseline artifact thiếu field top-level '{field}'.");
+            }
+
+            var schedules = obj["Schedules"]!.AsArray();
+            Assert.True(schedules.Count >= 200,
+                $"Baseline artifact chỉ có {schedules.Count} schedule record, cần >=200 -- artifact " +
+                "có vẻ đã bị cắt/hỏng, không phải file capture đầy đủ.");
+
+            var aggregate = obj["Aggregate"]!.AsObject();
+            Assert.True(aggregate.ContainsKey("ScheduleCount"), "Aggregate thiếu field 'ScheduleCount'.");
+            Assert.Equal(schedules.Count, aggregate["ScheduleCount"]!.GetValue<int>());
+        }
+
+        /// <summary>
         /// T3.3 (Epic 3, Card F, 2026-08-06 review round): tách khỏi
         /// <see cref="CaptureBaseline_VerifiesFrozenArtifact_OrBootstrapsIfMissing"/> (giờ bị
         /// <c>Skip</c> vì so sánh với baseline ĐÓNG BĂNG trước T3.3, xem lý do ở đó). Các bất

@@ -26,16 +26,12 @@ namespace SmartStudyPlanner.Tests.Services
     /// NGÀY, không chi phối thứ tự xếp task. Xem
     /// GenerateSchedule_ChonNgaySomNhatConCho_ChuKhongPhaiNgayItTaiNhat cho test pin quy tắc mới.
     ///
-    /// <b>Đọc, nhưng ĐÃ CHỨNG MINH BẰNG ĐẠI SỐ là KHÔNG BAO GIỜ đổi ngày được chọn, với BẤT KỲ
-    /// input nào</b> (2026-08-06 review round; xem doc-comment đầy đủ ở
-    /// <c>WorkloadServiceImpl.cs</c>, khối vòng lặp phân bổ). Gọi E = "ngày sớm nhất còn chỗ,
-    /// bỏ qua hạn chót": nếu E &lt;= HanChot, nhánh lọc theo hạn tự trả về E (E đã thoả và là min
-    /// toàn tập); nếu E &gt; HanChot, mọi ngày &lt;= HanChot chắc chắn đã đầy nên nhánh lọc rỗng,
-    /// rơi về nhánh bỏ qua hạn — vẫn ra E. Nhánh lọc theo HanChot vì vậy KHÔNG THỂ có mutation
-    /// check: không có mutation nào của nó làm đổi output trên bất kỳ input nào hôm nay. Đừng đọc
-    /// dòng trên là "deadline chi phối vị trí xếp" — nó chi phối về MẶT CODE, nhưng provably
-    /// inert về mặt OUTPUT với thuật toán hiện tại; trở thành sống khi có cơ chế làm ngày "mất
-    /// chỗ" không đơn điệu (T3.9 Optimize() seam) hoặc IConstraintValidator từ chối một placement.
+    /// <b>Đọc, nhưng provably KHÔNG BAO GIỜ đổi ngày được chọn, với BẤT KỲ input nào</b> — bất
+    /// biến về OUTPUT (nhánh lọc theo hạn vẫn CHẠY bình thường mỗi chunk, chỉ là kết quả luôn
+    /// khớp nhánh bỏ-qua-hạn), không phải "nhánh này không thực thi". Đừng đọc dòng trên là
+    /// "deadline chi phối vị trí xếp": nó chi phối về MẶT CODE, nhưng inert về mặt OUTPUT với
+    /// thuật toán hiện tại. Chứng minh đầy đủ (canonical, đừng chép lại):
+    /// docs/plans/2026-08-06-deadline-tier-provably-inert.md.
     /// </summary>
     public class WorkloadServiceScheduleTests
     {
@@ -218,7 +214,13 @@ namespace SmartStudyPlanner.Tests.Services
             Assert.Equal(60, days[0].TotalMinutes);
             Assert.Equal(60, days[1].TotalMinutes);
             Assert.Equal(0, days[2].TotalMinutes);
-            Assert.Equal("Thấp", Assert.Single(days[1].Tasks, t => t.TenTask == "Thấp").TenTask);
+            // Pin TOÀN BỘ nội dung ngày 1, không chỉ sự có mặt của "Thấp" -- assertion trước
+            // (Assert.Single(days[1].Tasks, t => t.TenTask == "Thấp")) tự lọc theo tên rồi assert
+            // lại đúng cái tên đó, nên KHÔNG BAO GIỜ có thể đỏ (tautology). Thứ tự đúng: "Cao
+            // (Phần 2)" chèn trước (Cao ưu tiên cao hơn, xử lý trước) rồi mới "Thấp".
+            Assert.Equal(
+                new[] { "Cao (Phần 2)", "Thấp" },
+                days[1].Tasks.Select(t => t.TenTask).ToArray());
         }
 
         [Fact]
