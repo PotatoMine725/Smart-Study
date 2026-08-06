@@ -128,6 +128,21 @@ namespace SmartStudyPlanner.Services.Soe
                 }
                 else
                 {
+                    // So sánh ở đây là với evals[best] (incumbent HIỆN TẠI), KHÔNG PHẢI với
+                    // evals[0] (C₀ -- baseline của admissibility check phía trên). Ở N=1, "best"
+                    // luôn bằng 0 tại đúng thời điểm này (vòng lặp chỉ có k=1, và if-branch phía
+                    // trên là nơi duy nhất có thể đổi best trước khi tới đây) -- nên hai phép so
+                    // sánh trùng nhau và nhãn dưới đây LUÔN đúng ở N=1 hôm nay.
+                    //
+                    // Nếu N>1 sau này (Candidate 2, T3.9 DoR §4/§6 OQ1 -- chưa implement), một
+                    // checkpoint có thể admissible-vs-C₀ (đã qua guard phía trên) NHƯNG lại kém
+                    // khả thi hơn incumbent hiện tại (CompareFeasibility(evals[k], evals[best]) > 0,
+                    // ví dụ C₀ có 1 violation, best=C_j nào đó lỡ về 0 violation, còn C_k đang xét
+                    // vẫn giữ 1 violation -- vẫn admissible vs C₀ nhưng "kém hơn" incumbent vì lý do
+                    // feasibility, không phải vì điểm số thấp). Nhánh dưới đây sẽ vẫn gán nhầm
+                    // Rejected_LowerScore cho trường hợp đó -- cần một xử lý riêng (reason code
+                    // riêng, hoặc check feasibility-vs-C₀ tách biệt khỏi feasibility-vs-incumbent)
+                    // trước khi nhãn này được tin lại ở N>1.
                     bool tie = OptimizerComparator.CompareFeasibility(evals[k], evals[best]) == 0
                         && Math.Abs(evals[k].Score - evals[best].Score)
                            <= OptimizerComparator.RelEps * Math.Max(1.0, Math.Abs(evals[best].Score));
