@@ -72,6 +72,7 @@ namespace SmartStudyPlanner.Tests.Services.Soe
 
             long totalApplyCalls = 0;
             long totalPassCount = 0;
+            long totalCheckpointCount = 0;
 
             foreach (var scenario in scenarios)
             {
@@ -81,13 +82,27 @@ namespace SmartStudyPlanner.Tests.Services.Soe
                     new IOptimizerStage[] { counting }, validator, evaluator, SoeOptimizeCorpusMetrics.DefaultWeights);
 
                 var (_, report) = optimizer.Optimize(items);
+
+                // Per-item comparison, KHÔNG chỉ so trên tổng cộng dồn cuối cùng -- so trên tổng sẽ
+                // để lọt lỗi bù trừ (item A thừa 1 Apply(), item B thiếu 1 Apply(), tổng vẫn khớp).
+                Assert.Equal(report.PassCount, counting.CallCount);
+
                 totalApplyCalls += counting.CallCount;
                 totalPassCount += report.PassCount;
+                totalCheckpointCount += report.Passes.Sum(p => p.Checkpoints.Count);
             }
 
-            _output.WriteLine($"Branching factor: {totalPassCount} pass tổng cộng, {totalApplyCalls} Apply() call (N=1).");
-            // Tổng Apply() call phải bằng đúng passCount * N (N=1) trên MỌI item cộng dồn.
+            _output.WriteLine($"Branching factor: {totalPassCount} pass tổng cộng, {totalApplyCalls} Apply() call (N=1), " +
+                $"{totalCheckpointCount} checkpoint tổng cộng.");
+
+            // Tổng Apply() call phải bằng đúng passCount * N (N=1) trên MỌI item cộng dồn -- giữ lại
+            // như một sanity tổng bổ sung cho assertion per-item ở trên, không thay thế nó.
             Assert.Equal(totalPassCount, totalApplyCalls);
+
+            // "N+1" (không chỉ "N") THẬT SỰ được kiểm ở đây: mỗi pass materialize đúng N+1=2
+            // checkpoint (C0..C1, N=1) -- assertion trên chỉ đếm Apply() call (= N), không chạm
+            // Checkpoints.Count, nên không tự nó chứng minh "+1" phần của bright line.
+            Assert.Equal(totalPassCount * 2, totalCheckpointCount);
         }
 
         private sealed class CountingStage : IOptimizerStage
@@ -180,6 +195,7 @@ namespace SmartStudyPlanner.Tests.Services.Soe
         public void A6CrossCheck_NameResolutionPath_AgreesWithProductionValidator_UnderSameBoundary()
         {
             var results = SoeOptimizeCorpusMetrics.Results;
+            Assert.True(results.Count > 0, "corpus rỗng -- mọi assertion dưới đây sẽ pass RỖNG (0==0), không kiểm được gì.");
 
             // Đây là assertion THẬT của criterion 10: đường đi A6 (name-resolution qua Days) và
             // đường đi production (IConstraintValidator trực tiếp trên Items/identity thật) phải ra
@@ -311,16 +327,20 @@ namespace SmartStudyPlanner.Tests.Services.Soe
 
             _output.WriteLine($"Explainability: {totalC0} C0 checkpoints (reason must be null), " +
                 $"{totalNonC0} non-C0 checkpoints (reason must be non-null), {missingOnNonC0} missing.");
+            Assert.True(totalNonC0 > 0,
+                "0 non-C0 checkpoint trên toàn corpus -- missingOnNonC0==0 sẽ pass RỖNG, không chứng " +
+                "minh được gì về explainability (criterion 7).");
             Assert.Equal(0, missingOnNonC0);
             Assert.Equal(0, reasonOnC0);
         }
 
         // =====================================================================================
-        // Criterion 9 -- runtime, reported (provisional metric, not gated here).
+        // Criterion 9 -- runtime, GATED at the master plan's provisional <2s p95 budget on the
+        // corpus. (Not just "reported": the method name below and the assert both say so honestly.)
         // =====================================================================================
 
         [Fact]
-        public void Runtime_OptimizeCall_LatencyAcrossCorpus_Reported()
+        public void Runtime_OptimizeCall_LatencyAcrossCorpus_GatedAtProvisionalP95Budget()
         {
             var scenarios = SoeCorpusGenerator.Generate();
             var validator = new ConstraintValidator();
@@ -338,6 +358,10 @@ namespace SmartStudyPlanner.Tests.Services.Soe
                 sw.Stop();
                 latenciesMs.Add(sw.Elapsed.TotalMilliseconds);
             }
+
+            Assert.True(latenciesMs.Count > 0,
+                "corpus rỗng -- latenciesMs[^1] bên dưới sẽ ném IndexOutOfRangeException thay vì một " +
+                "thông báo rõ ràng nếu assertion này không chặn trước.");
 
             latenciesMs.Sort();
             double p95 = latenciesMs[(int)Math.Min(latenciesMs.Count - 1, Math.Ceiling(0.95 * latenciesMs.Count) - 1)];
