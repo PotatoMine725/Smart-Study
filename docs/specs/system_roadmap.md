@@ -83,7 +83,25 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
 2. **Study Optimization Engine** *(on top of the sync-ready data model — D-B)* — evolves the Balancer (Part B §7.3).
    **Guardrails frozen 2026-07-02 ([D-G/D-H/D-J](../plans/2026-07-02-architecture-freeze-decisions.md)):** deadline feasibility, capacity and calendar limits are **hard constraints** (Constraint Validator);
    objective = quality only (`w1…w5`); feasibility never worsens (`violations(out) ≤ violations(in)`).
-   **Pass accept/commit semantics still OPEN — implementation blocked on it** (master plan gate G2). Scope must respect §13. See the SOE proposal `2026-06-30-workload-optimizer-proposal.md` (archived 2026-07-07 → `legacy/Archived plans/`, local-only; recoverable from git history — note it carries a supersession banner, the frozen contract is D-G/D-H/D-J).
+   **Gates closed:** G2 (pass accept/commit semantics + non-worsening threshold) ratified 2026-08-05
+   ([note](../plans/2026-08-04-g2-optimization-pass-semantics.md)); G3 (`w1…w5` weight-vector
+   governance) ratified 2026-08-07 ([note](../plans/2026-08-07-g3-weight-vector-governance.md)).
+   **Implementation shipped** (execution plan `2026-08-04-epic-3-execution-plan.md`, Cards A–H):
+   corpus + baseline (T3.6), `IConstraintValidator` (T3.1), `IObjectiveEvaluator` (T3.2), schedule
+   identity seam (T3.8), deadline-aware allocator rework (T3.3), the `Optimize(schedule) →
+   (schedule, report)` seam (T3.9), the D-H/inversion property suite + `OptimizerRunLog` telemetry
+   (T3.4/T3.7). **`ScheduleOptimizer`/`SoeWeights` have zero production call sites as of this
+   HEAD** — `BalanceWorkloadStage.cs` still calls the pre-Epic-3 `IWorkloadService.GenerateSchedule`
+   path directly; wiring the seam into production is separate, unscheduled integration work, not
+   part of any Epic 3 task card. Success metrics measured and reported in the
+   [epic closing note](../reports/2026-08-07-epic3-closing-note.md) (DoD-7): D-H holds (0 breaches/230
+   items); deadline inversions reduced from baseline (self-miss class eliminated by construction;
+   residual pairwise inversions and 4 corpus items with a feasibility regression vs. baseline are
+   disclosed, owner-accepted allocator limitations traced to a single root cause — priority-only
+   task ordering — not implementation defects, see the G2 note's D7). See the SOE proposal
+   `2026-06-30-workload-optimizer-proposal.md` (archived 2026-07-07 → `legacy/Archived plans/`,
+   local-only; recoverable from git history — note it carries a supersession banner, the frozen
+   contract is D-G/D-H/D-J).
 3. **LAN sync epic** *(D-A)* — multi-device, two-way merge over LAN (not cloud). Merge policy **decided (D-F):** field-level merge, LWW only on concurrent same-field edits.
    **Mechanics frozen 2026-07-02 ([D-I](../plans/2026-07-02-architecture-freeze-decisions.md)):** 3-way merge vs. last-synced base; tie-break `ModifiedAtUtc` → `DeviceId`; delete-vs-edit → tombstone wins,
    losing side kept in a conflict record; no HLC. *Cascade policy decided + implemented (G1, cascade-tombstone —
@@ -392,9 +410,14 @@ Constraints:
 > and calendar limits are **hard constraints** owned by the Constraint Validator; the objective scores
 > schedule quality only — `w1·LoadBalance + w2·ContextContinuity + w3·SessionQuality + w4·FatiguePenalty
 > + w5·FragmentationPenalty` (`w6·DeadlineUrgency` is **dropped**: deadline is a constraint, not a scored
-> term); the SOE never worsens feasibility (`violations(out) ≤ violations(in)`). **Still OPEN: the pass
-> accept/commit granularity** (per-step vs. whole-pass vs. alternatives — see the freeze record §3);
-> SOE implementation is blocked on that decision.
+> term); the SOE never worsens feasibility (`violations(out) ≤ violations(in)`). **Pass accept/commit
+> granularity resolved** (G2, ratified 2026-08-05 — run-all/commit-best-prefix; see
+> [G2 note](../plans/2026-08-04-g2-optimization-pass-semantics.md)); `w1…w5` governance resolved (G3,
+> ratified 2026-08-07 — see [G3 note](../plans/2026-08-07-g3-weight-vector-governance.md)).
+> **Implementation shipped** behind the `IScheduleOptimizer` strategy seam (execution plan
+> `2026-08-04-epic-3-execution-plan.md`, Cards A–H) — not yet wired into the production pipeline
+> (`BalanceWorkloadStage` still calls the pre-Epic-3 allocator path directly; that wiring is separate,
+> unscheduled work). See §A.3 item 2 and the [epic closing note](../reports/2026-08-07-epic3-closing-note.md).
 
 ---
 
