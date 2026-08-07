@@ -2,9 +2,8 @@
 
 **Date:** 2026-08-07 · **Gate:** G3 (master plan) · **Closes:** architecture-freeze record §4 item
 "B5 — weight-vector governance", execution-plan line 35 ("G3 — `w1…w5` weight-vector governance.
-Blocks M3.2 ship.") and CP-4 · **Status:** **Drafted, pending owner ratification at CP-4.** This note
-records recommended decisions **G3-1 … G3-3**; nothing here is ratified until the owner reviews it —
-same posture Card B's G2 note held before CP-1. No code changes in this pass.
+Blocks M3.2 ship.") and CP-4 · **Status:** **RATIFIED 2026-08-07 (owner, CP-4).** Decisions G3-1, G3-2,
+and G3-3 are ratified as written, with no changes requested. No code changes in this pass.
 
 **Reads with:**
 [architecture freeze 2026-07-02](2026-07-02-architecture-freeze-decisions.md) D-G/D-H/D-J and §4 (B5);
