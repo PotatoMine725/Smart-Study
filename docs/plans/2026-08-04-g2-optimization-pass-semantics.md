@@ -515,3 +515,30 @@ direction (G2-2), and the reason-code set (G2-6). Those are implementation const
 - **Experience:** this is the same failure mode the M3.0 note guards against on the test side — a red
   test getting "made green" by reflex. The document-level version is an accepted limitation that was
   never written down becoming a defect report six weeks later.
+
+### D7 — Owner ruling on Card G's two disclosed findings (2026-08-07)
+
+- **Finding 1 — residual inversions:** Card G's D-H/inversion suite
+  (`SmartStudyPlanner.Tests/Services/Soe/SoeT34InvariantTests.cs`) measured 220 priority/deadline
+  ordering inversions across the corpus (85 on the feasible subset), root-caused to
+  `WorkloadServiceImpl.GenerateScheduleWithIdentity` using priority as the sole task-ordering key —
+  deadline only selects which day within a window a task's own chunk lands on, and never reorders
+  tasks against each other. Fixing this requires editing the allocator, which Card G was explicitly
+  forbidden from touching.
+- **Finding 2 — G2-5 arm 3, hard-fail-no-waiver:** the ratified three-arm partition (§G2-5 above) is
+  non-empty — 4 corpus items (`MIX-016`, `MIX-019`, `MIX-024`, `MIX-047`) have
+  `CompareFeasibility(S,B) > 0`, i.e. `Optimize`'s output is strictly worse-feasibility than the
+  frozen baseline `B` for that specific mix profile. No code fix is possible within Card G's scope;
+  G2-5 requires an explicit owner ruling for arm 3, not a code decision.
+- **Ruling:** both findings are accepted as disclosed, characterization-tested limitations of the
+  *current allocator* (not defects in the `Optimize` seam, D-H, or the T3.4 test suite). Neither
+  blocks Epic 3 ship. Both are pinned as real `Assert.Equal`/`Assert.True` assertions in
+  `SoeT34InvariantTests.cs` (commits `4114365`, `ffe400a`) so a regression that changes these numbers
+  goes red rather than silently drifting.
+- **Why:** both trace to the same root cause (A1 — priority-only task ordering in
+  `WorkloadServiceImpl`), which is a pre-existing allocator property Epic 3 inherited rather than
+  introduced, and reworking task-ordering semantics in the allocator is a materially different,
+  larger-scoped change than anything in the Card G task card.
+- **What for:** a follow-up card against `WorkloadServiceImpl`'s ordering logic is owed, but is
+  explicitly out of Epic 3 Card G's scope and not a precondition for closing Card G or starting
+  GATE G3.
