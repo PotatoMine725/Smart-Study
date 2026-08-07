@@ -10,6 +10,7 @@ using System.Text.Json.Serialization;
 using SmartStudyPlanner.Core.ML.Contracts;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
+using SmartStudyPlanner.Services.Soe;
 using SmartStudyPlanner.Services.Strategies;
 using SmartStudyPlanner.Tests.TestDoubles;
 
@@ -318,7 +319,70 @@ namespace SmartStudyPlanner.Tests.Services.Soe
             return ComputeRecord(scenario, days);
         }
 
-        private static ScheduleRecord ComputeRecord(SoeScenario scenario, List<ScheduleDay> days)
+        /// <summary>
+        /// T3.4 (Card G) — biến thể của <see cref="RunScenario"/> gọi
+        /// <c>GenerateScheduleWithIdentity</c> (T3.8) ĐÚNG MỘT lần, trả về CẢ <c>Days</c>
+        /// (cho các phép đo dựa trên A6 name-resolution hiện có) LẪN <c>Items</c> (cho
+        /// <c>IConstraintValidator</c>/<c>IScheduleOptimizer</c> — chúng cần identity thật, không
+        /// qua name-stripping). Gọi allocator MỘT lần duy nhất là chủ đích: nếu gọi hai lần riêng
+        /// (một cho Days, một cho Items) sẽ không còn gì đảm bảo hai kết quả mô tả CÙNG một lịch —
+        /// điều acceptance criterion 10 (A6 cross-check) cần giữ đúng.
+        ///
+        /// <b>MaTask được gán XÁC ĐỊNH (deterministic), KHÔNG dùng Guid.NewGuid() mặc định của
+        /// <c>StudyTask</c>'s constructor:</b> <c>LoadRebalanceStage</c> hoà giải tie-break trên
+        /// D_max bằng <c>.ThenBy(idx => schedule[idx].MaTask)</c> — nếu MaTask đổi ngẫu nhiên mỗi
+        /// lần corpus chạy, tie-break có thể chọn item khác nhau giữa hai lần chạy CÙNG một input,
+        /// phá byte-identical-across-3-runs (criterion 6). MaTask ở đây suy ra XÁC ĐỊNH từ
+        /// <c>TenTask</c> (MD5 -&gt; Guid) — an toàn vì corpus generator tự đảm bảo tên task base
+        /// DUY NHẤT trên toàn corpus (PD-7 self-check, <c>SoeCorpusGenerator.Generate</c>).
+        /// </summary>
+        public static (ScheduleRecord Record, List<ScheduleDay> Days, IReadOnlyList<ScheduledItem> Items)
+            RunScenarioWithIdentity(SoeScenario scenario)
+        {
+            var engine = new SoeStubDecisionEngine();
+            var hocKy = new HocKy($"HK-{scenario.Id}", scenario.Today);
+            var monHocBySubject = new Dictionary<string, MonHoc>();
+
+            foreach (var t in scenario.Tasks)
+            {
+                if (!monHocBySubject.TryGetValue(t.MonHoc, out var mon))
+                {
+                    mon = new MonHoc(t.MonHoc, 3) { MaHocKy = hocKy.MaHocKy };
+                    monHocBySubject[t.MonHoc] = mon;
+                    hocKy.DanhSachMonHoc.Add(mon);
+                }
+
+                var studyTask = new StudyTask(t.TenTask, t.HanChot, t.LoaiTask, t.DoKho)
+                {
+                    MaTask = DeterministicGuid(t.TenTask),
+                };
+                mon.DanhSachTask.Add(studyTask);
+                engine.Priorities[t.TenTask] = t.Priority;
+                engine.Minutes[t.TenTask] = t.MinutesNeeded;
+            }
+
+            IClock clock = new FakeClock(scenario.Today);
+            var sut = new WorkloadServiceImpl(engine, clock);
+            var (days, items) = sut.GenerateScheduleWithIdentity(hocKy, scenario.CapacityHours);
+
+            var record = ComputeRecord(scenario, days);
+            return (record, days, items);
+        }
+
+        /// <summary>Guid xác định (deterministic) suy từ MD5(tenTask) — chỉ dùng trong harness đo
+        /// lường T3.4, KHÔNG phải một tiện ích production. An toàn không đụng độ trên corpus vì
+        /// tên task base đã được đảm bảo DUY NHẤT (PD-7 self-check).</summary>
+        private static Guid DeterministicGuid(string tenTask)
+        {
+            using var md5 = System.Security.Cryptography.MD5.Create();
+            byte[] hash = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(tenTask));
+            return new Guid(hash);
+        }
+
+        /// <summary>internal (thay vì private) từ T3.4 (Card G) — <c>SoeOptimizeCorpusMetrics</c>
+        /// tái dùng đúng logic đo này trên schedule lấy từ <c>GenerateScheduleWithIdentity</c>, tránh
+        /// nhân đôi định nghĩa DHViolationChunks/inversion đã pin ở đây.</summary>
+        internal static ScheduleRecord ComputeRecord(SoeScenario scenario, List<ScheduleDay> days)
         {
             int capMin = CapacityMath.ClampCapacityMinutes(scenario.CapacityHours);
             var byName = scenario.Tasks.ToDictionary(t => t.TenTask);
