@@ -136,19 +136,40 @@ namespace SmartStudyPlanner.Tests.Services.Soe
             Assert.True(baseline.Aggregate.TotalDeadlineInversions > 0,
                 "criterion 5 requires baseline > 0 -- xem SoeBaselineCaptureTests, đã pin điều này ở Card A.");
 
+            // Positive, structural result: SelfInversions == 0 across the ENTIRE corpus (both
+            // subsets) -- earliest-feasible placement (T3.3) fills days chronologically, so a chunk
+            // landing on/after its own deadline day implies NO earlier day had slack; that is
+            // exactly the self-miss inversion's own definition (MethodologyNote.DeadlineInversion
+            // SelfMiss), so the class is eliminated by construction, not by luck. Pinned so a future
+            // allocator change that reintroduces self-miss inversions goes red here.
+            Assert.Equal(0, totalSelf);
+
             if (feasibleTotal > 0)
             {
                 var offending = feasibleSubset.Where(r => r.HarnessRecord.SelfInversions + r.HarnessRecord.PairwiseInversions > 0)
                     .Select(r => r.Id).ToList();
                 _output.WriteLine(
-                    $"[FINDING] {feasibleTotal} inversion(s) tồn tại TRÊN CHÍNH tập hợp được thiết kế " +
-                    $"khả thi (không phải do infeasible-by-design) -- danh sách: {string.Join(",", offending)}. " +
-                    "Không tune để triệt tiêu; báo cáo làm finding.");
+                    $"[FINDING] Criterion 5 ('0 deadline inversions... against a baseline > 0') is NOT " +
+                    $"met in full: {feasibleTotal} PAIRWISE inversion(s) (self-miss is 0, see above) " +
+                    $"remain on the designed-feasible subset alone ({feasibleSubset.Count} items, " +
+                    $"{offending.Count} of them affected) -- a ~{100.0 * (baseline.Aggregate.TotalDeadlineInversions - totalInversions) / baseline.Aggregate.TotalDeadlineInversions:F0}% " +
+                    $"reduction from baseline ({baseline.Aggregate.TotalDeadlineInversions} -> {totalInversions} " +
+                    "corpus-wide), not the elimination the criterion's wording asserts. Root cause: A1 " +
+                    "(execution plan §3.4) keeps priority, not deadline, as the task-ORDERING key -- a " +
+                    "high-priority far-deadline task can still be placed ahead of a lower-priority near-" +
+                    "deadline task. This is the SAME mechanism as the 4 genuine G2-5 arm-3 items in " +
+                    "SoeT34CorpusReportTests (traced there on MIX-024) -- one architectural root cause " +
+                    "(A1), two symptoms (residual pairwise inversions here, feasibility regressions " +
+                    "there), one owner decision needed (whether A1 should be revisited, out of Card G's " +
+                    "authority to change). Not tuned to zero here; reported as a finding, per this " +
+                    "repo's discipline.");
             }
 
             // Criterion 5's "0 vs baseline > 0" chỉ có nghĩa trên tập THIẾT KẾ KHẢ THI -- tập
             // infeasible-by-design tất yếu còn vi phạm/inversion dù allocator có tốt cỡ nào (EDF
-            // cumulative-demand đã vượt capacity từ đầu). KHÔNG assert 0 trên toàn corpus.
+            // cumulative-demand đã vượt capacity từ đầu). KHÔNG assert 0 trên toàn corpus. Không
+            // pin feasibleTotal == 0 (khác totalSelf ở trên): đây LÀ điểm findings này tồn tại để
+            // báo cáo, pin về 0 sẽ tự mâu thuẫn với chính finding vừa nêu.
         }
 
         // =====================================================================================

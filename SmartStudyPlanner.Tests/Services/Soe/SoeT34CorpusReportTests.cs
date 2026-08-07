@@ -180,38 +180,47 @@ namespace SmartStudyPlanner.Tests.Services.Soe
 
             if (arm3 > 0)
             {
-                // NOT hard-asserted to zero here, deliberately -- see report/finding below. G2-5
-                // calls arm 3 "hard fail, no waiver" as an M3.2 SHIP-GATE disposition (CP-4, owner
-                // ruling), not a Card G unit-test gate: Card G is explicitly forbidden from touching
-                // WorkloadServiceImpl's placement logic (this card's own constraints) and the N=1
-                // LoadRebalanceStage cannot fix an allocator-level feasibility regression (it is
-                // feasibility-neutral by construction -- G2-2's admissibility gate only prevents the
-                // Optimize seam from WORSENING what the allocator already produced, it cannot repair
-                // it). Hard-failing this test would block the whole suite on a defect this card has
-                // no authority or mechanism to fix, and would not be more honest than reporting it --
-                // it would just make the report undeliverable. Reported loudly instead: in test
-                // output, in the persisted artifact's Aggregate.Arm3Count + per-item Arm=3 rows, and
-                // in the T3.4/T3.7 closing report to the owner (verbatim item IDs below).
                 _output.WriteLine(
                     $"[FINDING] G2-5 arm 3 (hard fail per master-plan success metric #8's disposition " +
                     $"table, owner ruling required at CP-4/M3.2 ship gate) hit for {arm3} item(s): " +
                     $"{string.Join(",", arm3Ids)}. On these, S = Optimize(NewAllocator(I)) is strictly " +
                     "LESS feasible (more OverdueMinutes) than B = the pre-T3.3 least-loaded baseline. " +
-                    "Root cause (traced on MIX-024, the most dramatic case: B=0 overdue minutes, S=180): " +
-                    "the current allocator keeps priority as the task-ordering key (A1, execution plan " +
-                    "§3.4) and only uses HanChot to choose WHICH day a task's own chunk lands on -- it " +
-                    "does not reorder tasks by deadline. A high-priority, far-deadline task processed " +
-                    "before a low-priority, near-deadline task can consume all capacity in the days " +
-                    "before that low-priority task's deadline, even on inputs the EDF cumulative-demand " +
-                    "test (used to label DesignedFeasible) says ARE feasible under an optimal " +
-                    "(deadline-first) schedule -- EDF-feasible is not the same guarantee as 'feasible " +
-                    "under this priority-ordered greedy allocator'. LoadRebalanceStage (N=1) cannot " +
-                    "repair this: it targets LoadBalance, not deadline feasibility, and G2-2's " +
-                    "admissibility gate only prevents it from making feasibility WORSE, never makes it " +
-                    "better. This is a genuine architectural consequence of A1, not a measurement " +
-                    "artifact (unlike the chunk-count false positives filtered out above) -- reported, " +
-                    "not silently absorbed.");
+                    "Root cause TRACED (not inferred) on MIX-024, the most dramatic case (B=0 overdue " +
+                    "minutes, S=180): its 7 tasks range priority 13.70..98.63; the allocator's priority-" +
+                    "descending processing order places the LOWEST-priority task ('Thi cuối kỳ Tiếng " +
+                    "Anh #0595', priority=13.70, HanChot offset=5 -- the EARLIEST deadline of all 7 " +
+                    "tasks) dead last, by which point five higher-priority, later-deadline tasks (offsets " +
+                    "7..21) have already consumed every day from offset 0 through 4. Its own two chunks " +
+                    "land at offset 5 (60 min, exactly on its deadline day) and offset 6 (120 min, " +
+                    "clearly overdue) -- 180 overdue minutes total, matching S exactly. This is the same " +
+                    "root cause as the 220 residual (all-pairwise) deadline inversions reported in " +
+                    "Inversion_Allocator_TotalAcrossCorpus_ComparedAgainstFrozenBaseline: A1 (execution " +
+                    "plan §3.4) keeps priority as the task-ordering key and uses HanChot only to choose " +
+                    "WHICH day a task's OWN chunk lands on, never to reorder tasks against each other -- " +
+                    "so a high-priority, far-deadline task can consume all pre-deadline capacity ahead " +
+                    "of a lower-priority, near-deadline one, even on inputs the EDF cumulative-demand " +
+                    "test (DesignedFeasible) says are feasible under an optimal deadline-first schedule. " +
+                    "LoadRebalanceStage (N=1) cannot repair this: it targets LoadBalance, not deadline " +
+                    "feasibility, and G2-2's admissibility gate only prevents the Optimize seam from " +
+                    "WORSENING what the allocator already produced -- it cannot repair an allocator-level " +
+                    "regression. Not hard-asserted to zero: Card G is forbidden from touching " +
+                    "WorkloadServiceImpl's placement logic, and this is a real architectural consequence " +
+                    "of A1, not a measurement artifact (unlike the 24 chunk-count false positives " +
+                    "filtered out above). PINNED below instead (characterization assertion) so this test " +
+                    "goes red -- loudly, not silently -- the moment the count or membership changes, " +
+                    "rather than relying on anyone reading passing-test output.");
             }
+
+            // Characterization assertion (Card F precedent: "expected casualty, pinned"), not a
+            // green-by-omission log line -- if the allocator's behavior on this corpus ever changes
+            // (regresses further OR is fixed), this MUST go red and force a review, not pass silently.
+            // Both G2-5's own "must be named and dispositioned" (arm 2) and "no waiver" (arm 3)
+            // language rule out a breach passing unnoticed -- an ambient WriteLine on an otherwise-
+            // green test is exactly that.
+            Assert.Equal(4, arm3);
+            Assert.Equal(
+                new[] { "MIX-016", "MIX-019", "MIX-024", "MIX-047" },
+                arm3Ids.OrderBy(x => x, StringComparer.Ordinal).ToArray());
 
             // T3.7 verification: total persisted rows must equal total checkpoints across the corpus.
             long expectedRows = results.Sum(r => (long)r.Report.Passes.Sum(p => p.Checkpoints.Count));
@@ -240,9 +249,16 @@ namespace SmartStudyPlanner.Tests.Services.Soe
                         "ObjectiveEvaluator.Evaluate requires, and not a Total score. Score(B) is " +
                         "genuinely not computable from the committed artifact without re-running the " +
                         "retired pre-T3.3 placement algorithm, which would violate PD-3/R8's frozen-" +
-                        "baseline discipline. Arm 2's exact quality-delta rule (G2-5, Score(S) >= " +
-                        "Score(B) - eps) cannot be evaluated as a result -- named here as a finding, not " +
-                        "worked around. Score(S) IS reported per item below (directly computable).",
+                        "baseline discipline. Consequently metric #8's quality half (G2-5's arm-2 rule, " +
+                        "Score(S) >= Score(B) - eps) is UNEVALUATED, not passed, for every arm-2 item -- " +
+                        $"{arm2} of {results.Count} corpus items ({100.0 * arm2 / results.Count:F0}%) -- " +
+                        "not worked around by resurrecting the retired allocator. Score(S) IS reported " +
+                        "per item below (directly computable). Separately: arm classification itself " +
+                        "uses OverdueMinutes alone (see Methodology), which cannot detect 'same total " +
+                        "overdue minutes spread across more distinct tasks' as a feasibility regression, " +
+                        "because B's frozen record has no task-level violating-count to compare against " +
+                        "(S_ProductionViolatingTaskCount has no B counterpart) -- an unavoidable artifact-" +
+                        "granularity limit, not a defect in this test.",
                 },
                 Items = items,
             };
