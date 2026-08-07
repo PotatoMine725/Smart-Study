@@ -35,6 +35,11 @@ namespace SmartStudyPlanner.Data
             // Data/TelemetrySchema.cs để dual-path test gọi được cùng đường SQL.
             TelemetrySchema.EnsureTables(db);
 
+            // Runtime schema migration: tạo bảng OptimizerRunLogs nếu DB cũ chưa có (T3.7, Epic 3
+            // Card G — cùng đường patch-seam như hai dòng trên, tách method riêng có chủ đích, xem
+            // doc comment của TelemetrySchema.EnsureOptimizerRunLogTable).
+            TelemetrySchema.EnsureOptimizerRunLogTable(db);
+
             // Epic 1 / M1.2 (T1.8): patch the D-I sync-metadata columns onto an existing
             // (pre-Epic-1) DB. Back up the file first -- only when an upgrade is actually
             // about to run, so normal launches don't pile up backup files every time.

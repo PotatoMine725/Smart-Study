@@ -2,6 +2,7 @@
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Models.Telemetry;
 using SmartStudyPlanner.Services.ML;
+using SmartStudyPlanner.Services.Soe;
 using System;
 using System.IO;
 using System.Threading;
@@ -37,6 +38,11 @@ namespace SmartStudyPlanner.Data
         public DbSet<DifficultyLabelLog> DifficultyLabelLogs => Set<DifficultyLabelLog>();
         public DbSet<WeightChangeLog> WeightChangeLogs => Set<WeightChangeLog>();
         public DbSet<StudyTimeOutcomeLog> StudyTimeOutcomeLogs => Set<StudyTimeOutcomeLog>();
+
+        // T3.7 (Epic 3, Card G) — telemetry cho IScheduleOptimizer.Optimize (G2-6). Tách bảng
+        // (Data/TelemetrySchema.cs:EnsureOptimizerRunLogTable) khỏi EnsureTables (M8) có chủ đích —
+        // xem doc comment của method đó.
+        public DbSet<OptimizerRunLogRow> OptimizerRunLogs => Set<OptimizerRunLogRow>();
 
         // 2. CẤU HÌNH ĐƯỜNG DẪN LƯU FILE SQLITE
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -96,6 +102,10 @@ namespace SmartStudyPlanner.Data
             modelBuilder.Entity<DifficultyLabelLog>(b => b.HasKey(e => e.Id));
             modelBuilder.Entity<WeightChangeLog>(b => b.HasKey(e => e.Id));
             modelBuilder.Entity<StudyTimeOutcomeLog>(b => b.HasKey(e => e.Id));
+
+            // T3.7 (Epic 3, Card G) — cùng shape "standalone, no FK" như ba bảng telemetry M8 ở
+            // trên; xem OptimizerRunLogRow's doc comment cho lý do denormalize.
+            modelBuilder.Entity<OptimizerRunLogRow>(b => b.HasKey(e => e.Id));
         }
 
         // 4. SINGLE STAMPING SEAM (Epic 1 / D-I, M1.1 scope): every write across the 9
