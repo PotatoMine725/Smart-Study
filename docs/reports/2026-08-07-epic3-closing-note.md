@@ -122,32 +122,51 @@ re-run of four filtered tests away if it is ever wanted.
 | 2 | `gitnexus_detect_changes`/reindex before commits | ✅ Reindexed after each of Card G's and Card H's commits this session |
 | 3 | `dotnet build` + `dotnet test` green | ✅ Independently re-verified this session: build 0 errors; full suite 470 passed / 0 failed / 1 skipped / 471 total |
 | 4 | New behavior covered by the epic's acceptance-criteria tests | ✅ `SoeT34InvariantTests.cs` (7 methods) + per-seam suites from Cards D/E/F |
-| 5 | Architecture docs updated after code lands; roadmap A.3 status updated | ❌ **Stale.** `docs/specs/system_roadmap.md` (last touched 2026-08-04, before G2 was even ratified) still reads "Pass accept/commit semantics still OPEN — implementation blocked on it" and "SOE implementation is blocked on that decision." Both G2 and G3 are now ratified and Cards A–H are merged; the roadmap does not reflect any of it. **Open — see Findings.** |
+| 5 | Architecture docs updated after code lands; roadmap A.3 status updated | ✅ `docs/specs/system_roadmap.md` §A.3 and §7.4 both reflect the shipped state — G2 ratified 2026-08-05, G3 ratified 2026-08-07, Cards A–H merged, and the zero-production-call-sites scoping fact. Brought current by `d257351` (2026-08-07, roadmap-only) and corrected once more by this note's convergence pass — **see F1, which originally reported this row as ❌ and was wrong.** |
 | 6 | Open decisions closed in a `docs/plans/YYYY-MM-DD-*.md` note before dependent tasks start | ✅ G2 (`2026-08-04-g2-optimization-pass-semantics.md`, ratified CP-1) and G3 (`2026-08-07-g3-weight-vector-governance.md`, ratified CP-4) both merged and ratified |
 | 7 | Success metrics measured and reported in the epic's closing note | ✅ This document |
+
+**DoD state: 7/7 met.** Item 5 read ❌ until 2026-08-07 on a premise that was already false when this
+note was committed — see F1. No DoD item is outstanding. This is a statement about the *Definition of
+Done*, not about the delivered capability: the evidence-scoping statement above governs what "shipped"
+means here, and metric #1b and #4 remain exactly as reported.
 
 ---
 
 ## Findings
 
-### F1 — MEDIUM (process/docs) — DoD-5 unmet: roadmap stale at the epic boundary
+### F1 — MEDIUM (process/docs) — the roadmap asserted a capability T3.3 never shipped
 
-`docs/specs/system_roadmap.md` describes G2 as still open and SOE implementation as blocked on it.
-Both are now false: G2 ratified 2026-08-05, G3 ratified 2026-08-07, and the full T3.0–T3.9 task set is
-merged. This mirrors Epic 1's own F3 finding (same DoD item, same failure mode: docs updated
-per-milestone but not swept at the epic boundary). **Not a code defect and not a ship blocker** — the
-same judgment Epic 1's verdict applied to its F3 — but owed before Epic 3 is considered fully closed
-out administratively.
-
-**A second, distinct roadmap defect, corrected 2026-08-07.** §A.3's shipped-work list read
-"**deadline-aware** allocator rework (T3.3)". That claim is not true in any output-affecting sense —
-see the second paragraph of the evidence-scoping statement above — and it entered the canonical
-document because this note omitted the inertness fact. It now reads "allocator placement rework
+`docs/specs/system_roadmap.md` §A.3's shipped-work list read "**deadline-aware** allocator rework
+(T3.3)". That claim is not true in any output-affecting sense — see the second paragraph of the
+evidence-scoping statement above — and it entered the canonical document precisely because this note
+omitted the inertness fact. Corrected 2026-08-07; §A.3 now reads "allocator placement rework
 (T3.3: least-loaded → earliest-feasible; the deadline clause is present but provably output-inert
 today — it cannot change any placement the chronological tier would not already have chosen, see the
-closing note)". Worth separating from the staleness above: staleness is a doc that stopped being updated,
-whereas this was a doc that stated something the code never did. The second kind does not
-self-correct.
+closing note)".
+
+**The failure mode is worth naming, because it is not the one this finding originally reported.** A
+stale doc is one that stopped being updated; it self-corrects the moment anyone sweeps it. This was a
+doc that **stated something the code never did**, sourced from an omission in the ship-readiness
+document itself. That kind does not self-correct — a later sweep would have found nothing to fix,
+because the sentence read as a confident, current claim. **Not a code defect and not a ship blocker,**
+but the propagation path (closing note omits a fact → canonical roadmap asserts its opposite) is the
+part worth remembering.
+
+**What this finding said before, and why it changed.** As first drafted, F1 reported DoD-5 as *unmet*
+on the grounds that the roadmap "still reads *Pass accept/commit semantics still OPEN — implementation
+blocked on it*", mirroring Epic 1's own F3 (docs updated per-milestone, not swept at the epic
+boundary). That was true when drafting began and **false by the time this note was committed**:
+`d257351` (2026-08-07, roadmap-only) had already brought §A.3 and §7.4 current — G2 ratified
+2026-08-05, G3 ratified 2026-08-07, Cards A–H merged — earlier on the same branch. The ❌ was
+stale-on-arrival. Its sibling document said so at the time: the
+[session report](2026-08-07-epic3-cardg-g3-closure-session-report.md) §4 is titled "Roadmap staleness
+fix (DoD-5, Finding F1) — **fixed**" and names the same commit. Two documents written in the same
+session disagreed about whether DoD-5 was met, and this one was the one that was wrong. The DoD table
+above now reads ✅. Recorded rather than quietly deleted: this
+note's entire subject is documents that describe the system accurately, and it is not exempt from its
+own standard. It was caught by an independent post-commit review, not by the drafting pass — the same
+way A.1 and A.2 were.
 
 ### F2 — INFORMATIONAL — metric #1 is two facts, not one, and only one is fully met
 
