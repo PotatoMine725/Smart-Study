@@ -119,6 +119,78 @@ same way, with the same symptom (permanently pending, not failing). Concretely:
   under a different name.
 - Copying branch protection settings to a new repo via a template/script that hardcodes the old
   context string.
+- **A sibling branch carrying the same rule, fixed on only one of them.** This is what actually
+  happened — see the addendum below.
+
+---
+
+## Addendum, 2026-08-07 — `dev` had the identical defect and was not fixed on 2026-08-02
+
+**This report's fix covered `main` only.** Its trigger was PR #51 (`dev` → `main`), so `main`'s
+protection was the only rule in view. `dev` carried its own copy of the same rule, with the same
+wrong string, and nobody checked it. It stayed broken for five days.
+
+**How it surfaced.** A push of the Epic 3 branch to `dev` returned:
+
+```
+remote: Bypassed rule violations for refs/heads/dev:
+remote: - Required status check "build-test" is expected.
+```
+
+The push succeeded on owner bypass, not on a green check. CI *did* run on that commit and *did*
+pass — the rule simply was not looking at it. Read the message carefully: "Bypassed rule
+violations" is not a warning that CI failed; it is a report that a gate did not apply. On a branch
+whose owner has bypass privileges, an unsatisfiable required check produces no other symptom, which
+is why this went unnoticed while the `main`-side symptom (a permanently pending PR check) was caught
+in hours.
+
+**Confirmed state before the fix:**
+
+| Branch | `checks[].context` | Matches a real check-run? |
+|---|---|---|
+| `main` | `Build & Test (Windows)` | ✅ (fixed 2026-08-02) |
+| `dev` | `build-test` | ❌ never satisfiable |
+
+**Applied** — same PATCH as above, against `dev`, mirroring `main`'s stored shape exactly
+(`app_id: 15368`, the GitHub Actions app, rather than `null`, since the binding is already known):
+
+```bash
+gh api -X PATCH repos/PotatoMine725/Smart-Study/branches/dev/protection/required_status_checks \
+  --input - <<'EOF'
+{
+  "strict": true,
+  "checks": [
+    {"context": "Build & Test (Windows)", "app_id": 15368}
+  ]
+}
+EOF
+```
+
+**Verification — both directions, not just the passing one.** Reading the config back only proves
+the write landed, not that the name resolves. Against the pushed commit `8b58ec0`:
+
+- the check-runs GitHub actually published are exactly one — `Build & Test (Windows)`,
+  `conclusion: success`, `app_id: 15368`;
+- `dev`'s new required context **is** in that list — the rule now names something that exists;
+- the old context `build-test` is **not** in that list — the counter-check, and the proof the
+  previous rule could never have been satisfied by any run rather than merely having been unlucky.
+
+`dev` and `main` now both read `strict=true, checks=["Build & Test (Windows)"] (app_id=15368)`.
+
+### D4 — Fix `dev` to match `main`, and record it here rather than in a new report
+
+- **Why:** this is not a new defect, it is the same one on a second branch, and the reader who hits
+  the symptom will search for the string `build-test` and land on *this* document. A separate report
+  would leave this one silently incomplete — it never claimed to have fixed `dev`, but it also never
+  said it hadn't, and absence of a claim reads as coverage.
+- **What for:** the "how this shows up again" list above now names the failure mode that actually
+  recurred, so the next occurrence is a lookup rather than a rediscovery.
+- **Experience:** the generalisable lesson is that **a fix scoped by its trigger inherits that
+  trigger's blind spot.** PR #51 was `dev` → `main`, so the investigation saw `main`. Nothing was
+  wrong with the diagnosis or the fix; the miss was in never asking "where else does this rule
+  live?" When correcting shared configuration, enumerate every place that holds a copy before
+  closing — `gh api repos/{owner}/{repo}/branches/{b}/protection/required_status_checks` across all
+  protected branches takes seconds.
 
 ---
 
