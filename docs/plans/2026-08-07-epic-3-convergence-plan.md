@@ -40,18 +40,21 @@ The [independent closure verdict](../review/2026-08-07-epic3-closure-verdict.md)
 
 **Objective:** bring Epic 3 to the Engineering Quality Gate by making three documents accurate.
 
-- **7 edits · 3 files · 2 commits · documentation only.**
+- **Planned: 7 edits · 3 files · 2 commits.** **Actual: 5 files · 5 commits, documentation only** — see the status block above for why the last three commits exist.
 - Zero re-verification required — every number to be written is already re-derived on this branch in verdict §1.
-- Expected suite state before and after: **470 passed / 0 failed / 1 skipped / 471 total**, unchanged.
+- Expected suite state before and after: **470 passed / 0 failed / 1 skipped / 471 total**, unchanged. **Confirmed** at every stage.
 - Estimated effort: **under one hour**, dominated by writing prose, not by verification.
 
-| WP | File | Edits | Commit |
+| WP | File | Edits (planned → actual) | Commit |
 |---|---|---|---|
-| WP-1 | `docs/reports/2026-08-07-epic3-closing-note.md` | 5 | 1 |
-| WP-2 | `docs/specs/system_roadmap.md` | 1 | 1 |
-| WP-3 | `docs/plans/2026-08-06-t3.9-optimize-stage-list-design.md` | 1 | 2 |
+| WP-1 | `docs/reports/2026-08-07-epic3-closing-note.md` | 5 → 7 | `c0ec38a` |
+| WP-2 | `docs/specs/system_roadmap.md` | 1 → 1 | `c0ec38a` |
+| WP-3 | `docs/plans/2026-08-06-t3.9-optimize-stage-list-design.md` | 1 → 1 | `d0fc968` |
+| — | `docs/review/2026-08-07-epic3-closure-verdict.md`, `…-owner-triage.md`, this plan | *(unplanned)* — committed so WP-1's citation resolves; one quotation fix | `881f498` |
+| — | `docs/reports/2026-08-07-epic3-closing-note.md` | *(unplanned)* — F1 corrected, DoD-5 → ✅, owner-directed | `8cf53da` |
+| — | this plan | *(unplanned)* — execution record and this summary brought current | `c305a8d` |
 
-**Two commits, not one.** Slightly against the "fewest commits" principle, and deliberately: WP-1+WP-2 are one concern (*Epic 3's closure documents state what shipped*) and constitute the gate; WP-3 is a different document with a different audience (a future stage-2 implementer) and is in the optional tier. Separating them gives a clean rollback boundary — if the owner later disputes the `N=1` framing, reverting commit 2 leaves the gate intact. Collapsing to a single commit is acceptable if preferred; nothing else in this plan changes.
+**Two commits, not one — as planned, and it held for the gate itself.** Slightly against the "fewest commits" principle, and deliberately: WP-1+WP-2 are one concern (*Epic 3's closure documents state what shipped*) and constitute the gate; WP-3 is a different document with a different audience (a future stage-2 implementer) and is in the optional tier. Separating them gives a clean rollback boundary — reverting `d0fc968` leaves the gate intact. The three later commits are follow-ups to findings the plan did not anticipate, not a change to that structure.
 
 ---
 
@@ -177,34 +180,36 @@ Close with the consequence for the reader: whoever adopts Candidate 2 (`N = 2`, 
 
 ## 3. Quality Gate Checklist
 
-Epic 3 is converged when **all** of the following hold.
+Epic 3 is converged when **all** of the following hold. **All ticked 2026-08-07** — one condition
+narrowed to what was actually done rather than ticked as written; see the note beneath it.
 
 **Gate conditions (from the Mandatory tier):**
 
-- [ ] Closing note's evidence-scoping statement carries the inertness fact and cites the proof note.
-- [ ] `rg "deadline-aware" docs/specs/system_roadmap.md` returns **0 matches**; §A.3 describes T3.3 accurately.
-- [ ] Closing note carries F4 with the 113-chunk / 6 440-minute delta **and** the explicit exemption for the 250→220 inversion comparison.
-- [ ] Closing note reports acceptance criteria 10–13 with stated results.
+- [x] Closing note's evidence-scoping statement carries the inertness fact and cites the proof note.
+- [x] `rg "deadline-aware" docs/specs/system_roadmap.md` returns **0 matches**; §A.3 describes T3.3 accurately.
+- [x] Closing note carries F4 with the 113-chunk / 6 440-minute delta **and** the explicit exemption for the 250→220 inversion comparison.
+- [x] Closing note reports acceptance criteria 10–13 with stated results.
 
 **Optional-tier conditions (approved into scope):**
 
-- [ ] F3's reason corrected to "not evaluated; recoverable at moderate cost", with reproduction coordinates.
-- [ ] Metric #5's wall-clock figures labelled as varying.
-- [ ] T3.9 §4 names the three `N = 1` consequences.
+- [x] F3's reason corrected to "not evaluated; recoverable at moderate cost", with reproduction coordinates.
+- [x] Metric #5's wall-clock figures labelled as varying.
+- [x] T3.9 §4 names the three `N = 1` consequences.
 
 **Integrity conditions (must hold throughout):**
 
-- [ ] `dotnet build` → 0 errors; `dotnet test` → **470 / 0 / 1 skipped / 471**, unchanged.
-- [ ] Zero `.cs` files modified. Zero test files modified.
-- [ ] `docs/reports/data/2026-08-05-soe-t36-baseline.json` untouched (PD-3/R8).
-- [ ] No ratified decision amended: CP-2, CP-3, G2 (incl. G2-5's table), G3, D7 all byte-identical.
-- [ ] `AGENTS.md`, `CLAUDE.md`, `.claude/skills/**` not staged into either commit.
-- [ ] `gitnexus_detect_changes()` run before each commit.
-- [ ] Commit messages omit the `Co-Authored-By` trailer.
+- [x] `dotnet build` → 0 errors; `dotnet test` → **470 / 0 / 1 skipped / 471**, unchanged. Re-run after WP-1/WP-2, and again after `8cf53da`.
+- [x] Zero `.cs` files modified. Zero test files modified.
+- [x] `docs/reports/data/2026-08-05-soe-t36-baseline.json` untouched (PD-3/R8).
+- [x] No ratified decision amended: CP-2, CP-3, G2 (incl. G2-5's table), G3, D7 all byte-identical.
+- [x] `AGENTS.md`, `CLAUDE.md`, `.claude/skills/**` not staged into any commit. (Verified after each; they remain uncommitted in the worktree, for separate handling.)
+- [x] **Narrowed as executed:** `gitnexus_detect_changes()` was run before `c0ec38a`, `d0fc968` and `8cf53da` — the three commits that edit existing documents — each returning **0 changed symbols, risk low**. It was **not** run before `881f498` (adds three new documents) or `c305a8d` (edits this plan). The condition as written said "before each commit"; this states what actually happened rather than claiming otherwise. Substantive risk is nil — no commit in this set touches a `.cs` file — but the distinction is the point: a checklist ticked on a claim that was not tested is the failure mode this whole pass exists to correct.
+- [x] Commit messages omit the `Co-Authored-By` trailer.
+- [x] **Added during execution:** every relative Markdown link in all Epic 3 documents resolves to a **tracked** file — including bare same-directory links, which the first version of this check silently skipped. Working-tree link checks pass on untracked files and die after merge.
 
 **Judgment condition (not automatable, and the one that actually matters):**
 
-- [ ] A reader of the amended closing note alone, and a reader of the amended roadmap line alone, both reach the accurate conclusion about what T3.3 delivered. This is the failure the verdict found; a grep cannot confirm it was fixed.
+- [x] A reader of the amended closing note alone, and a reader of the amended roadmap line alone, both reach the accurate conclusion about what T3.3 delivered. This is the failure the verdict found; a grep cannot confirm it was fixed. Checked by reading both passages back in full after the edits landed.
 
 ---
 
