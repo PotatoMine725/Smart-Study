@@ -88,10 +88,13 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
    governance) ratified 2026-08-07 ([note](../plans/2026-08-07-g3-weight-vector-governance.md)).
    **Implementation shipped** (execution plan `2026-08-04-epic-3-execution-plan.md`, Cards A–H):
    corpus + baseline (T3.6), `IConstraintValidator` (T3.1), `IObjectiveEvaluator` (T3.2), schedule
-   identity seam (T3.8), deadline-aware allocator rework (T3.3), the `Optimize(schedule) →
-   (schedule, report)` seam (T3.9), the D-H/inversion property suite + `OptimizerRunLog` telemetry
-   (T3.4/T3.7). **`ScheduleOptimizer`/`SoeWeights` have zero production call sites as of this
-   HEAD** — `BalanceWorkloadStage.cs` still calls the pre-Epic-3 `IWorkloadService.GenerateSchedule`
+   identity seam (T3.8), allocator **placement** rework (T3.3: least-loaded → earliest-feasible; the
+   deadline clause is present but **provably output-inert** today — it cannot change any placement
+   the chronological tier would not already have chosen, see the closing note), the
+   `Optimize(schedule) → (schedule, report)` seam (T3.9), the D-H/inversion property suite +
+   `OptimizerRunLog` telemetry (T3.4/T3.7).
+   **`ScheduleOptimizer`/`SoeWeights` have zero production call sites as of this HEAD** —
+   `BalanceWorkloadStage.cs` still calls the pre-Epic-3 `IWorkloadService.GenerateSchedule`
    path directly; wiring the seam into production is separate, unscheduled integration work, not
    part of any Epic 3 task card. Success metrics measured and reported in the
    [epic closing note](../reports/2026-08-07-epic3-closing-note.md) (DoD-7): D-H holds (0 breaches/230
