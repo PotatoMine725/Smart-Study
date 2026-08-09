@@ -144,7 +144,8 @@ out administratively.
 see the second paragraph of the evidence-scoping statement above — and it entered the canonical
 document because this note omitted the inertness fact. It now reads "allocator placement rework
 (T3.3: least-loaded → earliest-feasible; the deadline clause is present but provably output-inert
-today)". Worth separating from the staleness above: staleness is a doc that stopped being updated,
+today — it cannot change any placement the chronological tier would not already have chosen, see the
+closing note)". Worth separating from the staleness above: staleness is a doc that stopped being updated,
 whereas this was a doc that stated something the code never did. The second kind does not
 self-correct.
 
