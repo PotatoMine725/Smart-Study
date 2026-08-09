@@ -8,14 +8,19 @@
 > without checking out the branch. The prod copy's `../review/2026-08-07-epic3-*` links resolve only
 > after the branch merges to `dev`.
 
-> **Status: EXECUTED 2026-08-07.** Owner approved; both commits landed on `worktree-epic-3-soe`.
-> `c0ec38a` — WP-1 + WP-2 (closing note, roadmap). `d0fc968` — WP-3 (T3.9 note).
-> 3 files · 126 insertions · 10 deletions · zero `.cs`, zero test files, frozen baseline untouched.
-> Suite re-verified after the edits: **470 passed / 0 failed / 1 skipped / 471 total**, unchanged.
+> **Status: EXECUTED 2026-08-07.** Owner approved. Four commits on `worktree-epic-3-soe`:
+> `c0ec38a` (WP-1 + WP-2 — closing note, roadmap) · `d0fc968` (WP-3 — T3.9 note) ·
+> `881f498` (commit the review documents WP-1 cites; fix an inexact quotation) ·
+> `8cf53da` (owner-directed: correct F1, flip DoD-5 to ✅).
+> Zero `.cs`, zero test files, frozen baseline untouched, no ratified decision amended.
+> Suite re-verified after every stage: **470 passed / 0 failed / 1 skipped / 471 total**, unchanged.
 > Every checklist item in §3 holds. §5 item 5 resolved during execution — see the entry.
-> Two deviations from the plan as written, both recorded in §2's WP-1 notes: seven edits to the
-> closing note instead of five, and the three review documents remain uncommitted pending an owner
-> decision.
+>
+> **Three deviations from the plan as written**, all recorded in §2's WP-1 notes: seven edits to the
+> closing note instead of five; the three review documents committed rather than left untracked
+> (WP-1's text cites the verdict, so leaving it untracked would have shipped a dangling citation —
+> the same defect class this plan exists to fix); and one finding the plan did not anticipate —
+> the closing note's F1 and DoD-5 ❌ were themselves false, corrected on the owner's instruction.
 
 ---
 
@@ -87,7 +92,9 @@ Execution order is **WP-1 → WP-2 → WP-3**. The WP-1→WP-2 order is a real d
 - **6 — metric #4's table cell.** Edit 4 corrected F3's reason, but the success-metrics row still read "❌ **Not evaluable** for 90% of the corpus", which a reader of the table alone would take as permanent. Changed to "Not evaluated … (recoverable — see F3)" and scoped "not computable" to "not computable *from the frozen artifact*". Twelve words; without it, WP-1's judgment condition fails for anyone who reads the table and skips the finding.
 - **7 — F1 extended.** Edit 1 states that the omission propagated into the roadmap "see F1", but F1 covered only the *staleness* defect (G2 described as open). The roadmap's false-capability claim is a different failure mode — a doc that stated something the code never did, which unlike staleness does not self-correct — so F1 now records both, and the cross-reference in edit 1 is true. Without this, edit 1 pointed at a finding that did not contain what it claimed.
 
-**Not committed: the three review documents.** `docs/review/2026-08-07-epic3-closure-verdict.md`, `docs/review/2026-08-07-epic3-owner-triage.md` and this plan remain untracked in the worktree. The plan's own acceptance criteria fix commit 1 at exactly two files and commit 2 at one, so committing them was outside the approved scope. Flagged for an owner decision rather than resolved unilaterally.
+**The three review documents were committed after all (`881f498`).** They were initially left untracked, since this plan's acceptance criteria fix commit 1 at exactly two files and commit 2 at one. That was wrong: WP-1's criteria-10–13 block *cites* `docs/review/2026-08-07-epic3-closure-verdict.md` as the independent re-derivation behind all four rows, so leaving it untracked shipped a citation that resolved in one working tree and nowhere else — the same defect class this plan exists to fix. Committing them breaches no acceptance criterion, which pinned *per-commit* file counts, not the branch total. Repo precedent agrees: the closing note already links the tracked Epic 1 closure verdict. All relative links in all four Epic 3 documents were then verified to resolve to tracked files.
+
+**A finding this plan did not anticipate (`8cf53da`, owner-directed).** The closing note's **F1 and DoD-5 ❌ were themselves false.** F1 reported DoD-5 unmet because the roadmap "still reads *Pass accept/commit semantics still OPEN — implementation blocked on it*" — strings that return zero matches and were already gone at `82155d9~1`, fixed by `d257351` earlier on the same branch. The session report's §4 is titled "Roadmap staleness fix (DoD-5, Finding F1) — **fixed**" and names that commit: two documents from the same session disagreed about whether DoD-5 was met, and neither the drafting pass nor the independent verdict caught it — the verdict *accepted* F1 without testing its premise. Surfaced only when WP-1's edit 7 extended F1 and a post-commit review checked what it was extending. **Generalisable lesson: extending a finding without verifying its premise silently ratifies that premise.** DoD is now 7/7.
 
 **Verification.**
 - `rtk git diff --stat` → exactly one file changed.
