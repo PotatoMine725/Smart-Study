@@ -388,9 +388,19 @@ Epic 1 reopen fixed a stale-render defect here — worth a glance.)
 
 #### E5 — Capacity persists across restart
 
-**Steps:** set capacity to 5 giờ/ngày, close the app, reopen the Workload Balancer.
+**Steps:** drag the slider to 5 giờ/ngày, **press "XẾP LỊCH LẠI"**, close the app, reopen the
+Workload Balancer.
 
 **Expected:** the slider still reads 5.0.
+
+**A drag alone does not persist, and that is by design.** `SaveCapacity` runs only inside
+`BuildSchedule`, so nothing reaches disk until you confirm — the same reason the chart does not
+rebuild on a drag. Putting a disk write and the CP-2 `DiemUuTien` database write-through behind a
+drag gesture was considered and rejected (design D1). If you drag to 5, do *not* press the button,
+restart, and the slider reads the old value, that is **not** a failure — it is the badge's whole
+point that the unconfirmed value is visibly unapplied.
+
+**Fails if:** you press the button and the value still does not survive a restart.
 
 #### E6 — Deleting a subject that has tasks
 
