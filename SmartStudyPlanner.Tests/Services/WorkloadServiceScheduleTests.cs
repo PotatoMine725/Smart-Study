@@ -310,6 +310,86 @@ namespace SmartStudyPlanner.Tests.Services
             Assert.Equal(120, days.First(d => d.Tasks.Count > 0).TotalMinutes);
         }
 
+        [Fact]
+        public void GenerateSchedule_TaskChuaTungDuocChamDiem_VanDuocXepLich()
+        {
+            // GUARD Ý ĐỊNH cho CP-2 AMENDED (2026-08-06,
+            // docs/plans/2026-08-06-cp2-amended-diemuutien-writethrough-restored.md).
+            //
+            // GenerateSchedule_GhiDeDiemUuTien_ChiTrenTaskChuaHoanThanh ở trên chốt CƠ CHẾ
+            // (ghi-đè có xảy ra không). Test này chốt LÝ DO cơ chế đó phải tồn tại — thứ mà một
+            // refactor "làm cho thuần" (đúng thứ Card F round 1 đã làm ở 5197784) sẽ xoá cùng
+            // lúc với chính test cơ chế kia, vì cả hai đọc như "test cái impurity".
+            //
+            // Coupling thật: RawMinutesCalculator.Calculate (Core/Scheduling/Engines, dòng 11)
+            // đọc THẲNG task.DiemUuTien trên model — "task.DiemUuTien <= 0 return 0" — và
+            // StudyTask.DiemUuTien mặc định 0.0. StubDecisionEngine ở cuối file tra bảng theo
+            // TÊN task nên KHÔNG tái hiện coupling đó; double dưới đây tái hiện đúng nó.
+            //
+            // Hậu quả nếu ghi-đè bị bỏ: MỌI task chưa được chấm điểm ở nơi khác (Dashboard
+            // pipeline / QuanLyTaskViewModel.TinhDiemVaSapXep) im lặng rớt khỏi lịch — lịch rỗng,
+            // không exception, không cảnh báo. WorkloadBalancerViewModel gọi GenerateSchedule
+            // thẳng trong constructor, không có bước chấm điểm nào chạy trước.
+            var hocKy = new HocKy("HK Sched", Today);
+            var monHoc = new MonHoc("Toán", 3) { MaHocKy = hocKy.MaHocKy };
+            monHoc.DanhSachTask.Add(NewTask("Chưa chấm điểm"));
+            hocKy.DanhSachMonHoc.Add(monHoc);
+
+            var engine = new PriorityCoupledDecisionEngine();
+            engine.Priorities["Chưa chấm điểm"] = 60;
+            engine.Minutes["Chưa chấm điểm"] = 90;
+
+            // Tiền đề của test: task đi vào với DiemUuTien mặc định — chưa từng được chấm.
+            Assert.Equal(0.0, monHoc.DanhSachTask[0].DiemUuTien);
+
+            var days = Sut(engine).GenerateSchedule(hocKy, capacityHours: 3.0);
+
+            Assert.Equal(90, days.Sum(d => d.TotalMinutes));
+        }
+
+        [Theory]
+        [InlineData(1.0)]
+        [InlineData(2.0)]
+        [InlineData(3.0)]
+        public void GenerateSchedule_DonVeNgaySomNhat_NgayDungLaTienToLienTuc_ChiNgayCuoiConCho(
+            double capacityHours)
+        {
+            // T3.3 (CP-3 2026-08-05) earliest-feasible, dạng BẤT BIẾN thay vì một ví dụ 3 ngày.
+            // GenerateSchedule_ChonNgaySomNhatConCho_ChuKhongPhaiNgayItTaiNhat chốt quy tắc trên
+            // MỘT bố cục cụ thể; test này chốt hệ quả cấu trúc của nó trên nhiều mức sức học —
+            // đây chính là thứ người dùng NHÌN THẤY trên màn hình Workload Balancer (các thẻ ngày
+            // đặc, liên tục từ hôm nay, thay vì tải rải mỏng khắp 7 ngày như quy tắc least-loaded
+            // CŨ).
+            //
+            // Vì mỗi chunk luôn vào ngày SỚM NHẤT còn chỗ và chunk được cắt vừa đúng chỗ trống
+            // (chunk = min(remaining, spaceLeft)), một ngày chỉ còn chỗ khi KHÔNG còn việc nào
+            // sau nó — nên các ngày có việc là một tiền tố liên tục, và mọi ngày trừ ngày cuối
+            // phải đầy đúng capacity. Quy tắc least-loaded CŨ làm cả hai assert này đỏ.
+            var (hocKy, engine) = BuildFixture(
+                ("A", 90, 130), ("B", 70, 45), ("C", 50, 200), ("D", 30, 25));
+
+            var days = Sut(engine).GenerateSchedule(hocKy, capacityHours);
+
+            int capacityMinutes = (int)(capacityHours * 60);
+            var used = days.Select((d, i) => (Day: d, Index: i))
+                           .Where(x => x.Day.Tasks.Count > 0)
+                           .ToList();
+
+            Assert.NotEmpty(used);
+
+            // (1) Các ngày có việc là tiền tố liên tục bắt đầu từ hôm nay — không có ngày trống
+            //     xen giữa hai ngày có việc.
+            Assert.Equal(
+                Enumerable.Range(0, used.Count).ToList(),
+                used.Select(x => x.Index).ToList());
+
+            // (2) Mọi ngày dùng TRỪ ngày cuối đầy đúng capacity (đặc, không rải mỏng).
+            Assert.All(used.Take(used.Count - 1), x => Assert.Equal(capacityMinutes, x.Day.TotalMinutes));
+
+            // (3) Không phút nào bị mất hay nhân đôi khi dồn.
+            Assert.Equal(130 + 45 + 200 + 25, days.Sum(d => d.TotalMinutes));
+        }
+
         // ---- fixture ----
 
         private static StudyTask NewTask(string ten)
@@ -334,7 +414,7 @@ namespace SmartStudyPlanner.Tests.Services
             return (hocKy, engine);
         }
 
-        private static WorkloadServiceImpl Sut(StubDecisionEngine engine)
+        private static WorkloadServiceImpl Sut(IDecisionEngine engine)
             => new WorkloadServiceImpl(engine, new FakeClock(FixedNow));
 
         // ---- test double ----
@@ -356,6 +436,39 @@ namespace SmartStudyPlanner.Tests.Services
 
             public int CalculateRawSuggestedMinutes(StudyTask task)
                 => Minutes.GetValueOrDefault(task.TenTask, 0);
+
+            public string SuggestStudyTime(StudyTask task) => string.Empty;
+
+            public int PredictStudyMinutes(StudyTask task, MonHoc monHoc, out bool isMlPrediction)
+            {
+                isMlPrediction = false;
+                return CalculateRawSuggestedMinutes(task);
+            }
+
+            public Task<WeightConfigSuggestion?> SuggestWeightConfigAsync(CancellationToken ct = default)
+                => Task.FromResult<WeightConfigSuggestion?>(null);
+        }
+
+        /// <summary>
+        /// Như <see cref="StubDecisionEngine"/>, NHƯNG tái hiện đúng một coupling của
+        /// production mà bảng-tra-theo-tên cố tình bỏ qua: <c>RawMinutesCalculator.Calculate</c>
+        /// đọc <c>task.DiemUuTien</c> TRÊN MODEL và trả 0 khi điểm &lt;= 0. Chỉ dùng cho
+        /// <see cref="GenerateSchedule_TaskChuaTungDuocChamDiem_VanDuocXepLich"/> — các test khác
+        /// giữ stub thuần bảng tra để không phụ thuộc vào công thức thật.
+        /// </summary>
+        private sealed class PriorityCoupledDecisionEngine : IDecisionEngine
+        {
+            public Dictionary<string, double> Priorities { get; } = new();
+            public Dictionary<string, int> Minutes { get; } = new();
+
+            public WeightConfig Config { get; } = new WeightConfig();
+
+            public double CalculatePriority(StudyTask task, MonHoc monHoc)
+                => Priorities.GetValueOrDefault(task.TenTask, 0);
+
+            // Cùng cổng "<= 0 thì 0 phút" như RawMinutesCalculator.Calculate.
+            public int CalculateRawSuggestedMinutes(StudyTask task)
+                => task.DiemUuTien <= 0 ? 0 : Minutes.GetValueOrDefault(task.TenTask, 0);
 
             public string SuggestStudyTime(StudyTask task) => string.Empty;
 

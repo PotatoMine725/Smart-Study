@@ -89,6 +89,45 @@ namespace SmartStudyPlanner.Tests.Data
         }
 
         [Fact]
+        public void EnsureDatabaseReady_OnPreT37Db_TaoLaiBangOptimizerRunLogs()
+        {
+            // T3.7 (Epic 3, Card G) — OptimizerRunLogSchemaTests chốt chính SEAM
+            // (TelemetrySchema.EnsureOptimizerRunLogTable vá đúng bảng). Nó KHÔNG chốt việc
+            // AppStartup.EnsureDatabaseReady thật sự GỌI seam đó: gỡ dòng gọi ở AppStartup.cs
+            // vẫn để cả hai test seam kia xanh, và DB người dùng thật sẽ thiếu bảng mà không có
+            // tín hiệu nào. Test này đóng đúng khoảng trống "call site bị gỡ trong im lặng",
+            // trên file DB thật, qua đúng entry point App.OnStartup dùng.
+            var dbPath = Path.Combine(_tempDir, "SmartStudyData.db");
+            var connectionString = $"Data Source={dbPath}";
+            var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connectionString).Options;
+
+            // DB "đời mới" rồi hạ cấp thành pre-T3.7 bằng cách bỏ đúng bảng của Card G.
+            using (var seed = new AppDbContext(options))
+            {
+                seed.Database.EnsureCreated();
+                seed.Database.ExecuteSqlRaw("DROP TABLE OptimizerRunLogs");
+            }
+            Assert.Equal(0, TableCount(connectionString, "OptimizerRunLogs"));
+
+            using (var db = new AppDbContext(options))
+            {
+                AppStartup.EnsureDatabaseReady(db, dbPath);
+            }
+
+            Assert.Equal(1, TableCount(connectionString, "OptimizerRunLogs"));
+        }
+
+        private static int TableCount(string connectionString, string table)
+        {
+            using var conn = new SqliteConnection(connectionString);
+            conn.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=$n";
+            cmd.Parameters.AddWithValue("$n", table);
+            return Convert.ToInt32(cmd.ExecuteScalar());
+        }
+
+        [Fact]
         public void EnsureDatabaseReady_CalledTwice_IsIdempotentAndDoesNotDuplicateBackups()
         {
             var dbPath = Path.Combine(_tempDir, "SmartStudyData.db");
