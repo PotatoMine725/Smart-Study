@@ -291,13 +291,25 @@ rescales *and* re-allocates — bars move because the schedule was rebuilt, not 
 
 **Steps:** close the app. Open `capacity.txt` in the build output directory
 (`bin\Release\net10.0-windows10.0.19041.0\`) and set it to `12`. Relaunch and open the page.
+Then repeat the whole thing with **`4.5`**.
 
-**Expected:** the readout shows **8.0** and **no badge is visible** on a page you have not touched.
+**Expected, `12`:** the readout shows **8.0** and **no badge is visible** on a page you have not
+touched.
 
-**Why this exists:** `GetCapacity` clamps the file to the slider's own bounds. Without the upper
-clamp the constructor would build a schedule at 12, the slider would coerce its value to 8 and write
-back, and the badge would fire on an untouched page — a warning that fires for unrelated reasons
-stops being read.
+**Expected, `4.5`:** the readout shows **4.5** and **no badge is visible**. If it reads **5.0** and
+a badge appears, record it as a FAIL — do not dismiss it as rounding.
+
+**Why this exists:** the badge must mean exactly one thing — *the chart is stale* — and a warning
+that also fires for unrelated reasons stops being read. Two ways it could fire on an untouched page:
+
+- **above the ceiling (`12`)**: `GetCapacity` now clamps the file to the slider's own bounds, so the
+  constructor and the slider agree. Without that clamp the schedule would be built at 12 while the
+  slider coerced its value to 8 and wrote back.
+- **between ticks (`4.5`)**: an in-range value the app itself can write (`SaveCapacity` produces
+  `4.5`, and `GetCapacity` is tested to read it back). The slider has
+  `TickFrequency="1" IsSnapToTickEnabled="True"`. If it snaps `4.5` to `5.0` and writes back, the
+  chart says 4.5 and the slider says 5.0 — false badge. **This path is untested and unproven;
+  this scenario is what settles it.**
 
 ---
 
