@@ -6,12 +6,16 @@
 
     <!--
       REDESIGN — Cân Bằng Tải (Workload Balancer) — điều hướng trong MainFrame.
-      GIỮ NGUYÊN binding gốc của WorkloadBalancerViewModel + ScheduleModels:
-        CapacityHours · GenerateScheduleCommand
+      Binding của WorkloadBalancerViewModel + ScheduleModels:
+        CapacityHours (mức slider đang trỏ tới — CHỈ slider và số 38pt ở khối SỨC HỌC dùng)
+        RenderedCapacityHours (mức lịch hiện tại thực sự được dựng bằng — MỌI converter dùng)
+        IsScheduleStale · GenerateScheduleCommand
         Schedule (ScheduleDay: DisplayName / TotalMinutes / HeaderText / Tasks)
         Tasks (ScheduledTask: TenTask / TenMon / SoPhut / ThoiGianHienThi)
-      Không sửa ViewModel/Model. Thanh tải tương đối so với sức học được tính
-      bằng converter [TotalMinutes, CapacityHours] (Converters/WorkloadConverters.cs).
+      Thanh tải tương đối so với sức học được tính bằng converter
+      [TotalMinutes, RenderedCapacityHours] (Converters/WorkloadConverters.cs). Đo theo
+      CapacityHours là lỗi gốc: kéo slider chỉ chạy lại converter chứ không dựng lại lịch,
+      nên màn hình vẽ phân bổ CŨ đo bằng mức trần MỚI.
       Màu chip theo môn dùng SubjectToBrushConverter có sẵn trong app.
       AncestorType=Page (không phải Window) vì page host trong Frame — ancestor Window
       lúc này là MainWindow (DataContext null) nên phải chỉ rõ Page.
@@ -26,6 +30,7 @@
             <conv:LoadToLengthConverter x:Key="LoadLen"/>
             <conv:LoadToBrushConverter x:Key="LoadBrush"/>
             <conv:FullDayToVisibilityConverter x:Key="FullVis"/>
+            <BooleanToVisibilityConverter x:Key="BoolVis"/>
         </ResourceDictionary>
     </Page.Resources>
 
@@ -36,7 +41,7 @@
             <StackPanel Margin="0,0,0,18">
                 <TextBlock Text="CÂN BẰNG TẢI" Style="{StaticResource WbEyebrow}"/>
                 <TextBlock Text="Trợ lý xếp lịch tự động" Style="{StaticResource WbPageTitle}"/>
-                <TextBlock Text="Thuật toán rải các bài tập chưa hoàn thành đều khắp những ngày tới — theo điểm ưu tiên và sức học mỗi ngày của bạn."
+                <TextBlock Text="Tự động xếp các bài tập chưa hoàn thành vào những ngày tới — theo điểm ưu tiên và sức học mỗi ngày của bạn."
                            Style="{StaticResource WbSubText}" MaxWidth="560" HorizontalAlignment="Left"/>
             </StackPanel>
 
@@ -92,6 +97,20 @@
                         <TextBlock Text="phút / ngày · so với mức sức học" Style="{StaticResource WbSectionSub}"/>
                     </StackPanel>
 
+                    <!-- Biểu đồ đang đo theo RenderedCapacityHours, slider đã trỏ sang mức khác.
+                         Đặt ngay trên biểu đồ vì nó cảnh báo đúng thứ nằm bên dưới. -->
+                    <Border Background="#1AFB3B53" BorderBrush="{DynamicResource SeverityUrgent}"
+                            BorderThickness="1" CornerRadius="4" Padding="10,7" Margin="0,10,0,0"
+                            Visibility="{Binding IsScheduleStale, Converter={StaticResource BoolVis}}">
+                        <TextBlock FontSize="11.5" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource PrimaryText}">
+                            <TextBlock.Text>
+                                <Binding Path="RenderedCapacityHours"
+                                         StringFormat="⚠ Lịch đang theo mức {0:0.0} giờ/ngày — bấm XẾP LỊCH LẠI để áp dụng mức mới."/>
+                            </TextBlock.Text>
+                        </TextBlock>
+                    </Border>
+
                     <Grid Margin="0,18,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="150"/>
@@ -114,13 +133,13 @@
                                                 <Border.Height>
                                                     <MultiBinding Converter="{StaticResource LoadLen}" ConverterParameter="150">
                                                         <Binding Path="TotalMinutes"/>
-                                                        <Binding Path="DataContext.CapacityHours" RelativeSource="{RelativeSource AncestorType=Page}"/>
+                                                        <Binding Path="DataContext.RenderedCapacityHours" RelativeSource="{RelativeSource AncestorType=Page}"/>
                                                     </MultiBinding>
                                                 </Border.Height>
                                                 <Border.Background>
                                                     <MultiBinding Converter="{StaticResource LoadBrush}">
                                                         <Binding Path="TotalMinutes"/>
-                                                        <Binding Path="DataContext.CapacityHours" RelativeSource="{RelativeSource AncestorType=Page}"/>
+                                                        <Binding Path="DataContext.RenderedCapacityHours" RelativeSource="{RelativeSource AncestorType=Page}"/>
                                                     </MultiBinding>
                                                 </Border.Background>
                                             </Border>
@@ -147,7 +166,7 @@
 
                     <TextBlock FontSize="10.5" Foreground="{DynamicResource SecondaryText}" Margin="0,12,0,0">
                         <TextBlock.Text>
-                            <Binding Path="CapacityHours" StringFormat="Đường nét đứt = mức sức học {0:0.0} giờ/ngày · cột chạm vạch là ngày đã đầy"/>
+                            <Binding Path="RenderedCapacityHours" StringFormat="Đường nét đứt = mức sức học {0:0.0} giờ/ngày · cột chạm vạch là ngày đã đầy"/>
                         </TextBlock.Text>
                     </TextBlock>
                 </StackPanel>
@@ -179,13 +198,13 @@
                                             <Border.Width>
                                                 <MultiBinding Converter="{StaticResource LoadLen}" ConverterParameter="150">
                                                     <Binding Path="TotalMinutes"/>
-                                                    <Binding Path="DataContext.CapacityHours" RelativeSource="{RelativeSource AncestorType=Page}"/>
+                                                    <Binding Path="DataContext.RenderedCapacityHours" RelativeSource="{RelativeSource AncestorType=Page}"/>
                                                 </MultiBinding>
                                             </Border.Width>
                                             <Border.Background>
                                                 <MultiBinding Converter="{StaticResource LoadBrush}">
                                                     <Binding Path="TotalMinutes"/>
-                                                    <Binding Path="DataContext.CapacityHours" RelativeSource="{RelativeSource AncestorType=Page}"/>
+                                                    <Binding Path="DataContext.RenderedCapacityHours" RelativeSource="{RelativeSource AncestorType=Page}"/>
                                                 </MultiBinding>
                                             </Border.Background>
                                         </Border>
@@ -195,7 +214,7 @@
                                         <TextBlock.Visibility>
                                             <MultiBinding Converter="{StaticResource FullVis}">
                                                 <Binding Path="TotalMinutes"/>
-                                                <Binding Path="DataContext.CapacityHours" RelativeSource="{RelativeSource AncestorType=Page}"/>
+                                                <Binding Path="DataContext.RenderedCapacityHours" RelativeSource="{RelativeSource AncestorType=Page}"/>
                                             </MultiBinding>
                                         </TextBlock.Visibility>
                                     </TextBlock>
@@ -272,7 +291,7 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="02" FontWeight="Bold" FontSize="11"
                                    Foreground="{StaticResource PlanAccent}" Margin="0,0,12,0"/>
-                        <TextBlock Grid.Column="1" Text="Mỗi bài luôn được dồn vào ngày ít tải nhất còn dưới mức trần — nhờ vậy tải các ngày luôn cân đối, không dồn cục."
+                        <TextBlock Grid.Column="1" Text="Mỗi bài được xếp vào ngày sớm nhất còn chỗ trống — học xong sớm, không để dồn về sát hạn."
                                    FontSize="12.5" Foreground="{DynamicResource PrimaryText}" TextWrapping="Wrap"/>
                     </Grid>
                 </Border>
