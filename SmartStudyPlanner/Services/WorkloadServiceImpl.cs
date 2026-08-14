@@ -32,6 +32,21 @@ namespace SmartStudyPlanner.Services
 
         private const int MinCapacityMinutes = (int)(MinCapacityHours * 60);
 
+        /// <summary>
+        /// Trần sức học. Lấy đúng theo Maximum của slider ở WorkloadBalancerPage.xaml:68 — đối
+        /// xứng với <see cref="MinCapacityHours"/>. Lý do kẹp sàn áp dụng y nguyên cho đầu trên:
+        /// WorkloadBalancerViewModel đọc GetCapacity() rồi dựng lịch ngay trong constructor,
+        /// TRƯỚC khi slider kịp kẹp giá trị. Không kẹp thì lịch dựng ở mức ngoài dải, slider
+        /// coerce Value về 8 rồi ghi ngược qua TwoWay binding — RenderedCapacityHours lệch
+        /// CapacityHours ngay lúc mở trang và badge "lịch cũ" báo động giả.
+        ///
+        /// Lưu ý phạm vi: GetCapacity còn hai caller nữa (DashboardViewModel.cs:114 nạp vào
+        /// PipelineUserSettings, và BalanceWorkloadStage.cs:40 làm fallback), nên trần này áp
+        /// cho cả pipeline chứ không riêng trang Workload. Đó là chủ ý: sàn vốn đã áp cho cả ba,
+        /// tách bound ra hai tầng mới là thứ làm hai màn hình nói hai con số khác nhau.
+        /// </summary>
+        private const double MaxCapacityHours = 8.0;
+
         private readonly IDecisionEngine _decisionEngine;
         private readonly IClock _clock;
 
@@ -70,7 +85,7 @@ namespace SmartStudyPlanner.Services
             // remainingMinutes TĂNG mỗi vòng lặp. Không hữu hạn thì coi như rác.
             if (!double.IsFinite(val)) return DefaultCapacityHours;
 
-            return Math.Max(val, MinCapacityHours);
+            return Math.Clamp(val, MinCapacityHours, MaxCapacityHours);
         }
 
         public void SaveCapacity(double capacity)

@@ -134,6 +134,26 @@ namespace SmartStudyPlanner.Tests.Services
         }
 
         [Theory]
+        [InlineData("8.5")]
+        [InlineData("12")]
+        [InlineData("99.5")]
+        public void GetCapacity_GiaTriVuotTranSlider_BiKepXuongTranToiDa(string noiDung)
+        {
+            // Đối xứng với sàn ở test trên, và lấy đúng theo Maximum của slider
+            // (WorkloadBalancerPage.xaml:68) vì đó là mức lớn nhất UI thừa nhận.
+            // Không kẹp thì WorkloadBalancerViewModel dựng lịch ở mức ngoài dải trong
+            // constructor, rồi slider coerce Value về 8 và ghi ngược qua TwoWay binding —
+            // RenderedCapacityHours (12) lệch CapacityHours (8) và badge "lịch cũ" báo động
+            // giả ngay trên trang người dùng chưa hề chạm vào.
+            //
+            // File là đường vào duy nhất không tin được: SaveCapacity chỉ ghi giá trị đã qua
+            // slider, nên chỉ file bị sửa tay hoặc di cư từ bản cũ mới rơi vào đây.
+            GivenFile(noiDung);
+
+            WithCulture("en-US", () => Assert.Equal(8.0, Sut().GetCapacity()));
+        }
+
+        [Theory]
         [InlineData("NaN")]
         [InlineData("Infinity")]
         [InlineData("-Infinity")]
