@@ -1,7 +1,7 @@
 # Design — Workload Balancer: stale-chart fix and algorithm copy correction
 
 **Date:** 2026-08-10
-**Status:** design approved, implementation plan not yet written
+**Status:** implemented — see `docs/plans/2026-08-14-workload-balancer-stale-chart-fix-plan.md`
 **Origin:** owner-led manual GUI test, `docs/reports/2026-08-10-epic3-soe-manual-observation.md`
 **Related:** `docs/reports/2026-08-10-epic3-automated-qa-gate.md` (finding QA-1, accepted debt P2),
 `docs/plans/2026-08-10-epic-3-manual-qa-runbook.md` (scenarios C1, C2, C7, E6)

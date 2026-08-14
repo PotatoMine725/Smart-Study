@@ -202,7 +202,17 @@ seven days, with many days part-filled. If you see that, the placement rework ha
 
 #### C2 — Capacity slider changes density, not the packing rule
 
-**Steps:** move the slider through **1 → 3 → 8 giờ/ngày**, pressing "XẾP LỊCH LẠI" each time.
+> ⚠ **The 2026-08-10 result for this scenario is withdrawn and must be re-run.** It was recorded
+> before the stale-chart defect was understood, so it may have been read off a chart that was never
+> rebuilt. See `docs/plans/2026-08-10-workload-balancer-stale-chart-fix-design.md` §2.4 and D4.
+
+**Steps:** move the slider through **1 → 3 → 8 giờ/ngày**. **Press "XẾP LỊCH LẠI" after every
+slider change, before reading the chart.**
+
+Moving the slider alone does *not* rebuild the schedule — it only rescales the drawing. Until you
+press the button you are looking at the previous allocation measured against the new ceiling, and a
+stale reading will *systematically* look like a C1-shape violation. A warning badge above the chart
+tells you when this is the case; if you can see the badge, the chart is not answering this scenario.
 
 **Expected:** at every setting, the C1 shape still holds (contiguous prefix; all but the last used
 day at the ceiling). Higher capacity ⇒ fewer, fatter days. No day ever exceeds the ceiling shown
@@ -251,6 +261,43 @@ A proposed replacement, offered only as a starting point:
 > không vượt quá sức học mỗi ngày của bạn."
 
 **Record your decision in the observation table.**
+
+*Ruled 2026-08-10: keep the algorithm, fix the copy. The header goes claim-neutral and the bottom
+information note becomes the single place that explains the mechanism. Implemented — C8–C10 below
+cover the behaviour that made the old copy misleading.*
+
+---
+
+#### C8 — Moving the slider does not move the chart
+
+**Steps:** open the page and note the height of each bar. Drag the slider to a different tick.
+**Do not press the button.**
+
+**Expected:** the 38pt readout and the slider move. **No chart bar moves, and no bar changes
+colour.** A badge appears above the chart naming the capacity the schedule was actually built with
+— the *old* value, not the one the slider now shows.
+
+**Fails if:** any bar changes height or colour, or the "ĐÃ ĐẠT MỨC TỐI ĐA" labels appear or vanish.
+That is the original defect: the chart redrawing the old allocation against a new ceiling.
+
+#### C9 — Pressing the button clears the badge and rescales
+
+**Steps:** from C8's end state, press **XẾP LỊCH LẠI**.
+
+**Expected:** the confirmation dialog names the **new** capacity. The badge disappears. The chart
+rescales *and* re-allocates — bars move because the schedule was rebuilt, not merely redrawn.
+
+#### C10 — An out-of-range `capacity.txt` does not raise a false badge
+
+**Steps:** close the app. Open `capacity.txt` in the build output directory
+(`bin\Release\net10.0-windows10.0.19041.0\`) and set it to `12`. Relaunch and open the page.
+
+**Expected:** the readout shows **8.0** and **no badge is visible** on a page you have not touched.
+
+**Why this exists:** `GetCapacity` clamps the file to the slider's own bounds. Without the upper
+clamp the constructor would build a schedule at 12, the slider would coerce its value to 8 and write
+back, and the badge would fire on an untouched page — a warning that fires for unrelated reasons
+stops being read.
 
 ---
 
@@ -333,16 +380,36 @@ Epic 1 reopen fixed a stale-render defect here — worth a glance.)
 
 **Expected:** the slider still reads 5.0.
 
-#### E6 — Deleting a semester
+#### E6 — Deleting a subject that has tasks
 
-**Expected:** deleting a semester with subjects and tasks succeeds without an FK/cascade error.
-(Guards a previously-fixed cascade-fixup defect.)
+> **This scenario was rewritten on 2026-08-14.** It previously asked you to delete a *semester*.
+> That is not a defect in the app — **no such capability exists**: there is no `XoaHocKy`,
+> `DeleteHocKy`, or `HocKys.Remove` anywhere in production code. The scenario was written against a
+> capability that was never built, so it could not be executed. See "Known gaps" below.
+
+**Steps:** in Quản lý môn học, pick a subject that has **at least two tasks**, delete it, then
+navigate away and back.
+
+**Expected:** the delete succeeds without an FK/cascade error. The subject's tasks go with it. Every
+*other* subject in the semester, and its tasks, are untouched.
+
+**Why this target:** subject deletion (`ViewModels/QuanLyMonHocViewModel.cs` → `XoaMon` →
+`Infrastructure/Persistence/SQLite/Repositories/SqliteHocKyRepository.cs` → `db.MonHocs.Remove`) is
+the reachable path to the EF cascade-fixup regression this scenario was always meant to guard:
+reparenting tasks away from a soon-to-be-deleted parent needs the FK reassignment and
+`DetectChanges()` to happen *before* `Remove()`, and mutating only the `ObservableCollection` is not
+enough.
 
 ---
 
 ## 4. Observation and result record
 
 **Fill in during execution. Leave blank until actually run.**
+
+> **Owner's 2026-08-10 run is recorded separately, in the owner's own words, at
+> `docs/reports/2026-08-10-epic3-soe-manual-observation.md`.** It is linked rather than transcribed
+> here: it is the owner's primary evidence, and copying it into a document authored by someone else
+> muddies provenance instead of clarifying it.
 
 Legend: **P** = pass · **F** = fail · **N/A** = not applicable · **?** = unclear/needs discussion
 
@@ -354,12 +421,15 @@ Legend: **P** = pass · **F** = fail · **N/A** = not applicable · **?** = uncl
 | B1 | `OptimizerRunLogs` table exists | | | | |
 | B2 | Table empty (expected) | | | | |
 | C1 | Dense contiguous packing from today | | | | |
-| C2 | Holds across capacity 1/3/8 | | | | |
+| C2 | Holds across capacity 1/3/8 | **RE-RUN** | _2026-08-10 "Met" withdrawn — read through the stale-chart defect_ | | Press XẾP LỊCH LẠI after every slider move |
 | C3 | Slider bounds 1–8, no hang | | | | |
 | C4 | Priority ordering preserved | | | | |
 | C5 | Split parts labelled correctly | | | | |
 | C6 | Completed tasks excluded | | | | |
 | C7 | **Header copy decision (QA-1)** | | | | Wording chosen: |
+| C8 | Slider moves readout + badge, no bar | | | | |
+| C9 | Button clears badge and rescales | | | | |
+| C10 | Out-of-range `capacity.txt` → 8.0, no badge | | | | |
 | D1 | No tasks — no crash | | | | |
 | D2 | Never-scored task still scheduled | | | | |
 | D3 | Past-deadline placement (expected) | | | | Instance seen? |
@@ -370,11 +440,18 @@ Legend: **P** = pass · **F** = fail · **N/A** = not applicable · **?** = uncl
 | E3 | Task/subject CRUD | | | | |
 | E4 | Focus / logging / streak | | | | |
 | E5 | Capacity persists | | | | |
-| E6 | Semester delete | | | | |
+| E6 | Subject delete (was: semester delete) | | | | |
 
 ### Free-text observations
 
 > _(anything that surprised you, however small — record it here even if it passed)_
+
+### Known gaps — not defects, not in scope here
+
+- **No semester-management UI.** Semesters can be created but not renamed or deleted. This is what
+  made the original E6 unexecutable. Recorded as a proposal for its own piece of work
+  (`docs/plans/2026-08-10-workload-balancer-stale-chart-fix-design.md` §7), deliberately not
+  absorbed into a bug-fix package.
 
 ---
 
