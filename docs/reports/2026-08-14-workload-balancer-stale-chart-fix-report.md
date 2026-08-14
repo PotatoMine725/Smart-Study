@@ -10,7 +10,7 @@
 
 ## 1. What shipped
 
-Six commits, one per phase:
+Eight commits — two carry-forward, one plan, three fixes, two docs:
 
 | Commit | Scope |
 |---|---|
@@ -21,6 +21,7 @@ Six commits, one per phase:
 | `c0ff867` | ViewModel: `RenderedCapacityHours` split out from `CapacityHours` |
 | `f120df5` | View: bindings, stale badge, four corrected strings |
 | `1afd3fa` | runbook: C2 re-run, E6 retarget, C8–C10, provenance link |
+| `0667146` | this report |
 
 The defect: one property, `CapacityHours`, served two roles — the value the slider targets and the
 yardstick the chart is drawn against. With no `OnCapacityHoursChanged`, dragging the slider never
@@ -114,10 +115,30 @@ Criteria stated in advance so each check can actually fail:
 | M2 | Press **XẾP LỊCH LẠI** | Dialog names the new capacity; badge gone; chart rescales *and* re-allocates | Badge persists, or the dialog names the old value | **NOT RUN** |
 | M3 | Read the dashed-line caption in both states | Caption equals the **badge's** number in M1, the **slider's** in M2 | Caption tracks the slider during M1 | **NOT RUN** |
 | M4 | Read the page header and information note 02 | Neither says "đều khắp" or "ít tải nhất" | Either still describes the old rule | **NOT RUN** |
-| M5 | Close app, set `capacity.txt` to `12`, relaunch, open the page | Readout `8.0`, **no badge** on an untouched page | Badge visible | **NOT RUN** |
+| M5a | Close app, set `capacity.txt` to `12`, relaunch, open the page | Readout `8.0`, **no badge** on an untouched page | Badge visible | **NOT RUN** |
+| M5b | Same, but `capacity.txt` = `4.5` | Readout `4.5`, **no badge** | Readout `5.0` and a badge appears | **NOT RUN** |
 
 M4 is additionally covered by an automated guard, so it is the one manual check that would be
 redundant to run. M1, M2, M3 and M5 are not covered by anything automated and are the real gate.
+
+**M5b probes a second false-positive path that criterion 5 does not currently cover, and that no
+automated test in this change can reach.** `4.5` is an in-range, fully supported `capacity.txt`
+value — `GetCapacity_SoInvariant_DocDungTrenMoiCulture` asserts it round-trips and
+`SaveCapacity_LuonGhiDauCham` writes it — so the new ceiling clamp passes it through untouched. It
+then reaches a `Slider` with `TickFrequency="1" IsSnapToTickEnabled="True"` through a TwoWay
+binding. *If* WPF snaps it to `5.0` and writes back, `CapacityHours` (5.0) diverges from
+`RenderedCapacityHours` (4.5) and the badge appears on a page nobody touched — the exact failure
+mode the ceiling clamp exists to prevent, arriving by a different door.
+
+Reading the WPF source, snapping lives in `Slider.UpdateValue` on the user-interaction path, not in
+the `RangeBase.Value` coercion callback that a binding write goes through — which would mean no
+snap and no badge. **That is reasoning, not evidence, and it is not the basis for any claim here.**
+M5b is what settles it. Until it runs, acceptance criterion 5 ("opening the page never shows the
+badge, whatever `capacity.txt` contains") is **unproven for non-integer values**, and only proven
+for the above-ceiling case by M5a.
+
+If M5b fails, the fix is a further decision — snap `GetCapacity` to whole hours, or drop
+`IsSnapToTickEnabled` — and should be taken before this PR merges, not after.
 
 These correspond to runbook scenarios **C8, C9, C10** plus C7's copy check. Runbook **C2 is
 withdrawn and needs re-running** — its 2026-08-10 "Met" was read through the very instrument this
@@ -205,8 +226,10 @@ were committed in Phase 0.
 
 ## 5. Open items
 
-1. **Manual checks M1, M2, M3, M5 are unrun.** They are the only evidence for acceptance criteria
-   1, 2 and 5. Release binary is built and provenance-checked.
+1. **Manual checks M1, M2, M3, M5a, M5b are unrun.** They are the only evidence for acceptance
+   criteria 1, 2 and 5. Release binary is built and provenance-checked. **M5b is the one that could
+   change the code**: if a non-integer `capacity.txt` snaps on the slider and raises a false badge,
+   a further clamp decision is needed before merge (§3).
 2. **Runbook C2 needs re-running** with the corrected procedure.
 3. **No semester-management UI** — proposal, out of scope, see design §7.
 4. Pre-existing package advisories surfaced during the build (`NU1903` SQLitePCLRaw,
