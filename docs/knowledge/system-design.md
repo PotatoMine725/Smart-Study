@@ -173,7 +173,8 @@ After Slice 2, `RawMinutesCalculatorTests` (4) + `StudyTimeSuggestionEngineTests
 
 ## Documentation as a load-bearing artifact
 
+- **Canonical convention: [`docs/README.md`](../README.md) §Artifact types** — which artifact type answers which question, where it lives, and the two cross-cutting rules (claim → evidence → scope → uncertainty; amend rather than rewrite). Written 2026-08-19; the bullets below are the older, narrower lifecycle summary and defer to it.
 - Every milestone gets a row in `docs/CHANGELOG.md`; in-flight work lives in `docs/active/`; current state in `docs/architecture/`.
 - Active plans link to specs and file maps. Once shipped, the active doc is condensed into a `CHANGELOG.md` row and deleted.
-- The change log is the source of truth for "is M6.1 done?" — not commit messages.
+- The change log is the source of truth for "is M6.1 done?" — *when it is current*, which is not automatic: as of 2026-08-19 it ended at 2026-08-02 and carried no record of Epic 3, which had closed. Check its last entry against `git log` before trusting a "not done" reading; a milestone missing from it may simply never have been written down.
 - `gitnexus_query({query: "concept"})` finds execution flows faster than `grep`; use it before reading docs.

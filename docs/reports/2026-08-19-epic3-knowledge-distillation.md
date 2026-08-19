@@ -115,8 +115,11 @@ while the closure is the newest document in the epic.
   against fix-report D6, the E1–E4 ruling against closure §6, the E6 coverage gap against closure
   §4.3 **as amended 2026-08-19** — the pre-amendment wording would have put a retracted claim into
   the knowledge base.
-- No file outside `docs/` was touched. Pre-existing untracked files (`.claude/*`, two handoff notes,
-  the assets zip) left alone.
+- No file outside `docs/` was touched **by this pass**, and pre-existing untracked files
+  (`.claude/*`, two handoff notes, the assets zip) were left alone. The working tree is not this
+  pass's alone: `reports/2026-08-19-epic3-manual-gate-closure.md` (amended) and
+  `plans/2026-08-19-e6-cascade-coverage-test.md` (new) were changed concurrently by another session
+  and are deliberately **not** in these commits.
 
 ## Follow-ups
 
