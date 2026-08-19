@@ -483,9 +483,15 @@ Measured against §6.1, and stating only what the two owner records contain:
   which the 2026-08-10 record does not mention: its Group E section notes only the missing
   semester-management UI. They may have been exercised without being written down; absent a written
   observation this runbook treats them as unrecorded rather than as passed.
-- **E1 has a reason to exist for the stale-chart branch specifically:** `5bd0a6a` changed
-  `GetCapacity`, and `DashboardViewModel` is one of its three production callers. A capacity file
-  outside 1–8 now reaches the Dashboard clamped.
+- **E1 is ordinary regression surface, not a branch gate.** `5bd0a6a` changed `GetCapacity` and
+  `DashboardViewModel` is one of its three production callers — but the clamp only alters behaviour
+  for a `capacity.txt` outside 1–8, and the file currently holds `5`. In its present state the
+  Dashboard cannot exercise the changed path, so running E1 to clear this branch would prove
+  nothing; run it as general regression cover, at the owner's discretion.
+- **E5 is recorded for the write half only.** The owner recorded "drag to 5, press the button —
+  pass", and `capacity.txt` does hold `5`, which evidences `SaveCapacity`. The scenario's own
+  failure condition is about the value *surviving a restart*; whether the app was closed and
+  reopened is not stated. One relaunch settles it.
 
 ### Free-text observations
 

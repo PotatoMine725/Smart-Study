@@ -174,6 +174,10 @@ wrong about M3. `Xaml_MoiBindingDoLuong_DeuTroVaoRenderedCapacityHours`
 cannot be repointed at the slider without turning the suite red. The guard pins the binding path,
 not the rendered pixel; M3 is therefore redundant rather than unproven, in the same way M4 is.
 
+Corroboration for M5b's premise, found while checking provenance: the **Debug** build's
+`capacity.txt` holds `4.5` with mtime `2026-08-02` — written by ordinary use, weeks before this fix
+existed. The non-integer value M5b probes is not a contrived input; the app produces it on its own.
+
 Provenance of the run: `bin/Release/.../SmartStudyPlanner.exe` still carries mtime
 `2026-08-14 08:38` — the binary the criteria were written against — and its `capacity.txt` was last
 written `2026-08-19 17:27` holding `5`, consistent with E5 (drag to 5, press the button) being the
