@@ -8,6 +8,11 @@
 [automated QA gate](2026-08-10-epic3-automated-qa-gate.md) ·
 [stale-chart fix report](2026-08-14-workload-balancer-stale-chart-fix-report.md)
 
+**Amended 2026-08-19, after closure.** §3 item 3 and §4.3 overstated the size of E6's automated
+coverage gap, and mis-attributed it to the cascade-fixup ordering. Corrected in §4.3. **The outcome
+in §1 is unchanged** — the correction makes a finding smaller and more precise; it does not touch a
+verdict.
+
 ---
 
 ## 1. Outcome
@@ -71,7 +76,9 @@ Three things had no automated reach, and two of them could have changed the code
    rescaled and re-allocated.
 3. **E6 — subject delete.** `HocKyRepository_DeleteMonHocByAbsence_CascadesTombstoneToItsTasks`
    covers a subject with **one** task and never asserts that a sibling subject survives, so the
-   over-cascade class E6 exists to catch was not covered by the suite at all (§4.3).
+   shape E6 exercises — a multi-task victim standing beside a surviving sibling — had no automated
+   reach. *(This item originally read "the over-cascade class E6 exists to catch was not covered by
+   the suite at all." That was too strong; see §4.3 as amended.)*
 
 ## 4. Findings carried out of the gate — none are defects
 
@@ -86,12 +93,38 @@ Observed in the running product, as expected. Ratified limitation A1, Decision D
 Recorded, not logged as a defect.
 
 ### 4.3 E6's automated coverage is narrower than E6 itself — recommended follow-up
-The GUI run passed, so the behaviour is right today. The suite would not notice if it stopped being
-right: no test deletes a subject with ≥2 tasks, and none asserts that a *sibling* subject's tasks are
-untouched. That is precisely the regression class the `LuuHocKyAsync` cascade-fixup ordering exists
-to prevent (FK reassignment plus `DetectChanges()` **before** `Remove()`,
-`SqliteHocKyRepository.cs:136–151`). **Recommended:** one repository-level test closing that gap.
-Cheap, and it converts a passing manual observation into a standing guard.
+
+**Amended 2026-08-19, after closure — two corrections, neither of which changes the finding's
+status.** This section and §3 item 3 originally said the over-cascade class E6 exists to catch "was
+not covered by the suite at all," and attributed the gap to the `LuuHocKyAsync` cascade-fixup
+ordering. Both were re-derived while designing the follow-up test, and both were wrong.
+
+*Correction 1 — the gap is smaller than stated.* The clone-merge tests
+(`RepositoriesTests.cs:350` and `:393`, asserting through `AssertClonesMergedWithoutLoss` at `:432`)
+already cover "a `MonHoc` is removed and a task that was under it survives un-tombstoned." What the
+suite genuinely does not cover is exactly two things:
+
+1. a **sibling** subject, carrying its own tasks, untouched by another subject's deletion — with no
+   reparenting anywhere in the save;
+2. a victim subject carrying **two or more** tasks. Every existing removal test gives it one, so a
+   cascade that reached only the first child would pass the suite.
+
+*Correction 2 — it is not the cascade-fixup regression class.* That ordering (FK reassignment plus
+`DetectChanges()` **before** `Remove()`, `SqliteHocKyRepository.cs:136–151`) only bites when a task
+changes parent, and **no GUI path moves a task between subjects**: `MaMonHoc` is assigned once at
+creation (`QuanLyTaskViewModel.cs:194`) and nothing under `Views/` binds it, so that branch is
+reachable only through `LayDanhSachHocKyAsync`'s dedup merge — which is what the clone-merge tests
+drive. The user-reachable E6 path can fail only by **over-cascade**. A red-before-green run against
+the pre-fix ordering, which is what this section's recommendation was originally read as asking for,
+would stay green in E6's shape and prove nothing.
+
+**The finding stands, at its corrected size.** The GUI run passed, so the behaviour is right today;
+the suite still would not notice if the two shapes above stopped being true. **Recommended:** one
+repository-level test, designed in
+[`docs/plans/2026-08-19-e6-cascade-coverage-test.md`](../plans/2026-08-19-e6-cascade-coverage-test.md),
+which carries the mutation campaign, the acceptance bar it must clear, and the honest fallback if no
+mutant turns out to be uniquely killed. Still cheap, and it still converts a passing manual
+observation into a standing guard.
 
 ### 4.4 No semester-management UI
 Unchanged. Semesters can be created but not renamed or deleted — the reason the original E6 was
@@ -134,6 +167,19 @@ evidence.
 closure note would mix a verdict with a change, and the change deserves its own red-before-green
 evidence.
 *What for:* keeps the closure auditable and the test reviewable on its own merits.
+
+**D5 — Amend §4.3 in place and label the amendment, rather than rewriting it or leaving it.**
+*(Added 2026-08-19, after closure.)*
+*Why:* designing the follow-up test re-derived §4.3's claim and found it overstated in size and wrong
+in attribution. Leaving it would have let a citable overstatement harden — it had already been copied
+into `docs/knowledge/qa-gates.md`. Silently rewriting it would erase the fact that the closure once
+said something stronger, which is exactly the provenance this document exists to keep.
+*What for:* a later reader sees the corrected finding *and* that it was corrected, and can tell that
+the outcome in §1 never depended on the overstatement.
+*Experience:* the correction cost two file reads. The claim had survived a runbook row, a PR body and
+a distilled lesson without anyone re-deriving it — which is how a plausible sentence becomes a fact.
+The counterpart lesson in `qa-gates.md` still carries the original wording and is flagged for the
+same amendment.
 
 ## 6. E1–E4 — closed by owner ruling, 2026-08-19
 
