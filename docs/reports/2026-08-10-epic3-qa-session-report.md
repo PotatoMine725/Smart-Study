@@ -352,7 +352,12 @@ specifically because that is the only place the real startup sequence runs again
 
 **No Critical finding. No release blocker. No unresolved defect.**
 
-### QA-1 — MEDIUM — deferred to owner
+### QA-1 — MEDIUM — deferred to owner — **CLOSED 2026-08-10 (ruling), shipped in `f120df5`**
+
+> Owner ruled: keep the algorithm, fix the copy — the header goes claim-neutral and the bottom
+> information note carries the explanation. Implemented on `fix/workload-balancer-stale-chart` and
+> guarded by a source test that fails if either string reverts to the old rule. See the runbook C7
+> note and `docs/reports/2026-08-14-workload-balancer-stale-chart-fix-report.md`.
 
 `Views/WorkloadBalancerPage.xaml:39`:
 
