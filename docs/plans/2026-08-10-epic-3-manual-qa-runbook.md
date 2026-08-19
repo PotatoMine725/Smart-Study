@@ -205,6 +205,10 @@ seven days, with many days part-filled. If you see that, the placement rework ha
 > ⚠ **The 2026-08-10 result for this scenario is withdrawn and must be re-run.** It was recorded
 > before the stale-chart defect was understood, so it may have been read off a chart that was never
 > rebuilt. See `docs/plans/2026-08-10-workload-balancer-stale-chart-fix-design.md` §2.4 and D4.
+>
+> *Re-run by the owner on 2026-08-19 with the corrected procedure. The result is recorded in the
+> owner's own words at `docs/reports/2026-08-19-epic3-manual-observation-updated.md` and is not
+> transcribed here.*
 
 **Steps:** move the slider through **1 → 3 → 8 giờ/ngày**. **Press "XẾP LỊCH LẠI" after every
 slider change, before reading the chart.**
@@ -433,6 +437,12 @@ enough.
 > here: it is the owner's primary evidence, and copying it into a document authored by someone else
 > muddies provenance instead of clarifying it.
 
+> **Owner's 2026-08-19 run of the scenarios changed after 2026-08-10 is recorded, on the same terms,
+> at `docs/reports/2026-08-19-epic3-manual-observation-updated.md`.** It covers **C2 (re-run), C8,
+> C9, C10 at `12`, C10 at `4.5`, and E5** — six of the seven scenarios that were added or rewritten
+> in commits `1afd3fa` and `5008956`. The seventh, **E6 (retargeted from semester delete to subject
+> delete on 2026-08-14), has not been run in either form.**
+
 Legend: **P** = pass · **F** = fail · **N/A** = not applicable · **?** = unclear/needs discussion
 
 | # | Scenario | P/F | Observed behaviour | Evidence file | Notes |
@@ -443,15 +453,15 @@ Legend: **P** = pass · **F** = fail · **N/A** = not applicable · **?** = uncl
 | B1 | `OptimizerRunLogs` table exists | | | | |
 | B2 | Table empty (expected) | | | | |
 | C1 | Dense contiguous packing from today | | | | |
-| C2 | Holds across capacity 1/3/8 | **RE-RUN** | _2026-08-10 "Met" withdrawn — read through the stale-chart defect_ | | Press XẾP LỊCH LẠI after every slider move |
+| C2 | Holds across capacity 1/3/8 | → 08-19 | _2026-08-10 "Met" withdrawn; re-run 2026-08-19, owner's wording not transcribed_ | `2026-08-19-epic3-manual-observation-updated.md` | Press XẾP LỊCH LẠI after every slider move |
 | C3 | Slider bounds 1–8, no hang | | | | |
 | C4 | Priority ordering preserved | | | | |
 | C5 | Split parts labelled correctly | | | | |
 | C6 | Completed tasks excluded | | | | |
 | C7 | **Header copy decision (QA-1)** | | | | Wording chosen: |
-| C8 | Slider moves readout + badge, no bar | | | | |
-| C9 | Button clears badge and rescales | | | | |
-| C10 | Out-of-range `capacity.txt` → 8.0, no badge | | | | |
+| C8 | Slider moves readout + badge, no bar | → 08-19 | _owner's record, not transcribed_ | `2026-08-19-epic3-manual-observation-updated.md` | |
+| C9 | Button clears badge and rescales | → 08-19 | _owner's record, not transcribed_ | `2026-08-19-epic3-manual-observation-updated.md` | |
+| C10 | Out-of-range `capacity.txt` → 8.0, no badge | → 08-19 | _both probes (`12`, `4.5`) run; owner's record, not transcribed_ | `2026-08-19-epic3-manual-observation-updated.md` | Owner notes the slider itself accepts whole hours only — raised there as a UX candidate, not a result |
 | D1 | No tasks — no crash | | | | |
 | D2 | Never-scored task still scheduled | | | | |
 | D3 | Past-deadline placement (expected) | | | | Instance seen? |
@@ -461,8 +471,21 @@ Legend: **P** = pass · **F** = fail · **N/A** = not applicable · **?** = uncl
 | E2 | Analytics | | | | |
 | E3 | Task/subject CRUD | | | | |
 | E4 | Focus / logging / streak | | | | |
-| E5 | Capacity persists | | | | |
-| E6 | Subject delete (was: semester delete) | | | | |
+| E5 | Capacity persists | → 08-19 | _owner's record, not transcribed_ | `2026-08-19-epic3-manual-observation-updated.md` | |
+| E6 | Subject delete (was: semester delete) | **NOT RUN** | _retargeted 2026-08-14; never executed in either form_ | | The only rewritten scenario still outstanding — see §6.1 |
+
+### Gate status as of 2026-08-19 (record-keeping, not an observation)
+
+Measured against §6.1, and stating only what the two owner records contain:
+
+- **Satisfied by a recorded run:** A1–A3, B1–B2, C1, C2 (re-run), C3–C7, C8–C10, D1–D5, E5.
+- **Not recorded:** **E6** — never executed; and **E1–E4** (Dashboard, Analytics, CRUD, focus/streak),
+  which the 2026-08-10 record does not mention: its Group E section notes only the missing
+  semester-management UI. They may have been exercised without being written down; absent a written
+  observation this runbook treats them as unrecorded rather than as passed.
+- **E1 has a reason to exist for the stale-chart branch specifically:** `5bd0a6a` changed
+  `GetCapacity`, and `DashboardViewModel` is one of its three production callers. A capacity file
+  outside 1–8 now reaches the Dashboard clamped.
 
 ### Free-text observations
 

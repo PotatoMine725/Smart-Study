@@ -99,7 +99,7 @@ Phase 3 medium, `IWorkloadService.GenerateSchedule` doc comment only.
 
 ---
 
-## 3. Manual evidence — **NOT RUN**
+## 3. Manual evidence — **NOT RUN** *(as written on 2026-08-14; superseded — see §3.1)*
 
 Three acceptance criteria are visual and no automated test reaches them. **I did not run these** —
 they need a human at the GUI. Release build is ready and provenance-checked:
@@ -143,6 +143,41 @@ If M5b fails, the fix is a further decision — snap `GetCapacity` to whole hour
 These correspond to runbook scenarios **C8, C9, C10** plus C7's copy check. Runbook **C2 is
 withdrawn and needs re-running** — its 2026-08-10 "Met" was read through the very instrument this
 change repairs.
+
+### 3.1 Amendment, 2026-08-19 — the owner ran them
+
+The owner executed the manual set on 2026-08-19 and recorded it, in their own words, at
+`docs/reports/2026-08-19-epic3-manual-observation-updated.md`. It is linked rather than transcribed;
+the table above is left as written so the "stated in advance" criteria stay legible against the
+result.
+
+| Check | Runbook scenario | Status after 2026-08-19 |
+|---|---|---|
+| M1 | C8 | run — owner's record |
+| M2 | C9 | run — owner's record |
+| M3 | (caption) | **not run; resolved by guard instead** — see below |
+| M5a | C10 @ `12` | run — owner's record |
+| M5b | C10 @ `4.5` | run — owner's record |
+| — | C2 re-run | run — owner's record |
+
+**M5b is settled empirically**, so acceptance criterion 5 no longer rests on the WPF source reading
+in §3 above. The owner adds one observation that is not a result: the slider itself only stops on
+whole hours, so a half-hour capacity can be read from the file and displayed but not dialled back in
+by hand. That is a UX limitation, not a stale-chart failure — the badge stays clearable, because
+`BuildSchedule` unconditionally assigns `RenderedCapacityHours = CapacityHours`, so no user can be
+trapped in a permanently stale view. Filed as an enhancement candidate.
+
+**Correction to §3:** the claim that "M1, M2, M3 and M5 are not covered by anything automated" is
+wrong about M3. `Xaml_MoiBindingDoLuong_DeuTroVaoRenderedCapacityHours`
+(`SmartStudyPlanner.Tests/Views/WorkloadBalancerPageSourceTests.cs`) asserts exactly two
+`Path="RenderedCapacityHours"` bindings — the badge **and** the dashed-line caption — so the caption
+cannot be repointed at the slider without turning the suite red. The guard pins the binding path,
+not the rendered pixel; M3 is therefore redundant rather than unproven, in the same way M4 is.
+
+Provenance of the run: `bin/Release/.../SmartStudyPlanner.exe` still carries mtime
+`2026-08-14 08:38` — the binary the criteria were written against — and its `capacity.txt` was last
+written `2026-08-19 17:27` holding `5`, consistent with E5 (drag to 5, press the button) being the
+final action.
 
 ---
 
@@ -226,12 +261,18 @@ were committed in Phase 0.
 
 ## 5. Open items
 
-1. **Manual checks M1, M2, M3, M5a, M5b are unrun.** They are the only evidence for acceptance
-   criteria 1, 2 and 5. Release binary is built and provenance-checked. **M5b is the one that could
-   change the code**: if a non-integer `capacity.txt` snaps on the slider and raises a false badge,
-   a further clamp decision is needed before merge (§3).
-2. **Runbook C2 needs re-running** with the corrected procedure.
+1. ~~**Manual checks M1, M2, M3, M5a, M5b are unrun.**~~ **CLOSED 2026-08-19** — M1, M2, M5a and M5b
+   run by the owner (§3.1); M3 resolved by an automated source guard. M5b did not fire the
+   false-badge path, so no further clamp decision is needed and nothing blocks the merge.
+2. ~~**Runbook C2 needs re-running.**~~ **CLOSED 2026-08-19** — re-run with the corrected procedure
+   (§3.1).
 3. **No semester-management UI** — proposal, out of scope, see design §7.
-4. Pre-existing package advisories surfaced during the build (`NU1903` SQLitePCLRaw,
+4. **New, 2026-08-19: the capacity slider stops only on whole hours.** A `capacity.txt` of `4.5` is
+   read, clamped correctly and displayed as `4.5`, but cannot be re-selected by dragging. Owner
+   raised it as an enhancement candidate for a later stage; not a defect and not a merge blocker.
+5. **Runbook E6 (subject delete) has never been run**, in its original semester-delete form or in
+   the 2026-08-14 retarget. It is outside this branch's diff — it guards the EF cascade-fixup path —
+   but it is a §6.1 condition of the Epic 3 manual gate, so it blocks *stage closure*, not this PR.
+6. Pre-existing package advisories surfaced during the build (`NU1903` SQLitePCLRaw,
    `NU1904` System.Drawing.Common). Untouched by this change, noted only so they are not mistaken
    for new.
