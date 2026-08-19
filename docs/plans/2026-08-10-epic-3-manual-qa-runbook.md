@@ -1,8 +1,8 @@
 # Epic 3 (SOE) — Owner-led Manual QA Runbook
 
-**Date written:** 2026-08-10 · **Branch:** `dev` · **Status: EXECUTED — see
+**Date written:** 2026-08-10 · **Branch:** `dev` · **Status: EXECUTED AND CLOSED 2026-08-19 — see
 [`docs/reports/2026-08-19-epic3-manual-gate-closure.md`](../reports/2026-08-19-epic3-manual-gate-closure.md)
-(PASS WITH FINDINGS; E1–E4 unrecorded).**
+(PASS WITH FINDINGS).**
 
 *As written on 2026-08-10, every result cell below was deliberately blank.* The rule that produced
 them still stands and still governs any future edit: **no observation in this document may be filled
@@ -481,13 +481,13 @@ Legend: **P** = pass · **F** = fail · **N/A** = not applicable · **?** = uncl
 ### Gate status as of 2026-08-19 (record-keeping, not an observation)
 
 **Superseded by [`docs/reports/2026-08-19-epic3-manual-gate-closure.md`](../reports/2026-08-19-epic3-manual-gate-closure.md)** —
-outcome **PASS WITH FINDINGS**. Measured against §6.1:
+outcome **PASS WITH FINDINGS; gate CLOSED**. Measured against §6.1:
 
 - **Satisfied by a recorded run:** A1–A3, B1–B2, C1, C2 (re-run), C3–C7, C8–C10, D1–D5, E5, E6.
-- **Not recorded: E1–E4** (Dashboard, Analytics, CRUD, focus/streak). The 2026-08-10 record's Group E
-  section notes only the missing semester-management UI. They may have been exercised without being
-  written down; absent a written observation this runbook treats them as unrecorded rather than as
-  passed, and the closure note asks the owner for one ruling on them.
+- **Satisfied by owner ruling, 2026-08-19: E1–E4** (Dashboard, Analytics, CRUD, focus/streak) — the
+  owner ruled that the 2026-08-10 session covered them. No separate written observation exists; that
+  session's Group E section notes only the missing semester-management UI. Recorded as a ruling and
+  not upgraded into an observation (closure §6, decision D4).
 - **E1 is ordinary regression surface, not a branch gate.** `5bd0a6a` changed `GetCapacity` and
   `DashboardViewModel` is one of its three production callers — but the clamp only alters behaviour
   for a `capacity.txt` outside 1–8, and the file currently holds `5`. In its present state the

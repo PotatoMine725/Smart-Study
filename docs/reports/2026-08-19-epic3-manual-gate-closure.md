@@ -12,14 +12,18 @@
 
 ## 1. Outcome
 
-**PASS WITH FINDINGS — one condition of §6.1 is unrecorded rather than failed.**
+**PASS WITH FINDINGS. The gate is CLOSED.**
 
-Every scenario that has a recorded observation passed. Nothing in the gate failed, and no scenario
-produced a defect. The single reason this note does not say "closed" outright is **E1–E4**, which
-have no written observation in either owner record (§6).
+Every scenario passed. Nothing failed, and no scenario produced a defect. The findings in §4 are
+non-defects: a UX enhancement candidate, a ratified limitation observed in the running product, and a
+gap in *automated* coverage behind a manual check that passed.
 
-The runbook's own instruction on this point is followed literally: *"Do not summarise a
-partially-executed run as a pass — record which scenarios were skipped and why."*
+**E1–E4 close on an owner ruling, not on a written observation** — recorded as such in §6, because
+the two are not the same artifact and this note should not blur them.
+
+The runbook's instruction on partial runs is followed literally: *"Do not summarise a
+partially-executed run as a pass — record which scenarios were skipped and why."* Nothing here is
+recorded as passing on evidence it does not have.
 
 ## 2. Scenario ledger
 
@@ -40,7 +44,7 @@ the owner's wording.
 | C10 | `capacity.txt` = `12` → 8.0 no badge; `4.5` → 4.5 no badge | owner 2026-08-19 | pass |
 | D1–D2, D4–D5 | Empty · unscored task · overdue · >7 days | owner 2026-08-10 | pass |
 | D3 | Past-deadline placement | owner 2026-08-10 | observed; ratified limitation A1 / Decision D7 |
-| E1–E4 | Dashboard · Analytics · CRUD · focus & streak | **nowhere** | **not recorded** (§6) |
+| E1–E4 | Dashboard · Analytics · CRUD · focus & streak | owner ruling 2026-08-19 (§6) | pass **by ruling**, not by written observation |
 | E5 | Capacity survives restart | write half: owner 2026-08-19; restart half: owner in session 2026-08-19 | pass |
 | E6 | Subject delete with ≥2 tasks | owner in session 2026-08-19 | pass |
 
@@ -97,14 +101,26 @@ into a bug-fix package.
 
 ## 5. Decisions made
 
-**D1 — Report the gate as PASS WITH FINDINGS, not PASS.**
-*Why:* §6.1 names E1–E6 as a condition and E1–E4 have no written observation. They may well have been
+**D1 — Put E1–E4 in front of the owner instead of assuming them.** *(Resolved same day by ruling —
+§6.)*
+*Why:* §6.1 names E1–E6 as a condition and E1–E4 had no written observation. They may well have been
 exercised on 2026-08-10 without being written down, but an unwritten check and a passed check are not
 the same artifact, and the difference is invisible six months from now.
 *What for:* so that "the Epic 3 manual gate passed" cannot later be read as covering screens nobody
 recorded looking at.
 *Experience:* the withdrawal of C2's first "Met" is the precedent — a recorded verdict read through a
-faulty instrument cost a full re-run. Unrecorded verdicts are the same failure one step earlier.
+faulty instrument cost a full re-run. Unrecorded verdicts are the same failure one step earlier. The
+question cost one line to ask and was answered in one line; assuming the answer would have cost
+nothing today and been unfalsifiable later.
+
+**D4 — Close E1–E4 on a ruling, and label it a ruling.**
+*Why:* only the person who sat in front of the application can say which screens they opened. Their
+statement is the best artifact obtainable now; reconstructing per-screen detail after the fact would
+be manufacturing, not recording.
+*What for:* the ledger stays readable as two distinct kinds of entry — observed, and ruled — so a
+later reader can weigh them differently without having to re-derive which was which.
+*Experience:* the alternative on offer was to have the owner re-run three minutes of screens whose
+result nobody doubts. A ruling that is honestly labelled costs less and claims less.
 
 **D2 — Record the owner's E5/E6 result as the terse verdict it was, and say so.**
 *Why:* the requested steps asked for a sibling task count before and after; the report back was
@@ -119,25 +135,30 @@ closure note would mix a verdict with a change, and the change deserves its own 
 evidence.
 *What for:* keeps the closure auditable and the test reviewable on its own merits.
 
-## 6. Open item — E1–E4 need one ruling, not necessarily a run
+## 6. E1–E4 — closed by owner ruling, 2026-08-19
 
-E1 (Dashboard), E2 (Analytics), E3 (task/subject CRUD), E4 (focus / logging / streak) have no written
-observation. Two ways to resolve, both acceptable:
+> **Owner's ruling, given in session on 2026-08-19: the 2026-08-10 session covered E1–E4.**
 
-- **Rule that the 2026-08-10 session exercised them.** Plausible — that session opened the app
-  repeatedly, created and completed tasks for Group C/D data, and the owner's Group E section is
-  simply terse. A one-line owner ruling in this note closes it.
-- **Run them.** Roughly three minutes: open each screen, confirm it renders and the numbers look
-  right, and that a created/edited/deleted task and subject survive a restart.
+Recorded as a **ruling**, and deliberately not upgraded into an observation. What exists is the
+owner's statement that those screens were exercised during the 2026-08-10 run; what does not exist is
+a written per-screen observation from that session — its Group E section notes only the missing
+semester-management UI. The ruling is sufficient to close §6.1: the person who sat in front of the
+application is the only one who can say what they looked at, and they have said it.
 
-Note that E1 is *not* implicated by the stale-chart change in its current state: the new `GetCapacity`
-ceiling clamp only alters behaviour for a `capacity.txt` outside 1–8, and the file holds `5`, so the
-Dashboard cannot reach the changed path as things stand.
+Supporting circumstance, not evidence: the 2026-08-10 session launched the app repeatedly across
+A1–A3, created and completed tasks to build the Group C/D data (which passes through the CRUD and
+task-management screens), and reported no error anywhere.
+
+E1 was in any case not implicated by the stale-chart change: the new `GetCapacity` ceiling clamp only
+alters behaviour for a `capacity.txt` outside 1–8, and the file holds `5`, so the Dashboard cannot
+reach the changed path as things stand.
+
+**Consequence: every §6.1 condition is satisfied and the manual gate is closed.**
 
 ## 7. What this unblocks, and what it does not
 
-- **Unblocked:** Epic 3 is fully closed once §6 is resolved — the code landed 2026-08-07 (convergence)
-  and the last behaviour fix merged as PR #54 on 2026-08-19.
+- **Unblocked: Epic 3 is fully closed.** The code landed 2026-08-07 (convergence), the last behaviour
+  fix merged as PR #54 on 2026-08-19, and this gate closed the same day.
 - **Not unblocked — G3-1 remains unscheduled.** `ScheduleOptimizer`, `LoadRebalanceStage`,
   `ConstraintValidator`, `ObjectiveEvaluator`, `SoeWeights` and `OptimizerRunLogWriter` still have
   **zero production call sites**, and `OptimizerRunLogs` stays empty by design. Nothing in this gate
