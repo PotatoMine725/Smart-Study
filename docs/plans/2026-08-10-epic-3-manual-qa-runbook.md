@@ -1,9 +1,13 @@
 # Epic 3 (SOE) — Owner-led Manual QA Runbook
 
-**Date written:** 2026-08-10 · **Branch:** `dev` · **Status of this document: NOT YET EXECUTED.**
-Every result cell below is deliberately blank. Nothing in this runbook has been performed — it
-describes tests the owner is being asked to run, and no observation in it may be filled in by
-anyone who did not actually sit in front of the running application.
+**Date written:** 2026-08-10 · **Branch:** `dev` · **Status: EXECUTED — see
+[`docs/reports/2026-08-19-epic3-manual-gate-closure.md`](../reports/2026-08-19-epic3-manual-gate-closure.md)
+(PASS WITH FINDINGS; E1–E4 unrecorded).**
+
+*As written on 2026-08-10, every result cell below was deliberately blank.* The rule that produced
+them still stands and still governs any future edit: **no observation in this document may be filled
+in by anyone who did not actually sit in front of the running application.** The §4 table therefore
+carries pointers to the owner's own records, never a verdict authored by someone else.
 
 **Precondition for using this runbook:** the automated QA gate is satisfied — see
 [`docs/reports/2026-08-10-epic3-automated-qa-gate.md`](../reports/2026-08-10-epic3-automated-qa-gate.md)
@@ -471,27 +475,28 @@ Legend: **P** = pass · **F** = fail · **N/A** = not applicable · **?** = uncl
 | E2 | Analytics | | | | |
 | E3 | Task/subject CRUD | | | | |
 | E4 | Focus / logging / streak | | | | |
-| E5 | Capacity persists | → 08-19 | _owner's record, not transcribed_ | `2026-08-19-epic3-manual-observation-updated.md` | |
-| E6 | Subject delete (was: semester delete) | **NOT RUN** | _retargeted 2026-08-14; never executed in either form_ | | The only rewritten scenario still outstanding — see §6.1 |
+| E5 | Capacity persists | → 08-19 | _write half in the owner's record; restart half reported in session_ | `2026-08-19-epic3-manual-observation-updated.md`, `2026-08-19-epic3-manual-gate-closure.md` §2 | |
+| E6 | Subject delete (was: semester delete) | → 08-19 | _run after the PR #54 merge; owner reported pass in session, without the per-step figures_ | `2026-08-19-epic3-manual-gate-closure.md` §2 | Suite coverage is narrower than the scenario — see closure §4.3 |
 
 ### Gate status as of 2026-08-19 (record-keeping, not an observation)
 
-Measured against §6.1, and stating only what the two owner records contain:
+**Superseded by [`docs/reports/2026-08-19-epic3-manual-gate-closure.md`](../reports/2026-08-19-epic3-manual-gate-closure.md)** —
+outcome **PASS WITH FINDINGS**. Measured against §6.1:
 
-- **Satisfied by a recorded run:** A1–A3, B1–B2, C1, C2 (re-run), C3–C7, C8–C10, D1–D5, E5.
-- **Not recorded:** **E6** — never executed; and **E1–E4** (Dashboard, Analytics, CRUD, focus/streak),
-  which the 2026-08-10 record does not mention: its Group E section notes only the missing
-  semester-management UI. They may have been exercised without being written down; absent a written
-  observation this runbook treats them as unrecorded rather than as passed.
+- **Satisfied by a recorded run:** A1–A3, B1–B2, C1, C2 (re-run), C3–C7, C8–C10, D1–D5, E5, E6.
+- **Not recorded: E1–E4** (Dashboard, Analytics, CRUD, focus/streak). The 2026-08-10 record's Group E
+  section notes only the missing semester-management UI. They may have been exercised without being
+  written down; absent a written observation this runbook treats them as unrecorded rather than as
+  passed, and the closure note asks the owner for one ruling on them.
 - **E1 is ordinary regression surface, not a branch gate.** `5bd0a6a` changed `GetCapacity` and
   `DashboardViewModel` is one of its three production callers — but the clamp only alters behaviour
   for a `capacity.txt` outside 1–8, and the file currently holds `5`. In its present state the
-  Dashboard cannot exercise the changed path, so running E1 to clear this branch would prove
-  nothing; run it as general regression cover, at the owner's discretion.
-- **E5 is recorded for the write half only.** The owner recorded "drag to 5, press the button —
-  pass", and `capacity.txt` does hold `5`, which evidences `SaveCapacity`. The scenario's own
-  failure condition is about the value *surviving a restart*; whether the app was closed and
-  reopened is not stated. One relaunch settles it.
+  Dashboard cannot exercise the changed path.
+- **E5 and E6 were run on 2026-08-19 after PR #54 merged**, against the Release binary shown to be
+  code-identical to merged `dev`. The owner reported both as passing, in session, as a verdict
+  without per-step figures — a terser record than the two written observation files. See closure §2.
+- **E6's suite coverage is narrower than the scenario** — no test deletes a subject with ≥2 tasks or
+  asserts a sibling subject survives. Follow-up recommended in closure §4.3.
 
 ### Free-text observations
 
