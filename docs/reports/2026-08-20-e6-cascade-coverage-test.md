@@ -101,11 +101,22 @@ Per plan §7, pre-authorised, the honest conclusion:
 > so a future change to the reconcile has something shaped like the real user path to break. That is a
 > real, modest value, and it is stated in those words rather than dressed up as regression protection.
 
-The structural reason is worth recording: the production code has **no branch keyed on how many
-children a subject has, or on whether a sibling exists.** The cascade is EF's and uniform. So no
-mutation of this code can be uniquely sensitive to the two shapes the test adds — which is why the
-bar was unreachable here, rather than a failure to find the right mutant. Deciding the fallback in
-advance is what let this be reported as a modest result instead of rationalised into a strong one.
+A structural reason is worth recording, **labelled as the inference it is.** *Observed:* the
+production code has no branch keyed on how many children a subject has, or on whether a sibling
+exists — the cascade is EF's and uniform. *Inferred from that plus the five measured mutants:* no
+mutation of this code is likely to be uniquely sensitive to the two shapes the test adds, so the bar
+was probably unreachable here rather than missed for want of the right mutant.
+
+**That inference is not established.** It is a claim about the space of all possible mutants drawn
+from a sample of five, and M2 has already demonstrated that predictions about this code can be wrong
+in exactly the "nothing happened" direction. It is recorded because it is the most useful thing to
+tell the next person, not because it was proved — and it should be treated as falsifiable by anyone
+who finds a sixth mutant that clears the bar. Distinguishing it from the M2 hypothesis in §3.3 would
+be arbitrary: both are inferences, and both are marked as such.
+
+What *is* established is the measured table in §3.1 and the §7 fallback it triggers. Deciding that
+fallback in advance is what let this be reported as a modest result instead of rationalised into a
+strong one.
 
 ## 4. Verification
 
@@ -178,3 +189,20 @@ labelled as a hypothesis rather than an explanation.
 observed from what would explain it. Writing the hypothesis down but marking it untested costs one
 sentence and prevents a plausible claim hardening into a fact, which is exactly what closure §4.3
 suffered from.
+
+**D5 — Decline both of Sourcery's review suggestions on PR #57, with reasons rather than silently.**
+*Why:* (a) *"`DateTime.Today` may be flaky."* Every existing test in this file constructs deadlines the
+same way, and `LuuHocKyAsync` never evaluates a deadline — it persists rows. The date is inert here,
+so a clock abstraction would buy nothing and would make this one test inconsistent with its
+neighbours. The project *does* have a real date-fragility problem, but it is in `DecisionEngineTests`,
+where dates drive priority arithmetic; importing that fix into a persistence test would be
+cargo-culting the remedy away from the disease. (b) *"the local `NewTask` helper duplicates an existing
+pattern."* There is no shared `StudyTask` factory in this suite; `TestDb.SeedTaskAsync` seeds a task
+*with its own `MonHoc`*, which is the opposite of what this test needs — it must control which subject
+owns each task. The static local function is scoped to the one test that needs it and does not invite
+coupling between tests.
+*What for:* the review is answered on the merits and the reasoning is on the record, so the same two
+suggestions do not have to be re-litigated by the next reviewer or the next bot.
+*Experience:* both suggestions were plausible and generic, which is the kind that gets accepted
+reflexively. Checking each against what the code under test actually does took one read of the file
+and turned two "reasonable changes" into two answered questions.
