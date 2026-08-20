@@ -46,7 +46,7 @@ prior document. The three that changed what got written:
 
 Claim 2 mattered most. The roadmap's existing wording was scoped *"as of this HEAD"* — a claim that
 silently expires. HEAD has moved 20+ commits since it was written, so it was **re-verified rather
-than carried forward**, and the replacement text is now dated and pinned to a SHA (`8982af7`) so the
+than carried forward**, and the replacement text is now dated and pinned to a SHA (`b3c154c`) so the
 next reader knows exactly what the scope is.
 
 All 40 commit SHAs cited in the new CHANGELOG section were checked to exist with
@@ -81,7 +81,7 @@ Every corrected site therefore says three things — earliest-feasible, filter p
 
 ## What changed, file by file
 
-### Concern 1 — `architecture/` (commit `8982af7`)
+### Concern 1 — `architecture/` (commit `b3c154c`)
 
 | File | Why updated | Summary of changes |
 |---|---|---|
@@ -91,7 +91,7 @@ Every corrected site therefore says three things — earliest-feasible, filter p
 | `overview.md` | Folder tree omitted `Services/Soe/` — a 17-file subsystem was invisible | Tree entry added; **new §5.11** stating what the SOE is *and is not*, split into reachable (T3.3) vs. unreachable (T3.9 + seams). Also corrected the `ui_rf` branch scope on the UI-polish plan (merged PR #49, 2026-07-26) |
 | `lessons-learned.md` | L4 and L8 made forward-looking claims that Epic 3 resolved | **Dated follow-ups appended, originals untouched.** L8's own named candidate (*best-feasible-prefix over per-stage checkpoints*) is what G2-1 ratified — recorded because a lesson whose prediction came true is worth more intact than tidied. L4's demanded inversion tests were written (T3.4) |
 
-### Concern 2 — canonical ledgers (commit `ae0bbb3`)
+### Concern 2 — canonical ledgers (commit `336afe1`)
 
 | File | Why updated | Summary of changes |
 |---|---|---|
@@ -101,7 +101,7 @@ Every corrected site therefore says three things — earliest-feasible, filter p
 | `system_roadmap.md` §A.3 | Headed *"Next up"* while items 1–2 were shipped; item 2's call-site claim was undated | State line added; item 2 marked SHIPPED and given what the gate closed on (including that **E1–E4 closed on an owner ruling, not a written observation**) and the E6 follow-up; item 3 marked as the first unstarted epic |
 | `system_roadmap.md` §A.4 | Three pieces of deferred work existed in no durable list | Added **G3-1**, the **E6 surviving mutant**, and the un-integrated analytics redesign |
 
-### Concern 3 — status surfaces (commit `b682852`)
+### Concern 3 — status surfaces (commit `4c07fed`)
 
 | File | Why updated | Summary of changes |
 |---|---|---|
@@ -261,9 +261,9 @@ noted so the next pass does not have to re-derive it.
 |---|---|
 | `dotnet test` on this branch | **487 passed / 0 failed / 1 skipped**, 6 projects |
 | Production tree untouched | `git diff --name-only origin/dev...HEAD` → every path under `docs/` or root `README.md`; **no `.cs`/`.xaml`** |
-| Every cited commit SHA exists | 40/40 after correcting `63a2e79` → `63aa79d` |
+| Every cited commit SHA exists | 40/40 after correcting `63a2e79` → `63aa79d`. **Re-checked after the rebase below** — `dev` requires branches to be up to date (`strict: true`), so this branch was rebased onto `7b2262d`, which rewrote its own commits' SHAs. The nine self-references in this report and roadmap §A.3 were updated to match; **an anchor that a routine rebase silently invalidates is a worse anchor than a date**, which is why every one of them carries both |
 | Every new relative link resolves | All targets present on this branch — including `knowledge/qa-gates.md` and the distillation report, which exist **only on this branch**, not on `dev` (see D-1) |
-| Zero-call-site claim | Re-verified by grep + `ServiceLocator.cs` read at `8982af7`, not carried forward from the roadmap |
+| Zero-call-site claim | Re-verified by grep + `ServiceLocator.cs` read at `b3c154c`, not carried forward from the roadmap |
 | Stale-claim sweep | `grep -rn "least-loaded\|deadline-blind"` over `docs/`, **re-run at HEAD after all edits**. **12 hits, every one accounted for** — 6 corrected/new text (`dependency-flows:61`, `overview:184`, `usecase-flows:107`, `CHANGELOG:22`, `system_roadmap:45` and `:109`, all phrasing the change as *"least-loaded → earliest-feasible"*); 2 in the follow-up this pass appended to L4 (`lessons-learned:147`, `:150`); **2 the original text of L4** (`:125`, `:142`), preserved on purpose beneath that follow-up (D-5) — the *record of a prediction*, not a current claim; 2 the historical WP-4 passages in `review-methodology.md` (`:214`, `:225`), left alone per D-6. **Zero unaccounted hits** |
 | `gitnexus_detect_changes` | **Not run.** Every change is Markdown; no symbol, call edge or execution flow is touched. The index also reports itself stale against HEAD independently of this work. Recorded as skipped rather than silently omitted |
 
@@ -295,8 +295,8 @@ this pass writes to them would have been a dead link until #58 merged, and dead 
 state documents are exactly the defect class this pass exists to remove.
 
 **Experience for future development.** Branch by *dependency*, not by concern, when the concerns are
-documentation. Separation of concerns is preserved where it costs nothing — in the commits (`8982af7`
-/ `ae0bbb3` / `b682852`), each independently revertible.
+documentation. Separation of concerns is preserved where it costs nothing — in the commits (`b3c154c`
+/ `336afe1` / `4c07fed`), each independently revertible.
 
 > **Amendment, 2026-08-20 — the dependency resolved itself and the decision expired.** The paragraph
 > above was written while #58 was open, and it originally ended by warning that #58 had grown broader

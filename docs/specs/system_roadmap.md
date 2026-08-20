@@ -112,7 +112,7 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
    `Optimize(schedule) → (schedule, report)` seam (T3.9), the D-H/inversion property suite +
    `OptimizerRunLog` telemetry (T3.4/T3.7).
    **`ScheduleOptimizer`/`SoeWeights`/`IConstraintValidator` have zero production call sites —
-   re-verified 2026-08-20 at `8982af7`** (no reference outside `Services/Soe/` except two doc
+   re-verified 2026-08-20 at `b3c154c`** (no reference outside `Services/Soe/` except two doc
    comments; no `ServiceLocator` registration). `BalanceWorkloadStage.cs` and
    `WorkloadBalancerViewModel` both still call the pre-Epic-3 `IWorkloadService.GenerateSchedule`
    path directly; wiring the seam into production is **G3-1** — separate, unscheduled integration
