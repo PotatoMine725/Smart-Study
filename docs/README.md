@@ -16,10 +16,15 @@ This folder contains all living documentation for Smart Study Planner. Outdated/
    - [usecase-flows.md](architecture/usecase-flows.md) — UC-01..UC-12 step-by-step.
    - [lessons-learned.md](architecture/lessons-learned.md) — engineering postmortem of the 2026-07 architecture review (why the decisions exist).
 4. **active/** — pointers to work in progress only (read [active/README.md](active/README.md) before editing).
-   Current: Epic 1 **Released** (2026-07-20) — the B4 reopen (a latent M1.2 FK regression) was
-   fixed (R1/R2) and, with a separate pre-existing Analytics stale-render bug also fixed, the
-   owner signed off release — see [active/README.md](active/README.md). Next: Analytics
-   two-section redesign (design brief queued) + UI mobile-ready polish (proposed).
+   **Current state (2026-08-20):** Epic 1 **Released** 2026-07-20; post-Epic-1 stabilization
+   **closed** 2026-08-02 (suite 391); Epic 3 (Study Optimization Engine) **code complete**
+   2026-08-07 with its manual QA gate **CLOSED 2026-08-19** — *PASS WITH FINDINGS, no defects*.
+   Suite **487**. **Nothing is in progress.** The next epic per the master plan (E1 → E3 → E2 → E4)
+   is the LAN-sync epic, which has not been started; the largest piece of deferred work is **G3-1**,
+   wiring the Epic 3 optimizer into production — it has no production call site today. Queued but
+   unstarted: the Analytics two-section redesign (design brief + a delivered, un-integrated
+   implementation package) and UI mobile-ready polish (proposed). See
+   [active/README.md](active/README.md) and [specs/system_roadmap.md](specs/system_roadmap.md) §A.3–A.4.
 5. **knowledge/** — extracted lessons (programming, system design, ML, debugging, release
    engineering, review methodology, sync data model, architecture process, incident
    investigation, QA gates).
