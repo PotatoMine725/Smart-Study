@@ -264,7 +264,7 @@ noted so the next pass does not have to re-derive it.
 | Every cited commit SHA exists | 40/40 after correcting `63a2e79` → `63aa79d` |
 | Every new relative link resolves | All targets present on this branch — including `knowledge/qa-gates.md` and the distillation report, which exist **only on this branch**, not on `dev` (see D-1) |
 | Zero-call-site claim | Re-verified by grep + `ServiceLocator.cs` read at `8982af7`, not carried forward from the roadmap |
-| Stale-claim sweep | `grep -rn "least-loaded\|deadline-blind"` over `docs/` — remaining hits are the corrected text, the roadmap's own "least-loaded → earliest-feasible" description, and the two historical passages in `review-methodology.md` deliberately left alone |
+| Stale-claim sweep | `grep -rn "least-loaded\|deadline-blind"` over `docs/`, **re-run at HEAD after all edits**. **12 hits, every one accounted for** — 6 corrected/new text (`dependency-flows:61`, `overview:184`, `usecase-flows:107`, `CHANGELOG:22`, `system_roadmap:45` and `:109`, all phrasing the change as *"least-loaded → earliest-feasible"*); 2 in the follow-up this pass appended to L4 (`lessons-learned:147`, `:150`); **2 the original text of L4** (`:125`, `:142`), preserved on purpose beneath that follow-up (D-5) — the *record of a prediction*, not a current claim; 2 the historical WP-4 passages in `review-methodology.md` (`:214`, `:225`), left alone per D-6. **Zero unaccounted hits** |
 | `gitnexus_detect_changes` | **Not run.** Every change is Markdown; no symbol, call edge or execution flow is touched. The index also reports itself stale against HEAD independently of this work. Recorded as skipped rather than silently omitted |
 
 ---
