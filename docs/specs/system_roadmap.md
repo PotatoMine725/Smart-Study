@@ -16,8 +16,8 @@
 |---|---|
 | Build | green (`dotnet build SmartStudyPlanner.slnx`) |
 | Tests | green — exact count lives in the README / CI (`dotnet test --no-build`); not hard-coded here |
-| Version | `1.5.0` |
-| GitNexus index | 4,254 symbols / 9,791 relationships / 120 execution flows (re-indexed at commit `5bf7342`, 2026-08-04) |
+| Version | `1.5.0` (`SmartStudyPlanner.csproj` — **not bumped for Epic 3**; whether the SOE warrants a bump is an owner call, not a documentation one) |
+| GitNexus index | 5,166 symbols / 11,794 relationships / 133 execution flows — measured at commit `c74962a` (`dd41685`, 2026-08-09). *Corrected 2026-08-20: this row still read 4,254 / 9,791 / 120 at `5bf7342`, superseded by that re-measurement, which updated `CLAUDE.md`/`AGENTS.md` but missed this file.* Not re-measured today, and the tooling currently reports the index stale against HEAD — a count is only meaningful paired with the commit it was taken at |
 
 ## A.2 Completed milestones
 
@@ -41,10 +41,27 @@
 | M1.3 | Epic 1 — MonHoc identity & dedup (`MonHocIdentity.Normalize` single dedup definition, 4 read-side sites + `ThemMon` prevent-at-source; folded fix for a pre-existing `LuuHocKyAsync` task-reconcile gap surfaced by the widened dedup key, Option A) | merged `a3a0a3d` (2026-07-11) — **Epic 1 code complete** |
 | Epic 1 closeout | Post-close fix (`101aaa3` — duplicate-subject warning routed through `OnThongBao` seam) + A1 release-gate hardening (`DbBackup` WAL-checkpoint-before-copy, closes verdict finding F5) | fix `2d04be5`, merged `8740350` (2026-07-12/13) |
 | Epic 1 released | B4 reopen fix — R1 (`QuanLyTaskViewModel.ThemTask` stamps `MaMonHoc`; reconcile heals an empty FK from navigation position and fails loud on an unknown FK, `3bb56c6`/`63b9611`) + R2 (`CrashLogger` last-resort sink + `Dispatcher`/`AppDomain`/`TaskScheduler` global handlers, `b0061e7`/`c18e1e7`); plus a separate pre-existing Analytics stale-render fix (`c4291c7`). **Epic 1 Released 2026-07-20** — owner sign-off, closure-gate release decision record | merged `37f9678`, 337 pass |
+| Stabilization | Post-Epic-1 engineering stabilization WP-1 → WP-6 (CI gate + branch protection, test-trust de-dating, persistence/sync identity leaks, scheduling characterization, runtime robustness, repo/doc hygiene) | closed 2026-08-02; suite 346 → **391**; all 12 "Epic 2 entry criteria" met |
+| Epic 3 | **Study Optimization Engine** — gates G2 (`cc8eba5`, 2026-08-05) and G3 (`1e18bb7`, 2026-08-07) ratified; Cards A–H shipped: T3.8 identity seam, T3.1 `IConstraintValidator`, T3.2 `IObjectiveEvaluator`, **T3.3 allocator placement least-loaded → earliest-feasible** (`5197784` — the only user-observable change), T3.9 `Optimize` pass loop (N=1), T3.4 D-H/inversion property suite, T3.7 `OptimizerRunLogs` telemetry | **code complete 2026-08-07**, DoD 7/7, 470 pass; [closing note](../reports/2026-08-07-epic3-closing-note.md) |
+| Epic 3 QA | Automated gate (discriminating tests for T3.3/T3.7, `10b5039`) → **manual gate CLOSED 2026-08-19, PASS WITH FINDINGS** (no defects; findings are a UX candidate, the owner-ratified D3 past-deadline limitation, and an *automated*-coverage gap behind a passing manual check). One real defect was found **by** the gate and fixed inside it: the workload-balancer stale chart (`b084e40`/`545870d`) | [closure](../reports/2026-08-19-epic3-manual-gate-closure.md); suite → **487** |
+
+> **Epic 3 scope caveat, stated here because the ledger row cannot carry it:** `IScheduleOptimizer`,
+> `SoeWeights` and `IConstraintValidator` have **no production call site** and no `ServiceLocator`
+> registration — re-verified at this HEAD, 2026-08-20. Only T3.3's placement rework is live in the
+> product. See §A.3 item 2 and [`../architecture/overview.md`](../architecture/overview.md) §5.11.
 
 > Granular refactor-slice history: `refactor-god-object.md` (archived 2026-07-07 → `legacy/Archived plans/`, local-only) + git log. Epic 1 release gate (conditions C1–C3) tracked in [`../plans/2026-07-11-epic-1-closure-gate.md`](../plans/2026-07-11-epic-1-closure-gate.md); execution in `2026-07-12-epic1-closure-phase1-execution.md` (archived 2026-07-26 → `legacy/Archived plans/`, local-only).
 
 ## A.3 Next up
+
+> **State line (2026-08-20).** Items **1 and 2 below are shipped** and are kept here for their
+> decision history, not because they are pending — Epic 1 Released 2026-07-20, Epic 3 code complete
+> 2026-08-07 with its manual gate CLOSED 2026-08-19. **The first unstarted item is 3, the LAN-sync
+> epic (Epic 2)** — that is the master plan's order (E1 → E3 → E2 → E4), and its gate **G4 is
+> undecided**. Recording the order is not the same as starting the work: no Epic 2 task has been
+> planned or scheduled, and one piece of Epic 3 integration (**G3-1**, wiring `Optimize` into
+> production) remains unscheduled and could reasonably be sequenced ahead of it. That choice belongs
+> to the owner and has not been made.
 
 Ordered per decisions **D-B** (sync-ready data model first) and **D-A** (LAN sync target);
 execution decomposition + order per the [2026-07-03 master plan](../plans/2026-07-03-master-plan.md)
@@ -81,6 +98,7 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
    lands with the LAN-sync epic, co-designed with its consumer (master plan M2.1). See
    [`../architecture/data-model.md`](../architecture/data-model.md) §8.
 2. **Study Optimization Engine** *(on top of the sync-ready data model — D-B)* — evolves the Balancer (Part B §7.3).
+   **SHIPPED — code complete 2026-08-07, manual QA gate CLOSED 2026-08-19 (PASS WITH FINDINGS, no defects).**
    **Guardrails frozen 2026-07-02 ([D-G/D-H/D-J](../plans/2026-07-02-architecture-freeze-decisions.md)):** deadline feasibility, capacity and calendar limits are **hard constraints** (Constraint Validator);
    objective = quality only (`w1…w5`); feasibility never worsens (`violations(out) ≤ violations(in)`).
    **Gates closed:** G2 (pass accept/commit semantics + non-worsening threshold) ratified 2026-08-05
@@ -93,10 +111,30 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
    the chronological tier would not already have chosen, see the closing note), the
    `Optimize(schedule) → (schedule, report)` seam (T3.9), the D-H/inversion property suite +
    `OptimizerRunLog` telemetry (T3.4/T3.7).
-   **`ScheduleOptimizer`/`SoeWeights` have zero production call sites as of this HEAD** —
-   `BalanceWorkloadStage.cs` still calls the pre-Epic-3 `IWorkloadService.GenerateSchedule`
-   path directly; wiring the seam into production is separate, unscheduled integration work, not
-   part of any Epic 3 task card. Success metrics measured and reported in the
+   **`ScheduleOptimizer`/`SoeWeights`/`IConstraintValidator` have zero production call sites —
+   re-verified 2026-08-20 at `8982af7`** (no reference outside `Services/Soe/` except two doc
+   comments; no `ServiceLocator` registration). `BalanceWorkloadStage.cs` and
+   `WorkloadBalancerViewModel` both still call the pre-Epic-3 `IWorkloadService.GenerateSchedule`
+   path directly; wiring the seam into production is **G3-1** — separate, unscheduled integration
+   work, not part of any Epic 3 task card.
+   **What the gate closed on.** The manual QA gate ran the runbook to completion and closed
+   **PASS WITH FINDINGS** on 2026-08-19 ([closure](../reports/2026-08-19-epic3-manual-gate-closure.md)):
+   every scenario passed, no scenario produced a defect, and the three findings are non-defects — a
+   UX enhancement candidate, the owner-ratified past-deadline placement limitation (D3 / Decision
+   D7) seen in the running product, and a gap in *automated* coverage behind a manual check that
+   passed. **E1–E4 close on an owner ruling, not a written observation**, and the closure records
+   that distinction rather than blurring it. Scenario **B2's pass is `OptimizerRunLogs` being
+   empty** — 0 rows is the designed result while the seam is unwired, and a non-empty table would
+   mean something had changed. One real defect surfaced *inside* the gate (the workload-balancer
+   stale chart) and was fixed there (`b084e40`/`545870d`).
+   **E6 follow-up (2026-08-20).** The closure's one automated-coverage gap was closed by a test —
+   but the pre-registered acceptance bar (a mutant the new test kills while the pre-existing suite
+   survives) was **not met**, so it is filed as *scenario-fidelity coverage, not regression
+   protection* ([report](../reports/2026-08-20-e6-cascade-coverage-test.md)). Still open from it:
+   one mutant — `DetectChanges()` moved after the removal loop — **survives all 487 tests**; pin the
+   ordering with a test or establish it is genuinely redundant, and **do not delete the call** on
+   the strength of a green run.
+   Success metrics measured and reported in the
    [epic closing note](../reports/2026-08-07-epic3-closing-note.md) (DoD-7): D-H holds (0 breaches/230
    items); deadline inversions reduced from baseline (self-miss class eliminated by construction;
    residual pairwise inversions and 4 corpus items with a feasibility regression vs. baseline are
@@ -105,7 +143,7 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
    `2026-06-30-workload-optimizer-proposal.md` (archived 2026-07-07 → `legacy/Archived plans/`,
    local-only; recoverable from git history — note it carries a supersession banner, the frozen
    contract is D-G/D-H/D-J).
-3. **LAN sync epic** *(D-A)* — multi-device, two-way merge over LAN (not cloud). Merge policy **decided (D-F):** field-level merge, LWW only on concurrent same-field edits.
+3. **LAN sync epic** *(D-A)* — **the first unstarted epic (Epic 2 in the master plan's numbering; E1 → E3 → E2 → E4). Not started: no task planned, no branch, no code.** Multi-device, two-way merge over LAN (not cloud). Merge policy **decided (D-F):** field-level merge, LWW only on concurrent same-field edits.
    **Mechanics frozen 2026-07-02 ([D-I](../plans/2026-07-02-architecture-freeze-decisions.md)):** 3-way merge vs. last-synced base; tie-break `ModifiedAtUtc` → `DeviceId`; delete-vs-edit → tombstone wins,
    losing side kept in a conflict record; no HLC. *Cascade policy decided + implemented (G1, cascade-tombstone —
    Epic 1 / M1.2). Still open: tombstone retention/purge authority (master plan gate G4).*
@@ -127,6 +165,20 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
 
 ## A.4 Deferred / out of scope
 
+- **G3-1 — wire `IScheduleOptimizer.Optimize` into production.** The single largest piece of
+  deferred work on the board. The engine is built, tested, gated and reachable from tests only; no
+  Epic 3 task card owned the integration, and none has been written since. Deliberate, not an
+  oversight — but it means Epic 3's headline capability is not yet in the product. Deciding whether
+  it is worth wiring is an owner call informed by measured effect size, which does **not** exist as
+  a durable artifact (see the [doc-sync report](../reports/2026-08-20-doc-synchronization.md) §2).
+- **The E6 surviving mutant.** Moving `db.ChangeTracker.DetectChanges()` after the removal loop in
+  `SqliteHocKyRepository` leaves all 487 tests green. Pin the ordering with a test or establish it
+  is genuinely redundant — **do not delete the call**; the comment at `SqliteHocKyRepository.cs:136–141`
+  records a real bug it was introduced to fix. See [`../knowledge/review-methodology.md`](../knowledge/review-methodology.md),
+  *"A surviving mutant is not automatically a coverage gap"*.
+- **Analytics two-section redesign** — design brief approved and an implementation package delivered
+  (2026-08-02, now under version control at `docs/assets/analytics-ui-package/`); **not integrated**.
+  See [`../plans/2026-07-20-analytics-two-section-redesign.md`](../plans/2026-07-20-analytics-two-section-redesign.md).
 - **Pipeline rehome** (`Services/Pipeline/*` → `Application/UseCases/*`) — independent plan.
 - **Core/Capacity** — only when a real need surfaces.
 - **Cloud model storage** — opt-in via `IModelStorageProvider`; no work until users ask.
