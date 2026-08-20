@@ -4,6 +4,50 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
+## 2026-08-04 → 2026-08-19 — Epic 3: Study Optimization Engine (SOE) — **code complete 2026-08-07, manual gate CLOSED 2026-08-19**
+
+> **Read the scope line before the table.** Epic 3 shipped **two** things, and only one of them runs
+> in the product. The allocator rework (T3.3) is live on every scheduling path. The optimizer itself
+> (T3.9 and its seams) is built, tested, gated and **has zero production call sites** — wiring it is
+> unscheduled integration work outside every Epic 3 task card (G3-1). Nothing below claims the
+> optimizer changed a schedule a user has seen.
+
+| Card / Task | Change | Verification |
+|---|---|---|
+| Gate **G2** (2026-08-05) | Pass accept/commit semantics ratified: a pass runs **all** stages unconditionally, then commits the best admissible checkpoint prefix `C_k*` (**G2-1**, "run-all, commit-best-prefix" — the candidate L8 of `architecture/lessons-learned.md` had floated); admissibility = D-H first, quality second (**G2-2**); zero tolerance for objective regression bar a numerical-noise guard (**G2-3**); `Optimize` is a deterministic fixed-point loop where the *committed state* is the only thing that varies and `k*=0` is the fixed point (**G2-4**); every checkpoint carries exactly one reason code (**G2-6**) | [decision note](plans/2026-08-04-g2-optimization-pass-semantics.md), ratified at CP-1 `cc8eba5` |
+| Gate **G3** (2026-08-07) | `w1…w5` weight-vector governance — ownership, guardrails, and the relation to the existing M8-B `WeightOptimizer` (they are different weights, deliberately) | [decision note](plans/2026-08-07-g3-weight-vector-governance.md), ratified `1e18bb7` |
+| Card C — **T3.8** | Schedule identity seam — a stable identity for a scheduled item so a rearrangement can be compared to its input | `308e85c` + review fixes `63aa79d`; seam shape ratified at CP-2 (`4f49153`) |
+| Card D — **T3.1** | `IConstraintValidator` — the hard-filter seam. Deadline feasibility, capacity and calendar limits are **hard constraints**, per the 2026-07-02 freeze (D-G) | `cca9d9b`, review fix `f7655d1` |
+| Card E — **T3.2** | `IObjectiveEvaluator` — **quality-only** objective, no deadline term (D-J). Deadline information reaches the engine as a constraint, never as a score term | `fde4aeb` |
+| Card F — **T3.3** | **The one change users can observe.** Allocator placement reworked least-loaded → **earliest-feasible** in `WorkloadServiceImpl.GenerateSchedule`: the earliest day with room that does not pass the task's `HanChot`, falling back to the earliest day with room at all. The allocator never *refuses* to place — the deadline chooses *which* day, never *whether*. **The deadline tier is provably output-inert today** (tier-1 and tier-2 return the same day for every input — algebraic proof + empirical confirmation), so no discriminating test was written for it and the branch is retained only because it stops being inert once day-capacity becomes non-monotonic. Scope narrowed mid-card (`b608db2`): the G2 pass loop was split out to T3.9. `DiemUuTien` write-through was dropped, then **restored** under an amended CP-2 (`de01561`/`60fae4d`) | `5197784` + review rounds `390e353`, `24e62e8`, `0208b7f`; [inertness proof](plans/2026-08-06-deadline-tier-provably-inert.md); naming-debt descope ratified `50a274b` |
+| Card G — **T3.9** | `IScheduleOptimizer.Optimize(schedule, weights) → (schedule, OptimizeReport)` — the G2 pass loop, with **N=1** (`LoadRebalanceStage`) as the ratified stage list; Candidate 2 deferred; OQ2 resolved as one-move-per-invocation. The N=1-only assumption in the reject-branch labelling is flagged in code, not hidden | design `76906c4`/`adda4d0`, ratified `3dcff85`, impl `961f453`, N=1 gap recorded `5de1721`, `d0fc968` |
+| Card G — **T3.4** | D-H invariant property suite + inversion + A6 cross-check + G2-5 partition. **D-H is `violations(out) ≤ violations(in)` — a non-worsening guarantee, not an improvement metric**; two findings surfaced (arm-3 / self-inversion) were pinned as characterization asserts with the root cause traced, then ruled on by the owner rather than silently fixed | `4114365`, `ffe400a`, `a8076e0`; owner ruling `eabea1e` (D7) |
+| Card G — **T3.7** | `OptimizerRunLogs` telemetry table + `OptimizerRunLogWriter` — one flat row per checkpoint per pass per `Optimize` call (G2-6's report contract). No FK, same rationale as the M8 telemetry tables | `e837830` |
+| Convergence (2026-08-07) | 4 docs-only commits closing the epic's DoD 7/7 — closing note with **independently re-measured** success metrics, the review documents it cites, and roadmap correction F1 (the roadmap had asserted a capability T3.3 never shipped) | `82155d9`, `6e35420`, `c0ec38a`, `881f498`, `8cf53da`, `c305a8d`, `8b58ec0`; **470 passed / 1 skipped / 471 total** |
+| Automated QA gate (2026-08-10) | Discriminating tests for T3.3 and T3.7 behind the manual gate — written to fail against the pre-change behaviour, not merely to pass | `10b5039`; 470 → **475 passed / 1 skipped / 476 total** |
+| Workload-balancer stale chart (2026-08-14) | **A defect found by the manual gate, fixed inside it.** `RenderedCapacityHours` now records the capacity the *displayed* schedule was built with, separately from the slider's `CapacityHours`; `IsScheduleStale` drives a badge when they diverge; `capacity.txt` clamped to the slider **ceiling**, not only its floor. Moving the slider without pressing the button can no longer read as a re-allocated schedule. Non-vacuity proved by mutation, then reverted and the tree confirmed clean | `dde5cc8`, `b084e40`, `545870d`; [design](plans/2026-08-10-workload-balancer-stale-chart-fix-design.md) · [plan](plans/2026-08-14-workload-balancer-stale-chart-fix-plan.md) · [report](reports/2026-08-14-workload-balancer-stale-chart-fix-report.md); suite → **486 passed / 1 skipped / 487 total** |
+| Manual QA gate — **CLOSED 2026-08-19** | **PASS WITH FINDINGS.** Every scenario passed; no scenario produced a defect. The three findings are non-defects: a UX enhancement candidate, a ratified limitation (D3, past-deadline placement — owner-accepted, Decision D7) observed in the running product, and a gap in *automated* coverage behind a manual check that passed. **E1–E4 close on an owner ruling, not a written observation**, and the closure says so rather than blurring the two. B2's pass is `OptimizerRunLogs` being **empty** — 0 rows *is* the expected result while the seam is unwired | [runbook](plans/2026-08-10-epic-3-manual-qa-runbook.md) · [closure](reports/2026-08-19-epic3-manual-gate-closure.md) · owner evidence records [2026-08-10](reports/2026-08-10-epic3-soe-manual-observation.md), [2026-08-19](reports/2026-08-19-epic3-manual-observation-updated.md); `33c0ffe` |
+| E6 coverage test (2026-08-20) | The closure's E6 follow-up, executed. Subject-delete-with-≥2-tasks beside a surviving sibling is now covered. **The pre-registered acceptance bar was not met** — of five mutants, none was killed by the new test while the pre-existing suite survived — so it is filed as **scenario-fidelity coverage, not regression protection**, in those words, invoking the plan's §7 fallback rather than reporting "test added, green". One mutant (`DetectChanges()` moved after the removal loop) **survived all 487 tests**; the call must not be deleted on the strength of that | `35e2f14`; [plan](plans/2026-08-19-e6-cascade-coverage-test.md) · [report](reports/2026-08-20-e6-cascade-coverage-test.md); **487 passed / 1 skipped / 488 total** |
+
+**Outcome:** suite 391 → **487**, green in Debug, Release and on CI. *(Chain, each figure taken from
+the report that measured it: 391 at stabilization close → **470** at Epic 3 code complete, on `dev`
+at `dd41685` → **475** after the automated gate's additions → **486 passed / 487 total** after the
+stale-chart fix → **487 passed / 488 total** after the E6 test. The intermediate 475 was first
+measured on a working tree carrying two uncommitted carry-forward test files; they were committed at
+`d1ab3a3` precisely so the gated number is the number CI computes.)* Epic acceptance criteria and DoD
+**7/7** met on the merged tree; gates G2 and G3 ratified; the manual gate CLOSED. **Known and
+deliberate — the optimizer is not in the product:** `ScheduleOptimizer`, `SoeWeights` and
+`IConstraintValidator` have no production call site and no `ServiceLocator` registration, so
+`BalanceWorkloadStage` and `WorkloadBalancerViewModel` still call `IWorkloadService.GenerateSchedule`
+directly. Success metric #4 (objective delta vs. baseline) is **unevaluated for 90% of the corpus**
+and disclosed as such (closing-note F3). Full detail: [Epic 3 closing
+note](reports/2026-08-07-epic3-closing-note.md) (DoD-7, independently re-measured) ·
+[closure verdict](review/2026-08-07-epic3-closure-verdict.md) ·
+[owner triage](review/2026-08-07-epic3-owner-triage.md). Durable lessons distilled into
+[`knowledge/qa-gates.md`](knowledge/qa-gates.md) and
+[`knowledge/review-methodology.md`](knowledge/review-methodology.md) —
+see the [distillation report](reports/2026-08-19-epic3-knowledge-distillation.md).
+
 ## 2026-07-27 → 2026-08-02 — Post-Epic 1 Engineering Stabilization (WP-1 → WP-6)
 
 | Package | Change | Verification |

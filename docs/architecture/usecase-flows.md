@@ -104,7 +104,9 @@ Core flows = UC-01, UC-02, UC-06, UC-07, UC-08. Supporting = the rest.
 - **User**: clicks Workload in the sidebar.
 - **Entry**: `MainWindow.NavWorkload_Click` → `MainFrame.Navigate(new WorkloadBalancerPage(_currentHocKy))` — a **page** since commit `6481fc8` (no longer a modal window; no dialog-close dashboard reload).
 - **Inside**: `WorkloadBalancerViewModel` drives `IWorkloadService.GenerateSchedule(hocKy, capacityHours)` (capacity slider) → `IDecisionEngine.CalculatePriority` per task → emits `ScheduleDay` + `ScheduledTask`.
-- **Known limitation**: placement is least-loaded-day, deadline-blind (`WorkloadServiceImpl.cs:77-91`) — the Epic 3 SOE fixes this.
+- **Placement policy** *(T3.3, Epic 3, shipped 2026-08-06 — `5197784`)*: **earliest-feasible**, not least-loaded. Each chunk goes to the earliest day that still has capacity *and* does not pass the task's `HanChot`; if no in-deadline day has room, it falls back to the earliest day with capacity at all (`WorkloadServiceImpl.cs:204-211`). The allocator never *refuses* to place — the deadline chooses **which** day, never **whether** to schedule; rejecting infeasible work belongs to `IConstraintValidator` at a later step. **The deadline filter is provably output-inert today**: tier-1 and tier-2 return the same day for every input, proved algebraically and confirmed empirically — canonical proof in [`../plans/2026-08-06-deadline-tier-provably-inert.md`](../plans/2026-08-06-deadline-tier-provably-inert.md) (do not restate it elsewhere).
+- **Capacity staleness** *(shipped 2026-08-14 — `b084e40`/`545870d`)*: `RenderedCapacityHours` records the capacity the *displayed* schedule was built with, separately from the slider's `CapacityHours`; `IsScheduleStale` drives a badge when they diverge, so moving the slider without pressing the button can no longer read as a re-allocated schedule. See [`../reports/2026-08-14-workload-balancer-stale-chart-fix-report.md`](../reports/2026-08-14-workload-balancer-stale-chart-fix-report.md).
+- **Standing limitation**: the Epic 3 optimizer is **not on this path**. Both this view model and `BalanceWorkloadStage` call `IWorkloadService.GenerateSchedule` directly; `IScheduleOptimizer.Optimize` has **zero production call sites** — see [`../specs/system_roadmap.md`](../specs/system_roadmap.md) §A.3.
 
 ## UC-09 — Analytics + retrain
 - **User**: clicks Analytics in the sidebar.
@@ -148,3 +150,9 @@ ViewModels: `DashboardViewModel`, `QuanLyMonHocViewModel`, `QuanLyTaskViewModel`
 Services: `IHocKyRepository`, `ITaskEditorRepository`, `IStudyLogRepository`, `IStudyTimeOutcomeLogRepository`, `IDifficultyLabelLogRepository`, `IWeightChangeLogRepository`, `IDecisionEngine`, `IWorkloadService`, `IRiskAnalyzer`, `IPipelineOrchestrator`, `IStudyTelemetry`, `IStudyAnalytics`, `IMLModelManager`, `IStudyTimePredictor`, `IStudyTimeTrainingDataSource`, `IParsingOrchestrator`, `IStreakManager`, `IOutcomeMaturationService`, `IWeightOptimizerService`.
 
 Models / DTOs: `HocKy`, `MonHoc`, `StudyTask`, `StudyLog`, `TaskNote`, `TaskReferenceLink`, `TaskDashboardItem`, `TaskEditorBundle`, `ScheduledTask`, `ScheduleDay`, `AdaptationSuggestion`, `HeatCell`, `StatusSegment`/`SubjectTimeProgress`/`SubjectWorkload`, `DifficultyLabelLog`, `StudyTimeOutcomeLog`, `WeightChangeLog`, `WeightConfigSuggestion`, `UserStatsSnapshot`.
+
+> **Deliberately absent from every list above (2026-08-20):** the Epic 3 SOE seams — `IScheduleOptimizer`,
+> `IConstraintValidator`, `IObjectiveEvaluator`, `IOptimizerStage`, `SoeWeights`, `OptimizeReport`. They
+> are implemented and tested under `Services/Soe/`, but **no use case reaches them**: they have no
+> production call site and are not registered in `ServiceLocator`. Listing them here would claim a
+> runtime participation they do not have. They enter this document when they are wired, not before.
