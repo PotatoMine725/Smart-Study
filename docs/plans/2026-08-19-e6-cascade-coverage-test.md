@@ -1,6 +1,12 @@
 # Plan — closing E6's automated coverage gap
 
-**Date:** 2026-08-19 · **Status: NOT YET IMPLEMENTED — this document is the design, not the change.**
+**Date:** 2026-08-19 · **Status: EXECUTED 2026-08-20.** Test written, campaign run, §6 filled in with
+measured results. **The acceptance bar was NOT met — §7 is invoked and the test is scenario-fidelity
+coverage, not regression protection.** Results and reasoning:
+[`docs/reports/2026-08-20-e6-cascade-coverage-test.md`](../reports/2026-08-20-e6-cascade-coverage-test.md).
+*(Only this status line and §6's result cells were changed. Everything else — including §6's
+prediction column and §7's fallback — is the original design as written on 2026-08-19, left unedited
+so the predictions stay comparable against what was actually measured.)*
 **Origin:** [Epic 3 manual gate closure](../reports/2026-08-19-epic3-manual-gate-closure.md) §4.3,
 finding carried out of the manual QA gate.
 **Target file:** `SmartStudyPlanner.Tests/Infrastructure/Persistence/RepositoriesTests.cs`
@@ -128,16 +134,26 @@ and then the **full suite** are run, and both columns are filled in.
 survives. That is what proves the test adds coverage rather than duplicating it. If no such mutant is
 found, see §7 — do not paper over it.
 
-| # | Mutant | Where | New test | Pre-existing suite | Prediction |
+**Measured 2026-08-20.** Baselines: new test alone **1 passed**; pre-existing suite (new test
+excluded) **486 passed, 1 skipped**. Each mutant reverted before the next, verified by an empty
+`git diff` over `SmartStudyPlanner/`.
+
+| # | Mutant | Where | New test | Pre-existing suite | Prediction — and whether it held |
 |---|---|---|---|---|---|
-| M1 | Delete the `if (newMonById.ContainsKey(oldMon.MaMonHoc)) continue;` guard so every old subject is removed | `SqliteHocKyRepository.cs:155` | _(blank)_ | _(blank)_ | new test red; **suite probably also red** via `ResaveWithNoChanges_DoesNotBumpRevOfUnrelatedRows` — a prediction to measure, not a conclusion |
-| M2 | Move `db.ChangeTracker.DetectChanges();` to *after* the removal loop | `SqliteHocKyRepository.cs:151` → after `:164` | _(blank)_ | _(blank)_ | new test likely green (no reparenting in this shape); clone-merge tests likely red — if so, M2 confirms the closure's prescribed mutation is inert here, which is itself worth recording |
-| M3 | Drop `.ThenInclude(m => m.DanhSachTask)` from the load | `SqliteHocKyRepository.cs:100` | _(blank)_ | _(blank)_ | tasks untracked ⇒ cascade cannot reach them ⇒ new test red on `T1`/`T2`; existing single-task test `:276` probably red too |
-| M4 | Invert the FK-healing loop so a `Guid.Empty` FK is left unhealed | `SqliteHocKyRepository.cs:118–121` | _(blank)_ | _(blank)_ | unknown — measure |
-| M5 | Break the cascade at its source: change `db.MonHocs.Remove(oldMon)` to detach instead of remove | `SqliteHocKyRepository.cs:163` | _(blank)_ | _(blank)_ | unknown — measure |
+| M1 | Delete the `if (newMonById.ContainsKey(oldMon.MaMonHoc)) continue;` guard so every old subject is removed | `SqliteHocKyRepository.cs:155` | **RED** | **RED** — 7 failed / 479 passed | new test red; **suite probably also red** via `ResaveWithNoChanges_DoesNotBumpRevOfUnrelatedRows` — a prediction to measure, not a conclusion → **held**, and via six further tests |
+| M2 | Move `db.ChangeTracker.DetectChanges();` to *after* the removal loop | `SqliteHocKyRepository.cs:151` → after `:164` | green | **green** — 0 failed / 486 passed → **SURVIVED** | new test likely green (no reparenting in this shape); clone-merge tests likely red — if so, M2 confirms the closure's prescribed mutation is inert here, which is itself worth recording → **half wrong**: new test green as predicted, but *nothing* went red anywhere |
+| M3 | Drop `.ThenInclude(m => m.DanhSachTask)` from the load | `SqliteHocKyRepository.cs:100` | **RED** | **RED** — 8 failed / 478 passed | tasks untracked ⇒ cascade cannot reach them ⇒ new test red on `T1`/`T2`; existing single-task test `:276` probably red too → **held** on both counts |
+| M4 | Invert the FK-healing loop so a `Guid.Empty` FK is left unhealed | `SqliteHocKyRepository.cs:118–121` | green | **RED** — 1 failed / 485 passed (`LuuHocKyAsync_TaskAddedWithoutFkStamp_PersistsUnderNavigationOwner`) | unknown — measure → killed by the suite alone |
+| M5 | Break the cascade at its source: change `db.MonHocs.Remove(oldMon)` to detach instead of remove | `SqliteHocKyRepository.cs:163` | **RED** | **RED** — 3 failed / 483 passed | unknown — measure → killed by both |
 
 Record the **actual** result in each cell, including surviving mutants. A mutant nothing kills is a
 finding about the suite, not a failed experiment.
+
+**Outcome: no mutant cleared the bar.** Every one was killed by both (M1, M3, M5), by neither (M2),
+or by the pre-existing suite alone (M4). §7 applies. **M2's survival is carried forward as a finding
+in its own right** — with an explicit warning against deleting the `DetectChanges()` call on the
+strength of it, since a surviving mutant means the suite does not cover the line, not that the line
+is dead. See the report's §3.3 and §3.4.
 
 ## 7. If no uniquely-killed mutant exists — the honest conclusion
 
