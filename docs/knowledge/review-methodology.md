@@ -271,6 +271,53 @@ without reading the decisions behind the code will always get this case wrong.
 survivors included. A probe you predicted would survive and which survives tells you something; the
 same result discovered without a prediction tells you only that you have work to do.
 
+**There is a third answer, and it is the uncomfortable one.** The E6 campaign moved
+`db.ChangeTracker.DetectChanges()` from before the removal loop to after it, and the **entire suite
+stayed green (487/487)**. Unlike the tier-1 case, *no decision predicts that survival* — and unlike
+an ordinary coverage gap, the ordering is not obviously dead: the comment at
+`SqliteHocKyRepository.cs:136–141` records a real bug it was introduced to fix. So the three answers
+to *"does some decision predict this survivor?"* are **yes** (record a confirmation, add nothing),
+**no, and the line is live** (a genuine gap, write the test), and **not yet determined** — which is
+neither, and whose only correct output is a named follow-up. The failure mode specific to the third
+case is deleting the mutated line on the strength of the green run. A surviving mutant means the
+suite does not cover the line; it never means the line does nothing.
+
+## Set the bar before you measure
+
+**Problem.** The E6 coverage test was designed on 2026-08-19 and written on 2026-08-20. Between
+those two dates sat the only question that mattered: would the new test actually protect anything,
+or would it merely re-cover ground the suite already held? Decided *after* the numbers are in, that
+question has an obvious and self-serving answer — the test is green, the suite is green, ship it.
+
+**Why it was hard.** The pressure is invisible and arrives late. Nobody sets out to rationalise; you
+set out to write a test, you write it, it passes, and by the time the mutation results are in you
+have already spent the effort and named the deliverable. "It adds coverage" is available, unfalsifiable
+in the moment, and technically true of almost any test.
+
+**Wrong assumption.** That an honest measurement is enough. Measuring honestly and *interpreting*
+honestly are different acts, and the second is the one performed under pressure.
+
+**How it was solved.** The design document committed, four days in advance, to a bar the result had
+to clear — *at least one mutant the new test kills and the pre-existing suite survives* — and, in a
+separate section, to what would be said if nothing cleared it. When nothing did, there was nothing
+left to negotiate: the report led with "the acceptance bar was not met", invoked the pre-written
+fallback, and reported the test as scenario-fidelity coverage rather than regression protection. The
+predictions made in the design were left in the document beside the measurements, annotated with
+whether each held — one did not, in the "nothing happened" direction.
+
+**Principle.** Write the success criterion, *and the sentence you will publish if you miss it*,
+before you can see the result. A bar chosen after the fact is not a bar. This is the interpretive
+counterpart of *a green check is evidence only after you've shown it can go red*: that one keeps the
+measurement honest, this one keeps the reading of it honest.
+
+**How to avoid it next time.** Put the bar and the fallback in the design document, not in the
+report — the report is written by someone who already knows the answer. Keep the original
+predictions visible next to the measurements instead of tidying them away; a prediction that missed
+is the most informative line in the document, and deleting it destroys the only record that
+expectation and measurement disagreed. And measure the sets the bar names *separately* — here, the
+new test alone and the pre-existing suite with the new test excluded — because a single full-suite
+run cannot distinguish "the new test caught it" from "something else did".
+
 ## Pin the reason, not just the mechanism
 
 **Problem.** The allocator writes a computed priority back onto the task model
@@ -395,3 +442,5 @@ suspected bugs you are raising; this is its counterpart for facts you are assert
 - [`docs/reports/2026-07-10-epic1-m1.3-monhoc-identity-dedup.md`](../reports/2026-07-10-epic1-m1.3-monhoc-identity-dedup.md) — D2 (reproduce-before-escalating), D3 (the underlying fix)
 - [`docs/reports/2026-08-10-epic3-qa-session-report.md`](../reports/2026-08-10-epic3-qa-session-report.md) — the six-probe sweep: M6 (the predicted survivor), M1 (mechanism vs. reason), and the double that could not express the coupling
 - [`docs/reports/2026-08-14-workload-balancer-stale-chart-fix-report.md`](../reports/2026-08-14-workload-balancer-stale-chart-fix-report.md) — §2.2/§2.3 (compile-error red, the five-mutation matrix with predictions) and D4 (absence → counted assertion)
+- [`docs/plans/2026-08-19-e6-cascade-coverage-test.md`](../plans/2026-08-19-e6-cascade-coverage-test.md) — §6's bar and §7's fallback, both written four days before the campaign ran; §6's prediction column is preserved beside the measurements
+- [`docs/reports/2026-08-20-e6-cascade-coverage-test.md`](../reports/2026-08-20-e6-cascade-coverage-test.md) — the campaign that missed the bar: §3.1 (both sets measured separately), §3.3 (the undetermined survivor), §3.4 (an inference labelled as one)

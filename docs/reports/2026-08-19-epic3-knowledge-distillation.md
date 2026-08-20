@@ -1,6 +1,8 @@
 # Report — Epic 3 QA cycle: knowledge distillation and documentation-convention update
 
-**Date:** 2026-08-19 · **Branch:** `docs/epic3-knowledge-distillation` (off `dev` at `33c0ffe`)
+**Date:** 2026-08-19 · **Branch:** `docs/epic3-knowledge-distillation` (written off `dev` at
+`33c0ffe`; rebased onto `d7a4955` on 2026-08-20 before pushing, after PRs #56/#57 landed — see the
+addendum at the end)
 **Author:** Claude Opus 5 via Claude Code, single session.
 **Sources distilled:** the automated QA gate + its engineering record (2026-08-10), the manual
 runbook, the owner's two observation records (2026-08-10, 2026-08-19), the stale-chart fix report
@@ -124,8 +126,9 @@ while the closure is the newest document in the epic.
 ## Follow-ups
 
 1. Propagate Epic 3 into the canonical state documents (CHANGELOG row, roadmap §A.3 item 2,
-   `docs/README.md` §4, `active/README.md`) — own commit, see Findings above.
-2. Write the E6 repository-level coverage test (closure §4.3).
+   `docs/README.md` §4, `active/README.md`) — own commit, see Findings above. **Still open.**
+2. ~~Write the E6 repository-level coverage test (closure §4.3).~~ **DONE 2026-08-20** (PR #57) —
+   and it did not end the way this report assumed. See the addendum below.
 3. Archive candidates once (1) lands: `plans/2026-08-14-workload-balancer-stale-chart-fix-plan.md`
    (shipped). Not candidates: the manual runbook and the stale-chart *design* — the closure cites
    both, and this repo's archive is local-only and gitignored, so archiving them removes them from
@@ -174,3 +177,61 @@ becomes a paraphrase of itself.
 *What for:* provenance survives contact with the next tidy-up pass.
 *Experience:* the closure already refused to transcribe the owner's wording for this reason; the
 convention was practised before it was written, which is generally the moment to write it.
+
+---
+
+## Addendum — 2026-08-20: the E6 follow-up landed, and it changed the lesson
+
+**Author:** Claude Opus 5 (agent) · **Scope:** follow-up 2 above, and the two knowledge edits it forced.
+
+Follow-up 2 was written on the assumption that the E6 test was a small, obvious win — *"cheap, and it
+converts a passing manual observation into a standing guard,"* in the closure's words, repeated here.
+It was written (PR #57) and it is **not** a standing guard.
+
+The design set an acceptance bar in advance — at least one mutant the new test kills *and* the
+pre-existing suite survives — and named the fallback if nothing cleared it. Nothing did. Five
+mutants: three took both sets red, one took only the pre-existing suite red, one survived all 487
+tests. The test reproduces E6's shape and passes, but catches nothing the suite would have missed,
+because the production cascade has no branch keyed on child count or sibling existence. It was filed
+as scenario-fidelity coverage, not regression protection.
+
+**What changed in `docs/knowledge/` as a result:**
+
+- `qa-gates.md`, *A passing manual observation is not a standing guard* — the arc now runs to its
+  actual end. Its Principle gains the distinction the cycle paid to learn: **closing a scenario gap
+  and buying regression protection are two different outcomes, and only the first is in a manual
+  gate's gift.** Whether the second follows depends on the shape of the production code, which the
+  gate cannot know when it writes the recommendation.
+- `review-methodology.md`, *A surviving mutant is not automatically a coverage gap* — gains the third
+  answer. The tier-1 survivor was predicted by a ratified decision; E6's `DetectChanges()` survivor
+  is predicted by nothing and sits on a line whose comment records a real bug it was added to fix.
+  "Not yet determined" is neither a confirmation nor a gap, and its specific failure mode is deleting
+  the line on the strength of a green run.
+- `review-methodology.md`, *Set the bar before you measure* (new) — the interpretive counterpart to
+  *a green check is evidence only after you've shown it can go red*. Measuring honestly and reading
+  the measurement honestly are different acts, and only the second happens under pressure.
+
+**This is the follow-up doing its job, in the way the article predicted and one it did not.** The
+`qa-gates.md` entry already warned that a gap's *size* moves when someone finally writes the test.
+Its *value* moved too, and nothing in the original pass anticipated that — which is why this is an
+addendum rather than a rewrite.
+
+### Decisions made
+
+**D6 — Amend this report and the two articles rather than filing a fresh distillation.**
+*Why:* the lesson is not new, it is the same lesson finishing. A second report on E6 would split the
+arc across two files and leave the first one quietly wrong at its most citable point — the Principle.
+*What for:* a reader arriving at the `qa-gates.md` entry gets the whole story, including the part
+where the recommended test did not buy what the recommendation implied.
+*Experience:* the follow-up list of a distillation pass is itself a set of predictions, and worth
+revisiting for the same reason §6's prediction column was preserved in the E6 plan — the ones that
+missed are the informative ones.
+
+**D7 — Record the unmet bar in the knowledge base, not just in the report.**
+*Why:* reports are read once, by whoever is looking for that cycle; `docs/knowledge/` is what gets
+read before the *next* manual gate writes its recommendations. The failure mode this cycle found —
+promising protection a gate cannot deliver — is a drafting habit, and drafting habits are corrected
+where the drafting guidance lives.
+*What for:* the next gate closure can say "recommended test, scenario coverage" and mean it.
+*Experience:* a modest or negative result is often more transferable than a win; it names a trap that
+a success story leaves invisible.

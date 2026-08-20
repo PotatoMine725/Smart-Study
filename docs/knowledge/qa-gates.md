@@ -167,9 +167,23 @@ bites when a task changes parent, which no GUI path does, so the user-reachable 
 over-cascade alone. The finding survived at its corrected size; a mutation campaign written against
 the original attribution would have run green and proved nothing.
 
+**And then the test, once written, did not become a guard.** The design pre-committed to an
+acceptance bar — at least one mutant the new test kills *and* the pre-existing suite survives — and
+to a named fallback if nothing cleared it. Nothing did. Of five mutants, three took both sets red,
+one took only the pre-existing suite red, and one survived the entire suite. The test reproduces
+E6's shape faithfully and passes, but it catches nothing the suite would have missed, because the
+production cascade has no branch keyed on how many children a subject has or on whether a sibling
+exists — the cascade is EF's, and uniform. It was filed as **scenario-fidelity coverage, not
+regression protection**, in those words.
+
 **Principle.** Every manual scenario that passes is a candidate for conversion into a test. Ask of
 each pass: *would the suite notice if this stopped being true?* Where the answer is no and the
-regression class is real, the gate's output is a recommended test, not a closed line.
+regression class is real, the gate's output is a recommended test, not a closed line. But note what
+that recommendation can and cannot promise: **closing a scenario gap and buying regression
+protection are two different outcomes, and only the first is in the gate's gift.** Whether the
+second follows depends on the shape of the production code, which the gate does not know when it
+writes the recommendation. A test that documents a scenario nobody had exercised is worth having on
+those terms — stated on those terms, and not counted as coverage it did not buy.
 
 **How to avoid it next time.** Record, next to each manual result, which automated test covers the
 same class — and blank means blank. The scenarios where that column is empty are the manual gate's
@@ -177,7 +191,10 @@ permanent cost, and they are the ones worth paying down first. Keep the writing 
 outside the closure document so the verdict stays a verdict. And state a coverage gap at the size
 you can defend: "no test asserts X" is checkable, "this class is not covered at all" is a claim about
 a whole suite. Expect the size to move when someone finally writes the test — that is the follow-up
-doing its job, and it is corrected by amendment, not by rewriting the closure.
+doing its job, and it is corrected by amendment, not by rewriting the closure. Expect its *value* to
+move too: decide in advance what would make the new test worth its maintenance, and what you will
+say if it turns out not to clear that line (see
+[`review-methodology.md`](review-methodology.md), *Set the bar before you measure*).
 
 ## See also
 
@@ -198,4 +215,5 @@ doing its job, and it is corrected by amendment, not by rewriting the closure.
 - [`docs/plans/2026-08-10-epic-3-manual-qa-runbook.md`](../plans/2026-08-10-epic-3-manual-qa-runbook.md) — the runbook: 24 scenarios with pass/fail criteria stated in advance.
 - [`docs/reports/2026-08-10-epic3-soe-manual-observation.md`](../reports/2026-08-10-epic3-soe-manual-observation.md) and [`docs/reports/2026-08-19-epic3-manual-observation-updated.md`](../reports/2026-08-19-epic3-manual-observation-updated.md) — the owner's two observation records, in the owner's own words.
 - [`docs/reports/2026-08-14-workload-balancer-stale-chart-fix-report.md`](../reports/2026-08-14-workload-balancer-stale-chart-fix-report.md) — the fix the first manual run produced; §3/§3.1 is the withdrawn-instrument case and the criteria-stated-in-advance table.
+- [`docs/plans/2026-08-19-e6-cascade-coverage-test.md`](../plans/2026-08-19-e6-cascade-coverage-test.md) and [`docs/reports/2026-08-20-e6-cascade-coverage-test.md`](../reports/2026-08-20-e6-cascade-coverage-test.md) — the E6 follow-up end to end: the design that set the acceptance bar and its fallback in advance, and the campaign that missed the bar and said so.
 - [`docs/reports/2026-08-19-epic3-manual-gate-closure.md`](../reports/2026-08-19-epic3-manual-gate-closure.md) — the closure: scenario ledger with provenance, the E1–E4 ruling, the E6 coverage finding.
