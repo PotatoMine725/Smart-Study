@@ -302,6 +302,73 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence
             Assert.True(taskStillThere!.IsDeleted);
         }
 
+        // Manual QA scenario E6 (docs/plans/2026-08-19-e6-cascade-coverage-test.md): delete a subject
+        // carrying SEVERAL tasks and confirm a *sibling* subject is untouched. The single-task test
+        // above pins the cascade reaching one child; this pins it reaching every child AND stopping
+        // at the victim's edge -- neither of which the suite exercised.
+        // "Toán" and "Lý" must stay distinct under MonHocIdentity.Normalize: give both subjects the
+        // same name and LayDanhSachHocKyAsync's dedup merges them, which quietly turns this into a
+        // clone-merge test and drops the sibling coverage it exists for.
+        [Fact]
+        public async Task HocKyRepository_DeleteMonHocWithSeveralTasks_LeavesSiblingSubjectUntouched()
+        {
+            static StudyTask NewTask(string ten, Guid maMonHoc) =>
+                new StudyTask(ten, DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2)
+                {
+                    MaMonHoc = maMonHoc,
+                    MucDoCanhBao = "An toàn",
+                };
+
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+            var repo = new SqliteHocKyRepository(factory);
+
+            var hocKy = new HocKy("HK1", DateTime.Today);
+
+            var victim = new MonHoc("Toán", 3) { MaHocKy = hocKy.MaHocKy };
+            var t1 = NewTask("T1", victim.MaMonHoc);
+            var t2 = NewTask("T2", victim.MaMonHoc);
+            victim.DanhSachTask.Add(t1);
+            victim.DanhSachTask.Add(t2);
+
+            var sibling = new MonHoc("Lý", 3) { MaHocKy = hocKy.MaHocKy };
+            var s1 = NewTask("S1", sibling.MaMonHoc);
+            sibling.DanhSachTask.Add(s1);
+
+            hocKy.DanhSachMonHoc.Add(victim);
+            hocKy.DanhSachMonHoc.Add(sibling);
+            await repo.LuuHocKyAsync(hocKy);
+
+            // Exactly what QuanLyMonHocViewModel.XoaMon does: drop it from the in-memory graph and
+            // re-save the whole HocKy (implicit-absence delete). No task changes parent here.
+            hocKy.DanhSachMonHoc.Remove(victim);
+            await repo.LuuHocKyAsync(hocKy);
+
+            // Assert against rows through a fresh context -- the in-memory graph is the thing under test.
+            using var probe = factory();
+
+            var victimRow = await probe.MonHocs.FirstOrDefaultAsync(m => m.MaMonHoc == victim.MaMonHoc);
+            Assert.NotNull(victimRow);
+            Assert.True(victimRow!.IsDeleted); // tombstoned, not hard-deleted
+
+            // Each child by identity -- a count would still pass if the cascade reached only T1.
+            var t1Row = await probe.StudyTasks.FirstOrDefaultAsync(t => t.MaTask == t1.MaTask);
+            Assert.NotNull(t1Row);
+            Assert.True(t1Row!.IsDeleted);
+            var t2Row = await probe.StudyTasks.FirstOrDefaultAsync(t => t.MaTask == t2.MaTask);
+            Assert.NotNull(t2Row);
+            Assert.True(t2Row!.IsDeleted);
+
+            // ...and stopping there. No Rev assertion on the sibling: CopySyncSafeValues runs over
+            // every surviving MonHoc on every save, so a bump there can be legitimate.
+            var siblingRow = await probe.MonHocs.FirstOrDefaultAsync(m => m.MaMonHoc == sibling.MaMonHoc);
+            Assert.NotNull(siblingRow);
+            Assert.False(siblingRow!.IsDeleted);
+            var s1Row = await probe.StudyTasks.FirstOrDefaultAsync(t => t.MaTask == s1.MaTask);
+            Assert.NotNull(s1Row);
+            Assert.False(s1Row!.IsDeleted);
+        }
+
         [Fact]
         public async Task HocKyRepository_DeleteTaskByAbsence_CascadesToNoteAndLinks()
         {
