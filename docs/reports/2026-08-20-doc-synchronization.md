@@ -4,8 +4,9 @@
 **Agent:** Claude Opus 5 via Claude Code (role = document auditor)
 **Mission spec:** [`Prompt/Doc-sync.md`](../../Prompt/Doc-sync.md) — sync docs to current code +
 owner decisions; preserve history; never infer unsupported facts.
-**Venue:** main checkout, branch `docs/epic3-knowledge-distillation` (PR #58). Docs-only edits; no
-production file touched.
+**Venue:** main checkout. Work was done on `docs/epic3-knowledge-distillation` (then unmerged, PR
+#58) and, once **#58 merged mid-pass** as `7b2262d`, the four sync commits were carried onto
+`docs/epic3-state-sync` and raised separately — see D-1. Docs-only edits; no production file touched.
 
 Prior sync anchor: [`2026-07-24-doc-synchronization.md`](./2026-07-24-doc-synchronization.md), which
 moved the docs to *"Epic 1 Released 2026-07-20"*. Everything since — post-Epic-1 stabilization
@@ -295,8 +296,18 @@ state documents are exactly the defect class this pass exists to remove.
 
 **Experience for future development.** Branch by *dependency*, not by concern, when the concerns are
 documentation. Separation of concerns is preserved where it costs nothing — in the commits (`8982af7`
-/ `ae0bbb3` / `b682852`), each independently revertible. **Consequence the owner should know: PR #58
-is now broader than its title, and its description needs updating before merge.**
+/ `ae0bbb3` / `b682852`), each independently revertible.
+
+> **Amendment, 2026-08-20 — the dependency resolved itself and the decision expired.** The paragraph
+> above was written while #58 was open, and it originally ended by warning that #58 had grown broader
+> than its title. **The owner merged #58 mid-pass** (`7b2262d`, 11:19 UTC), before these four commits
+> were pushed — so they were never part of it, and #58's description was restored to what it was.
+> `qa-gates.md` and the distillation report are now on `dev`, which removes the dead-link constraint
+> entirely, so the sync commits were carried onto **`docs/epic3-state-sync`** and raised on their own.
+> The reasoning above was sound for the state it was made in; the state changed under it. Recorded
+> rather than rewritten, because **the failure mode this pass exists to fix is a decision whose
+> premise expired without anybody noticing** — D-2 makes the same point about *"as of this HEAD"*, and
+> it applies to this document too.
 
 ### D-2 — Re-verify the zero-call-site claim instead of copying it
 
