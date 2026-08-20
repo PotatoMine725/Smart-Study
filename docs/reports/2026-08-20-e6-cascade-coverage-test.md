@@ -143,10 +143,12 @@ Non-blocking, none owned by this package:
    class is not covered at all"). **Consciously declined here**, not forgotten: the file is
    uncommitted work on `docs/epic3-knowledge-distillation`. Whoever lands that branch should fold in
    the correction from closure §4.3 as amended.
-2. **The plan document's status line** still reads *NOT YET IMPLEMENTED*, and its §6 table still has
-   blank result cells. The measured results are here, in §3.1, which is canonical. The plan lives on
-   the unmerged `docs/e6-coverage-plan` branch (PR #56); flip the status line and point §6 at this
-   report when that lands.
+2. ~~**The plan document's status line** still reads *NOT YET IMPLEMENTED*, and its §6 table still
+   has blank result cells.~~ **RESOLVED 2026-08-20.** PR #56 merged (`6ba0f7c`), so the plan is on
+   `dev`; this branch was rebased onto it and the plan updated in the same package — status line now
+   reads *EXECUTED*, §6's cells carry the measured results, and its prediction column is deliberately
+   left intact so the predictions stay comparable against what was measured. §3.1 here and §6 there
+   are the same numbers.
 3. **M2's surviving mutant** (§3.3) — decide whether to pin the `DetectChanges()` ordering with a
    test, or to establish that it is genuinely redundant. Either resolves the finding; neither is
    urgent.
