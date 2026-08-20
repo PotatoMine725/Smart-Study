@@ -23,6 +23,29 @@ Differs from `active/` — `active/` holds the **current** plan in progress; `pl
 5. **Acceptance gates** — `dotnet build`, `dotnet test`, `gitnexus_detect_changes`.
 6. **Out of scope** — explicit deferrals.
 
+## Runbooks live here too, and have a different shape
+
+A **runbook** (`…-runbook.md`) tells a human exactly how to execute a manual procedure. It is not a
+plan and is exempt from the six sections above — kept in this folder because there have only ever
+been a handful of them and moving them would break the reports that cite them; a `runbooks/` folder
+becomes worth it if the count grows. Its required shape is:
+
+1. **Preconditions** — build to use (with a provenance check: does the binary's mtime match the
+   build you think you're testing?), test data to prepare, what is explicitly *not* in scope.
+2. **Numbered scenarios** — each with the exact steps, the expected result, and **what a failure
+   looks like**, written so the check is capable of failing.
+3. **Pass / fail criteria, stated in advance** — before anyone runs it, not after.
+4. **A blank result table** — one row per scenario, left empty until the run happens.
+
+Two rules keep a runbook usable more than once:
+
+- **Results do not live in the runbook.** The run's outcome belongs in an evidence record
+  (`reports/…-observation.md`, in the tester's own words) and its interpretation in a QA report or
+  closing note. The runbook may carry a pointer row to those; it must not become the record.
+- **A scenario that cannot be executed is a defect in the runbook**, fixed where it was written —
+  not filed against the application. Before handing one over, check that every destructive or
+  state-changing step names an action production code actually implements.
+
 ## Lifecycle
 
 - `draft` → `in-progress` → `done`.

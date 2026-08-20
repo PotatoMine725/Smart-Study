@@ -96,3 +96,14 @@ M6.1 declared `TaskNote` 1-1 and `TaskReferenceLink` 1-N with explicit `OnDelete
 - No `new DecisionEngine()` — depend on `IDecisionEngine`.
 - Every engine change ships with unit tests + edge cases.
 - `gitnexus_impact` before editing; `gitnexus_detect_changes` before committing.
+- **Clamp both ends.** When a guard exists because an input is *untrusted*, the argument for it
+  rarely stops at one bound. `GetCapacity` clamped `capacity.txt` to the slider's floor for months
+  and not to its ceiling, so a hand-edited or migrated `12` reached the UI; the floor's own doc
+  comment made the right argument and applied it to one end only. Read an existing one-sided guard as
+  an unfinished one.
+- **Guard user-facing copy that asserts behaviour.** After a behaviour change, a fluent, confident
+  sentence describing the *old* rule does not self-correct on a documentation sweep — a later reader
+  has no reason to doubt it. Where a string claims what the algorithm does, pin it with a source-text
+  test (precedent: `ObjectiveEvaluatorTests.SourceFiles_ContainNoHanChotOrDeadlineToken`,
+  `WorkloadBalancerPageSourceTests`). Writing the guard *before* the edit also works as a search: the
+  copy guard on the balancer fix found a fourth stale string the design had not listed.

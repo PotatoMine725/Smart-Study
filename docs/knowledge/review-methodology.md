@@ -4,6 +4,9 @@
 > closure verdict. These are lessons about *how review was run*, not what was reviewed — the
 > engineering decisions the reviews produced live in [`sync-data-model.md`](sync-data-model.md) and
 > the review documents themselves.
+>
+> Extended 2026-08-02 with the WP-4 mutation sweep, and 2026-08-19 with the Epic 3 QA cycle's
+> sharper mutation lessons (a predicted survivor, mechanism vs. reason, weak red).
 
 ## RED-first discriminating tests: reproduce the prediction before fixing it
 
@@ -236,6 +239,157 @@ that lets you write "regressions would be caught" without hedging. Pick mutation
 the point is to model the regression you fear, not to prove the compiler works. Always restore
 from version control rather than by re-editing, and verify the restore.
 
+## A surviving mutant is not automatically a coverage gap
+
+**Problem.** The Epic 3 gate mutated six guards. Five went red as intended. The sixth — deleting the
+allocator's tier-1 deadline filter outright — left the **entire suite green (475/476)**. Read as a
+mutation score, that is an uncovered branch in production code, and the response writes itself: add
+a test.
+
+**Why it was hard.** A surviving mutant is nearly always a coverage gap, which is exactly why the
+reflex is strong. Here it was the *predicted* result of a ratified decision: the tier-1 clause is
+provably output-inert — it cannot select any day the chronological tier would not already have
+selected — and the decision that ratified it
+([proof](../plans/2026-08-06-deadline-tier-provably-inert.md)) **explicitly declines** to write a
+discriminating test, on the grounds that any such test is vacuous by construction.
+
+**Wrong assumption.** That a mutation result is an instruction. It is a measurement, and like any
+measurement it has to be read against the model that predicted it.
+
+**How it was solved.** The probe was run precisely *because* it was expected to survive, and the
+survival was recorded as what it is: an independent empirical confirmation, on this HEAD, of a claim
+that had previously rested on prose plus a one-off check. **No test was added.** Acting on the naive
+reading would have produced a test that cannot fail, plus a claim of improved coverage — strictly
+worse than leaving it alone.
+
+**Principle.** Mutation results are evidence, not instructions. Before treating a survivor as a gap,
+check whether some decision already predicts it; if one does, the survival is a confirmation of that
+decision and the correct output is a sentence in the report. A tool that reports a mutation score
+without reading the decisions behind the code will always get this case wrong.
+
+**How to avoid it next time.** Write down the expected outcome of each probe *before* running it,
+survivors included. A probe you predicted would survive and which survives tells you something; the
+same result discovered without a prediction tells you only that you have work to do.
+
+**There is a third answer, and it is the uncomfortable one.** The E6 campaign moved
+`db.ChangeTracker.DetectChanges()` from before the removal loop to after it, and the **entire suite
+stayed green (487/487)**. Unlike the tier-1 case, *no decision predicts that survival* — and unlike
+an ordinary coverage gap, the ordering is not obviously dead: the comment at
+`SqliteHocKyRepository.cs:136–141` records a real bug it was introduced to fix. So the three answers
+to *"does some decision predict this survivor?"* are **yes** (record a confirmation, add nothing),
+**no, and the line is live** (a genuine gap, write the test), and **not yet determined** — which is
+neither, and whose only correct output is a named follow-up. The failure mode specific to the third
+case is deleting the mutated line on the strength of the green run. A surviving mutant means the
+suite does not cover the line; it never means the line does nothing.
+
+## Set the bar before you measure
+
+**Problem.** The E6 coverage test was designed on 2026-08-19 and written on 2026-08-20. Between
+those two dates sat the only question that mattered: would the new test actually protect anything,
+or would it merely re-cover ground the suite already held? Decided *after* the numbers are in, that
+question has an obvious and self-serving answer — the test is green, the suite is green, ship it.
+
+**Why it was hard.** The pressure is invisible and arrives late. Nobody sets out to rationalise; you
+set out to write a test, you write it, it passes, and by the time the mutation results are in you
+have already spent the effort and named the deliverable. "It adds coverage" is available, unfalsifiable
+in the moment, and technically true of almost any test.
+
+**Wrong assumption.** That an honest measurement is enough. Measuring honestly and *interpreting*
+honestly are different acts, and the second is the one performed under pressure.
+
+**How it was solved.** The design document committed, four days in advance, to a bar the result had
+to clear — *at least one mutant the new test kills and the pre-existing suite survives* — and, in a
+separate section, to what would be said if nothing cleared it. When nothing did, there was nothing
+left to negotiate: the report led with "the acceptance bar was not met", invoked the pre-written
+fallback, and reported the test as scenario-fidelity coverage rather than regression protection. The
+predictions made in the design were left in the document beside the measurements, annotated with
+whether each held — one did not, in the "nothing happened" direction.
+
+**Principle.** Write the success criterion, *and the sentence you will publish if you miss it*,
+before you can see the result. A bar chosen after the fact is not a bar. This is the interpretive
+counterpart of *a green check is evidence only after you've shown it can go red*: that one keeps the
+measurement honest, this one keeps the reading of it honest.
+
+**How to avoid it next time.** Put the bar and the fallback in the design document, not in the
+report — the report is written by someone who already knows the answer. Keep the original
+predictions visible next to the measurements instead of tidying them away; a prediction that missed
+is the most informative line in the document, and deleting it destroys the only record that
+expectation and measurement disagreed. And measure the sets the bar names *separately* — here, the
+new test alone and the pre-existing suite with the new test excluded — because a single full-suite
+run cannot distinguish "the new test caught it" from "something else did".
+
+## Pin the reason, not just the mechanism
+
+**Problem.** The allocator writes a computed priority back onto the task model
+(`task.DiemUuTien = …`). Removing that line turned three tests red, so the behaviour looked
+well-guarded. It had in fact already been removed once, by a "make it pure" refactor, and ratified as
+a removal before a later amendment restored it.
+
+**Why it was hard.** All three failing tests assert the *mechanism* — that the assignment happens.
+A future purity refactor reads tests like that as tests *of the impurity*: the natural move is to
+delete the write-through and its three tests in the same commit, with a green suite at the end and
+nothing anywhere stating what breaks. The guard's red is real and still fails to defend anything.
+
+**Wrong assumption.** That a test which goes red when you delete the line protects the line. It
+protects the line against *accident*, not against *intent* — and intent is what removed it last time.
+
+**How it was solved.** A fourth test was added that states the consequence instead of the mechanism.
+It injects a decision-engine double reproducing the real downstream gate
+(`task.DiemUuTien <= 0 ⇒ 0 suggested minutes`, read off the model two layers away in
+`RawMinutesCalculator`), asserts its own premise (the task enters with the default score of 0.0),
+and then asserts the task is nonetheless **scheduled**. Its comment spells the consequence out in
+full — *unscored tasks silently vanish from the schedule* — so deleting it requires disagreeing in
+writing first. Note the enabling detail: the suite's existing stub returned minutes from a name-keyed
+lookup and therefore *could not* reproduce the coupling. The gap was in the double, not in the
+assertions.
+
+**Principle.** For any invariant that a plausible future refactor would want to remove, at least one
+guard must fail for a reason a reader can act on. "The assignment is missing" is a mechanism; "a task
+nobody scored disappears from the user's schedule" is a reason. Only the second survives contact with
+someone who thinks the mechanism is ugly.
+
+**How to avoid it next time.** When a decision over the same code has reversed itself, verify the
+current state from the code rather than the record, and check what the test doubles can actually
+express — a double that cannot reproduce the coupling makes every test built on it a mechanism test
+whether it meant to be or not.
+
+## Weak red: compile errors and negative assertions
+
+**Problem.** Two checks in the same cycle looked like evidence and were not. Five new ViewModel tests
+were "red before green" only in the sense that they failed to **compile** (`CS1729`, `CS1061`,
+`CS0117`) against the pre-fix production type. Separately, a design specified a guard of the form
+`Assert.DoesNotContain("DataContext.CapacityHours", xaml)` to enforce that five bindings had been
+repointed at a new property.
+
+**Why it was hard.** Both produce the artefacts of rigour. A compile error is a genuine red run and
+appears in the same place a behavioural failure would. A `DoesNotContain` guard names the exact
+string you care about and passes for the right reason today.
+
+**Wrong assumption.** That any red before the change, and any green after it, brackets the change.
+A compile error proves the API did not exist yet — nothing about whether the assertions discriminate.
+And a negative assertion tests that something is *absent*: it also passes if someone deletes the five
+bindings outright, which is the same vacuity that a mutation probe had exposed elsewhere in the very
+same cycle.
+
+**How it was solved.** The ViewModel tests were substantiated afterwards by a five-mutation matrix
+with predictions recorded per mutation; one of them (removing a change-notification attribute) turned
+exactly one test red and confirmed the other four could not detect a missing notification at all —
+without that single test, the badge could have silently never appeared in the running app while the
+suite stayed green. The XAML guard was strengthened from absence to a **counted** assertion — exactly
+two bindings on the new property — which enforces the positive criterion and, as a side effect,
+covered a caption the design had written off as unguardable.
+
+**Principle.** Ask of every check: *what state of the world would make this pass wrongly?* A compile
+failure answers "the code didn't exist". A negative assertion answers "someone deleted the feature".
+When the acceptance criterion is positive ("these five bindings reference X"), the assertion must be
+positive too — counted, not merely absent.
+
+**How to avoid it next time.** Treat compile-error red as a placeholder that owes you a mutation
+before the package closes, and prefer counted or exact assertions over `DoesNotContain` whenever the
+criterion is about what should be *there*. One further dividend: writing the guard before making the
+edit turns it into a search — the copy guard written ahead of this fix found a fourth stale string
+the design had not listed.
+
 ## Verify a claim before it sets someone else's severity
 
 **Problem.** WP-4's report handed two defects to WP-5.2. One of them — that
@@ -269,6 +423,9 @@ suspected bugs you are raising; this is its counterpart for facts you are assert
 
 ## See also
 
+- [`qa-gates.md`](qa-gates.md) — what a gate must establish before it may call itself passed, and
+  how manual/owner-led evidence is recorded. The mutation technique lives here; the gate that ran it
+  lives there.
 - [`sync-data-model.md`](sync-data-model.md) — the cascade-tombstone and reconcile mechanics these
   reviews were verifying.
 - [`../knowledge/debugging.md`](debugging.md) — `Random(seed)` and reproducible test data, the same
@@ -283,3 +440,7 @@ suspected bugs you are raising; this is its counterpart for facts you are assert
 - [`docs/review/2026-07-11-epic1-closure-verdict.md`](../review/2026-07-11-epic1-closure-verdict.md) — F4 escape analysis (commit `101aaa3`), independent re-verification on the merged tree
 - [`docs/reports/2026-07-31-wp4-scheduling-characterization.md`](../reports/2026-07-31-wp4-scheduling-characterization.md) — the seven-mutation sweep, and the parse claim that was published before it was measured
 - [`docs/reports/2026-07-10-epic1-m1.3-monhoc-identity-dedup.md`](../reports/2026-07-10-epic1-m1.3-monhoc-identity-dedup.md) — D2 (reproduce-before-escalating), D3 (the underlying fix)
+- [`docs/reports/2026-08-10-epic3-qa-session-report.md`](../reports/2026-08-10-epic3-qa-session-report.md) — the six-probe sweep: M6 (the predicted survivor), M1 (mechanism vs. reason), and the double that could not express the coupling
+- [`docs/reports/2026-08-14-workload-balancer-stale-chart-fix-report.md`](../reports/2026-08-14-workload-balancer-stale-chart-fix-report.md) — §2.2/§2.3 (compile-error red, the five-mutation matrix with predictions) and D4 (absence → counted assertion)
+- [`docs/plans/2026-08-19-e6-cascade-coverage-test.md`](../plans/2026-08-19-e6-cascade-coverage-test.md) — §6's bar and §7's fallback, both written four days before the campaign ran; §6's prediction column is preserved beside the measurements
+- [`docs/reports/2026-08-20-e6-cascade-coverage-test.md`](../reports/2026-08-20-e6-cascade-coverage-test.md) — the campaign that missed the bar: §3.1 (both sets measured separately), §3.3 (the undetermined survivor), §3.4 (an inference labelled as one)

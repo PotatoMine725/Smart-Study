@@ -183,13 +183,27 @@ report, with the corrected retest supplied. The mislabeled step still surfaced a
 finding — which was recorded separately under its own class rather than used to launder the
 runbook mistake.
 
+**Second instance (Epic 3, 2026-08-14).** The same failure, one epic later and one step worse: the
+manual runbook's E6 asked the tester to **delete a semester** in order to exercise the EF
+cascade-fixup path. No `XoaHocKy`, `DeleteHocKy` or `HocKys.Remove` exists anywhere in production
+code — semesters can be created but never renamed or deleted, so the scenario had been written
+against a capability that was never built. It was fixed at its source: retargeted at *subject*
+deletion, which reaches the same cascade path and is reachable from the UI, while the missing
+semester-management UI was recorded separately as a proposal rather than absorbed into the bug-fix
+package that found it.
+
 **Principle.** An investigation that cannot indict its own instructions will systematically
 misattribute process failures to the product. Runbooks are code: they can have bugs, and their
-bugs get named and fixed like code bugs.
+bugs get named and fixed like code bugs. A scenario that *cannot be executed at all* is the extreme
+case — it is a documentation defect, and it gets corrected where it was written, not filed against
+the application.
 
 **How to avoid it next time.** Write runbook steps against the actual UI (walk the screens, name
 the controls verbatim), not against repository semantics; review runbooks like code before handing
-them to a tester.
+them to a tester. Cheapest possible check for the E6 class: for every step whose verb is a
+destructive or state-changing action, grep production for the method that performs it before the
+runbook is handed over. An unexecutable scenario also costs twice — E6 stayed a blocking gate
+condition long after the rest of the group had run, purely because the step was wrong.
 
 ## Keep the reopen scope minimal — deferral is a written decision
 
@@ -217,6 +231,8 @@ defines the mandatory scope, so nothing silently disappears.
 
 ## See also
 
+- [`qa-gates.md`](qa-gates.md) — the Epic 3 gate that produced this article's second runbook-defect
+  instance; classification happens here, gate scoping and manual-evidence provenance happen there.
 - [`review-methodology.md`](review-methodology.md) — RED-first discriminating tests and
   reproduce-before-escalating: the sibling disciplines this investigation applied to *review*
   rather than field incidents.
@@ -230,3 +246,4 @@ defines the mandatory scope, so nothing silently disappears.
 - [`docs/reports/2026-07-15-GUI-test-observations.md`](../reports/2026-07-15-GUI-test-observations.md) — the owner's raw B1–B4 observations.
 - `docs/plans/2026-07-15-epic1-phase2-owner-runbook.md` (archived 2026-07-26 → `legacy/Archived plans/`, local-only) — the Phase-2 runbook, including the mis-specified step.
 - [`docs/specs/2026-07-19-owner-epic-1-decisions.md`](../specs/2026-07-19-owner-epic-1-decisions.md) — owner acceptance of the diagnosis and the decision gate between investigation and planning.
+- [`docs/reports/2026-08-14-workload-balancer-stale-chart-fix-report.md`](../reports/2026-08-14-workload-balancer-stale-chart-fix-report.md) — D7, the E6 retarget: a runbook scenario written against a capability that was never built.

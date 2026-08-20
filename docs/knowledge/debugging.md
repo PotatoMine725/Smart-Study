@@ -49,6 +49,14 @@ gitnexus impact <Symbol> --direction upstream --repo Smart-Study
 ```
 Reports direct callers, affected processes, risk level. HIGH / CRITICAL → confirm scope before proceeding.
 
+**Read the score, don't obey it — it measures fan-out, not meaning.** Both readings happen. On the
+2026-08-14 balancer fix, `GetCapacity` came back **CRITICAL** and the score was right for a reason
+the design had missed: three production callers, not the one assumed (`WorkloadBalancerViewModel`,
+`DashboardViewModel`, `BalanceWorkloadStage`) — escalated to the owner before editing. In the same
+run `WorkloadBalancerViewModel` came back **HIGH** and was noise: 24 of its 25 edges were `IMPORTS`
+from unrelated files with a `using` line, `processes_affected: 0`. Open the edge list before you
+either panic or proceed.
+
 ### Run `gitnexus_detect_changes` before commit
 Verifies the change touched only the intended flows. If you see unexpected flows in the report, you have a hidden coupling.
 
