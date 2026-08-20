@@ -81,7 +81,7 @@ The app sends native Windows toast notifications to remind you of upcoming deadl
 
 Version 1.5.0 — Active Development
 
-All core milestones (M1 through M8) plus the Epic 1 sync-ready data model are complete and merged — **Epic 1 Released 2026-07-20**. The test suite has 391 tests, all passing, verified on every push by CI (`.github/workflows/ci.yml`, Windows, Release). The build produces zero errors; nullable-annotation warnings (`CS8618`) and two dependency advisories do remain, and are tracked as accepted debt rather than claimed clean.
+All core milestones (M1 through M8), the Epic 1 sync-ready data model, and the Epic 3 Study Optimization Engine are complete and merged — **Epic 1 Released 2026-07-20; Epic 3 code complete 2026-08-07, manual QA gate closed 2026-08-19**. The test suite has **487 tests**, all passing, verified on every push by CI (`.github/workflows/ci.yml`, Windows, Release). The build produces zero errors; nullable-annotation warnings (`CS8618`) and two dependency advisories do remain, and are tracked as accepted debt rather than claimed clean.
 
 ### What Has Been Built
 
@@ -99,10 +99,14 @@ All core milestones (M1 through M8) plus the Epic 1 sync-ready data model are co
 | M8-B | WeightOptimizer — rule-based optimizer that reads WeightChangeLog ground truth and proposes updated scoring weights; review/apply UI with JSON persistence |
 | M8 (arch) | God-object refactor: IDecisionEngine decomposed into strategy components; RiskAnalyzerService retired in favour of RiskOrchestrator; StudyRepository split into focused repos; StreakManager made fully injectable |
 | Epic 1 | Sync-ready data model — per-entity change metadata (`Rev`/`ModifiedAtUtc`/`ModifiedByDeviceId`), soft-delete tombstones replacing hard cascades, a versioned schema-upgrade seam, and normalized subject identity/dedup. The foundation for future multi-device sync. Released 2026-07-20 |
+| Stabilization | Post-Epic-1 engineering stabilization — CI gate and branch protection, test-trust repairs, persistence/sync identity fixes, scheduling characterization, runtime robustness. Suite 346 → 391. Closed 2026-08-02 |
+| Epic 3 | Study Optimization Engine — schedule identity seam, a hard-constraint validator, a quality-only objective evaluator, the `Optimize` pass loop with its non-worsening invariant, and per-checkpoint optimizer telemetry. **The one user-visible change is scheduling placement: least-loaded day → earliest feasible day.** Code complete 2026-08-07; manual QA gate closed 2026-08-19 (pass, with findings that are documented non-defects) |
+
+> **Honest scope note on Epic 3.** The optimizer engine is built, tested and gated, but it is **not wired into the running application** — nothing calls it yet, so it does not currently change any schedule a user sees. Only the placement rework above is live. Connecting it is tracked as deferred work in [`docs/specs/system_roadmap.md`](docs/specs/system_roadmap.md) §A.4.
 
 ### What Is Coming Next
 
-Near-term: **multi-device two-way LAN sync** (building on the now-shipped sync-ready data model), the **Study Optimization Engine** (evolving the Workload Balancer), **M8-C** telemetry-based ML retraining, and **M9** natural-language deadline parsing.
+Near-term: **multi-device two-way LAN sync** (building on the now-shipped sync-ready data model) — the next epic in the plan, not yet started — plus wiring the **Study Optimization Engine** into the live scheduling path, **M8-C** telemetry-based ML retraining, and **M9** natural-language deadline parsing.
 
 The full, canonical roadmap lives in [`docs/specs/system_roadmap.md`](docs/specs/system_roadmap.md).
 

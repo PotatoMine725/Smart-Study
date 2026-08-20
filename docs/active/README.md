@@ -7,22 +7,35 @@
 > [master plan](../plans/2026-07-03-master-plan.md) — this folder only answers
 > *"what is being worked on right now, and where is its plan?"*.
 
-**Post-Epic 1 stabilization closed 2026-08-02** — WP-1 through WP-6 all landed, suite 346 → 391,
-Epic 2 entry criteria **12 of 12**. See `docs/CHANGELOG.md` and `docs/reports/2026-08-02-wp6-repo-doc-hygiene.md`.
-**"Epic 2 entry criteria" is the stabilization plan's name for these gates, not the execution
-order** — the [master plan](../plans/2026-07-03-master-plan.md) sequences **E1 → E3 → E2 → E4**;
-Epic 3 (SOE) is next and does not require Epic 2. Nothing below was touched by stabilization.
+**Epic 3 (Study Optimization Engine) closed 2026-08-19** — code complete 2026-08-07, manual QA gate
+**CLOSED, PASS WITH FINDINGS** (every scenario passed; no scenario produced a defect). Suite 391 →
+**487**. See `docs/CHANGELOG.md`, the [gate closure](../reports/2026-08-19-epic3-manual-gate-closure.md),
+and the [closing note](../reports/2026-08-07-epic3-closing-note.md).
 
-## Current (2026-08-02)
+**Nothing is in progress right now.** Both rows below are queued/proposed, not being worked.
+
+*Superseded 2026-08-19 (kept for history):* the previous banner said *"Epic 3 (SOE) is next"*, which
+was true when written on 2026-08-02. The order it cited still holds — the
+[master plan](../plans/2026-07-03-master-plan.md) sequences **E1 → E3 → E2 → E4**, and *"Epic 2 entry
+criteria"* remains the stabilization plan's name for a set of gates, **not** an execution order.
+With E1 and E3 both closed, the next epic in that sequence is the **LAN-sync epic (Epic 2)**, which
+**has not been started**. Naming the order is not the same as choosing it: **G3-1** — wiring the
+Epic 3 optimizer into production, still unscheduled — could reasonably come first. That call is the
+owner's and has not been made.
+
+## Current (2026-08-20)
 
 | Work | Plan | State |
 |---|---|---|
-| **Analytics two-section redesign** | [`../plans/2026-07-20-analytics-two-section-redesign.md`](../plans/2026-07-20-analytics-two-section-redesign.md) | QUEUED — design brief only (owner post-release backlog); not implemented. Phase 3 unlocked, not started |
+| **Analytics two-section redesign** | [`../plans/2026-07-20-analytics-two-section-redesign.md`](../plans/2026-07-20-analytics-two-section-redesign.md) | QUEUED — design brief, **plus a delivered implementation package** (2026-08-02) now under version control at [`../assets/analytics-ui-package/`](../assets/analytics-ui-package/). **Not integrated**; no code merged. Phase 3 unlocked, not started. *Known gap: the package README cites an interactive mockup `Analytics Redesign Proposal.dc.html` that is not in the repository.* |
 | **UI fidelity + mobile-ready polish** | [`../plans/2026-07-05-ui-mobile-ready-polish.md`](../plans/2026-07-05-ui-mobile-ready-polish.md) | PROPOSED, on `dev` — `ui_rf` was adopted as the tested trunk and merged (PR #49, 2026-07-26), so the plan is no longer branch-scoped; it remains unimplemented |
 
-Deferred items that exit via *data*, not code (tracked in the roadmap, not here):
-M8-B ML training (waits for matured `WeightChangeLog` rows with class balance);
-M8-A `TextClassifierModelManager.RetrainAsync` consumer wiring.
+Deferred items tracked in the roadmap (§A.4), not here — listed so they are not mistaken for active
+work: **G3-1** (wire `IScheduleOptimizer.Optimize` into production — the engine has no production
+call site); the **E6 surviving mutant** (`DetectChanges()` ordering — pin it or prove it redundant,
+do **not** delete the call); M8-B ML training (waits for matured `WeightChangeLog` rows with class
+balance); M8-A `TextClassifierModelManager.RetrainAsync` consumer wiring. The last two exit via
+*data*, not code.
 
 ## Rules
 
