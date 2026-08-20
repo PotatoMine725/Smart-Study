@@ -143,6 +143,23 @@ least-loaded fill is a known deadline-violation source. Tests must include the i
 scenario: a near-deadline task must never be displaced past its deadline by a
 quality-improving rearrangement.
 
+> **Follow-up 2026-08-20 (Epic 3 shipped).** The "eventually" above arrived, and it landed with a
+> twist worth recording rather than editing away. **T3.3 replaced least-loaded fill with
+> earliest-feasible placement** (`5197784`, 2026-08-06) — so the code references in *What the
+> evidence showed* (`WorkloadServiceImpl.cs:77-91`) now point at
+> `WorkloadServiceImpl.cs:204-211`, and the least-loaded violation source is gone.
+> **But the lesson's diagnosis was more right than its remedy predicted.** The deadline filter T3.3
+> added is **provably output-inert**: it cannot change any placement the chronological ordering
+> would not already have produced
+> ([proof](../plans/2026-08-06-deadline-tier-provably-inert.md)). The improvement came from
+> ordering by *date*, not from consulting the deadline — which is the same point this lesson makes,
+> arriving from the other side: a lossy scalar could not express placement legality, and neither, it
+> turns out, can a filter applied to a chronologically-ordered day list where legality never binds.
+> The inversion tests demanded above **were** written (T3.4's D-H/inversion property suite), and
+> they hold. Deadline feasibility as a genuine binding constraint still lives only in
+> `IConstraintValidator`, which nothing calls — so the principle above remains a design guarantee,
+> not yet an enforced runtime one. See [`overview.md` §5.11](overview.md).
+
 ---
 
 ## L4 — Hard constraints and objective functions are different concepts
@@ -331,6 +348,24 @@ the remaining gate in the architecture freeze. Candidate mechanisms (e.g., best-
 selection over per-stage checkpoints) live in the review discussion, not in any spec. The
 interface seam is stable under every candidate: `Optimize(schedule) → (schedule, report)`,
 with the Constraint Validator and Objective Evaluator seams from L4 unchanged.
+
+> **Follow-up 2026-08-20 — unblocked, and the candidate named above is the one that won.**
+> **Gate G2 was ratified 2026-08-05** ([decision note](../plans/2026-08-04-g2-optimization-pass-semantics.md)),
+> and G2-1 adopts exactly the mechanism this lesson floated as a candidate: *run all stages
+> unconditionally, then commit the best admissible checkpoint prefix `C_k*` of the pass trajectory*
+> — best-feasible-prefix over per-stage checkpoints, named in the note as the adoption of L8's
+> candidate. The partial principle held: **measurement and commitment were separated**, which is
+> what made the all-or-nothing veto avoidable.
+>
+> The determinism paradox got the answer the principle demanded — *state explicitly what varies
+> between iterations*. G2-4 makes `Optimize` a deterministic fixed-point loop in which **the
+> committed state is the only thing that varies**: pass *n* runs on pass *n−1*'s committed output,
+> and `k* = 0` **is** the fixed point that stops the loop. The seam shipped unchanged as predicted
+> (T3.9), and the reason codes of G2-6 are what `OptimizerRunLogs` persists (T3.7).
+>
+> One thing this lesson did not anticipate: unblocking implementation is not the same as reaching
+> production. The optimizer is built, tested and gated, and **still has no production caller** —
+> see [`overview.md` §5.11](overview.md).
 
 ---
 
