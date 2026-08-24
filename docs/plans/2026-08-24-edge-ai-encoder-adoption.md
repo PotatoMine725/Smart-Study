@@ -5,7 +5,7 @@
 **Implementation:** not started · **Branch at planning time:** `docs/epic3-state-sync` @ `9c747be`
 
 > **Owner review round 1 is complete.** Decisions **PD-1 … PD-10** below are **ratified by the
-> owner** and recorded in [`edge-ai-neural-encoder-owner-decision-handoff.md`](edge-ai-neural-encoder-owner-decision-handoff.md).
+> owner** and recorded in [`2026-08-24-edge-ai-encoder-owner-decision-handoff.md`](2026-08-24-edge-ai-encoder-owner-decision-handoff.md).
 > Ratification of the decisions is **not** activation of the plan: this document stays `draft`, it is
 > not scope-frozen, and no implementation begins from it. See §11 for what still blocks scope freeze.
 
@@ -14,7 +14,7 @@
 > (§8, §9.1, M9 target), [`../knowledge/machine-learning.md`](../knowledge/machine-learning.md)
 > (lifecycle pattern + confidence rules), [`../../Prompt/Difficulty_ML_model_proposal.md`](../../Prompt/Difficulty_ML_model_proposal.md)
 > (deferred difficulty capability + trigger conditions), [`../active/m8-weight-optimizer.md`](../active/m8-weight-optimizer.md),
-> and [`edge-ai-neural-encoder-owner-decision-handoff.md`](edge-ai-neural-encoder-owner-decision-handoff.md)
+> and [`2026-08-24-edge-ai-encoder-owner-decision-handoff.md`](2026-08-24-edge-ai-encoder-owner-decision-handoff.md)
 > (the owner's ratification of PD-1 … PD-10, which this revision reconciles against).
 >
 > **This plan does not modify the master plan.** It does not touch Epic 2 (LAN sync) or Epic 4
@@ -820,7 +820,7 @@ what still blocks scope freeze.
 
 ### PD-1 — Amend `ML_Heuristic_design.md` §9: a narrow, guardrailed neural-encoder exception
 
-**Status:** **Ratified by the owner, 2026-08-24** (`edge-ai-neural-encoder-owner-decision-handoff.md`). **Ratified in modified form** — see below.
+**Status:** **Ratified by the owner, 2026-08-24** (`2026-08-24-edge-ai-encoder-owner-decision-handoff.md`). **Ratified in modified form** — see below.
 
 **Decision (as ratified).** The general prohibition on deep learning **stays**. A narrowly scoped
 exception is added:
@@ -858,7 +858,7 @@ stops being normative for everything else it says, not just the clause that was 
 
 ### PD-2 — Amend §10: count *models*, not *heads* — with capability governance
 
-**Status:** **Ratified by the owner, 2026-08-24** (`edge-ai-neural-encoder-owner-decision-handoff.md`).
+**Status:** **Ratified by the owner, 2026-08-24** (`2026-08-24-edge-ai-encoder-owner-decision-handoff.md`).
 
 **Decision (as ratified).** The "1–2 ML submodels maximum" cap counts **deployed model artifacts**,
 not prediction heads. One shared encoder with task-type, difficulty, and temporal heads counts as
@@ -889,7 +889,7 @@ architecture makes the unit ambiguous, not after.
 
 ### PD-3 — S0 is a gate with a kill criterion, not a formality
 
-**Status:** **Ratified by the owner, 2026-08-24** (`edge-ai-neural-encoder-owner-decision-handoff.md`).
+**Status:** **Ratified by the owner, 2026-08-24** (`2026-08-24-edge-ai-encoder-owner-decision-handoff.md`).
 
 **Decision (as ratified).** No production code before S0's report is accepted. A null result stops
 the plan.
@@ -919,7 +919,7 @@ accuracy — `_merge_seed.py` is in the repo precisely because someone will need
 
 ### PD-4 — S2 and S3 ship together
 
-**Status:** **Ratified by the owner, 2026-08-24** (`edge-ai-neural-encoder-owner-decision-handoff.md`).
+**Status:** **Ratified by the owner, 2026-08-24** (`2026-08-24-edge-ai-encoder-owner-decision-handoff.md`).
 
 **Decision (as ratified).** The featurizer swap and the confidence re-derivation are one **production
 release unit**, and one agent task card.
@@ -942,7 +942,7 @@ change, however much it looks like a refactor.
 
 ### PD-5 — One build, bundled model, size cap, runtime tiering
 
-**Status:** **Ratified by the owner, 2026-08-24** (`edge-ai-neural-encoder-owner-decision-handoff.md`). **Ratified as a superset of the draft** — see below.
+**Status:** **Ratified by the owner, 2026-08-24** (`2026-08-24-edge-ai-encoder-owner-decision-handoff.md`). **Ratified as a superset of the draft** — see below.
 
 **Decision (as ratified).** One installer, one build. **The model is bundled**; no first-run network
 download, no CDN, no auto-update. Runtime capability determines the tier: Tier 0 heuristic-only,
@@ -978,7 +978,7 @@ pattern was designed for exactly this.
 
 ### PD-6 — Withdraw the VN-MTEB justification; keep the recommendation
 
-**Status:** **Ratified by the owner, 2026-08-24** (`edge-ai-neural-encoder-owner-decision-handoff.md`). **Ratified exactly as proposed.**
+**Status:** **Ratified by the owner, 2026-08-24** (`2026-08-24-edge-ai-encoder-owner-decision-handoff.md`). **Ratified exactly as proposed.**
 
 **Decision.** The RoPE-vs-APE argument is demoted from evidence to architectural prior, in writing
 (§2.2). The model recommendation is unchanged, and must be justified by project-specific S0 evidence.
@@ -999,7 +999,7 @@ the pilot makes it a finding.
 
 ### PD-7 — Tokenization route is measured in S0, not chosen now
 
-**Status:** **Ratified by the owner, 2026-08-24** (`edge-ai-neural-encoder-owner-decision-handoff.md`). **Ratified and strengthened.**
+**Status:** **Ratified by the owner, 2026-08-24** (`2026-08-24-edge-ai-encoder-owner-decision-handoff.md`). **Ratified and strengthened.**
 
 **Decision (as ratified).** §2.4 names two routes (`Microsoft.ML.Tokenizers` vs. tokenization baked
 into the ONNX graph) and picks neither. S0 output 6 decides, per arm, by loading the vocabulary on
@@ -1028,7 +1028,7 @@ decided that something will be measured, do not also publish a favourite.
 
 ### PD-8 — S0 runs two encoder arms, not three
 
-**Status:** **Ratified by the owner, 2026-08-24** (`edge-ai-neural-encoder-owner-decision-handoff.md`). **Owner-originated.**
+**Status:** **Ratified by the owner, 2026-08-24** (`2026-08-24-edge-ai-encoder-owner-decision-handoff.md`). **Owner-originated.**
 
 **Decision.** The initial S0 set is **baseline + Arm A (EmbeddingGemma-300M) + Arm B
 (`multilingual-e5-small`)**. Arm C (`hiieu/halong_embedding`) is **not** run initially; it is a
@@ -1048,7 +1048,7 @@ costume. Say *when* the optional thing runs, or leave it out.
 
 ### PD-9 — No fixed effect size; a multi-dimensional win criterion
 
-**Status:** **Ratified by the owner, 2026-08-24** (`edge-ai-neural-encoder-owner-decision-handoff.md`). **Owner-originated.**
+**Status:** **Ratified by the owner, 2026-08-24** (`2026-08-24-edge-ai-encoder-owner-decision-handoff.md`). **Owner-originated.**
 
 **Decision.** No arbitrary threshold such as "+2 F1 points". An arm wins only on evidence that is
 strong across **all** of: improvement beyond run-to-run variance; acceptable per-class results; usable
@@ -1070,7 +1070,7 @@ of whoever writes the report.
 
 ### PD-10 — A named reference hardware class, measured on CPU
 
-**Status:** **Ratified by the owner, 2026-08-24** (`edge-ai-neural-encoder-owner-decision-handoff.md`). **Owner-originated.**
+**Status:** **Ratified by the owner, 2026-08-24** (`2026-08-24-edge-ai-encoder-owner-decision-handoff.md`). **Owner-originated.**
 
 **Decision.** S0 runtime measurements use a reference class representing a common student laptop:
 **10th-gen Intel Core mobile, mainstream U-series or equivalent; 8 GB RAM; integrated graphics;
