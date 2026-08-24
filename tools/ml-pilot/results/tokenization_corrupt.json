@@ -1,0 +1,148 @@
+{
+  "arm_a": {
+    "label": "EmbeddingGemma-300M",
+    "route_a_vocabulary": "tokenizer.model",
+    "route_b_in_graph_tokenization": false,
+    "id_offset_applied": 0,
+    "fixtures_total": 39,
+    "fixtures_matching_reference": 0,
+    "fixtures_diverging": 39,
+    "verified": false,
+    "by_category": {
+      "abbrev": {
+        "ok": 0,
+        "bad": 8
+      },
+      "diacritics": {
+        "ok": 0,
+        "bad": 8
+      },
+      "empty": {
+        "ok": 0,
+        "bad": 6
+      },
+      "pathological": {
+        "ok": 0,
+        "bad": 3
+      },
+      "runtogether": {
+        "ok": 0,
+        "bad": 6
+      },
+      "stripped": {
+        "ok": 0,
+        "bad": 8
+      }
+    },
+    "first_divergences": [
+      {
+        "fixture": "F001",
+        "category": "diacritics",
+        "error": "InvalidProtocolBufferException: While parsing a protocol message, the input ended unexpectedly in the middle of a field.  This could mean either that the input has been truncated or that an embedded message misreported its own length."
+      },
+      {
+        "fixture": "F001",
+        "category": "diacritics",
+        "input": "thi gi\u1EEFa k\u1EF3 gi\u1EA3i t\u00EDch tu\u1EA7n sau",
+        "first_divergence_index": 0,
+        "expected_len": 15,
+        "actual_len": 0,
+        "expected_head": "[2,8071,236787,15241,1109,7609,236787,11982,39652,49455,28206,24231]",
+        "actual_head": "[]"
+      },
+      {
+        "fixture": "F002",
+        "category": "stripped",
+        "error": "InvalidProtocolBufferException: While parsing a protocol message, the input ended unexpectedly in the middle of a field.  This could mean either that the input has been truncated or that an embedded message misreported its own length."
+      },
+      {
+        "fixture": "F002",
+        "category": "stripped",
+        "input": "thi giua ky giai tich tuan sau",
+        "first_divergence_index": 0,
+        "expected_len": 17,
+        "actual_len": 0,
+        "expected_head": "[2,8071,236787,15241,1109,7609,236787,11982,3344,3271,49125,111311]",
+        "actual_head": "[]"
+      },
+      {
+        "fixture": "F003",
+        "category": "diacritics",
+        "error": "InvalidProtocolBufferException: While parsing a protocol message, the input ended unexpectedly in the middle of a field.  This could mean either that the input has been truncated or that an embedded message misreported its own length."
+      }
+    ]
+  },
+  "arm_b": {
+    "label": "multilingual-e5-small",
+    "route_a_vocabulary": "sentencepiece.bpe.model",
+    "route_b_in_graph_tokenization": false,
+    "id_offset_applied": 1,
+    "fixtures_total": 39,
+    "fixtures_matching_reference": 0,
+    "fixtures_diverging": 39,
+    "verified": false,
+    "by_category": {
+      "abbrev": {
+        "ok": 0,
+        "bad": 8
+      },
+      "diacritics": {
+        "ok": 0,
+        "bad": 8
+      },
+      "empty": {
+        "ok": 0,
+        "bad": 6
+      },
+      "pathological": {
+        "ok": 0,
+        "bad": 3
+      },
+      "runtogether": {
+        "ok": 0,
+        "bad": 6
+      },
+      "stripped": {
+        "ok": 0,
+        "bad": 8
+      }
+    },
+    "first_divergences": [
+      {
+        "fixture": "F001",
+        "category": "diacritics",
+        "error": "InvalidProtocolBufferException: Protocol message contained a tag with an invalid wire type."
+      },
+      {
+        "fixture": "F001",
+        "category": "diacritics",
+        "input": "thi gi\u1EEFa k\u1EF3 gi\u1EA3i t\u00EDch tu\u1EA7n sau",
+        "first_divergence_index": 0,
+        "expected_len": 12,
+        "actual_len": 0,
+        "expected_head": "[0,41,1294,12,6117,19865,13850,8652,14346,39550,858,2]",
+        "actual_head": "[]"
+      },
+      {
+        "fixture": "F002",
+        "category": "stripped",
+        "error": "InvalidProtocolBufferException: Protocol message contained a tag with an invalid wire type."
+      },
+      {
+        "fixture": "F002",
+        "category": "stripped",
+        "input": "thi giua ky giai tich tuan sau",
+        "first_divergence_index": 0,
+        "expected_len": 14,
+        "actual_len": 0,
+        "expected_head": "[0,41,1294,12,6117,3016,3116,5512,66856,1053,206,84273]",
+        "actual_head": "[]"
+      },
+      {
+        "fixture": "F003",
+        "category": "diacritics",
+        "error": "InvalidProtocolBufferException: Protocol message contained a tag with an invalid wire type."
+      }
+    ]
+  }
+}
