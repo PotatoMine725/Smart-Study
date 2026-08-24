@@ -109,3 +109,21 @@ legacy/
 # retired the root Assets/ folder. Owner decision, 2026-08-02.
 /Prompt/
 /tools/epic1_b2_verify.py
+
+# =============================
+# S0 encoder pilot — local model artifacts (AST-05)
+# =============================
+# The neural-encoder pilot downloads hundreds of MB of encoder + tokenizer
+# artifacts. AST-05 forbids an encoder binary entering git at any commit of this
+# initiative, so the artifacts live only here and only untracked. The CI step
+# "Assert no model binary is tracked" is the guard that makes this checkable —
+# this block is convenience, that step is the contract.
+tools/ml-pilot/models/
+*.onnx
+*.onnx_data
+*.safetensors
+*.gguf
+*.tflite
+# SentencePiece vocabularies ship as `tokenizer.model`. Anchored to the pilot
+# tree so a future `*.model` source file elsewhere is not silently swallowed.
+tools/ml-pilot/**/*.model
