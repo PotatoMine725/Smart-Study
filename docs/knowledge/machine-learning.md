@@ -63,6 +63,9 @@ M8 uses an explicit `IMlConfidencePolicy` contract so thresholds are testable + 
 
 - **M7 Study Time** — single threshold: `>= 0.6` use ML, else formula.
 - **M8-A Text Classifier** — single threshold: `>= 0.60` merge classifier output into parse result.
+  *(Current value. [`../specs/2026-08-24-neural-encoder-smart-parser.md`](../specs/2026-08-24-neural-encoder-smart-parser.md) §8
+  forbids carrying 0.60 across a featurizer change unexamined and requires it to be re-derived from a
+  measured confidence curve, with at least one signal independent of the model's raw score.)*
 - **M8-B Weight Optimizer** — tiered (user trust matters more here):
   - `>= 0.75` → auto-suggest + one-click apply (still requires the click).
   - `0.60 ≤ c < 0.75` → suggest only, require explicit review.

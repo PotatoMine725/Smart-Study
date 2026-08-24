@@ -661,7 +661,7 @@ that a reader can tell what a failure looks like.
 | **AC-29** | Reports and release notes carry the coverage limitation; no general-accuracy claim is made from the 3-class evaluation. | DAT-01, DAT-02, DAT-04, EVA-07, EVA-11 | Report and changelog review |
 | **AC-30** | Preprocessing independence: classification quality is measured on inputs with diacritics stripped and with run-together tokens, without any segmentation or restoration step in the path. | BEH-04, DAT-05 | Automated test on the fixture set |
 | **AC-31** | The tie branch is honoured: if A and B are indistinguishable, the report says so and no winner is declared. | EVA-13, EVA-14, EVA-15, EVA-16 | S0 report |
-| **AC-32** | The master-plan conflict of §15 is resolved by owner-approved edit **before** the S2+S3 release, and no such edit is made as a side effect of an implementation commit. | DOC-01, DOC-02 | Owner checkpoint record + commit history |
+| **AC-32** | Architecture documents are updated **when S2+S3 ships**, and no normative document is amended as a side effect of an implementation commit. | DOC-03, DOC-04 | Doc review at the S2+S3 release + commit history |
 
 `DAT-03` is SHOULD-level and describes a workstream outside this initiative's delivery; it carries no
 acceptance criterion by design (§9). Every other MUST-level requirement appears above.
@@ -690,6 +690,7 @@ would be a decision this specification lost.
 | *Handoff — CPU-first* | CPU authoritative for viability; DirectML is acceleration | AST-07, PRF-02 |
 | *Handoff — multi-head future* | Heads gated, not auto-activated by encoder acceptance | REL-04, §1.3 |
 | *Handoff — not expanded* | Cap value, packaging mechanics, DirectML probe, 500 ms protocol left to planning | OP-1, OP-2, OP-3, OP-12 |
+| *Owner direction 2026-08-24* | Conflicting documents reconciled against this spec; this spec governs where they disagree | §15 (DOC-01 resolved), DOC-03, DOC-04 |
 
 ---
 
@@ -747,23 +748,25 @@ Genuinely unresolved inputs only. **None of these has been silently assigned a v
 
 # 15. Documentation Consistency
 
-**One known conflict exists between normative documents, and it is not an open decision** — nothing
-is undecided; a document is simply stale.
+**DOC-01 — RESOLVED 2026-08-24.** The owner directed that the conflicting documents be reconciled
+against this specification, which **governs where they disagree**. Six sites across four documents
+were amended — each *narrowed and dated*, none rewritten:
 
-`docs/plans/2026-07-03-master-plan.md`, Epic 4 **Out of Scope**, still reads *"Deep learning; a
-third+ ML model; ML-driven schedule generation; cloud model storage."* The first two clauses are now
-contradicted by the ratified narrow exception in `ML_Heuristic_design.md` §9.1 and by the artifact-unit
-definition in §10. The same ambiguity recurs in `specs/system_roadmap.md` §9 and §13, in
-`ML_Heuristic_design.md` §5, and in `knowledge/machine-learning.md`'s threshold policy.
+| Document | Site | Amendment |
+|---|---|---|
+| `plans/2026-07-03-master-plan.md` | Epic 4 **Out of Scope** | "Deep learning" now defers to `ML_Heuristic_design.md` §9.1; "a third+ ML model" now reads **deployed model artifact** with §10's unit. Epic 4's scope, ordering and position are unchanged |
+| `plans/2026-07-03-master-plan.md` | Epic 4 budget, gate, and 96.2% clauses | model budget names its unit; the ≥0.60 figures marked as today's value, re-derived under §8; 96.2% carries its provenance |
+| `specs/system_roadmap.md` | §13 *DO NOT introduce deep learning* | points at the §9.1 exception, mirroring `ML_Heuristic_design.md` §9 |
+| `specs/system_roadmap.md` | §9 cap, §9.1 gate, M8-A row | unit named; ≥0.60 marked as today's value; 96.2% annotated with its provenance |
+| `specs/ML_Heuristic_design.md` | §5 cap restatement, §5.1 *ML Ownership* | cap points at §10's unit; §5.1 records that **§6 governs** where "ML-first" and the advisory policy diverge (§2.4) |
+| `knowledge/machine-learning.md` | M8-A threshold in *project policy* | marked current-value, with §8's re-derivation requirement noted |
 
-**DOC-01 (MUST).** These conflicts MUST be resolved before the **S2+S3 release** — the point at which
-shipped code would contradict a normative document. It is **not** a prerequisite for S0 or S1, which
-ship nothing.
+**DOC-03 (MUST).** Architecture documents under `docs/architecture/` describe **shipped** behaviour
+and are correct as written. They MUST be updated when S2+S3 ships — not before — so they continue to
+describe what the code does rather than what it is planned to do.
 
-**DOC-02 (MUST NOT).** This specification does **not** amend those documents, and the amendments MUST
-NOT be made as a side effect of implementation. Each is an owner-approved edit, sequenced as above.
-
-> The fix is expected to be a clause deferring to §9.1 in each site — not a rewrite.
+**DOC-04 (MUST NOT).** No further amendment to these documents may be made as a **side effect of
+implementation**. Each is an owner-approved edit in its own right.
 
 ---
 

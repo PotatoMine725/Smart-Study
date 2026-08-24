@@ -185,7 +185,8 @@ ML SHOULD:
 
 # 5. Allowed ML Models
 
-The system should initially contain ONLY 2 ML submodels maximum.
+The system should initially contain ONLY 2 ML submodels maximum — counted by **deployed model
+artifact**, not by prediction head; see §10 *"Unit of the cap"*.
 
 ---
 
@@ -254,6 +255,11 @@ The Smart Parser is ML-first.
 
 Heuristics MAY validate parser output,
 but parsing intelligence should primarily rely on ML/NLP.
+
+> **Precedence** *(added 2026-08-24)*. Where this "ML-first" framing and §6's advisory/fallback
+> policy diverge, **§6 governs**: every ML output stays advisory, and below the confidence gate the
+> heuristic result is authoritative. "ML-first" describes where ML takes precedence **when
+> confident** — it is not an exemption from §6. See [`2026-08-24-neural-encoder-smart-parser.md`](2026-08-24-neural-encoder-smart-parser.md) §2.4.
 
 ---
 

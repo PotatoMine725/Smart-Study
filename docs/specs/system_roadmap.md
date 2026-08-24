@@ -31,11 +31,15 @@
 | M6 | Study Analytics & Insights (StudyLog, 3 charts) | merged (PR #37) |
 | M6.1 | Task Notes & Study Links (`TaskNote`, `TaskReferenceLink`) | merged |
 | M7 | ML Engine — Study Time Predictor (FastTree, offline-first) | merged |
-| M8-A | TextClassifier wired into parser (seed v3, 5-class, 96.2% held-out); `IntentClassifierAdapter` | shipped 2026-06-05 |
+| M8-A | TextClassifier wired into parser (seed v3, 5-class, 96.2% held-out¹); `IntentClassifierAdapter` | shipped 2026-06-05 |
 | M8-B | WeightOptimizer (rule-based) + review/apply UI + JSON persistence | shipped 2026-06-06 |
 | M8 (arch) | God-object refactor Slices 1–8: Core contracts, `DecisionEngineService`→42-line facade, `ParsingOrchestrator`, repo abstractions, `RiskOrchestrator` implements `IRiskAnalyzer`, injectable `StreakManager` | shipped 2026-06-11 |
 | M8 Telemetry | `DifficultyLabelLog` + `WeightChangeLog` capture; `OutcomeMaturationService` (14-day cohort fill) | shipped 2026-06-11 |
 | UI/UX | Design system, sidebar, dashboard, analytics heatmap, WorkloadBalancer page | shipped |
+
+> ¹ **Provenance of the 96.2% figure** *(annotated 2026-08-24)*: it was measured after the 205 real
+> `collected_v4` rows had been merged into the training seed, so it is **not** a synthetic→real
+> generalization number and must not be cited as one. See [`2026-08-24-neural-encoder-smart-parser.md`](2026-08-24-neural-encoder-smart-parser.md) §6.1.
 | M1.1 | Epic 1 — single stamping seam + A6 (`SyncStamper` in `AppDbContext.SaveChanges*` stamps `Rev`/`ModifiedAtUtc`/`ModifiedByDeviceId`; `StudyLog` write awaited, `DeviceId` populated) | merged `3193adf` (2026-07-05) |
 | M1.2 | Epic 1 — schema upgrade + tombstones, gate G1 (`SyncSchema.EnsureColumns` versioned upgrade + backup + migration report; soft-delete tombstones replace hard cascades; `TaskCascadeHelper` cascade-tombstones FK-only children, M1.2-R1 remediation) | merged `e2f8268` (2026-07-10) |
 | M1.3 | Epic 1 — MonHoc identity & dedup (`MonHocIdentity.Normalize` single dedup definition, 4 read-side sites + `ThemMon` prevent-at-source; folded fix for a pre-existing `LuuHocKyAsync` task-reconcile gap surfaced by the widened dedup key, Option A) | merged `a3a0a3d` (2026-07-11) — **Epic 1 code complete** |
@@ -532,7 +536,10 @@ It is:
 
 Maximum:
 
-* 1–2 ML models
+* 1–2 ML models — counted by **deployed model artifact**, not by prediction head. See
+  [`ML_Heuristic_design.md`](ML_Heuristic_design.md) §10 *"Unit of the cap"*. Heads sharing one
+  encoder do not each count, and **each new prediction capability still requires explicit owner
+  approval**. *(Unit defined 2026-08-24 under PD-2.)*
 
 Avoid overengineering.
 
@@ -544,7 +551,9 @@ This is the ONLY ML-first subsystem.
 
 > **Reconciliation (D-D):** this is **consistent** with the "heuristic-first" philosophy (§6/§13)
 > once scoped — the *system* is heuristic-first; the *parser* is the one place ML has precedence,
-> applied **per output field with a confidence-gated fallback** (≥ 0.60, else heuristic).
+> applied **per output field with a confidence-gated fallback** (≥ 0.60 today, else heuristic; the
+> threshold is re-derived from a measured confidence curve under [`2026-08-24-neural-encoder-smart-parser.md`](2026-08-24-neural-encoder-smart-parser.md) §8 if the
+> neural featurizer ships).
 > **Shipped today:** ML overrides **task type** only; difficulty and deadline are rule-based. The
 > natural-language **deadline** parsing described below is the **M9 target**, not current behavior.
 > See [`../architecture/pipeline.md`](../architecture/pipeline.md) §2.
@@ -780,7 +789,8 @@ Before:
 
 DO NOT:
 
-* introduce deep learning
+* introduce deep learning — **except** under the narrow exception in
+  [`ML_Heuristic_design.md`](ML_Heuristic_design.md) §9.1 *(amended 2026-08-24 under PD-1)*
 * create autonomous planners
 * tightly couple ML to scheduling core
 * fragment engines excessively
