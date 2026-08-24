@@ -1,21 +1,30 @@
 # Edge AI — Neural Encoder Adoption for the Smart Parser (M8-A → M10)
 
-**Planning date:** 2026-08-24 · **Status:** `draft` — **AWAITING OWNER APPROVAL**; not scope-frozen ·
-**Implementation:** not started · **Branch at planning time:** `docs/epic3-state-sync` @ `980eec6`
+**Planning date:** 2026-08-24 · **Revised:** 2026-08-24 (owner review round 1) ·
+**Status:** `draft` — **NOT scope-frozen**; implementation NOT authorised ·
+**Implementation:** not started · **Branch at planning time:** `docs/epic3-state-sync` @ `9c747be`
+
+> **Owner review round 1 is complete.** Decisions **PD-1 … PD-10** below are **ratified by the
+> owner** and recorded in [`edge-ai-neural-encoder-owner-decision-handoff.md`](edge-ai-neural-encoder-owner-decision-handoff.md).
+> Ratification of the decisions is **not** activation of the plan: this document stays `draft`, it is
+> not scope-frozen, and no implementation begins from it. See §11 for what still blocks scope freeze.
 
 > **Reads with:** [`../specs/ML_Heuristic_design.md`](../specs/ML_Heuristic_design.md) (§4, §5.1, §9 —
 > two clauses of which this plan proposes to amend), [`../specs/system_roadmap.md`](../specs/system_roadmap.md)
 > (§8, §9.1, M9 target), [`../knowledge/machine-learning.md`](../knowledge/machine-learning.md)
 > (lifecycle pattern + confidence rules), [`../../Prompt/Difficulty_ML_model_proposal.md`](../../Prompt/Difficulty_ML_model_proposal.md)
-> (deferred difficulty capability + trigger conditions), and [`../active/m8-weight-optimizer.md`](../active/m8-weight-optimizer.md).
+> (deferred difficulty capability + trigger conditions), [`../active/m8-weight-optimizer.md`](../active/m8-weight-optimizer.md),
+> and [`edge-ai-neural-encoder-owner-decision-handoff.md`](edge-ai-neural-encoder-owner-decision-handoff.md)
+> (the owner's ratification of PD-1 … PD-10, which this revision reconciles against).
 >
 > **This plan does not modify the master plan.** It does not touch Epic 2 (LAN sync) or Epic 4
 > surfaces, and it does not reopen any Epic 3 decision (G2/G3/D-G/D-H/D-J). No code is changed by
 > this document.
 >
-> **It does propose amending two clauses of `ML_Heuristic_design.md`** (§9 "DO NOT introduce deep
-> learning" and §10 "1–2 ML submodels maximum"). Those amendments are **PD-1** and **PD-2** and are
-> owner decisions, not agent decisions — S1 does not start until they are ratified.
+> **It amends two clauses of `ML_Heuristic_design.md`** (§9 "DO NOT introduce deep learning" and
+> §10 "1–2 ML submodels maximum"). Those amendments are **PD-1** and **PD-2**, both now **ratified**.
+> **The spec edit itself has not been performed** — it is a prerequisite work item, **S-SPEC** (§3),
+> with the proposed replacement text written out there. S1 does not start until S-SPEC is merged.
 
 **Evidence labelling used throughout:** **[F]** confirmed project fact (verified in code or a merged
 doc at `980eec6`) · **[I]** engineering inference · **[R]** planning recommendation.
@@ -159,26 +168,70 @@ which silently moves `ParseSource.MlAugmented` vs `Heuristic` routing **and** th
 to the user in `QuickInputHint` (`"AI gợi ý Loại: {loai} ({conf:P0})"`). A featurizer swap that does
 not re-derive the threshold is a behaviour change disguised as a refactor.
 
-## 1.7 Deployment constraints (owner-stated, 2026-08-24)
+## 1.7 Deployment constraints (owner-stated 2026-08-24; hardware floor ratified as PD-10)
 
 | Constraint | Value | Consequence |
 |---|---|---|
 | Purpose | Improve current features **and** deploy modern edge AI | Two tracks: featurizer upgrade + new capability |
-| "No deep learning" (§9) | **Open to revision** | Needs explicit amendment — PD-1 |
-| Install size | 1–2 GB acceptable; >2 GB reopens debate | Disk is **not** the binding constraint |
-| Floor hardware | **Windows 10 x64, integrated graphics** (owner-stated) | Latency + RAM are the binding constraints |
-
-**Precision on the floor** **[F]**: the csproj already targets `net10.0-windows10.0.19041.0` with no
-`SupportedOSPlatformVersion` override, so the minimum OS the build actually admits is **Windows 10
-build 19041** (2004 / 20H1), not "Windows 10" generally. That is *tighter* than the owner's stated
-floor, and it subsumes every OS-version prerequisite in this plan — see §2.3.
+| "No deep learning" (§9) | Amended under **PD-1** — narrow, guardrailed exception | Spec edit required — **S-SPEC** |
+| Install size | 1–2 GB acceptable; >2 GB reopens debate | Superseded in practice by **PD-5**'s size cap, whose value is still unset (§11) |
 | Distribution | Solo dev, educational / internal group, non-commercial | License ceases to be a differentiator |
+| Model delivery | **Bundled** — no first-run download (**PD-5**) | Requires a delivery mechanism the repo does not have (§1.8) |
+| **Reference hardware** (**PD-10**) | 10th-gen Intel Core mobile, mainstream U-series or equivalent · **8 GB RAM** · integrated graphics · Win10 x64 at the supported floor | **CPU EP** is the surface the latency gate is measured on; RAM is now a stated budget, not a guess |
+
+**Precision on the OS floor** **[F]**: the csproj already targets `net10.0-windows10.0.19041.0` with
+no `SupportedOSPlatformVersion` override, so the minimum OS the build actually admits is **Windows 10
+build 19041** (2004 / 20H1), not "Windows 10" generally. That is *tighter* than PD-10's "Win10 x64 at
+the supported floor", and it subsumes every OS-version prerequisite in this plan — see §2.3.
+
+**PD-10 makes the measurement surface unambiguous** and retires the vaguer "floor hardware profile"
+used in the first draft: latency and RSS are measured on the reference class above, on the **CPU
+execution provider**, and **not on the developer's machine alone**. DirectML is evaluated separately
+as Tier 2 and is never the baseline for viability. The 8 GB figure is a real constraint on peak RSS;
+S0 reports measured RSS against it rather than against an invented ceiling.
 
 **[F]** The Windows 10 floor **permanently rules out Windows AI APIs / Phi Silica / Aion Instruct**
 (Windows 11 Copilot+ PC, plus a Limited Access Feature token, plus — on the GPU path — Developer
 Mode and an Insider Experimental build). Microsoft has additionally announced Phi Silica's
 replacement by Aion Instruct with **Phi Silica removed from retail devices in November 2026**.
 Building on that surface was never viable here and is now also a moving target.
+
+## 1.8 Finding E — PD-5 bundles the model into an installer that does not exist
+
+**[F]** The repo has **no installer, no packaging, and no release pipeline.** Verified three ways at
+`9c747be`:
+
+- No `.iss` / `.wxs` / `.wapproj` / `.pubxml` / `.nuspec` anywhere in the tree. (`SetupPage.xaml` and
+  `SetupViewModel.cs` are the in-app first-run wizard, not an installer.)
+- `.github/workflows/` contains **only** `ci.yml` — restore, build, test, a profile-write leak check,
+  and a `.trx` upload. No publish, no packaging, no release artifact.
+- Two merged documents already record it as a known gap:
+  `docs/plans/2026-07-27-post-epic1-stabilization.md:1758` — *"No installer, no packaging, no release
+  pipeline; no model artifacts committed (both models train per-machine at runtime) ... Post-Epic-2
+  productionisation. WP-1 delivers CI, not CD."* — and
+  `docs/reports/2026-07-27-epic2-prep-current-state-assessment.md:859`.
+
+**Why this is load-bearing rather than a detail.** PD-5 ratifies *"the model is bundled into the
+installer"*. That mechanism does not exist, and building it is explicitly deferred to
+**post-Epic-2** — work this plan does not touch, behind an epic that has not started. PD-5 as written
+therefore rests on a premise the repo cannot currently satisfy. This is the one place where a
+**ratified decision** conflicts with repo state rather than with the draft.
+
+**It is also a first for the project.** **[F]** M7 and M8-A ship **no model artifacts at all**: both
+train per-machine at runtime from the embedded `seed_intents.csv`. A frozen pretrained encoder cannot
+be trained per-machine — it is an asset that must arrive with the application. **This plan introduces
+the project's first shipped model binary, into a project that has no mechanism for shipping
+binaries.** That is the gap, stated plainly.
+
+**Reconciliation candidate — build-time acquisition, runtime bundling.** **[R]** PD-5's prohibition is
+on a **runtime** acquisition path (*"no first-run network download"*). It says nothing about the
+**build**. Fetching the encoder during CI/publish and shipping it inside the build output satisfies
+every clause of PD-5 — bundled, no first-run download, offline at runtime, no network anywhere in
+`Services/ML/*` — while keeping ~250 MB of binary out of git (R-9).
+
+Offered as a candidate, **not adopted.** It assumes distribution is a `dotnet publish` folder handed
+to the group, and **that is not verified** — no document in the repo records how the app currently
+reaches its users. That unverified assumption is exactly why this stays an owner decision (§11).
 
 ---
 
@@ -191,10 +244,13 @@ Building on that surface was never viable here and is now also a moving target.
 
 Rationale, in the order that matters:
 
-1. **The linear head is kept deliberately, even though PD-1 would permit fine-tuning.** A frozen
-   encoder + linear head preserves on-device retrain in seconds, keeps the decision layer
-   inspectable, and leaves the entire `TrainAndSaveAsync` / atomic-swap / seed-hash lifecycle
-   working unchanged. Fine-tuning the encoder would forfeit all three for an unmeasured gain.
+1. **The encoder is frozen and the head stays linear — under PD-1 this is a guardrail, not a
+   preference.** PD-1 ratifies the neural exception *only* on those terms (guardrails 1-4: frozen
+   only; no fine-tuning; feature extractor, not decision-maker; the linear/deterministic decision
+   layer remains authoritative). The design the first draft chose on engineering grounds is the
+   design PD-1 now requires. It remains the better one on the merits: a frozen encoder + linear head
+   preserves on-device retrain in seconds, keeps the decision layer inspectable, and leaves the
+   entire `TrainAndSaveAsync` / atomic-swap / seed-hash lifecycle working unchanged.
 2. **Multilingual subword tokenization is the actual mechanism** that handles `thigiuaky`,
    `giua ky`, and `tgk` — not model size. Any of the candidate encoders provides it; that is why S0
    compares two rather than assuming one.
@@ -210,8 +266,9 @@ shape — a swap, not a rewrite. S0 measures both.
 and `dangvantuan/vietnamese-embedding` likely have better raw Vietnamese quality, but PhoBERT
 requires VnCoreNLP word segmentation as preprocessing — **a Java runtime dependency inside a WPF
 installer**. `hiieu/halong_embedding` (multilingual-e5-base backbone) avoids the segmentation
-requirement and is the one member of that family worth adding as an S0 arm if the owner wants a
-Vietnamese-specialist datapoint. **[R]**
+requirement and is the one member of that family worth testing at all. **Per PD-8 it is not in the
+initial S0 set** — it is a conditional extension, run only if Arms A and B together fail to produce
+evidence strong enough to decide on. **[F]** (owner-ratified)
 
 ## 2.2 Correction to an earlier justification
 
@@ -227,22 +284,38 @@ The architectural prior is still reasonable and is retained **as a prior**. It i
 what produces evidence. This correction is recorded here rather than silently dropped because an
 unlabelled inference is exactly the kind of thing that becomes a wrong line in a future report.
 
-## 2.3 Runtime and hardware tiering — one build, not two SKUs
+## 2.3 Runtime and hardware tiering — one build, one bundled model
 
-The owner raised shipping two installers (lightweight / discrete-GPU). **Recommend against.** **[R]**
+**Ratified as PD-5.** One build, one installer, model bundled, tier resolved at runtime. The two-SKU
+option (lightweight / discrete-GPU) is rejected.
 
-Model tier is a **runtime capability probe**, not a build variant, and the seams already exist:
-`IIntentClassifier` is nullable **[F]**, `IModelStorageProvider` is swappable **[F]**, and "app runs
-with zero model files" is already a tested contract **[F]**.
+PD-5 draws a separation this plan holds to throughout:
+
+| Axis | Ratified policy |
+|---|---|
+| **Distribution** | one build, model **bundled** — no first-run download, no CDN, no auto-update |
+| **Execution** | **CPU is the default and the baseline**; DirectML is optional acceleration only |
+
+Bundling does **not** mean every machine runs the neural path. Model tier is a **runtime capability
+probe**, and the seams already exist: `IIntentClassifier` is nullable **[F]**, `IModelStorageProvider`
+is swappable **[F]**, and "app runs with zero model files" is already a tested contract **[F]**.
 
 | Tier | Condition | Behaviour |
 |---|---|---|
-| **0** | no model files present | current heuristic — already tested, already shipped |
-| **1** | default | encoder int8, **CPU execution provider** |
-| **2** | opt-in, DX12 GPU present | same encoder, **DirectML EP** |
+| **0** | **encoder asset missing or unloadable** — file absent, corrupt, or `InferenceSession` construction throws | current heuristic — already tested, already shipped |
+| **1** | **default** | encoder int8, **CPU execution provider** |
+| **2** | opt-in; DX12 GPU present **and** CPU-parity check passed | same encoder, **DirectML EP** |
+
+**Tier 0 changes meaning under PD-5, and the change matters.** In the first draft Tier 0 was a
+*distribution* state — the user who did not receive the model. Under bundling that user does not
+exist by design, so Tier 0 becomes a **robustness** state: asset absent, asset corrupt, or session
+construction failed. PD-5 states *"Tier 0 must remain functional"*, so the tier survives — but the
+zero-model-file gate in §5 is now testing **fault tolerance**, not an install variant, and it must be
+exercised by deleting a file the build is expected to have placed there. **[R]**
 
 Two installers would double the release and QA surface for a solo developer immediately after
-WP-1…WP-6 spent six work packages on release hygiene. **[I]**
+WP-1…WP-6 spent six work packages on release hygiene — and would do it in a project that, per §1.8,
+does not yet have a single release pipeline to double. **[I]**
 
 **DirectML caveat — CPU stays the default.** DirectML requires Windows 10 1903+, which the build's
 own 19041 floor already exceeds **[F]** — so OS version is a non-issue and only the DX12 GPU
@@ -266,9 +339,12 @@ Both candidates use SentencePiece with large vocabularies — EmbeddingGemma ~26
 | **A** — `Microsoft.ML.Tokenizers` | `SentencePieceTokenizer.Create(...)` from the model's `.model` file | Pure .NET; **but** the SentencePiece APIs are documented under `ml-dotnet-preview`, and this project pins `Microsoft.ML` **3.0.1** while the tokenizer work landed with ML.NET 4.0 — a package bump may be implied **[I]** |
 | **B** — bundle tokenization into the ONNX graph (`onnxruntime-extensions`) | .NET side stays tensor-free: string in, vector out | Cleaner C# consumer; moves the problem into the model asset, built once offline |
 
-**[R]** Route B is generally cleaner for a C# consumer and is the default recommendation, but
-**neither route is verified against net10.0 in this project yet** — that verification is S0's
-responsibility, not S1's.
+**Neither route is recommended here, deliberately.** PD-7 ratifies the tokenization route as **an
+S0 finding, not a design-time choice**: *"Do not choose tokenization route ahead of evidence."* The
+first draft named Route B as the default recommendation; **that recommendation is withdrawn.** Route
+B is plausibly cleaner for a C# consumer **[I]**, and that is the whole of what can be said before
+measurement. Neither route is verified against `net10.0` in this project, and S0 verifies both per
+arm by loading the vocabulary — not by reading a documentation page.
 
 **This is an input to S0 arm selection, not only to S1.** Tokenizer availability in .NET can differ
 between the two candidate encoders; an arm that wins on accuracy but has no workable .NET
@@ -297,7 +373,40 @@ reference other tasks. Not the default path, and not in this plan.
 # 3. Slices
 
 Each slice is one shippable commit. **S0 is a hard gate: no production code is written until S0's
-report is accepted.**
+report is accepted** (PD-3). **S-SPEC** is a prerequisite for S1 only — it does not gate S0.
+
+## S-SPEC — Amend `ML_Heuristic_design.md` *(docs-only; prerequisite for S1)*
+
+PD-1 and PD-2 are ratified, but **the spec still says the opposite**, and the owner's handoff is
+explicit: *"Update `ML_Heuristic_design.md` explicitly rather than silently working around the old
+prohibition."* Until this merges, any S1 code contradicts a normative document.
+
+**This slice has not been executed.** The proposed replacement text is written out here so the owner
+can approve the wording itself, not just the intent.
+
+**File map:** `docs/specs/ML_Heuristic_design.md` only.
+
+**Proposed §9 amendment** — retain the prohibition, add a bounded exception:
+
+> **Deep learning remains prohibited**, with one narrow exception. Frozen, pretrained neural encoders
+> may be used as feature extractors inside an existing prediction pipeline, subject to all of:
+> (1) frozen only; (2) no fine-tuning at runtime or on-device; (3) the encoder is a feature
+> extractor, never an autonomous decision-maker; (4) the linear/deterministic decision layer remains
+> authoritative; (5) the confidence and fallback policy remain in force; (6) offline-first inference
+> is preserved; (7) the deployed-artifact limits of §10 continue to apply; (8) this exception confers
+> no general permission for model sprawl, generative SLMs, or autonomous deep-learning components.
+> *(Amended 2026-08-24 under PD-1.)*
+
+**Proposed §10 amendment** — define the unit of the cap:
+
+> The "1–2 ML submodels maximum" cap counts **deployed model artifacts**, not prediction heads. One
+> shared frozen encoder serving task-type, difficulty, and temporal heads counts as **one** artifact.
+> Prediction heads are **not** unlimited: the artifact count governs deployment, runtime, maintenance
+> and asset surface, while **each new prediction capability requires explicit owner approval through
+> its own proposal**. A shared encoder must not be used as a loophole for adding heads silently.
+> *(Amended 2026-08-24 under PD-2.)*
+
+**Exit criteria:** both clauses amended and dated; every other clause untouched; no code changed.
 
 ## S0 — Offline pilot *(no production code — GATE)*
 
@@ -307,52 +416,106 @@ before any dependency is added.
 **Design** — train on the **698 synthetic rows only**, test on the **205 held-out real
 `collected_v4` rows**:
 
-| Arm | Featurizer | Head |
-|---|---|---|
-| baseline | `FeaturizeText` (current production) | `SdcaMaximumEntropy` |
-| A | EmbeddingGemma-300M int8, 256-dim MRL | `SdcaMaximumEntropy` |
-| B | `multilingual-e5-small` | `SdcaMaximumEntropy` |
-| C *(optional)* | `hiieu/halong_embedding` | `SdcaMaximumEntropy` |
+| Arm | Featurizer | Head | In initial S0? |
+|---|---|---|---|
+| baseline | `FeaturizeText` (current production) | `SdcaMaximumEntropy` | yes |
+| A | EmbeddingGemma-300M int8, 256-dim MRL | `SdcaMaximumEntropy` | yes |
+| B | `multilingual-e5-small` | `SdcaMaximumEntropy` | yes |
+| C | `hiieu/halong_embedding` | `SdcaMaximumEntropy` | **no — conditional extension only (PD-8)** |
+
+**PD-8 fixes the initial set at baseline + A + B.** Arm C is run **only** if A and B together fail to
+produce evidence strong enough for a trustworthy decision. It is a contingency, not a workload item,
+and it must not be pulled forward to "be thorough".
+
+**PD-3 fixes what S0 is asking.** The question is *"does the neural encoder show enough evidence of
+value on the real data that we should continue?"* — **not** *"is this dataset mature enough to be the
+final production training set?"* The 3-of-5 class coverage (§1.4) is **accepted for the pilot**.
+Dataset maturity is a separate, parallel workstream (§3.1) and is **not** a prerequisite for running
+S0.
 
 **File map (all new, none shipped in the app):**
-- `tools/ml-pilot/` — accuracy harness for outputs 1, 2, 5 (language at implementer's discretion;
+- `tools/ml-pilot/` — accuracy harness for outputs 1, 2, 7 (language at implementer's discretion;
   Python is acceptable here since nothing ships)
-- `tools/ml-pilot/dotnet/` — **.NET console harness for outputs 3, 4, 6**; required, not optional
+- `tools/ml-pilot/dotnet/` — **.NET console harness for outputs 3, 4, 5, 6**; required, not optional
   (see the harness-split table below)
 - `docs/reports/2026-XX-XX-encoder-pilot.md` — results
 
-**Required outputs:**
+**Required outputs** (the owner's enumerated list, in order):
 1. **Per-class** precision/recall for the 3 covered classes. No single headline accuracy number.
-2. **Confidence-vs-accuracy curve per arm** — this is the input to S3's threshold re-derivation and
-   is not optional.
-3. **Cold-start model load time** and **per-inference latency**, measured on the floor hardware
-   profile (CPU EP, integrated graphics laptop) — not on the dev machine only.
-4. Peak RSS during inference.
-5. Explicit statement of what the 2 uncovered classes mean for confidence in the result.
-6. **Tokenization route per arm** (§2.4) — which of Route A / Route B works for that encoder on
-   net10.0, verified by actually loading the vocab, not by reading a doc page. An arm with no
-   workable .NET tokenization path has not won, whatever its F1.
+2. **Confidence-vs-accuracy curve per arm** — the input to S3's threshold re-derivation, and not
+   optional.
+3. **Cold-start model load time.**
+4. **Per-inference latency**, measured on the **PD-10 reference class** (10th-gen Intel Core mobile
+   U-series or equivalent, 8 GB RAM, integrated graphics), on the **CPU execution provider** —
+   explicitly *not* on the developer's machine alone.
+5. **Peak RSS** during inference, reported against PD-10's 8 GB budget. No ceiling is asserted here;
+   the number is measured first and a ceiling derived from it.
+6. **Tokenization viability per arm** (§2.4, PD-7) — which of Route A / Route B works for that
+   encoder on `net10.0`, verified by actually loading the vocabulary, not by reading a doc page. An
+   arm with no workable .NET tokenization path is **rejected regardless of its accuracy**.
+7. **Explicit limitations from the 3-of-5 class real dataset** — stated in the report itself, not
+   only here.
 
-**The harness is deliberately split in two — outputs 1–2 and outputs 3–4 are not the same
-experiment** **[R]**:
+**Winner criterion (PD-9) — no fixed effect size.** No arbitrary threshold such as "+2 F1" is set. An
+arm wins only when the evidence is strong across *all* of:
+
+- improvement over baseline **beyond run-to-run variance**;
+- per-class results acceptable (not one class carrying the average);
+- confidence behaviour usable — i.e. the curve from output 2 can actually support a gate;
+- latency and RSS fit the PD-10 hardware budget;
+- tokenization path viable (output 6).
+
+**If A and B cannot be reliably distinguished, do not force a winner.** The decision then becomes
+whether more evidence is justified: if yes → conditional Arm C and/or data expansion; if no → stop or
+defer. Declaring a winner on a difference inside the noise is the failure mode PD-9 exists to
+prevent.
+
+**The harness is deliberately split in two — the accuracy outputs and the runtime outputs are not
+the same experiment** **[R]**:
 
 | Outputs | Where measured | Why |
 |---|---|---|
-| 1, 2, 5 — accuracy, confidence curve | whatever is fastest to write (Python is fine; nothing ships) | Only relative accuracy matters; the runtime is irrelevant to it |
-| **3, 4, 6 — latency, RSS, tokenization** | **the .NET path: `InferenceSession` + real tokenizer + `SdcaMaximumEntropy`** | Numbers from Python `onnxruntime` + an sklearn head **do not transfer**. These three feed the 500 ms budget in §5 and the R-1 kill criterion — measuring them off-path would clear a gate that was never tested |
+| 1, 2, 7 — accuracy, confidence curve, dataset limitations | whatever is fastest to write (Python is fine; nothing ships) | Only relative accuracy matters; the runtime is irrelevant to it |
+| **3, 4, 5, 6 — load time, latency, RSS, tokenization** | **the .NET path: `InferenceSession` + real tokenizer + `SdcaMaximumEntropy`, on the PD-10 reference class** | Numbers from Python `onnxruntime` + an sklearn head **do not transfer**. These feed the 500 ms budget in §5 and the R-1 kill criterion — measuring them off-path would clear a gate that was never tested |
 
 Concretely: a throwaway .NET console harness under `tools/ml-pilot/dotnet/` is required for the
-latency/RSS/tokenization row. It is not production code and is not shipped, but it must exercise the
-same runtime, tokenizer, and head that S1–S2 will use.
+load-time / latency / RSS / tokenization row. It is not production code and is not shipped, but it
+must exercise the same runtime, tokenizer, and head that S1–S2 will use, on the PD-10 reference
+class. Keeping accuracy and runtime experiments conceptually separate is fine — **the runtime one
+must still run on the stack that ships.**
 
-**Exit criteria:** report written and owner-accepted. **A null result is a valid and useful
-outcome** — if the encoder cannot beat n-grams on real rows it has never seen, it will not help in
-production, and this plan stops at S0 having cost one script.
+**Exit criteria:** report written to `docs/reports/` and **owner-accepted** (PD-3). **A null result
+is a valid and useful outcome** — if the encoder cannot beat n-grams on real rows it has never seen,
+it will not help in production, and this plan stops at S0 having cost one script.
 
-**Kill criterion, stated in advance:** if Arm A and Arm B both fail to improve macro-F1 over
-baseline by a margin larger than the run-to-run variance, **do not proceed to S1.**
+**Kill criterion, stated in advance:** if Arm A and Arm B both fail to improve macro-F1 over baseline
+by a margin larger than the run-to-run variance, **do not proceed to S1.** Note this is already a
+variance-based criterion, not a fixed effect size, and so stands unchanged under PD-9 — PD-9 adds the
+four further dimensions above that an arm must also satisfy to *win*, which is a stricter bar than
+merely not being killed.
 
-## S1 — Encoder seam *(no behaviour change)* — requires PD-1 + PD-2 ratified
+## 3.1 Parallel workstream — dataset maturity *(PD-3; not a prerequisite for S0)*
+
+PD-3 ratifies dataset improvement as an **independent, ongoing** workstream that must **not** block
+the pilot:
+
+- collect the missing classes (`KiemTraThuongXuyen`, `ThiCuoiKy`);
+- improve real-world coverage and capture Vietnamese linguistic variation;
+- reduce class imbalance **where appropriate** — *"perfect class balance is not the goal; adequate
+  representation of real-world usage and important linguistic phenomena is"*;
+- deduplicate and quality-filter;
+- version datasets;
+- build a stronger held-out evaluation set.
+
+**[R]** The last two are the ones that pay off soonest: §1.4 exists as a finding only because
+`_merge_seed.py` made the merge history recoverable. Versioning and a held-out set that is held out
+*before* training are what stop the 96.2% problem from recurring.
+
+This workstream has no slice number here because it is not part of this plan's delivery. It is
+recorded so that "the dataset is immature" is never used as a reason to delay S0, and never forgotten
+once S0 is done.
+
+## S1 — Encoder seam *(no behaviour change)* — requires **S-SPEC merged** and **S0 accepted**
 
 **File map:**
 - Create `Core/ML/Contracts/ITextEmbeddingProvider.cs` — `float[]? Embed(string text)`, returns
@@ -362,7 +525,7 @@ baseline by a margin larger than the run-to-run variance, **do not proceed to S1
 - Create `Services/ML/Embedding/NullTextEmbeddingProvider.cs`
 - **Create `Services/ML/Embedding/ITextTokenizer.cs` + implementation** — required only if S0 selects
   **Route A** (§2.4); under **Route B** tokenization lives inside the ONNX graph and no .NET
-  tokenizer type exists. **S0's output #6 decides which of these two file maps applies.**
+  tokenizer type exists. **S0's output 6 decides which of these two file maps applies.**
 - Modify `SmartStudyPlanner.csproj` — add `Microsoft.ML.OnnxRuntime`; **under Route A also add
   `Microsoft.ML.Tokenizers`, and check whether it forces a `Microsoft.ML` bump off the pinned
   3.0.1** **[F]** (the SentencePiece tokenizer work landed with ML.NET 4.0). A transitive bump of the
@@ -396,8 +559,20 @@ retrain.
 
 ## S3 — Confidence recalibration + dual-signal gate
 
-Closes Finding D (§1.6). **Must ship in the same release as S2** — S2 without S3 silently changes
-user-visible routing.
+Closes Finding D (§1.6). **Must ship in the same release as S2** (PD-4) — S2 without S3 silently
+changes user-visible routing.
+
+**PD-4 permits internal separation, not a partial ship.** S2 and S3 may be sequenced analytically:
+
+```text
+S2 measurement  →  new confidence distribution  →  S3 calibration / gate derivation
+                                                        ↓
+                                             ONE production release unit
+```
+
+That ordering is in fact necessary — the new distribution cannot be measured before the featurizer
+exists. What PD-4 forbids is the **production state** containing an uncalibrated S2-only
+intermediate. Work in whatever order the measurement requires; ship once.
 
 **File map:**
 - Modify `Services/ML/DefaultMlConfidencePolicy.cs` — threshold re-derived from S0's curve;
@@ -410,32 +585,48 @@ user-visible routing.
 confidence must fail a test. A gate whose pass cannot be distinguished from a broken gate is not
 evidence.
 
-## S4 — Model tiering and acquisition
+## S4 — Model tiering and delivery
+
+**Acquisition is no longer an open question.** PD-5 decides it: **bundled**, one build, **no
+first-run network download**, no CDN, no auto-update channel. What S4 must still solve is *how* an
+asset gets bundled in a project with no packaging pipeline (§1.8) — a mechanism question, not a
+policy one.
 
 **File map:**
 - Modify `Services/ML/LocalModelStorageProvider.cs` / `IModelStorageProvider.cs` — locate encoder assets
 - Create `Services/ML/Embedding/ExecutionProviderProbe.cs` — Tier 1 / Tier 2 detection
 - Modify `Views/` settings surface — tier display + Tier 2 opt-in toggle
-- Decide and document **acquisition**: bundled in installer vs. first-run side-load (owner call; see
-  Open Questions)
+- Delivery mechanism per the §11 owner decision — **must not** put the binary in git (R-9), **must
+  not** add a runtime network path (PD-5)
 
-**Exit criteria:** Tier 0 / 1 / 2 all exercised; Tier 2 passes CPU-parity check; tier is visible to
-the user; Tier 0 remains fully functional.
+**Size governance (PD-5).** The bundled package must stay under an **owner-defined maximum size cap**.
+The cap's value is **not yet set** (§11). If the package exceeds it, the ratified instruction is
+unambiguous: **stop.** Do not silently side-load, do not silently raise the cap, do not silently
+substitute another model — **reopen the owner decision.**
 
-## S5 — Difficulty head *(gated — do not start blind)*
+**Exit criteria:** Tier 0 / 1 / 2 all exercised; Tier 2 passes the CPU-parity check; tier is visible
+to the user; **Tier 0 remains fully functional with the asset deleted** (§2.3 — this is now a
+fault-tolerance test); packaged size recorded and compared against the cap.
 
-**Opens with a measurement, not with code:** count rows in `DifficultyLabelLogs` and re-read
-`Difficulty_ML_model_proposal.md` against that count. If the volume is insufficient, **stop and
-record the count** — that is a useful result and updates a document that currently says "no trigger
-applies."
+## S5 — Difficulty head *(gated twice — do not start blind)*
 
-If sufficient: second linear head on the same embedding, introduced behind `IDifficultyPredictor`
+**Gate 1 — owner approval (PD-2).** A shared encoder is **not** a licence to add heads. *"Do not
+automatically activate S5 or S6 merely because the shared encoder is accepted."* Each new prediction
+capability needs its own explicit owner approval, whatever the artifact count says.
+
+**Gate 2 — data volume.** This slice **opens with a measurement, not with code:** count rows in
+`DifficultyLabelLogs` and re-read `Difficulty_ML_model_proposal.md` against that count. If the volume
+is insufficient, **stop and record the count** — that is a useful result, and it updates a document
+that currently says "no trigger applies."
+
+Only if both gates pass: a second linear head on the same embedding, behind `IDifficultyPredictor`
 exactly as that proposal specifies, with confidence-gated fallback to `DefaultDifficultyKeywordParser`.
 
-## S6 — M9 temporal span head *(design only in this plan)*
+## S6 — M9 temporal span head *(design intent only)*
 
-Per §2.5. Requires its own plan. Listed so the shared-encoder design intent is recorded now rather
-than rediscovered later.
+Per §2.5. **Requires its own plan and its own owner approval** (PD-2 governance, as for S5). It is
+**not** folded into encoder adoption and is **not** activated by the encoder being accepted. Listed
+here only so the shared-encoder design intent is recorded now rather than rediscovered later.
 
 ---
 
@@ -446,6 +637,7 @@ on each of these and report blast radius before the corresponding slice:
 
 | Symbol | Slice | Expected risk **[I]** |
 |---|---|---|
+| *(none — docs only)* | S-SPEC, S0 | **NONE** — neither slice touches a symbol; `detect_changes` must report zero |
 | `TextClassifierModelManager.Predict` | S2 | **MEDIUM** — single consumer via `TextClassifierService` |
 | `TextClassifierModelManager.TrainAndSaveAsync` | S2 | **MEDIUM** — lifecycle; atomic swap must survive |
 | `IntentClassifierAdapter.Classify` | S3 | **HIGH** — user-visible routing + `QuickInputHint` string |
@@ -472,11 +664,15 @@ Applied to every slice S1 onward:
    no regression.** The last documented figure is **470 pass** (Epic 3 close, 2026-08-07) **[F]**;
    re-measure rather than assuming it, since this plan branches from a docs branch.
 3. `gitnexus_detect_changes()` before every commit — affected symbols must match the slice's file map.
-4. **Zero-model-file contract** — delete `%AppData%\SmartStudyPlanner\models\*`, launch, confirm
-   Dashboard + Analytics + Smart Add all function. This is the contract most at risk from this plan
-   and must be re-run at S2 and S4, not just once.
-5. **Latency budget** — Smart Add submit-to-populate must stay under **500 ms** on the floor
-   hardware profile, cold model already loaded. Measured, not assumed.
+4. **Zero-model-file contract — now a fault-tolerance test** (§2.3) — delete
+   `%AppData%\SmartStudyPlanner\models\*` **and the bundled encoder asset**, launch, confirm
+   Dashboard + Analytics + Smart Add all function on Tier 0. Under PD-5 the asset is expected to be
+   present, so this gate is deliberately deleting something the build put there. It is the contract
+   most at risk from this plan and must be re-run at S2 **and** S4, not once.
+5. **Latency budget** — Smart Add submit-to-populate must stay under **500 ms** on the **PD-10
+   reference class** (CPU EP), model already loaded. Measured, not assumed. The 500 ms figure stands;
+   the **measurement protocol** (warm/cold, percentile, sample count) is an open planning question
+   (§11) and must be written down in the S0 report before the number means anything.
 6. **Tag slow ML tests** `[Trait("Category", "ML")]` per existing convention **[F]** so
    `--filter "Category!=ML"` stays fast.
 7. CI green + PR (branch protection: `dev`/`main` are PR-only since 2026-08-09 **[F]**).
@@ -491,14 +687,21 @@ Explicit deferrals — none of these are started by this plan:
   span-tagging is preferred first.
 - **Windows AI APIs / Phi Silica / Aion Instruct / Foundry Local.** Ruled out permanently by the
   Windows 10 floor (§1.7).
-- **Fine-tuning the encoder.** PD-1 would permit it; §2.1 declines it deliberately.
+- **Fine-tuning the encoder — prohibited, not merely declined.** PD-1 guardrails 1 and 2 require
+  "frozen only" and "no fine-tuning in runtime or on-device". The first draft said PD-1 *would permit*
+  fine-tuning; **that is now wrong and is corrected.** This plan reads the guardrails conservatively:
+  the encoder is frozen, full stop. Offline developer-side fine-tuning producing a new bundled
+  artifact is *not* read as authorised by the runtime/on-device wording, and would need its own owner
+  decision.
 - **M8-B ML weight optimizer** (still awaiting matured `WeightChangeLog`).
 - **M8-C** StudyTime retrain on Focus telemetry.
 - **Cloud model storage.** `IModelStorageProvider` keeps the swap possible; nothing uses it.
 - **Epic 2 (LAN sync) and Epic 4 surfaces.** Untouched.
 - **Any Epic 3 decision** — G2, G3, D-G, D-H, D-J are not reopened.
-- **Model asset distribution mechanics** beyond the S4 decision point (no CDN, no auto-update
-  channel).
+- **Any model acquisition beyond bundling.** PD-5 authorises **no** CDN, **no** auto-update channel,
+  and **no** first-run download. Bundling is the only sanctioned delivery route.
+- **Building the installer / release pipeline itself.** §1.8 establishes it does not exist and is
+  deferred to post-Epic-2. This plan surfaces the dependency; it does not take on the work.
 
 ---
 
@@ -510,23 +713,35 @@ Explicit deferrals — none of these are started by this plan:
 | R-2 | S0 result is over-read from 3 of 5 classes | Per-class reporting mandated; caveat stated in the report, not just here |
 | R-3 | Threshold shift silently changes user-visible routing | S3 mandatory in the same release as S2; mutation test required |
 | R-4 | Shared `IMlConfidencePolicy` retunes M8-B by accident | Called out in §4; split the policy if derivations diverge |
-| R-5 | Install size creeps past 2 GB | int8 only; owner re-consult required before any fp16/larger variant |
+| R-5 | Bundled package exceeds the PD-5 size cap | int8 only; **stop and reopen the owner decision** — PD-5 forbids silently side-loading, raising the cap, or swapping models. Cap value still unset (§11) |
 | R-6 | DirectML accuracy bug on Intel iGPU | Tier 2 opt-in + CPU-parity check (§2.3) |
 | R-7 | Session lifetime mistake replicates the per-call `CreatePredictionEngine` pattern | S1 asserts single session construction |
 | R-8 | Zero-model-file contract breaks | Re-verified at S2 **and** S4 |
-| R-9 | `.gitignore` / repo bloat from model binaries | Model assets must never enter git; decide S4 acquisition path first |
-| R-10 | No workable .NET tokenizer for the winning encoder | S0 output #6 verifies the route per arm **before** S1; an arm without one is disqualified |
+| R-9 | ~250 MB of model binary lands in git because PD-5 says "bundled" | Model assets must never enter git. The §1.8 build-time-acquisition candidate reconciles bundling with this; the delivery mechanism is an owner decision (§11) and must be settled **before** S4 writes any packaging |
+| R-10 | No workable .NET tokenizer for the winning encoder | S0 output 6 verifies the route per arm **before** S1; an arm without one is disqualified |
 | R-11 | `Microsoft.ML.Tokenizers` forces a `Microsoft.ML` 3.0.1 → 4.x bump, touching M7 + M8-A | Report the bump as blast radius at S1; Route B (§2.4) avoids the dependency entirely |
-| R-12 | S0 latency measured off the .NET path clears a gate it did not test | Harness split mandated in S0; outputs 3/4/6 must come from the .NET console harness |
+| R-12 | S0 latency measured off the .NET path clears a gate it did not test | Harness split mandated in S0; outputs 3–6 must come from the .NET console harness on the PD-10 reference class |
+| R-13 | **PD-5 names an installer the repo does not have** (§1.8), and building one is deferred behind Epic 2 | Surfaced as a blocking owner decision (§11) rather than absorbed. S4 cannot write packaging against a pipeline that does not exist |
+| R-14 | Tier 0 rots because bundling makes it look unreachable | Tier 0 is redefined as a fault-tolerance state (§2.3) and its gate (§5.4) deliberately deletes a bundled asset |
+| R-15 | S0 measured only on the developer's machine, quietly becoming the product floor | PD-10 fixes the reference class; the report must name the actual machine used, and a dev-machine-only number is not an acceptable output |
+| R-16 | A head is added later on the strength of the shared encoder alone | PD-2 governance: artifact count ≠ capability count; every head needs its own owner approval (S5 gate 1, S6) |
 
 ---
 
 # 8. Owner checkpoints
 
-1. **Before S1** — ratify PD-1 and PD-2 (spec amendments). Blocking.
-2. **After S0** — accept or reject the pilot report. Blocking; kill criterion applies.
-3. **At S4** — decide model acquisition: bundled installer vs. first-run side-load.
-4. **Before S5** — review the `DifficultyLabelLogs` count against the deferred proposal's trigger.
+Round 1 is complete — PD-1 … PD-10 are ratified. What remains:
+
+1. ~~Ratify PD-1 and PD-2.~~ **Done 2026-08-24.** The *spec edit* (S-SPEC) is still unperformed and
+   still blocks S1.
+2. **Before scope freeze** — settle the two decisions in §11 (delivery mechanism, size-cap value).
+   Blocking: S4 cannot be planned without them, and R-13 cannot be closed.
+3. **After S0** — accept or reject the pilot report. Blocking; PD-3 gate, PD-9 winner criterion, kill
+   criterion applies. A null result ends the plan.
+4. ~~At S4, decide acquisition.~~ **Decided by PD-5: bundled.** Only the *mechanism* remains (§11).
+5. **Before S5** — approve the capability (PD-2 governance) **and** review the `DifficultyLabelLogs`
+   count against the deferred proposal's trigger. Two separate gates.
+6. **Before S6** — approve the capability and commission a separate plan.
 
 ---
 
@@ -540,6 +755,12 @@ concurrently, provided every arm reports against the identical split and the ide
 
 Card S0-C (.NET runtime characterisation) may run concurrently with S0-B — it needs the candidate
 model exports, not S0-B's accuracy results. Both depend on S0-A's split existing first.
+
+**S-SPEC is independent of all of them** and may be done at any point before S1; it touches only
+`docs/specs/ML_Heuristic_design.md`.
+
+**No card is dispatchable yet.** This plan is `draft` and not activated; the cards are written so the
+work is ready to hand out the moment it is.
 
 ## 9.1 Per-agent task cards
 
@@ -556,18 +777,25 @@ model exports, not S0-B's accuracy results. Both depend on S0-A's split existing
 - **Stop when:** baseline per-class P/R + confidence curve produced and committed.
 
 ### Card S0-B — encoder arms (accuracy)
-- **Mission:** run Arms A and B (and C if the owner opts in) through the S0-A harness for outputs 1, 2, 5.
+- **Mission:** run **Arms A and B only** (PD-8) through the S0-A harness for outputs 1, 2, 7.
 - **Scope:** `tools/ml-pilot/` only. Must consume S0-A's split verbatim — no re-splitting.
-- **Stop when:** all arms reported on identical accuracy metrics and confidence curves.
+- **Do not run Arm C.** It is a conditional extension, unlocked only by an explicit owner decision
+  after A and B are reported. Running it "while we're here" violates PD-8.
+- **Stop when:** both arms reported on identical accuracy metrics and confidence curves. If A and B
+  are indistinguishable, say so and stop — **do not force a winner** (PD-9).
 
 ### Card S0-C — .NET runtime characterisation
-- **Mission:** outputs **3, 4, 6** — cold-start load, per-inference latency, peak RSS, and the working
-  tokenization route — measured through `InferenceSession` + real tokenizer + `SdcaMaximumEntropy`.
+- **Mission:** outputs **3, 4, 5, 6** — cold-start load, per-inference latency, peak RSS, and the
+  working tokenization route — measured through `InferenceSession` + real tokenizer +
+  `SdcaMaximumEntropy`.
+- **Hardware:** the **PD-10 reference class**, CPU execution provider. **Name the actual machine in
+  the report.** A developer-machine-only number is not an acceptable output (R-15).
 - **Scope:** `tools/ml-pilot/dotnet/` only. Throwaway console app; touches nothing under
   `SmartStudyPlanner/`.
 - **Why separate from S0-B:** Python-measured latency does not transfer to the .NET path (R-12).
-- **Stop when:** every arm that survived S0-B has a verified tokenization route and a latency/RSS
-  figure from the floor hardware profile.
+- **Report RSS against PD-10's 8 GB**, and do not invent a pass/fail ceiling — measure first.
+- **Stop when:** every surviving arm has a verified tokenization route (PD-7) and load/latency/RSS
+  figures from the reference class.
 
 ### Card S1 — encoder seam
 - **Mission:** `ITextEmbeddingProvider` + ONNX implementation + null implementation. Zero behaviour change.
@@ -583,13 +811,35 @@ model exports, not S0-B's accuracy results. Both depend on S0-A's split existing
 
 ---
 
-# 10. Planning Decisions *(ADR-style — only those that materially change implementation)*
+# 10. Decisions *(ADR-style — owner-ratified)*
 
-### PD-1 — Amend `ML_Heuristic_design.md` §9: permit frozen neural encoders
+**All ten decisions below are ratified.** PD-1 … PD-7 were proposed in the first draft and ratified —
+two of them (PD-1, PD-5) in a **modified** form, recorded as such. PD-8 … PD-10 are new in round 1
+and originate with the owner. Ratifying these decisions does **not** activate the plan; §11 lists
+what still blocks scope freeze.
 
-**Decision.** Amend the "DO NOT introduce deep learning" clause to read, in substance: *no
-trained-on-device deep learning; frozen pre-trained encoders are permitted as featurizers behind an
-existing confidence gate, provided the decision layer remains a linear, locally-retrainable model.*
+### PD-1 — Amend `ML_Heuristic_design.md` §9: a narrow, guardrailed neural-encoder exception
+
+**Status:** **Ratified by the owner, 2026-08-24** (`edge-ai-neural-encoder-owner-decision-handoff.md`). **Ratified in modified form** — see below.
+
+**Decision (as ratified).** The general prohibition on deep learning **stays**. A narrowly scoped
+exception is added:
+
+> Frozen, pretrained neural encoders may be used as feature extractors / featurizers inside existing
+> prediction pipelines, provided the decision layer remains linear or deterministic and the existing
+> confidence / fallback and offline-first architecture is preserved.
+
+Subject to eight mandatory guardrails: (1) frozen only; (2) no fine-tuning at runtime or on-device;
+(3) feature extractor, not autonomous decision-maker; (4) the linear/deterministic decision layer
+remains authoritative; (5) confidence and fallback policy remain in force; (6) offline-first inference
+intact; (7) existing model/deployment limits still apply; (8) **no** general permission for model
+sprawl, generative SLMs, or autonomous deep-learning components.
+
+**Modified from the draft.** The first draft proposed *rewriting* the clause into a conditional
+permission. The owner instead **kept the prohibition and carved an exception under it**. The
+difference is not cosmetic: under the draft's wording the default was "permitted if conditions hold";
+under the ratified wording the default remains "prohibited", and the exception has to be argued for
+each time. The second is the more durable construction, and it is what S-SPEC (§3) implements.
 
 **Why it had to be made.** The clause is currently a flat prohibition. This plan's core proposal is a
 neural encoder. Proceeding without amending the spec would leave code contradicting a normative
@@ -606,10 +856,25 @@ current small-model landscape and now blocks the project's most valuable availab
 T+n, amend the directive explicitly and date the amendment. A spec that is quietly worked around
 stops being normative for everything else it says, not just the clause that was dodged.
 
-### PD-2 — Amend §10: count *models*, not *heads*
+### PD-2 — Amend §10: count *models*, not *heads* — with capability governance
 
-**Decision.** The "1–2 ML submodels maximum" cap counts **deployed model artifacts**, not prediction
-heads. One shared encoder with task-type, difficulty, and temporal heads counts as **one**.
+**Status:** **Ratified by the owner, 2026-08-24** (`edge-ai-neural-encoder-owner-decision-handoff.md`).
+
+**Decision (as ratified).** The "1–2 ML submodels maximum" cap counts **deployed model artifacts**,
+not prediction heads. One shared encoder with task-type, difficulty, and temporal heads counts as
+**one**.
+
+**Extended by the owner — two axes, not one:**
+
+| Axis | Governs |
+|---|---|
+| **Artifact count** | deployment, runtime, maintenance, asset surface |
+| **Capability / head count** | product scope and model responsibility |
+
+Heads are **not** unlimited. **Every new prediction capability requires explicit owner approval
+through its own proposal**, regardless of the artifact count. *"Do not use a shared encoder as a
+loophole to silently add arbitrary heads."* This is why S5 now has **two** gates and S6 requires its
+own plan and its own approval.
 
 **Why it had to be made.** §10's cap is real and worth keeping, but the multi-head design makes the
 count ambiguous — three heads on one encoder could be argued as one model or three. Left unresolved,
@@ -624,7 +889,21 @@ architecture makes the unit ambiguous, not after.
 
 ### PD-3 — S0 is a gate with a kill criterion, not a formality
 
-**Decision.** No production code before S0's report is accepted. A null result stops the plan.
+**Status:** **Ratified by the owner, 2026-08-24** (`edge-ai-neural-encoder-owner-decision-handoff.md`).
+
+**Decision (as ratified).** No production code before S0's report is accepted. A null result stops
+the plan.
+
+**Extended by the owner — what S0 is and is not asking.** S0 answers *"does the neural encoder show
+enough evidence of value on the real data that we should continue?"* It does **not** claim the
+dataset is mature enough to be the final production training/evaluation set. **The 3-of-5 class
+coverage is accepted for the pilot.** Dataset maturity is a separate ongoing workstream (§3.1) and is
+explicitly **not** a prerequisite for running S0 — *"do not make a perfectly mature dataset a
+prerequisite for running the initial pilot"*, and *"avoid treating perfect class balance as the
+goal"*.
+
+This resolves a tension the draft left implicit: §1.4's caveats read as reasons to hesitate. Ratified,
+they are reasons to **report carefully**, not to wait.
 
 **Why it had to be made.** The roadmap's **96.2%** figure is not a synthetic→real generalization
 number — the real rows were merged into training before it was measured (§1.4). Without S0 the
@@ -640,8 +919,15 @@ accuracy — `_merge_seed.py` is in the repo precisely because someone will need
 
 ### PD-4 — S2 and S3 ship together
 
-**Decision.** The featurizer swap and the confidence re-derivation are one release unit, and one
-agent task card.
+**Status:** **Ratified by the owner, 2026-08-24** (`edge-ai-neural-encoder-owner-decision-handoff.md`).
+
+**Decision (as ratified).** The featurizer swap and the confidence re-derivation are one **production
+release unit**, and one agent task card.
+
+**Clarified by the owner.** They may be separated *internally* — S2 measurement → new confidence
+distribution → S3 calibration → one release. What is forbidden is a **production state** containing
+an uncalibrated S2-only intermediate. The distinction matters because the internal ordering is not
+optional: the new score distribution cannot be measured before the featurizer exists.
 
 **Why it had to be made.** The 0.60 threshold is calibrated to the old featurizer's score
 distribution (§1.6). Shipping S2 alone would move the ML-vs-heuristic routing and the confidence
@@ -654,9 +940,29 @@ that does not mention it.
 distribution. Changing what produces the score without re-deriving the threshold is a behaviour
 change, however much it looks like a refactor.
 
-### PD-5 — One build with a runtime tier probe; not two installers
+### PD-5 — One build, bundled model, size cap, runtime tiering
 
-**Decision.** Reject the two-SKU proposal. Tier 0/1/2 resolved at runtime in a single build.
+**Status:** **Ratified by the owner, 2026-08-24** (`edge-ai-neural-encoder-owner-decision-handoff.md`). **Ratified as a superset of the draft** — see below.
+
+**Decision (as ratified).** One installer, one build. **The model is bundled**; no first-run network
+download, no CDN, no auto-update. Runtime capability determines the tier: Tier 0 heuristic-only,
+Tier 1 CPU (default), Tier 2 DirectML (optional). The bundled package must stay under an
+**owner-defined maximum size cap**; on breach, **stop and reopen the owner decision** — do not
+silently side-load, raise the cap, or substitute a model.
+
+**Broader than the draft's PD-5,** which decided only *one build vs. two SKUs*. The owner folded in
+the acquisition question the draft had left open (§11 Q1 of the first draft) and answered it:
+**bundled**. That is the decision that keeps the offline-first contract whole — the alternative
+would have introduced the ML layer's first network call.
+
+**Two consequences the ratification creates, both handled in this revision:**
+
+1. **Tier 0 changes meaning.** It is no longer "the user who didn't get the model" but "the asset is
+   missing or won't load" — a fault-tolerance state (§2.3). PD-5's *"Tier 0 must remain functional"*
+   keeps it alive; §5.4 now tests it by deleting a bundled file.
+2. **The mechanism does not exist.** §1.8: there is no installer, no packaging, no release pipeline,
+   and building one is deferred behind Epic 2. This is the one ratified decision whose premise the
+   repo cannot currently satisfy, and it is §11's first blocking question.
 
 **Why it had to be made.** The owner raised two installers as a way to serve both integrated-graphics
 and discrete-GPU users. It is a plausible option that would have doubled the release and QA surface
@@ -672,8 +978,14 @@ pattern was designed for exactly this.
 
 ### PD-6 — Withdraw the VN-MTEB justification; keep the recommendation
 
+**Status:** **Ratified by the owner, 2026-08-24** (`edge-ai-neural-encoder-owner-decision-handoff.md`). **Ratified exactly as proposed.**
+
 **Decision.** The RoPE-vs-APE argument is demoted from evidence to architectural prior, in writing
-(§2.2). The model recommendation is unchanged.
+(§2.2). The model recommendation is unchanged, and must be justified by project-specific S0 evidence.
+
+**Added by the owner:** *"Do not silently restore the withdrawn benchmark claim."* Recorded here
+because a withdrawn citation is exactly the kind of thing that reappears in a later summary written
+by someone who only read §2.1.
 
 **Why it had to be made.** The citation was load-bearing in the original recommendation and does not
 support the weight placed on it: EmbeddingGemma postdates the benchmark and is not in it.
@@ -687,9 +999,18 @@ the pilot makes it a finding.
 
 ### PD-7 — Tokenization route is measured in S0, not chosen now
 
-**Decision.** §2.4 names two routes (`Microsoft.ML.Tokenizers` vs. tokenization baked into the ONNX
-graph) and picks neither. S0 output #6 decides, per arm, by loading the vocab on net10.0.
-S1's file map is written conditionally on that outcome.
+**Status:** **Ratified by the owner, 2026-08-24** (`edge-ai-neural-encoder-owner-decision-handoff.md`). **Ratified and strengthened.**
+
+**Decision (as ratified).** §2.4 names two routes (`Microsoft.ML.Tokenizers` vs. tokenization baked
+into the ONNX graph) and picks neither. S0 output 6 decides, per arm, by loading the vocabulary on
+`net10.0`. S1's file map is conditional on that outcome. **A candidate with no workable, verified
+tokenization path on `net10.0` is rejected regardless of its offline accuracy** — tokenization
+viability is part of candidate *selection*, not a post-selection implementation detail.
+
+**Strengthened against the draft.** The draft, having said the route was S0's to decide, then named
+Route B as "the default recommendation" two sentences later. The owner's *"do not choose tokenization
+route ahead of evidence"* removes that. **The Route B recommendation is withdrawn** (§2.4). Naming a
+default is how a measurement quietly becomes a confirmation.
 
 **Why it had to be made.** `Microsoft.ML.OnnxRuntime` ships no tokenizer, so a string-in API needs
 one — and this was missing from the first draft of the S1 file map entirely. Choosing a route from
@@ -702,27 +1023,134 @@ criterion* for the encoder rather than a problem discovered after one was chosen
 
 **Experience for future development.** When adopting a model runtime, check what it does **not**
 ship. Inference engines routinely omit tokenization, and the gap between "string" and
-"`input_ids` tensor" is a dependency with its own version graph — not glue code.
+"`input_ids` tensor" is a dependency with its own version graph — not glue code. And when you have
+decided that something will be measured, do not also publish a favourite.
+
+### PD-8 — S0 runs two encoder arms, not three
+
+**Status:** **Ratified by the owner, 2026-08-24** (`edge-ai-neural-encoder-owner-decision-handoff.md`). **Owner-originated.**
+
+**Decision.** The initial S0 set is **baseline + Arm A (EmbeddingGemma-300M) + Arm B
+(`multilingual-e5-small`)**. Arm C (`hiieu/halong_embedding`) is **not** run initially; it is a
+conditional extension, reconsidered only if A and B together fail to produce evidence strong enough
+for a trustworthy decision.
+
+**Why it had to be made.** The draft listed Arm C as "optional" and asked the owner whether to include
+it. "Optional" is not a schedule: it leaves an agent to decide workload by taste, and the natural bias
+is to run everything. The owner converted a preference into a trigger.
+
+**What it's for.** It keeps S0 cheap enough that a null result is genuinely affordable — which is the
+whole basis of PD-3's kill criterion. A gate nobody wants to fail because it cost three arms of work
+is not a gate.
+
+**Experience for future development.** "Optional" in a plan is an unresolved decision wearing a
+costume. Say *when* the optional thing runs, or leave it out.
+
+### PD-9 — No fixed effect size; a multi-dimensional win criterion
+
+**Status:** **Ratified by the owner, 2026-08-24** (`edge-ai-neural-encoder-owner-decision-handoff.md`). **Owner-originated.**
+
+**Decision.** No arbitrary threshold such as "+2 F1 points". An arm wins only on evidence that is
+strong across **all** of: improvement beyond run-to-run variance; acceptable per-class results; usable
+confidence behaviour; latency and RSS within the PD-10 budget; a viable tokenization path. **If A and
+B cannot be reliably distinguished, do not force a winner** — decide instead whether more evidence is
+justified (conditional Arm C, data expansion) or whether to stop/defer.
+
+**Why it had to be made.** A single fixed number invites two failure modes at once: shipping a
+regression in latency because F1 cleared the bar, and killing a real improvement because it landed at
++1.8. The draft's kill criterion was already variance-based rather than fixed, so it survives
+unchanged — what was missing was the *win* test, which is a strictly higher bar than "not killed".
+
+**What it's for.** It makes "we could not tell A from B" a reportable, legitimate outcome instead of a
+gap someone fills with a coin flip and a paragraph of justification.
+
+**Experience for future development.** Define the win condition on every dimension the decision
+actually depends on, and give the tie an explicit branch. An unspecified tie always resolves in favour
+of whoever writes the report.
+
+### PD-10 — A named reference hardware class, measured on CPU
+
+**Status:** **Ratified by the owner, 2026-08-24** (`edge-ai-neural-encoder-owner-decision-handoff.md`). **Owner-originated.**
+
+**Decision.** S0 runtime measurements use a reference class representing a common student laptop:
+**10th-gen Intel Core mobile, mainstream U-series or equivalent; 8 GB RAM; integrated graphics;
+Windows 10 x64 at the supported floor.** The latency gate is measured on the **CPU execution
+provider**. A discrete GPU is **not** required for baseline viability; DirectML is an optional Tier 2
+capability evaluated separately. *"Do not benchmark only on the developer's machine and treat that as
+the product floor."*
+
+**Why it had to be made.** The draft said "floor hardware profile" and asked the owner which machine
+that meant. "Integrated graphics" spans about a decade of Intel parts; the phrase cannot be measured
+against, and R-1's outcome moves with it.
+
+**What it's for.** It turns the 500 ms budget and the RSS figure into claims that can be checked, and
+it forecloses the most common way a desktop performance gate goes wrong — being measured on the one
+machine in the project that is fastest.
+
+**Experience for future development.** A performance budget without a named machine is not a budget.
+Fix the measurement surface at planning time, while it is still cheap to argue about.
 
 ---
 
-# 11. Open questions for the owner
+# 11. What still blocks scope freeze
 
-1. **Model acquisition** — bundle the encoder in the installer (simple, +~250 MB download for every
-   user including Tier 0 users who will not use it), or side-load on first run (smaller base
-   installer, but adds a first-run acquisition path to a codebase whose ML layer currently has
-   **zero** network calls — and that contract is load-bearing)? **This is the one decision in the
-   plan that could compromise the offline-first contract, and it is deliberately left to the owner.**
-2. **Arm C** — include `hiieu/halong_embedding` as a Vietnamese-specialist datapoint in S0? Costs one
-   more pilot run, no production commitment.
-3. **Latency budget** — is 500 ms the right ceiling for Smart Add submit-to-populate, or tighter?
-4. **Floor hardware** — which specific machine should S0's latency numbers be measured on? "Integrated
-   graphics" spans roughly a decade of Intel parts, and the answer materially changes R-1's outcome.
+**Round 1 resolved four of the first draft's questions.** Acquisition policy → PD-5 (bundled). Arm C
+→ PD-8 (conditional, not initial). Floor hardware → PD-10 (reference class). Latency ceiling → the
+500 ms figure stands; only its measurement protocol was left open. **None of those are reopened here.**
+
+## 11.1 Genuinely blocking owner decisions — two
+
+**Q1. Delivery mechanism for a bundled asset, given that no installer exists (§1.8, R-13).**
+PD-5 ratifies *bundled into the installer*. The repo has no installer, no packaging, and no release
+pipeline, and building one is deferred to post-Epic-2. PD-5 cannot be implemented as written until
+this is answered. The realistic options **[R]**:
+
+| Option | Shape | Cost |
+|---|---|---|
+| **a** — build-time fetch, shipped in output | CI/publish downloads the encoder, `dotnet publish` folder is the deliverable | Satisfies every PD-5 clause; keeps git clean; **assumes** folder-handoff distribution, which no document verifies |
+| **b** — commit the asset (Git LFS) | Asset travels with the clone | Simplest to reason about; puts ~250 MB into repo history, conflicts with R-9 |
+| **c** — build the installer first | Pull post-Epic-2 productionisation forward | Correct in the long run; a whole workstream this plan does not scope |
+
+This is the decision that determines whether S4 is plannable at all. Option **a** is the
+recommendation, *conditional on confirming how the app currently reaches its users* — a question
+nobody has written down an answer to.
+
+**Q2. The PD-5 size cap value.** PD-5 mandates an owner-defined maximum and specifies what happens on
+breach (stop, reopen — do not silently side-load or raise it). **The number itself is unset.** Without
+it the cap cannot be enforced and R-5 has no trigger. §1.7's earlier "1–2 GB acceptable" is an
+install-size comment, not a cap, and should not be assumed to be one.
+
+## 11.2 Planning questions — not owner policy
+
+The owner's handoff explicitly declined to expand these and directed that they be surfaced as
+planning questions rather than silently decided. They are **not** blocking scope freeze; they are
+inputs to the slice that owns them.
+
+| # | Question | Owned by |
+|---|---|---|
+| P1 | Exact installer packaging mechanics, once Q1 picks a route | S4 |
+| P2 | Exact DirectML capability-probe mechanism | S4 |
+| P3 | Exact 500 ms measurement protocol — warm vs cold, percentile, sample count | S0 (must be written into the report) |
+| P4 | Peak-RSS ceiling, derived from S0's measurement against PD-10's 8 GB — **not** asserted in advance | S0 → S4 |
+
+**No further questions are raised.** The handoff asked for genuinely unresolved decisions only, and
+padding the list would make it less useful, not more.
 
 ---
 
 ## Lifecycle
 
-`draft` → awaiting owner approval of PD-1/PD-2 and the S0 gate. On approval, add a pointer row to
-[`../active/README.md`](../active/README.md) per the plans README. Record each shipped slice in
-[`../CHANGELOG.md`](../CHANGELOG.md). S0's results belong in `docs/reports/`, **not** in this file.
+`draft` — **owner review round 1 complete; PD-1 … PD-10 ratified; still not scope-frozen and not
+activated.**
+
+Path to activation:
+
+1. Owner answers §11.1 Q1 and Q2 → the last two blocking gaps close.
+2. Owner scope-freezes the plan and activates it. **Only then** does work begin.
+3. **S-SPEC** merges (may run in parallel with S0; blocks S1).
+4. **S0** runs and its report is accepted or rejected. Rejection ends the plan — that is a valid
+   outcome, not a failure.
+
+On activation, add a pointer row to [`../active/README.md`](../active/README.md) per the plans README.
+Record each shipped slice in [`../CHANGELOG.md`](../CHANGELOG.md). S0's results belong in
+`docs/reports/`, **not** in this file.
