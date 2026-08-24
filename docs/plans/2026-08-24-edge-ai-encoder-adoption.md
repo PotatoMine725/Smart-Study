@@ -4,10 +4,11 @@
 **Status:** `draft` — **NOT scope-frozen**; implementation NOT authorised ·
 **Implementation:** not started · **Branch at planning time:** `docs/epic3-state-sync` @ `9c747be`
 
-> **Owner review round 1 is complete.** Decisions **PD-1 … PD-10** below are **ratified by the
-> owner** and recorded in [`2026-08-24-edge-ai-encoder-owner-decision-handoff.md`](2026-08-24-edge-ai-encoder-owner-decision-handoff.md).
-> Ratification of the decisions is **not** activation of the plan: this document stays `draft`, it is
-> not scope-frozen, and no implementation begins from it. See §11 for what still blocks scope freeze.
+> **Owner review rounds 1 and 2 are complete.** Decisions **PD-1 … PD-10** are ratified and recorded
+> in [`2026-08-24-edge-ai-encoder-owner-decision-handoff.md`](2026-08-24-edge-ai-encoder-owner-decision-handoff.md);
+> **PD-11** (round 2, in session) defers the delivery mechanism and the size cap to S4.
+> Ratification is **not** activation: this document stays `draft` and no implementation begins from it.
+> **S-SPEC through S3 are ready to freeze; S4 is deliberately left open** — see §11.
 
 > **Reads with:** [`../specs/ML_Heuristic_design.md`](../specs/ML_Heuristic_design.md) (§4, §5.1, §9 —
 > two clauses of which this plan proposes to amend), [`../specs/system_roadmap.md`](../specs/system_roadmap.md)
@@ -231,7 +232,19 @@ every clause of PD-5 — bundled, no first-run download, offline at runtime, no 
 
 Offered as a candidate, **not adopted.** It assumes distribution is a `dotnet publish` folder handed
 to the group, and **that is not verified** — no document in the repo records how the app currently
-reaches its users. That unverified assumption is exactly why this stays an owner decision (§11).
+reaches its users.
+
+**Resolved by PD-11: this is decided at S4, not now.** S-SPEC through S3 need no delivery mechanism —
+S0's harness is throwaway and S1–S3 read a model file from wherever it sits. Deciding after S0 means
+deciding with the artifact's real packaged size in hand, which is also what the size cap needs. The
+option set is in §S4.
+
+**One design consequence lands earlier, regardless of which option wins** **[F]**:
+`LocalModelStorageProvider` resolves to `%AppData%\SmartStudyPlanner\models` and holds *trained*
+artifacts (`study_time.zip`, `meta.json`), creating the directory on construction. A bundled,
+read-only, pretrained encoder does not belong there — it belongs next to the executable
+(`AppContext.BaseDirectory`). **S1 therefore needs its own model-location resolver**, separate from
+`IModelStorageProvider`, whose default S4 fixes. **[R]**
 
 ---
 
@@ -455,6 +468,9 @@ S0.
    arm with no workable .NET tokenization path is **rejected regardless of its accuracy**.
 7. **Explicit limitations from the 3-of-5 class real dataset** — stated in the report itself, not
    only here.
+8. **Packaged on-disk size per arm** — the encoder file(s) plus tokenizer assets, as they would ship.
+   Added under PD-11: the PD-5 size cap cannot be set to a sensible number before this is measured,
+   and S4 is where both are settled.
 
 **Winner criterion (PD-9) — no fixed effect size.** No arbitrary threshold such as "+2 F1" is set. An
 arm wins only when the evidence is strong across *all* of:
@@ -531,6 +547,11 @@ once S0 is done.
   3.0.1** **[F]** (the SentencePiece tokenizer work landed with ML.NET 4.0). A transitive bump of the
   package M7 and M8-A both depend on is a blast radius that must be reported before it is taken.
 - Modify `Services/ServiceLocator.cs` — register provider
+- **Create a model-location resolver** — the encoder is a read-only asset next to the executable
+  (`AppContext.BaseDirectory`), **not** a trained artifact in `%AppData%`. Do **not** extend
+  `IModelStorageProvider` for it: that type is about writable trained models and creates its
+  directory on construction (§1.8). S4 fixes the resolver's default once PD-11's delivery decision is
+  made; S1 only needs it to be injectable.
 - Create `SmartStudyPlanner.Tests/Services/ML/OnnxTextEmbeddingProviderTests.cs`
 
 **Note:** `Microsoft.ML.OnnxTransformer`'s documentation still cites opset 7–10 support, which would
@@ -599,10 +620,23 @@ policy one.
 - Delivery mechanism per the §11 owner decision — **must not** put the binary in git (R-9), **must
   not** add a runtime network path (PD-5)
 
-**Size governance (PD-5).** The bundled package must stay under an **owner-defined maximum size cap**.
-The cap's value is **not yet set** (§11). If the package exceeds it, the ratified instruction is
-unambiguous: **stop.** Do not silently side-load, do not silently raise the cap, do not silently
-substitute another model — **reopen the owner decision.**
+**Delivery mechanism — decided here, per PD-11.** S4 opens by choosing from this set, with S0's
+measured packaged size (output 8) in hand **[R]**:
+
+| Option | Shape | Trade |
+|---|---|---|
+| **a** — build-time fetch, shipped in output | MSBuild target downloads the encoder at a **pinned revision** with SHA-256 verification; the `dotnet publish` folder is the deliverable | Satisfies every PD-5 clause; keeps git clean; needs no installer. Makes the build network-dependent (a first here) and needs a local cache. **Assumes folder-handoff distribution — unverified** |
+| **b** — Git LFS | Asset travels with the clone | Build stays offline, no new pipeline. ~250 MB per version against a small free quota with CI clones; no `.gitattributes` exists today **[F]**; unwinding LFS later is painful |
+| **c** — build the installer | Pull post-Epic-2 productionisation forward | PD-5 exactly as written, and the project gains the release story it lacks. A whole unscoped workstream, sequenced ahead of Epic 2 |
+| **d** — documented manual asset drop | Group places the file once; Tier 0 until then | Zero pipeline work. **This is side-loading, which PD-5 refuses** — choosing it means *amending* PD-5, not answering the question |
+
+Option **a** is the standing recommendation, conditional on confirming how the app actually reaches
+its users — a question no document in the repo answers.
+
+**Size governance (PD-5).** The bundled package must stay under an **owner-defined maximum size cap**,
+whose value is set here, informed by S0 output 8 (PD-11). If the package exceeds it, the ratified
+instruction is unambiguous: **stop.** Do not silently side-load, do not silently raise the cap, do not
+silently substitute another model — **reopen the owner decision.**
 
 **Exit criteria:** Tier 0 / 1 / 2 all exercised; Tier 2 passes the CPU-parity check; tier is visible
 to the user; **Tier 0 remains fully functional with the asset deleted** (§2.3 — this is now a
@@ -717,11 +751,11 @@ Explicit deferrals — none of these are started by this plan:
 | R-6 | DirectML accuracy bug on Intel iGPU | Tier 2 opt-in + CPU-parity check (§2.3) |
 | R-7 | Session lifetime mistake replicates the per-call `CreatePredictionEngine` pattern | S1 asserts single session construction |
 | R-8 | Zero-model-file contract breaks | Re-verified at S2 **and** S4 |
-| R-9 | ~250 MB of model binary lands in git because PD-5 says "bundled" | Model assets must never enter git. The §1.8 build-time-acquisition candidate reconciles bundling with this; the delivery mechanism is an owner decision (§11) and must be settled **before** S4 writes any packaging |
+| R-9 | ~250 MB of model binary lands in git because PD-5 says "bundled" | Model assets must never enter git. The §1.8 build-time-acquisition candidate reconciles bundling with this; the delivery mechanism is chosen at S4 from the §S4 option set (PD-11) and must be settled **before** S4 writes any packaging |
 | R-10 | No workable .NET tokenizer for the winning encoder | S0 output 6 verifies the route per arm **before** S1; an arm without one is disqualified |
 | R-11 | `Microsoft.ML.Tokenizers` forces a `Microsoft.ML` 3.0.1 → 4.x bump, touching M7 + M8-A | Report the bump as blast radius at S1; Route B (§2.4) avoids the dependency entirely |
 | R-12 | S0 latency measured off the .NET path clears a gate it did not test | Harness split mandated in S0; outputs 3–6 must come from the .NET console harness on the PD-10 reference class |
-| R-13 | **PD-5 names an installer the repo does not have** (§1.8), and building one is deferred behind Epic 2 | Surfaced as a blocking owner decision (§11) rather than absorbed. S4 cannot write packaging against a pipeline that does not exist |
+| R-13 | **PD-5 names an installer the repo does not have** (§1.8), and building one is deferred behind Epic 2 | Surfaced, not absorbed. PD-11 confines it to S4 and defers the choice until S0 has measured the artifact; S-SPEC–S3 are unaffected. Stays open on the books until S4 picks an option |
 | R-14 | Tier 0 rots because bundling makes it look unreachable | Tier 0 is redefined as a fault-tolerance state (§2.3) and its gate (§5.4) deliberately deletes a bundled asset |
 | R-15 | S0 measured only on the developer's machine, quietly becoming the product floor | PD-10 fixes the reference class; the report must name the actual machine used, and a dev-machine-only number is not an acceptable output |
 | R-16 | A head is added later on the strength of the shared encoder alone | PD-2 governance: artifact count ≠ capability count; every head needs its own owner approval (S5 gate 1, S6) |
@@ -734,8 +768,8 @@ Round 1 is complete — PD-1 … PD-10 are ratified. What remains:
 
 1. ~~Ratify PD-1 and PD-2.~~ **Done 2026-08-24.** The *spec edit* (S-SPEC) is still unperformed and
    still blocks S1.
-2. **Before scope freeze** — settle the two decisions in §11 (delivery mechanism, size-cap value).
-   Blocking: S4 cannot be planned without them, and R-13 cannot be closed.
+2. ~~Before scope freeze, settle delivery mechanism and size cap.~~ **Deferred to S4 by PD-11.**
+   Both are now S4 decisions taken with S0's measurements in hand.
 3. **After S0** — accept or reject the pilot report. Blocking; PD-3 gate, PD-9 winner criterion, kill
    criterion applies. A null result ends the plan.
 4. ~~At S4, decide acquisition.~~ **Decided by PD-5: bundled.** Only the *mechanism* remains (§11).
@@ -813,10 +847,10 @@ work is ready to hand out the moment it is.
 
 # 10. Decisions *(ADR-style — owner-ratified)*
 
-**All ten decisions below are ratified.** PD-1 … PD-7 were proposed in the first draft and ratified —
-two of them (PD-1, PD-5) in a **modified** form, recorded as such. PD-8 … PD-10 are new in round 1
-and originate with the owner. Ratifying these decisions does **not** activate the plan; §11 lists
-what still blocks scope freeze.
+**All eleven decisions below are ratified.** PD-1 … PD-7 were proposed in the first draft and
+ratified — two of them (PD-1, PD-5) in a **modified** form, recorded as such. PD-8 … PD-10 are new in
+round 1 and originate with the owner. PD-11 is round 2. Ratifying these decisions does **not** activate
+the plan; §11 records the freeze boundary.
 
 ### PD-1 — Amend `ML_Heuristic_design.md` §9: a narrow, guardrailed neural-encoder exception
 
@@ -1092,33 +1126,59 @@ Fix the measurement surface at planning time, while it is still cheap to argue a
 
 ---
 
-# 11. What still blocks scope freeze
+### PD-11 — Delivery mechanism and size cap are decided at S4, not now
+
+**Status:** **Ratified by the owner, 2026-08-24** (review round 2, in session). **Owner-originated
+choice from an offered option set.**
+
+**Decision.** The delivery mechanism for the bundled encoder (§1.8, R-13) and the PD-5 size-cap value
+are **deferred to S4**. S-SPEC through S3 are frozen and may proceed; S4's scope stays open until S0
+reports. The option set is recorded in §S4 so the deferral does not lose the analysis.
+
+**Why it had to be made.** The previous revision called this "blocking scope freeze". On inspection
+that was too broad: **only S4 depends on it.** S0's harness is throwaway, and S1–S3 read a model file
+from wherever it happens to sit. Meanwhile the two questions are coupled to a number nobody has yet —
+a size cap set before the artifact is measured is a guess, and PD-5's breach rule ("stop and reopen")
+only means something if the cap was derived from a real figure.
+
+**What it's for.** It stops the project from building a distribution pipeline for a model that PD-3's
+kill criterion may discard. Options **a**, **b** and **c** all commit real work to shipping an encoder
+that has not yet been shown to beat n-grams. Deferring costs nothing, because nothing before S4 needs
+the answer, and it buys the one input the decision actually lacks.
+
+**Experience for future development.** Before calling a decision "blocking", check *what* it blocks.
+A dependency that stops one late slice is not the same as one that stops the plan, and conflating them
+either stalls work that could proceed or forces a decision while the evidence for it is still missing.
+Ask which slice fails without the answer — often it is later than it first appears.
+
+---
+
+# 11. Freeze status
 
 **Round 1 resolved four of the first draft's questions.** Acquisition policy → PD-5 (bundled). Arm C
 → PD-8 (conditional, not initial). Floor hardware → PD-10 (reference class). Latency ceiling → the
-500 ms figure stands; only its measurement protocol was left open. **None of those are reopened here.**
+500 ms figure stands; only its measurement protocol was left open. **Round 2 resolved the last two**
+by deferring them to the slice that needs them (PD-11). **None are reopened here.**
 
-## 11.1 Genuinely blocking owner decisions — two
+## 11.1 Freeze boundary
 
-**Q1. Delivery mechanism for a bundled asset, given that no installer exists (§1.8, R-13).**
-PD-5 ratifies *bundled into the installer*. The repo has no installer, no packaging, and no release
-pipeline, and building one is deferred to post-Epic-2. PD-5 cannot be implemented as written until
-this is answered. The realistic options **[R]**:
-
-| Option | Shape | Cost |
+| Scope | Status | Gate |
 |---|---|---|
-| **a** — build-time fetch, shipped in output | CI/publish downloads the encoder, `dotnet publish` folder is the deliverable | Satisfies every PD-5 clause; keeps git clean; **assumes** folder-handoff distribution, which no document verifies |
-| **b** — commit the asset (Git LFS) | Asset travels with the clone | Simplest to reason about; puts ~250 MB into repo history, conflicts with R-9 |
-| **c** — build the installer first | Pull post-Epic-2 productionisation forward | Correct in the long run; a whole workstream this plan does not scope |
+| **S-SPEC** | **ready to freeze** | owner approves the §9/§10 replacement wording |
+| **S0** | **ready to freeze** | fully specified; blocked only on activation |
+| **S1 – S3** | **ready to freeze** | S-SPEC merged + S0 accepted |
+| **S4** | **deliberately open** (PD-11) | delivery mechanism + size cap chosen at S4 from the §S4 option set, using S0 output 8 |
+| **S5 – S6** | out of this plan's delivery | each needs its own owner approval (PD-2 governance) |
 
-This is the decision that determines whether S4 is plannable at all. Option **a** is the
-recommendation, *conditional on confirming how the app currently reaches its users* — a question
-nobody has written down an answer to.
+**Nothing blocks activation of S-SPEC through S3.** The plan can be scope-frozen to that boundary
+today; S4's scope is frozen later, when the evidence it depends on exists.
 
-**Q2. The PD-5 size cap value.** PD-5 mandates an owner-defined maximum and specifies what happens on
-breach (stop, reopen — do not silently side-load or raise it). **The number itself is unset.** Without
-it the cap cannot be enforced and R-5 has no trigger. §1.7's earlier "1–2 GB acceptable" is an
-install-size comment, not a cap, and should not be assumed to be one.
+Two items remain **open by design**, not unresolved:
+
+- **Delivery mechanism** — options **a**–**d** in §S4. Recommendation stands at **a** (build-time
+  fetch), conditional on confirming how the app reaches its users, which no document records.
+- **Size-cap value** — set at S4 from S0 output 8. §1.7's "1–2 GB acceptable" is an install-size
+  remark, not a cap, and must not be treated as one.
 
 ## 11.2 Planning questions — not owner policy
 
@@ -1145,11 +1205,13 @@ activated.**
 
 Path to activation:
 
-1. Owner answers §11.1 Q1 and Q2 → the last two blocking gaps close.
-2. Owner scope-freezes the plan and activates it. **Only then** does work begin.
-3. **S-SPEC** merges (may run in parallel with S0; blocks S1).
-4. **S0** runs and its report is accepted or rejected. Rejection ends the plan — that is a valid
+1. Owner scope-freezes **S-SPEC through S3** and activates them. Nothing else is outstanding.
+   **Only then** does work begin.
+2. **S-SPEC** merges (may run in parallel with S0; blocks S1).
+3. **S0** runs and its report is accepted or rejected. Rejection ends the plan — that is a valid
    outcome, not a failure.
+4. **S4's scope is frozen after S0**, when the delivery mechanism and size cap can be decided against
+   measured numbers (PD-11).
 
 On activation, add a pointer row to [`../active/README.md`](../active/README.md) per the plans README.
 Record each shipped slice in [`../CHANGELOG.md`](../CHANGELOG.md). S0's results belong in
