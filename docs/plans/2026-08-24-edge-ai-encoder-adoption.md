@@ -1,12 +1,13 @@
 # Edge AI — Neural Encoder Adoption for the Smart Parser (M8-A → M10)
 
-**Planning date:** 2026-08-24 · **Revised:** 2026-08-24 (owner review rounds 1–2) ·
+**Planning date:** 2026-08-24 · **Revised:** 2026-08-24 (owner review rounds 1–3) ·
 **Status:** **S-SPEC – S3 SCOPE-FROZEN and ACTIVE** (owner, 2026-08-24) · **S4 open by design (PD-11)** ·
 **S5 – S6 not activated** · **Branch at planning time:** `docs/epic3-state-sync` @ `9c747be`
 
-> **Owner review rounds 1 and 2 are complete.** Decisions **PD-1 … PD-10** are ratified and recorded
+> **Owner review rounds 1, 2 and 3 are complete.** Decisions **PD-1 … PD-10** are ratified and recorded
 > in [`2026-08-24-edge-ai-encoder-owner-decision-handoff.md`](2026-08-24-edge-ai-encoder-owner-decision-handoff.md);
-> **PD-11** (round 2, in session) defers the delivery mechanism and the size cap to S4.
+> **PD-11** (round 2) defers the delivery mechanism and the size cap to S4; **PD-12** (round 3)
+> ratifies the **500 ms** Smart Add latency ceiling.
 > **The owner scope-froze and activated S-SPEC through S3 on 2026-08-24**, approving the S-SPEC
 > wording verbatim. **S-SPEC is executed** (`d141db1`). **S4 remains open by design** (PD-11) and
 > **S5 – S6 are not activated** and each needs its own approval (PD-2 governance) — see §11.
@@ -716,9 +717,9 @@ Applied to every slice S1 onward:
    present, so this gate is deliberately deleting something the build put there. It is the contract
    most at risk from this plan and must be re-run at S2 **and** S4, not once.
 5. **Latency budget** — Smart Add submit-to-populate must stay under **500 ms** on the **PD-10
-   reference class** (CPU EP), model already loaded. Measured, not assumed. The 500 ms figure stands;
-   the **measurement protocol** (warm/cold, percentile, sample count) is an open planning question
-   (§11) and must be written down in the S0 report before the number means anything.
+   reference class** (CPU EP), model already loaded. **Ratified as PD-12**; measured, not assumed.
+   The **measurement protocol** (warm/cold, percentile, sample count) remains an open planning
+   question (§11.2 P3) and must be written down in the S0 report before the number means anything.
 6. **Tag slow ML tests** `[Trait("Category", "ML")]` per existing convention **[F]** so
    `--filter "Category!=ML"` stays fast.
 7. CI green + PR (branch protection: `dev`/`main` are PR-only since 2026-08-09 **[F]**).
@@ -859,10 +860,10 @@ model exports, not S0-B's accuracy results. Both depend on S0-A's split existing
 
 # 10. Decisions *(ADR-style — owner-ratified)*
 
-**All eleven decisions below are ratified.** PD-1 … PD-7 were proposed in the first draft and
+**All twelve decisions below are ratified.** PD-1 … PD-7 were proposed in the first draft and
 ratified — two of them (PD-1, PD-5) in a **modified** form, recorded as such. PD-8 … PD-10 are new in
-round 1 and originate with the owner. PD-11 is round 2. Ratifying these decisions does **not** activate
-the plan; §11 records the freeze boundary.
+round 1 and originate with the owner. **PD-11 is round 2; PD-12 is round 3.** The plan itself is
+**active** as of 2026-08-24; §11 records the freeze boundary.
 
 ### PD-1 — Amend `ML_Heuristic_design.md` §9: a narrow, guardrailed neural-encoder exception
 
@@ -1165,12 +1166,45 @@ Ask which slice fails without the answer — often it is later than it first app
 
 ---
 
+### PD-12 — The 500 ms latency ceiling is ratified; its measurement protocol is not
+
+**Status:** **Ratified by the owner, 2026-08-24** (review round 3, in session). **Owner confirmation
+of a figure this plan had been carrying unratified.**
+
+**Decision.** **500 ms** is the ratified ceiling for Smart Add submit-to-populate on the **PD-10
+reference class**, **CPU execution provider**, model already loaded. It is normative on an owner
+decision rather than on this plan's assertion that "the figure stands".
+
+**What PD-12 does *not* settle.** The **measurement protocol** — warm versus cold runs, the
+percentile reported, the sample count — remains an S0-owned planning question (§11.2 P3). The
+**boundary** is fixed: invocation of quick-parse to structured fields populated, tokenization and the
+encoder forward pass included, model load excluded. Only the statistics are open.
+
+**Why it had to be made.** The specification pass found that the owner's handoff never ratified
+500 ms — it *presupposed* it, listing *"exact 500 ms measurement protocol"* among details
+intentionally not expanded. A figure that arrives by presupposition is one nobody has actually
+agreed to. Left alone, the first S0 result that missed it would have reopened the question of whether
+500 ms was ever the target, at the exact moment the answer mattered most.
+
+**What it's for.** It makes the S0 latency result a **pass/fail gate** rather than a number in a
+report. Without a ratified ceiling, PD-9's fourth win dimension — *"latency and RSS fit the hardware
+budget"* — has no budget to test against, and an arm could win on accuracy while quietly failing the
+constraint that motivated the reference class in the first place.
+
+**Experience for future development.** A number that survives several review rounds without being
+contradicted is not thereby approved. **Silence is not ratification**, and the gap only becomes
+visible when the number is about to be enforced — which is the worst moment to find it. When a plan
+says a figure "stands", check whose decision it stands on.
+
+---
+
 # 11. Freeze status
 
 **Round 1 resolved four of the first draft's questions.** Acquisition policy → PD-5 (bundled). Arm C
 → PD-8 (conditional, not initial). Floor hardware → PD-10 (reference class). Latency ceiling → the
-500 ms figure stands; only its measurement protocol was left open. **Round 2 resolved the last two**
-by deferring them to the slice that needs them (PD-11). **None are reopened here.**
+500 ms figure was left standing but **unratified**, and **round 3 ratified it as PD-12**; only its
+measurement protocol stays open (P3). **Round 2 resolved the last two** by deferring them to the
+slice that needs them (PD-11). **None are reopened here.**
 
 ## 11.1 Freeze boundary
 
@@ -1214,8 +1248,10 @@ padding the list would make it less useful, not more.
 
 ## Lifecycle
 
-**ACTIVE** — owner review rounds 1–2 complete; PD-1 … PD-11 ratified; **S-SPEC through S3
-scope-frozen and activated 2026-08-24**.
+**ACTIVE** — owner review rounds 1–3 complete; PD-1 … PD-12 ratified; **S-SPEC through S3
+scope-frozen and activated 2026-08-24**. The specification
+[`../specs/2026-08-24-neural-encoder-smart-parser.md`](../specs/2026-08-24-neural-encoder-smart-parser.md)
+was **ratified the same day** and governs where it and this plan disagree.
 
 Remaining path:
 

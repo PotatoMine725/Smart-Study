@@ -1,20 +1,20 @@
 # Neural Encoder for the Smart Parser — Specification
 
-**Effective date:** 2026-08-24 · **Status:** `draft — awaiting owner ratification of this document`
+**Effective date:** 2026-08-24 · **Status:** **RATIFIED by the owner, 2026-08-24**
 **Derives from:** [`../plans/2026-08-24-edge-ai-encoder-adoption.md`](../plans/2026-08-24-edge-ai-encoder-adoption.md)
 (the approved proposal) and
 [`../plans/2026-08-24-edge-ai-encoder-owner-decision-handoff.md`](../plans/2026-08-24-edge-ai-encoder-owner-decision-handoff.md)
-(the owner's ratification record, PD-1 … PD-10; PD-11 ratified in session)
+(the owner's ratification record, PD-1 … PD-10; PD-11 and PD-12 ratified in session)
 **Amends nothing.** It reads with [`ML_Heuristic_design.md`](ML_Heuristic_design.md) §5.1, §6, §9.1,
 §10 (already amended 2026-08-24, `d141db1`) and [`system_roadmap.md`](system_roadmap.md) §8, §9.1.
 
-> ### This document is not a new gate
+> ### Ratified — and never a gate
 >
-> The decisions it records were **ratified on 2026-08-24**, and slices S-SPEC → S3 were
-> **scope-frozen and activated** on the same date. **S-SPEC is executed** (`d141db1`) and **S0 is
-> dispatchable now.** This specification *documents* what the implementation must satisfy; it does
-> **not** re-open, re-gate, or suspend that activation. Ratifying this document is a documentation
-> step, not an additional checkpoint. **S0 does not wait for it.**
+> **Ratified by the owner on 2026-08-24.** The decisions it records were ratified the same day, and
+> slices S-SPEC → S3 were **scope-frozen and activated** then too. **S-SPEC is executed**
+> (`d141db1`) and **S0 is dispatchable now.** Ratification confirmed that this text faithfully
+> expresses decisions already made — it did **not** re-open, re-gate, or suspend that activation,
+> and **S0 never waited on it.**
 >
 > Where this document and the proposal disagree, this document governs *what must be true*; the
 > proposal governs *why* and the execution plan will govern *how*.
@@ -446,12 +446,14 @@ the product floor. The exact machine used is an open parameter (§14) that the r
 **PRF-04 (MUST).** Smart Add **submit-to-populate MUST stay under 500 ms** on the PRF-01 reference
 class, on the CPU provider, with the model already loaded.
 
-> **Provenance of the 500 ms figure — read this before treating it as final.** The figure originates
-> in the proposal, and the owner's handoff **presupposes** it (listing *"exact 500 ms measurement
-> protocol"* among details intentionally not expanded) **without ratifying it as a decision**
-> **[fact]**. It is therefore the **standing ceiling** and is specified as normative here, but
-> **confirmation is listed as an open parameter** (§14). No value has been invented; none has been
-> silently upgraded to ratified either.
+> **Provenance of the 500 ms figure.** It originated in the proposal, and the owner's handoff
+> **presupposed** it — listing *"exact 500 ms measurement protocol"* among details intentionally not
+> expanded — **without ratifying it as a decision** **[fact]**. The specification pass surfaced that
+> gap, and **the owner ratified the figure explicitly on 2026-08-24 as PD-12**. It is now normative
+> on an owner decision rather than on an unchallenged assumption.
+>
+> **What PD-12 does not settle:** the measurement **statistics** stay open (PRF-06). A ceiling and
+> the protocol that makes it checkable are separate decisions; only the first is closed.
 
 **PRF-05 (MUST) — the measurement boundary is normative.** Latency is measured from **invocation of
 the quick-parse action to structured fields being populated**, and MUST include tokenization and the
@@ -460,12 +462,12 @@ encoder forward pass. Model load time is **excluded** from this boundary and rep
 BEH-12 forbids paying load cost per parse.
 
 **PRF-06 (open) — the measurement statistics are not yet fixed.** Warm versus cold runs, the
-percentile reported, and the sample count are an **open parameter owned by S0** (§14). Whatever is
-chosen MUST be written into the S0 report before any number is compared against PRF-04.
+percentile reported, and the sample count are an **open parameter owned by S0** (OP-3). Whatever is
+chosen MUST be written into the S0 report **before** any number is compared against PRF-04.
 
-> Splitting these two is deliberate. Fixing the **boundary** now is what makes later results
-> comparable across arms and across slices; fixing the **statistics** now would be inventing owner
-> policy the handoff declined to expand.
+> Splitting these two is deliberate, and PD-12 preserves the split rather than closing it. Fixing the
+> **boundary** is what makes results comparable across arms and across slices; fixing the
+> **statistics** is a planning question the owner declined to expand, and S0 owns it.
 
 ## 7.3 Memory
 
@@ -690,6 +692,7 @@ would be a decision this specification lost.
 | *Handoff — CPU-first* | CPU authoritative for viability; DirectML is acceleration | AST-07, PRF-02 |
 | *Handoff — multi-head future* | Heads gated, not auto-activated by encoder acceptance | REL-04, §1.3 |
 | *Handoff — not expanded* | Cap value, packaging mechanics, DirectML probe, 500 ms protocol left to planning | OP-1, OP-2, OP-3, OP-12 |
+| **PD-12** | The 500 ms Smart Add latency ceiling is ratified; the measurement protocol stays S0's | PRF-04, PRF-05, PRF-06, OP-2 (resolved), OP-3 |
 | *Owner direction 2026-08-24* | Conflicting documents reconciled against this spec; this spec governs where they disagree | §15 (DOC-01 resolved), DOC-03, DOC-04 |
 
 ---
@@ -723,13 +726,15 @@ revision.
 
 # 14. Open Parameters
 
-Genuinely unresolved inputs only. **None of these has been silently assigned a value.**
+Genuinely unresolved inputs. **No value here has been silently assigned.** An entry that gets
+resolved is **retained with its outcome** rather than deleted, so identifiers stay stable and the
+record shows what closed, when, and by whose decision.
 
 | # | Parameter | State | Owner | Must be fixed before |
 |---|---|---|---|---|
 | **OP-1** | **Package/model size cap value** | **Unset.** The "1–2 GB acceptable" remark is an install-size preference, not a cap **[fact]** | **Owner** | S4 implements packaging (AST-04, AC-20) |
-| **OP-2** | **Confirmation of 500 ms as the ratified latency ceiling** | Standing ceiling; **presupposed by the owner handoff, not explicitly ratified** **[fact]** | **Owner** | The S0 report's latency result is used as a pass/fail gate (PRF-04) |
-| **OP-3** | **Latency measurement statistics** — warm/cold, percentile, sample count | Open by decision; the *boundary* is already fixed (PRF-05) | S0 | Any number is compared against OP-2 (PRF-06) |
+| **OP-2** | ~~Confirmation of 500 ms as the ratified latency ceiling~~ | ✅ **RESOLVED 2026-08-24 — ratified as PD-12.** The ceiling is normative on an owner decision, no longer on a presupposition | — | — |
+| **OP-3** | **Latency measurement statistics** — warm/cold, percentile, sample count | Open by decision; the *boundary* is fixed (PRF-05) and the *ceiling* is ratified (PD-12) — only the statistics remain | S0 | Any number is compared against the PRF-04 ceiling (PRF-06) |
 | **OP-4** | **Peak-memory ceiling** | Not asserted; to be derived from S0's measurement against the 8 GB budget | S0 → S4 | S4 (PRF-08) |
 | **OP-5** | **The exact reference machine used for measurement** | Class is fixed (PRF-01); the specific machine is not | S0 | S0 runs; must be named in the report (EVA-10, PRF-03) |
 | **OP-6** | **Delivery mechanism for the bundled asset** | **Deferred to S4 by ratified decision.** Policy is settled (bundled, no runtime acquisition); the *mechanism* is not. The option set is recorded in the plan's §S4 | **Owner**, at S4 | S4 writes any packaging (AST-02) |
@@ -741,8 +746,9 @@ Genuinely unresolved inputs only. **None of these has been silently assigned a v
 | **OP-12** | Installer packaging mechanics; DirectML capability-probe mechanism | Planning questions the owner declined to expand; **not owner policy** | S4 | S4 implementation |
 
 **Not open:** the acquisition **policy** (bundled — settled), the arm set for the initial experiment
-(baseline + A + B — settled), the reference hardware **class** (settled), the win criterion's shape
-(settled), and the guardrails of §3.1 (settled).
+(baseline + A + B — settled), the reference hardware **class** (settled), the **500 ms latency
+ceiling** (ratified — PD-12), the win criterion's shape (settled), and the guardrails of §3.1
+(settled).
 
 ---
 
@@ -772,15 +778,15 @@ implementation**. Each is an owner-approved edit in its own right.
 
 ## Status & lifecycle
 
-**`draft` — awaiting owner ratification of this document.** Ratification confirms that this text
-faithfully expresses decisions already made; it is **not** a new gate and does **not** hold S0
-(see the note at the top).
+**RATIFIED by the owner, 2026-08-24.** Ratification confirmed that this text faithfully expresses
+decisions already made; it was **not** a gate and did **not** hold S0 (see the note at the top).
 
 Sequence from here:
 
-1. Owner reviews and ratifies this specification.
-2. **S0 runs** — already dispatchable — and its report is accepted or rejected. Rejection ends the
-   initiative; that is a valid outcome.
+1. ~~Owner reviews and ratifies this specification.~~ **Done 2026-08-24**, together with **PD-12**
+   (the 500 ms ceiling).
+2. **S0 runs** — dispatchable now — and its report is accepted or rejected. **This is the next
+   action.** Rejection ends the initiative; that is a valid outcome.
 3. On acceptance, the execution plan for S1 and S2+S3 is written against this contract.
 4. **S4's parameters** (OP-1, OP-6) are decided at the S4 owner checkpoint with S0's measurements in
    hand.
