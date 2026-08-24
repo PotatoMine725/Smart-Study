@@ -1,14 +1,15 @@
 # Edge AI — Neural Encoder Adoption for the Smart Parser (M8-A → M10)
 
-**Planning date:** 2026-08-24 · **Revised:** 2026-08-24 (owner review round 1) ·
-**Status:** `draft` — **NOT scope-frozen**; implementation NOT authorised ·
-**Implementation:** not started · **Branch at planning time:** `docs/epic3-state-sync` @ `9c747be`
+**Planning date:** 2026-08-24 · **Revised:** 2026-08-24 (owner review rounds 1–2) ·
+**Status:** **S-SPEC – S3 SCOPE-FROZEN and ACTIVE** (owner, 2026-08-24) · **S4 open by design (PD-11)** ·
+**S5 – S6 not activated** · **Branch at planning time:** `docs/epic3-state-sync` @ `9c747be`
 
 > **Owner review rounds 1 and 2 are complete.** Decisions **PD-1 … PD-10** are ratified and recorded
 > in [`2026-08-24-edge-ai-encoder-owner-decision-handoff.md`](2026-08-24-edge-ai-encoder-owner-decision-handoff.md);
 > **PD-11** (round 2, in session) defers the delivery mechanism and the size cap to S4.
-> Ratification is **not** activation: this document stays `draft` and no implementation begins from it.
-> **S-SPEC through S3 are ready to freeze; S4 is deliberately left open** — see §11.
+> **The owner scope-froze and activated S-SPEC through S3 on 2026-08-24**, approving the S-SPEC
+> wording verbatim. **S-SPEC is executed** (`d141db1`). **S4 remains open by design** (PD-11) and
+> **S5 – S6 are not activated** and each needs its own approval (PD-2 governance) — see §11.
 
 > **Reads with:** [`../specs/ML_Heuristic_design.md`](../specs/ML_Heuristic_design.md) (§4, §5.1, §9 —
 > two clauses of which this plan proposes to amend), [`../specs/system_roadmap.md`](../specs/system_roadmap.md)
@@ -386,16 +387,27 @@ reference other tasks. Not the default path, and not in this plan.
 # 3. Slices
 
 Each slice is one shippable commit. **S0 is a hard gate: no production code is written until S0's
-report is accepted** (PD-3). **S-SPEC** is a prerequisite for S1 only — it does not gate S0.
+report is accepted** (PD-3). **S-SPEC** was a prerequisite for S1 only — it did not gate S0, and it
+is now done.
 
-## S-SPEC — Amend `ML_Heuristic_design.md` *(docs-only; prerequisite for S1)*
+## S-SPEC — Amend `ML_Heuristic_design.md` — **EXECUTED 2026-08-24 (`d141db1`)**
 
-PD-1 and PD-2 are ratified, but **the spec still says the opposite**, and the owner's handoff is
+PD-1 and PD-2 were ratified while **the spec still said the opposite**, and the owner's handoff was
 explicit: *"Update `ML_Heuristic_design.md` explicitly rather than silently working around the old
-prohibition."* Until this merges, any S1 code contradicts a normative document.
+prohibition."* Until it merged, any S1 code would have contradicted a normative document.
 
-**This slice has not been executed.** The proposed replacement text is written out here so the owner
-can approve the wording itself, not just the intent.
+**Owner approved the wording verbatim on 2026-08-24 and the amendment is committed.** What shipped,
+against the proposal below:
+
+- **§9** keeps the prohibition and gains **§9.1**, the narrow exception, with all eight guardrails.
+  The `DO NOT: introduce deep learning` bullet was **not** softened — it now points at §9.1, so the
+  default stays *prohibited* and anything outside those terms is a new owner decision.
+- **§10** gains **"Unit of the cap"**: artifacts, not heads; the two governance axes; and the
+  requirement that each new capability carry its own owner approval.
+- Both amendments are dated and link back to this plan, so the derivation is recoverable from the
+  spec rather than only from here.
+
+**S1 is unblocked.** The text below is retained as the record of what was approved.
 
 **File map:** `docs/specs/ML_Heuristic_design.md` only.
 
@@ -766,8 +778,8 @@ Explicit deferrals — none of these are started by this plan:
 
 Round 1 is complete — PD-1 … PD-10 are ratified. What remains:
 
-1. ~~Ratify PD-1 and PD-2.~~ **Done 2026-08-24.** The *spec edit* (S-SPEC) is still unperformed and
-   still blocks S1.
+1. ~~Ratify PD-1 and PD-2.~~ **Done 2026-08-24.** ~~The spec edit still blocks S1.~~ **S-SPEC
+   executed 2026-08-24 (`d141db1`); S1 unblocked.**
 2. ~~Before scope freeze, settle delivery mechanism and size cap.~~ **Deferred to S4 by PD-11.**
    Both are now S4 decisions taken with S0's measurements in hand.
 3. **After S0** — accept or reject the pilot report. Blocking; PD-3 gate, PD-9 winner criterion, kill
@@ -793,8 +805,8 @@ model exports, not S0-B's accuracy results. Both depend on S0-A's split existing
 **S-SPEC is independent of all of them** and may be done at any point before S1; it touches only
 `docs/specs/ML_Heuristic_design.md`.
 
-**No card is dispatchable yet.** This plan is `draft` and not activated; the cards are written so the
-work is ready to hand out the moment it is.
+**Cards S0-A, S0-B and S0-C are dispatchable now** — S-SPEC through S3 are frozen and activated
+(2026-08-24). **Cards S1 and S2+S3 are not**: they wait on S0's report being accepted (PD-3).
 
 ## 9.1 Per-agent task cards
 
@@ -1164,14 +1176,16 @@ by deferring them to the slice that needs them (PD-11). **None are reopened here
 
 | Scope | Status | Gate |
 |---|---|---|
-| **S-SPEC** | **ready to freeze** | owner approves the §9/§10 replacement wording |
-| **S0** | **ready to freeze** | fully specified; blocked only on activation |
-| **S1 – S3** | **ready to freeze** | S-SPEC merged + S0 accepted |
-| **S4** | **deliberately open** (PD-11) | delivery mechanism + size cap chosen at S4 from the §S4 option set, using S0 output 8 |
-| **S5 – S6** | out of this plan's delivery | each needs its own owner approval (PD-2 governance) |
+| **S-SPEC** | ✅ **EXECUTED** 2026-08-24 (`d141db1`) | — |
+| **S0** | 🔒 **FROZEN + ACTIVE** — not started | none; ready to run |
+| **S1 – S3** | 🔒 **FROZEN + ACTIVE** — not started | S0 accepted (PD-3 gate + PD-9 winner criterion) |
+| **S4** | **open by design** (PD-11) | delivery mechanism + size cap chosen at S4 from the §S4 option set, using S0 output 8 |
+| **S5 – S6** | **not activated** | each needs its own owner approval (PD-2 governance) |
 
-**Nothing blocks activation of S-SPEC through S3.** The plan can be scope-frozen to that boundary
-today; S4's scope is frozen later, when the evidence it depends on exists.
+**The frozen boundary is S-SPEC → S3.** Scope inside it is locked; changing it requires a new owner
+decision, not an edit. S4's scope is frozen later, when the evidence it depends on exists.
+
+**Next action is S0** — nothing gates it. Its report decides whether S1–S3 ever run.
 
 Two items remain **open by design**, not unresolved:
 
@@ -1200,19 +1214,21 @@ padding the list would make it less useful, not more.
 
 ## Lifecycle
 
-`draft` — **owner review round 1 complete; PD-1 … PD-10 ratified; still not scope-frozen and not
-activated.**
+**ACTIVE** — owner review rounds 1–2 complete; PD-1 … PD-11 ratified; **S-SPEC through S3
+scope-frozen and activated 2026-08-24**.
 
-Path to activation:
+Remaining path:
 
-1. Owner scope-freezes **S-SPEC through S3** and activates them. Nothing else is outstanding.
-   **Only then** does work begin.
-2. **S-SPEC** merges (may run in parallel with S0; blocks S1).
-3. **S0** runs and its report is accepted or rejected. Rejection ends the plan — that is a valid
-   outcome, not a failure.
-4. **S4's scope is frozen after S0**, when the delivery mechanism and size cap can be decided against
+1. ~~Owner scope-freezes and activates S-SPEC through S3.~~ **Done 2026-08-24.**
+2. ~~**S-SPEC** merges (blocks S1).~~ **Done — `d141db1`.**
+3. **S0 runs** and its report is accepted or rejected. **This is the next action.** Rejection ends the
+   plan — a valid outcome, not a failure.
+4. **S1 – S3** proceed only on acceptance, and ship as **two** units: S1, then S2+S3 together (PD-4).
+5. **S4's scope is frozen after S0**, when the delivery mechanism and size cap can be decided against
    measured numbers (PD-11).
 
-On activation, add a pointer row to [`../active/README.md`](../active/README.md) per the plans README.
-Record each shipped slice in [`../CHANGELOG.md`](../CHANGELOG.md). S0's results belong in
-`docs/reports/`, **not** in this file.
+Now that the plan is active, it takes a pointer row in [`../active/README.md`](../active/README.md)
+per the plans README. Record each shipped slice in [`../CHANGELOG.md`](../CHANGELOG.md). S0's results
+belong in `docs/reports/`, **not** in this file.
+
+

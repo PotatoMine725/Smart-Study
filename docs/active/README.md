@@ -12,7 +12,9 @@
 **487**. See `docs/CHANGELOG.md`, the [gate closure](../reports/2026-08-19-epic3-manual-gate-closure.md),
 and the [closing note](../reports/2026-08-07-epic3-closing-note.md).
 
-**Nothing is in progress right now.** Both rows below are queued/proposed, not being worked.
+**One effort is in progress: the edge-AI encoder adoption** — scope-frozen and activated
+2026-08-24 for S-SPEC through S3, with S-SPEC already executed and **S0 the next action**. The other
+two rows are queued/proposed, not being worked.
 
 *Superseded 2026-08-19 (kept for history):* the previous banner said *"Epic 3 (SOE) is next"*, which
 was true when written on 2026-08-02. The order it cited still holds — the
@@ -23,10 +25,11 @@ With E1 and E3 both closed, the next epic in that sequence is the **LAN-sync epi
 Epic 3 optimizer into production, still unscheduled — could reasonably come first. That call is the
 owner's and has not been made.
 
-## Current (2026-08-20)
+## Current (2026-08-24)
 
 | Work | Plan | State |
 |---|---|---|
+| **Edge AI — neural encoder for the Smart Parser (M8-A)** | [`../plans/2026-08-24-edge-ai-encoder-adoption.md`](../plans/2026-08-24-edge-ai-encoder-adoption.md) | **ACTIVE** — S-SPEC–S3 scope-frozen and activated 2026-08-24. **S-SPEC executed** (`d141db1`): `ML_Heuristic_design.md` gains §9.1 (narrow frozen-encoder exception, eight guardrails) and §10 "Unit of the cap" (artifacts, not heads), under PD-1/PD-2. **Next: S0**, the offline pilot — a hard gate with a kill criterion; **a null result ends the plan**. S4 left open by design (PD-11: delivery mechanism + size cap decided there, from S0's measurements); S5–S6 not activated, each needs its own owner approval. Owner decisions: [`../plans/2026-08-24-edge-ai-encoder-owner-decision-handoff.md`](../plans/2026-08-24-edge-ai-encoder-owner-decision-handoff.md) |
 | **Analytics two-section redesign** | [`../plans/2026-07-20-analytics-two-section-redesign.md`](../plans/2026-07-20-analytics-two-section-redesign.md) | QUEUED — design brief, **plus a delivered implementation package** (2026-08-02) now under version control at [`../assets/analytics-ui-package/`](../assets/analytics-ui-package/). **Not integrated**; no code merged. Phase 3 unlocked, not started. *Known gap: the package README cites an interactive mockup `Analytics Redesign Proposal.dc.html` that is not in the repository.* |
 | **UI fidelity + mobile-ready polish** | [`../plans/2026-07-05-ui-mobile-ready-polish.md`](../plans/2026-07-05-ui-mobile-ready-polish.md) | PROPOSED, on `dev` — `ui_rf` was adopted as the tested trunk and merged (PR #49, 2026-07-26), so the plan is no longer branch-scoped; it remains unimplemented |
 
