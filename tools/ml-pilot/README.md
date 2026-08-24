@@ -55,9 +55,24 @@ encoder forward pass, **excluding** model load. Only the statistics below are S0
 | **Compared against the 500 ms ceiling** | **p95** | PRF-04 is a user-experience ceiling on an explicit submit. p50 lets a fifth of submits breach it unreported |
 | **Outlier handling** | **None removed.** No trimming, no winsorising, no "excluding the first run" beyond the declared warm-up | Discarding the tail of a latency distribution is precisely how a ceiling gets cleared that was never tested. `max` is reported so the tail stays visible |
 | **Whole-run invalidation** | A run may be discarded **only in its entirety**, only for a *named, externally observed* cause (e.g. a build running concurrently), and the discard is **recorded in the report with its reason** | Prevents per-sample cherry-picking while still allowing an honestly contaminated run to be redone |
-| **Inputs** | Drawn from the committed DAT-05 fixture set (`datasheets/vn_input_fixtures.csv`), cycled deterministically across the 200 iterations, `empty` and `pathological` categories **included** | Measuring one short string would report a latency the product never sees. Including the pathological row keeps the tail honest |
+| **Inputs** | Drawn from the committed DAT-05 fixture set (`datasheets/vn_input_fixtures.csv`), cycled deterministically across the 200 iterations, over the **four realistic categories** (`diacritics`, `stripped`, `runtogether`, `abbrev`). `empty` and `pathological` are measured too but reported as **named cases**, not blended into the percentile — **amended 2026-08-25, see below** | Measuring one short string would report a latency the product never sees |
 | **Provider** | **CPU execution provider only** (PRF-02, AST-07) | DirectML is acceleration; it must not be a precondition for meeting §7 |
 | **Machine** | **Named in the report** — model, CPU, RAM, OS build (EVA-10) | PRF-03: a developer-machine-only number is not an acceptable output. See §4 |
+
+> **Amendment, 2026-08-25 — the latency input set (WP-0.2).** As first written, the `Inputs` rule fed
+> all six fixture categories into the reported percentile. With the set now built, that would put
+> three pathological rows (2 040 / 5 269 / 20 159 characters) at roughly 8 % of a 200-sample run —
+> landing exactly on the p95 and making the ceiling comparison a report on a 20 000-character input
+> that no user types. The fix is to report the realistic distribution as a distribution and the
+> extremes as **named cases**, both of them, rather than to drop the extremes or to let them
+> impersonate the typical submit.
+>
+> **Made before any latency number was measured**, which is the only condition under which a
+> protocol may be changed at all. Both the amendment and its reason are carried into the report
+> (PRF-06, EVA-11).
+>
+> `empty` and `pathological` are still measured and still reported — losing them would hide the
+> tail, and the pathological row is the one that would expose a missing input bound.
 
 **Cold-start load time (output 3)** is measured as a separate quantity: process start → the
 `InferenceSession` being constructed and ready to serve its first inference. Reported as the
