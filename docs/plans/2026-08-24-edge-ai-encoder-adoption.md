@@ -637,7 +637,7 @@ on each of these and report blast radius before the corresponding slice:
 
 | Symbol | Slice | Expected risk **[I]** |
 |---|---|---|
-| *(none — docs only)* | S-SPEC, S0 | **NONE** — neither slice touches a symbol; `detect_changes` must report zero |
+| *(no code symbols)* | S-SPEC, S0 | **NONE** — but `detect_changes` will **not** report zero: this repo's graph indexes markdown headings as `Section:` symbols, so a docs-only change fires them (37 did on the 2026-08-24 revision of this file). The gate is **zero code symbols and zero affected processes**, not an empty result |
 | `TextClassifierModelManager.Predict` | S2 | **MEDIUM** — single consumer via `TextClassifierService` |
 | `TextClassifierModelManager.TrainAndSaveAsync` | S2 | **MEDIUM** — lifecycle; atomic swap must survive |
 | `IntentClassifierAdapter.Classify` | S3 | **HIGH** — user-visible routing + `QuickInputHint` string |
