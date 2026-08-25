@@ -1,5 +1,20 @@
 # Owner Decision Handoff — Edge AI Neural Encoder Proposal
 
+> **Historical record — added 2026-08-25.** This is the **round-1 ratification record**, preserved as
+> written on 2026-08-24. Its "Current Status" section below (*proposal is a draft; not scope-frozen;
+> implementation not started*) was **already superseded on 2026-08-24** by review rounds 2–3 and the
+> owner's scope-freeze — the execution plan's §2.2 **D-3** ruled on exactly that, so a reader hitting
+> it should not stall.
+>
+> **The initiative has since STOPPED at S0** (owner ruling, 2026-08-25, EVA-16 kill criterion). S1–S4
+> were cancelled and no production code was written. **The decisions ratified here — PD-1 … PD-10 —
+> are not withdrawn**, `ML_Heuristic_design.md` §9.1 included; they were simply never exercised past
+> the S0 gate. Nothing below is rewritten.
+>
+> Outcome: [`../reports/2026-08-25-encoder-pilot.md`](../reports/2026-08-25-encoder-pilot.md) ·
+> Proposal (`stopped_at_s0`): [`2026-08-24-edge-ai-encoder-adoption.md`](2026-08-24-edge-ai-encoder-adoption.md) ·
+> Lessons: [`../knowledge/ml-experimentation.md`](../knowledge/ml-experimentation.md)
+
 ## Purpose
 
 This document records the owner's decisions made during the review of:

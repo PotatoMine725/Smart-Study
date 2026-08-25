@@ -1,8 +1,33 @@
 # Edge AI — Neural Encoder Adoption for the Smart Parser (M8-A → M10)
 
 **Planning date:** 2026-08-24 · **Revised:** 2026-08-24 (owner review rounds 1–3) ·
-**Status:** **S-SPEC – S3 SCOPE-FROZEN and ACTIVE** (owner, 2026-08-24) · **S4 open by design (PD-11)** ·
-**S5 – S6 not activated** · **Branch at planning time:** `docs/epic3-state-sync` @ `9c747be`
+**Lifecycle:** **`stopped_at_s0`** (owner ruling, 2026-08-25)
+
+> ## Closure banner — read before the rest of this document
+>
+> **This initiative STOPPED at S0 on 2026-08-25.** S0 ran, the **EVA-16 kill criterion fired**
+> — neither candidate encoder improved macro-F1 over the shipped n-gram baseline; both scored
+> **below** it — and the owner accepted that result. **S1–S4 were cancelled, not entered. No
+> production code was written and none will be.**
+>
+> - **Evidence + CP1 ruling:** [`../reports/2026-08-25-encoder-pilot.md`](../reports/2026-08-25-encoder-pilot.md)
+> - **Execution plan** (`closed`; only Phase S0 ever ran): [`2026-08-24-edge-ai-neural-encoder-execution-plan.md`](2026-08-24-edge-ai-neural-encoder-execution-plan.md)
+> - **Durable lessons:** [`../knowledge/ml-experimentation.md`](../knowledge/ml-experimentation.md)
+>
+> **What this banner does and does not do.** It records the outcome. It does **not** amend a
+> ratified decision: **PD-1 … PD-12 stand as ratified**, and `ML_Heuristic_design.md` §9.1 — the
+> narrow exception permitting frozen pretrained encoders as feature extractors — **remains in
+> force**. The exception was ratified on its own merits and was simply never exercised. A future
+> proposal re-enters through that gate; it does not need §9.1 reopened.
+>
+> **Everything below is retained as the reasoning it was, on 2026-08-24.** Where the text says a
+> phase is active, frozen-and-activated, dispatchable, or next, read it as *what was true when
+> written* — the freeze boundary is historical, and the passages that state it carry a dated
+> superseded marker. Nothing past S0 is authorised by this document today.
+
+**Status as written 2026-08-24 — superseded 2026-08-25, see the banner above:**
+*S-SPEC – S3 SCOPE-FROZEN and ACTIVE (owner, 2026-08-24) · S4 open by design (PD-11) ·
+S5 – S6 not activated · Branch at planning time: `docs/epic3-state-sync` @ `9c747be`*
 
 > **Owner review rounds 1, 2 and 3 are complete.** Decisions **PD-1 … PD-10** are ratified and recorded
 > in [`2026-08-24-edge-ai-encoder-owner-decision-handoff.md`](2026-08-24-edge-ai-encoder-owner-decision-handoff.md);
@@ -11,6 +36,10 @@
 > **The owner scope-froze and activated S-SPEC through S3 on 2026-08-24**, approving the S-SPEC
 > wording verbatim. **S-SPEC is executed** (`d141db1`). **S4 remains open by design** (PD-11) and
 > **S5 – S6 are not activated** and each needs its own approval (PD-2 governance) — see §11.
+>
+> *Superseded 2026-08-25 as to forward state:* S-SPEC's execution and the PD ratifications stand;
+> **S4 was cancelled with S1–S3, so it is no longer "open by design" — it is not open at all.**
+> S5–S6 are unchanged: still not activated.
 
 > **Reads with:** [`../specs/ML_Heuristic_design.md`](../specs/ML_Heuristic_design.md) (§4, §5.1, §9 —
 > two clauses of which this plan proposes to amend), [`../specs/system_roadmap.md`](../specs/system_roadmap.md)
@@ -809,6 +838,9 @@ model exports, not S0-B's accuracy results. Both depend on S0-A's split existing
 **Cards S0-A, S0-B and S0-C are dispatchable now** — S-SPEC through S3 are frozen and activated
 (2026-08-24). **Cards S1 and S2+S3 are not**: they wait on S0's report being accepted (PD-3).
 
+> *Superseded 2026-08-25.* The S0 cards **ran**; S1 and S2+S3 **never became dispatchable** — the S0
+> report was accepted **and the initiative stopped there** (EVA-16). No card below S0 was executed.
+
 ## 9.1 Per-agent task cards
 
 > **Common to every card** — **Venue:** `D:\Code\C#\SmartStudyPlanner`, branch off `dev`.
@@ -862,8 +894,9 @@ model exports, not S0-B's accuracy results. Both depend on S0-A's split existing
 
 **All twelve decisions below are ratified.** PD-1 … PD-7 were proposed in the first draft and
 ratified — two of them (PD-1, PD-5) in a **modified** form, recorded as such. PD-8 … PD-10 are new in
-round 1 and originate with the owner. **PD-11 is round 2; PD-12 is round 3.** The plan itself is
-**active** as of 2026-08-24; §11 records the freeze boundary.
+round 1 and originate with the owner. **PD-11 is round 2; PD-12 is round 3.** The plan itself was
+**active** as of 2026-08-24; §11 records the freeze boundary *(the plan is `stopped_at_s0` since
+2026-08-25 — the twelve decisions remain ratified, PD-1's §9.1 exception included; see the banner)*.
 
 ### PD-1 — Amend `ML_Heuristic_design.md` §9: a narrow, guardrailed neural-encoder exception
 
@@ -1208,18 +1241,24 @@ slice that needs them (PD-11). **None are reopened here.**
 
 ## 11.1 Freeze boundary
 
-| Scope | Status | Gate |
-|---|---|---|
-| **S-SPEC** | ✅ **EXECUTED** 2026-08-24 (`d141db1`) | — |
-| **S0** | 🔒 **FROZEN + ACTIVE** — not started | none; ready to run |
-| **S1 – S3** | 🔒 **FROZEN + ACTIVE** — not started | S0 accepted (PD-3 gate + PD-9 winner criterion) |
-| **S4** | **open by design** (PD-11) | delivery mechanism + size cap chosen at S4 from the §S4 option set, using S0 output 8 |
-| **S5 – S6** | **not activated** | each needs its own owner approval (PD-2 governance) |
+**As written 2026-08-24 — the "Status" column is superseded; the "Outcome" column is what happened:**
+
+| Scope | Status *(2026-08-24)* | Gate | **Outcome (2026-08-25)** |
+|---|---|---|---|
+| **S-SPEC** | ✅ **EXECUTED** 2026-08-24 (`d141db1`) | — | Stands. The §9.1 exception it landed **remains in force** |
+| **S0** | 🔒 **FROZEN + ACTIVE** — not started | none; ready to run | ✅ **EXECUTED and reported.** [Report](../reports/2026-08-25-encoder-pilot.md); EVA-16 fired |
+| **S1 – S3** | 🔒 **FROZEN + ACTIVE** — not started | S0 accepted (PD-3 gate + PD-9 winner criterion) | ⛔ **CANCELLED — never entered.** The gate resolved to *stop*, not to a winner |
+| **S4** | **open by design** (PD-11) | delivery mechanism + size cap chosen at S4 from the §S4 option set, using S0 output 8 | ⛔ **CANCELLED — never entered.** CP3 was never reached, so **OP-1** (size cap), **OP-6** (delivery) and **OP-4** (memory ceiling) **remain unset** and were not invented by the closure |
+| **S5 – S6** | **not activated** | each needs its own owner approval (PD-2 governance) | **Unchanged — still not activated.** A stopped encoder cannot activate a head (REL-04 unaffected) |
 
 **The frozen boundary is S-SPEC → S3.** Scope inside it is locked; changing it requires a new owner
 decision, not an edit. S4's scope is frozen later, when the evidence it depends on exists.
 
 **Next action is S0** — nothing gates it. Its report decides whether S1–S3 ever run.
+
+> *Superseded 2026-08-25.* **S0 ran, and its report ended the plan.** There is no next action: the
+> initiative is `stopped_at_s0`. Reviving any part of it is a **new owner decision** needing its own
+> plan — and **DAT-04** is explicit that expanding the dataset does not by itself authorise a re-run.
 
 Two items remain **open by design**, not unresolved:
 
@@ -1248,23 +1287,32 @@ padding the list would make it less useful, not more.
 
 ## Lifecycle
 
-**ACTIVE** — owner review rounds 1–3 complete; PD-1 … PD-12 ratified; **S-SPEC through S3
-scope-frozen and activated 2026-08-24**. The specification
+**`stopped_at_s0`** — owner ruling, **2026-08-25**. Owner review rounds 1–3 were completed and
+**PD-1 … PD-12 remain ratified**; S-SPEC was executed (`d141db1`) and its `ML_Heuristic_design.md`
+§9.1 exception **stays in force**. S0 then ran and the **EVA-16 kill criterion fired**, so nothing
+past S0 was entered. The specification
 [`../specs/2026-08-24-neural-encoder-smart-parser.md`](../specs/2026-08-24-neural-encoder-smart-parser.md)
-was **ratified the same day** and governs where it and this plan disagree.
+was ratified the same day and still governs where it and this plan disagree — it is retained as the
+contract that was ratified, not as a contract awaiting implementation.
 
-Remaining path:
+The path as planned, against what actually happened:
 
-1. ~~Owner scope-freezes and activates S-SPEC through S3.~~ **Done 2026-08-24.**
-2. ~~**S-SPEC** merges (blocks S1).~~ **Done — `d141db1`.**
-3. **S0 runs** and its report is accepted or rejected. **This is the next action.** Rejection ends the
-   plan — a valid outcome, not a failure.
-4. **S1 – S3** proceed only on acceptance, and ship as **two** units: S1, then S2+S3 together (PD-4).
-5. **S4's scope is frozen after S0**, when the delivery mechanism and size cap can be decided against
-   measured numbers (PD-11).
+| # | Planned step | What happened |
+|---|---|---|
+| 1 | Owner scope-freezes and activates S-SPEC through S3 | ✅ **Done 2026-08-24** |
+| 2 | **S-SPEC** merges (blocks S1) | ✅ **Done — `d141db1`** |
+| 3 | **S0 runs**; its report is accepted or rejected | ✅ **Ran. Report ACCEPTED 2026-08-25 — and acceptance meant *stop*** (EVA-16, PD-3). A null result is a complete, valid outcome of this step, not a failure of it |
+| 4 | **S1 – S3** proceed on acceptance, shipping as two units (PD-4) | ⛔ **Never entered.** Acceptance did not produce a winner to proceed with |
+| 5 | **S4's scope is frozen after S0** against measured numbers (PD-11) | ⛔ **Never entered.** OP-1 / OP-4 / OP-6 remain unset |
 
-Now that the plan is active, it takes a pointer row in [`../active/README.md`](../active/README.md)
-per the plans README. Record each shipped slice in [`../CHANGELOG.md`](../CHANGELOG.md). S0's results
-belong in `docs/reports/`, **not** in this file.
+**This plan is RETAINED in `docs/plans/`, not archived** — for a stopped initiative the record of
+*why* it stopped is the artifact worth keeping beside the report that closed it, on the same basis
+the Epic 1 closure-gate record is kept here. Its row has left `../active/README.md`'s **Current**
+table for that file's **"Closed from here"** section. The closure is recorded in
+[`../CHANGELOG.md`](../CHANGELOG.md) (nothing shipped, and the entry says so), the one finding that
+outlived it is tracked in [`../specs/system_roadmap.md`](../specs/system_roadmap.md) §A.4, and the
+durable lessons are distilled into
+[`../knowledge/ml-experimentation.md`](../knowledge/ml-experimentation.md). S0's results live in
+`docs/reports/`, **not** in this file.
 
 
