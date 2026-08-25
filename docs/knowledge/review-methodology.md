@@ -430,6 +430,10 @@ suspected bugs you are raising; this is its counterpart for facts you are assert
   reviews were verifying.
 - [`../knowledge/debugging.md`](debugging.md) — `Random(seed)` and reproducible test data, the same
   discipline this article's "reproduce before escalating" section relies on.
+- [`ml-experimentation.md`](ml-experimentation.md) — the same red-before-green and set-the-bar-first
+  rules applied to a measurement harness rather than a test suite, plus the case they matter most in:
+  **verifying the instrument before believing a null result**, where a broken embedder and a working
+  one produce identical verdicts.
 
 ## Sources
 
