@@ -169,6 +169,18 @@ in `tools/ml-pilot/results/arm_*_int8.json`.
   sparse n-gram representation is close to deterministic here; on a 384/768-dimensional dense
   representation it is not.
 
+> **An anomaly, named rather than left for a reader to find.** **Arm B's int8 export scores 0.047
+> macro-F1 *higher* than its own fp32 export** (0.6404 vs 0.5934) — roughly 2× that arm's own SD, and
+> the wrong direction for quantization. Arm A shows a smaller version of the same effect (+0.009).
+>
+> The most plausible explanation is that int8's quantization noise acts as a mild regulariser when a
+> 384- or 768-dimensional dense representation is fitted on only 698 training rows — but **this was
+> not investigated**, because the ruling is unaffected either way: the *better* of each arm's two
+> precisions still loses to the baseline. The rank-based instrument check (§14 F-3) was run on fp32,
+> so the fp32 numbers are the ones with a verified encoder behind them.
+>
+> Recorded as **unexplained**. A reader who spotted it unremarked would reasonably doubt the harness.
+
 ---
 
 ## 5. Output 2 — Confidence-versus-accuracy relationship
@@ -516,15 +528,41 @@ Three results matter regardless of what the owner rules at CP1.
 
 ### F-1 — The existing production confidence gate sits at the worst-calibrated point of the baseline's distribution
 
-The shipped M8-A gate is **≥ 0.60**. On the baseline's own measured confidence-versus-accuracy
-relationship over 205 real held-out rows, the **`[0.6, 0.7)` bin has 0.000 observed accuracy** at seed
-42 (0.033 pooled across five seeds). The adjacent `[0.5, 0.6)` bin — *below* the gate — scores 0.273.
+**Verified in code, not inherited from the specification's prose**
+(`SmartStudyPlanner/Services/ML/DefaultMlConfidencePolicy.cs:13-14`):
 
-The bin populations are small (11 rows at seed 42), so this is **an indication, not a proven defect**,
-and it says nothing about the gate's behaviour on the synthetic-heavy production distribution. But
-CNF-01 already records that gating on a raw model score alone is a rule this project holds and the
-current task-type gate does not satisfy. **This measurement is the first quantitative evidence on
-that point, and it was produced by the baseline arm — no encoder required.**
+```csharp
+public const double ReviewThreshold   = 0.60;
+public const double AutoApplyThreshold = 0.75;
+```
+
+Its own XML doc states the effective M8-A rule: *"For M8-A intent merge, callers treat anything except
+`Reject` as 'merge' (i.e. confidence >= 0.60)."* `IntentClassifierAdapter` — the task-type path —
+receives this policy by injection, so **the shipped merge gate is `≥ 0.60`.**
+
+On the baseline's own measured confidence-versus-accuracy relationship over 205 real held-out rows:
+
+| Bin | Relative to the gate | baseline accuracy (seed 42) | n |
+|---|---|---|---|
+| `[0.5, 0.6)` | **below** — rejected, heuristic used | 0.273 | 22 |
+| **`[0.6, 0.7)`** | **above — ML result merged** | **0.000** | 11 |
+| `[0.7, 0.8)` | above; spans the 0.75 auto-apply boundary | 0.333 | 15 |
+| `[0.8, 0.9)` | above | 0.571 | 7 |
+| `[0.9, 1.0]` | above | 0.983 | 119 |
+
+**The band immediately above the gate scored worse than the band immediately below it** — zero of 11.
+Pooled across five seeds the same bin scores 0.033 (n=60).
+
+**Scope of this claim.** The bin populations are small (11 rows at seed 42), and this is measured on
+real `collected_v4` input against a model trained on synthetic rows — it says nothing about the
+gate's behaviour on the synthetic-heavy distribution the shipped model was validated against. **It is
+an indication, not a proven defect.** But CNF-01 already records that gating on a raw model score
+alone is a rule this project holds and the current task-type gate does not satisfy. **This is the
+first quantitative evidence on that point, and the baseline arm produced it — no encoder required.**
+
+**Note the shared-policy exposure.** `DefaultMlConfidencePolicy` is also consumed by
+`WeightOptimizerViewModel`, which is exactly the coupling CNF-05 exists to protect: any future
+re-derivation of the parser threshold must **separate the policies rather than retune both**.
 
 **Recommendation:** track as a defect candidate against the shipped classifier, independent of this
 initiative. **Not acted on here** — S0 writes no production code (EVA-01), and re-deriving a shipped
@@ -729,7 +767,8 @@ individually.
 | **4** | **F-2 / DAT-03** — dataset workstream | Already independent and ongoing. **DAT-04 applies**: expanding the dataset does not by itself authorise re-running or reversing this outcome — a re-run is a new owner decision |
 | **5** | **`tools/ml-pilot/`** — keep or delete? | **Keep for now.** It is outside `SmartStudyPlanner.slnx`, so it costs nothing in build or CI, and it is the only way to re-derive these numbers without rebuilding everything |
 | **6** | **The execution plan's `draft` status** (D-6) | Owner's call: mark reviewed, or let this report's acceptance close it |
-| **7** | **UQ-1** (§2.1) — which of the three options | **Moot for this ruling** — dimension 1 already fails. Needed only if the owner rejects the stop and wants dimension 4 settled |
+| **7** | **The Gemma Terms of Use** — Arm A's weights are governed by them. The upstream `google/` repo is `gated: manual`; the `onnx-community` mirror used here is not. **Routing around the gate is not clearing the licence** (`tools/ml-pilot/ARTIFACTS.md`) | **Moot if the stop is confirmed** — the artifacts are untracked local files used for a throwaway measurement. **Blocking before any bundled distribution** (AST-02) if the initiative is ever revived with Arm A |
+| **8** | **UQ-1** (§2.1) — which of the three options | **Moot for this ruling** — dimension 1 already fails. Needed only if the owner rejects the stop and wants dimension 4 settled |
 
 ### If the owner rejects the stop
 
