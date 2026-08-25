@@ -17,7 +17,8 @@ Differs from `active/` — `active/` holds the **current** plan in progress; `pl
 ## Required sections
 
 1. **Goal** — what shipping this looks like.
-2. **Status** — `draft` / `in-progress` / `done`.
+2. **Status** — `draft` / `in-progress` / `done`, or a terminal non-shipping state
+   (`stopped_at_<gate>` / `superseded` / `abandoned`) — see *Closing an initiative* below.
 3. **Slice list** — each slice = one shippable commit, with file map + exit criteria.
 4. **Pre-edit checklist** — `gitnexus_impact` + risk classification.
 5. **Acceptance gates** — `dotnet build`, `dotnet test`, `gitnexus_detect_changes`.
@@ -53,6 +54,48 @@ Two rules keep a runbook usable more than once:
 - When all slices ship, move the plan to `legacy/Archived plans/` (local archive, gitignored —
   the repo keeps the content in git history; the living state is CHANGELOG + architecture).
 - Active in-progress plans must have a pointer row in `docs/active/README.md` for visibility.
+- A plan can also end **without shipping** — stopped at a gate, superseded, or abandoned. That is a
+  lifecycle state too, and it needs the same treatment as `done`: see below.
+
+## Closing an initiative updates every artifact in its set, not just the plan
+
+> Added 2026-08-25. Evidence: after the edge-AI encoder initiative was stopped at its S0 gate, the
+> execution plan, `active/README.md`, the roadmap and the CHANGELOG were updated — while the
+> **proposal still read `SCOPE-FROZEN and ACTIVE`**, the **specification still read `S0 is
+> dispatchable now`**, and the plan's own executive summary still read `draft`. The same shape
+> recurs: the repeated doc-synchronization reports, and `active/README.md`'s own *"Superseded
+> 2026-08-19"* banner. A partly-closed document set is worse than an un-closed one, because the
+> stale half now looks authoritative next to the fresh half.
+
+A non-trivial initiative owns **more than one document** — typically a proposal, a ratified spec, an
+execution plan, a decision/handoff record, and a report. When it ends, walk the whole set:
+
+1. **List the set first**, then edit. `grep` the initiative's slug across `docs/` — a document nobody
+   remembered is exactly the one that will mislead someone in three months.
+2. **State the terminal lifecycle in the header of each**, in a word a grep will find
+   (`stopped_at_s0`, `superseded`, `closed`, `abandoned`) plus one line saying **why** and linking to
+   the record that decided it.
+3. **Sweep the bodies, not just the headers.** A fixed header over a body that still says the next
+   phase is dispatchable is worse than either alone. Grep each document for present-tense activation
+   language — *active*, *dispatchable*, *scope-frozen*, *next action*, *pending*, *authorised* — and
+   for each hit decide: **current-state claim** (fix it) or **historical design** (leave it, covered
+   by the header banner).
+4. **Mark superseded passages in place; never rewrite them into a cleaner story.** The reasoning that
+   led somewhere is worth keeping even when the destination changed. A dated *"Superseded YYYY-MM-DD"*
+   line under the original preserves both.
+5. **Say plainly which phases never ran.** A plan whose later phases were designed but never executed
+   must be readable as such **from the top** — otherwise a fresh reader takes a detailed
+   never-executed file map for a record of something built.
+6. **Do not amend normative text as a side effect of closing.** A ratified spec's requirements are
+   not withdrawn by the initiative stopping; they were never exercised. Add closure *metadata*, touch
+   no requirement, and say so in the banner — and name explicitly anything that **remains in force**,
+   because a reader who assumes a ratified exception died will reopen a settled decision.
+7. **Lift anything that outlives the initiative before closing it.** Findings, deferred defects and
+   durable lessons must land in `specs/system_roadmap.md` §A.4, `docs/knowledge/`, or `CHANGELOG.md`
+   — a live item filed only inside a closed initiative's documents is lost.
+8. **Record it in `CHANGELOG.md` even when nothing shipped**, with the heading saying so. A decision
+   *not* to build is a change to the project's state, and the alternative is a repository holding a
+   ratified spec with no record of what became of it.
 
 > Archive sweep 2026-07-07: all `2026-06-*` plans were moved to `legacy/Archived plans/`.
 > This folder now only holds plans that are in-flight or still normative (e.g. decision records).

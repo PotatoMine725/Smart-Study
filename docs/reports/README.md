@@ -53,6 +53,40 @@ target is tracked — commit the evidence record before you cite it.
 - Say what was *not* run. "NOT RUN" in a criteria table is a result; a blank that reads as a pass is
   not.
 
+## A report that asks for a decision: verdict first, ruling appended
+
+> Added 2026-08-25 from the S0 encoder pilot report
+> ([`2026-08-25-encoder-pilot.md`](2026-08-25-encoder-pilot.md)), which carried a stop/continue
+> ruling on a whole initiative. Three things it did are worth making the default; one is a trap it
+> avoided by construction.
+
+- **Put the verdict in §0, before the evidence.** A 50 KB report whose conclusion emerges on page
+  nine is a report whose conclusion gets missed. State it in the first section, in one paragraph,
+  then spend the rest earning it. **A negative or null verdict especially** — it is the one a reader
+  skimming for a headline number will otherwise fail to notice at all.
+- **Answer each criterion individually before the overall conclusion.** Where a gate has several
+  dimensions, give the per-dimension verdict table first — including the dimensions that *passed*
+  while the overall result failed. Compressing a multi-dimensional result into one word destroys the
+  part a future reader needs: the encoder pilot's arms **failed** on classification quality and
+  **passed** on confidence calibration, and only the split makes the result reusable.
+- **Separate "findings that outlive this decision" into their own section.** A report that stops an
+  initiative will be skipped by everyone who knows the initiative stopped — so anything inside it
+  that stands regardless has to be liftable, and then actually lifted somewhere permanent
+  (`knowledge/`, the roadmap's deferred list). Filing a live finding only inside a closure document
+  is how it gets lost.
+- **The owner's ruling may live in the same file — appended verbatim, under its own heading, after
+  the report as submitted.** This is the one place where "one document, one purpose" bends, and it
+  bends the right way: evidence and the decision taken on it belong next to each other. The rule that
+  makes it safe is that the ruling is **appended, never folded in** — the submitted report stays
+  distinguishable from the decision, so nobody later mistakes an owner's call for a measurement.
+  Keep the two kinds of "decision" visibly distinct: the author's process decisions (the **Decisions
+  made** section) are not the owner's ruling, and a reader searching for "the decision" must not land
+  on the wrong one.
+- **Do not let proposed work read as committed work.** Follow-up tables need an owner column and a
+  *where it belongs* column, and each row needs its status in words — *deferred*, *defect candidate*,
+  *knowledge only*, *needs a new owner decision*. "Recommendation: track this" is not a commitment,
+  and a bare bullet list makes it look like one.
+
 ## Lifecycle
 
 - Reports are dated snapshots. **Correct them by appending a dated amendment section** (e.g.
