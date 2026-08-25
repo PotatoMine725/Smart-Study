@@ -175,6 +175,21 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
   oversight — but it means Epic 3's headline capability is not yet in the product. Deciding whether
   it is worth wiring is an owner call informed by measured effect size, which does **not** exist as
   a durable artifact (see the [doc-sync report](../reports/2026-08-20-doc-synchronization.md) §2).
+- **M8-A confidence-gate calibration — deferred by owner ruling, 2026-08-25.** The shipped merge gate
+  is `≥ 0.60` (`DefaultMlConfidencePolicy.cs:13`; the type's own doc states *"callers treat anything
+  except `Reject` as merge"*). On 205 real held-out `collected_v4` rows the production n-gram
+  classifier's **`[0.6, 0.7)` band scored 0.000 observed accuracy** — *worse than the `[0.5, 0.6)`
+  band below the gate, which scored 0.273*. Populations are small (11 rows at seed 42; 0.033 pooled
+  over five seeds, n=60), so this is **an indication, not a proven defect**, and it is measured on
+  real input against a model trained on synthetic rows — it says nothing about the synthetic-heavy
+  distribution the shipped model was validated against. It is nonetheless the first quantitative
+  evidence for the standing project rule that a raw model score should not be the only gating signal.
+  Note the shared-policy exposure: `WeightOptimizerViewModel` consumes the **same**
+  `DefaultMlConfidencePolicy`, so any re-derivation must **separate the policies rather than retune
+  both**. Evidence and method: [`../reports/2026-08-25-encoder-pilot.md`](../reports/2026-08-25-encoder-pilot.md)
+  §14 F-1. Surfaced as a by-product of the encoder pilot's **baseline** arm — no encoder involved —
+  and deliberately **not acted on** there: re-deriving a shipped threshold is a user-visible
+  behaviour change needing its own decision.
 - **The E6 surviving mutant.** Moving `db.ChangeTracker.DetectChanges()` after the removal loop in
   `SqliteHocKyRepository` leaves all 487 tests green. Pin the ordering with a test or establish it
   is genuinely redundant — **do not delete the call**; the comment at `SqliteHocKyRepository.cs:136–141`
