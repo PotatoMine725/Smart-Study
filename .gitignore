@@ -127,3 +127,7 @@ tools/ml-pilot/models/
 # SentencePiece vocabularies ship as `tokenizer.model`. Anchored to the pilot
 # tree so a future `*.model` source file elsewhere is not silently swallowed.
 tools/ml-pilot/**/*.model
+
+# Python bytecode from the pilot harness scripts
+__pycache__/
+*.pyc
