@@ -1,7 +1,8 @@
 # S0 Encoder Pilot — evaluation report
 
 **Date:** 2026-08-25 · **Author:** Claude (agent), for owner decision at CP1
-**Status:** **COMPLETE — awaiting owner ruling.** All eight EVA-08 outputs measured for all three arms.
+**Status:** **CLOSED — S0 ACCEPTED by the owner 2026-08-25; the initiative STOPPED at S0** (EVA-16).
+All eight EVA-08 outputs were measured for all three arms. **The ruling is recorded verbatim at the end of this document.**
 
 **Decides:** whether the neural-encoder initiative proceeds past S0 at all.
 **Governed by:** [`../specs/2026-08-24-neural-encoder-smart-parser.md`](../specs/2026-08-24-neural-encoder-smart-parser.md) §6 (RATIFIED)
@@ -790,3 +791,70 @@ decision** under DAT-04, and it would need its own plan.
 | Per-arm results, raw predictions, tokenization diffs | `tools/ml-pilot/results/*.json` |
 | .NET harness | `tools/ml-pilot/dotnet/` |
 | Reference-tokenizer oracle | `tools/ml-pilot/tokenizer-oracle/` |
+
+---
+
+# CP1 — Owner ruling, 2026-08-25
+
+**Recorded verbatim.** This section is the WP-0.9 exit criterion and the evidence for **AC-01**'s
+*"owner-accepted before any production code exists"* clause. It is appended rather than folded into
+the text above, so the report as submitted stays distinguishable from the decision taken on it.
+
+| Item | Ruling |
+|---|---|
+| **S0 result** | **ACCEPTED** |
+| **Initiative status** | **STOPPED at S0** |
+| **Reason** | **EVA-16 kill criterion** |
+| **Production implementation** | **None** |
+| **S1 +** | **Cancelled / not entered** |
+
+**Accepted findings**
+
+- **F-2** — the data-distribution evidence (§14 F-2).
+- The **tokenizer / runtime observations** (§9, §6, §7) — including Route B's unavailability, Arm B's
+  fairseq offset, the whitespace-axis characterisation, and TOK-07's null blast radius.
+- The **int8 performance observation** (§7) — Arm A's quantized export ~6× slower than its fp32
+  export at roughly twice the peak memory.
+
+**Deferred to separate investigation**
+
+- **F-1** — the baseline confidence-policy anomaly (§14 F-1). **Not closed, not dismissed.** Carried
+  to `specs/system_roadmap.md` §A.4 as a deferred item in its own right, so it survives this
+  initiative's closure. It is **not** part of this initiative and no threshold was changed here.
+
+**Rejected / not pursued**
+
+- **Arm C activation** (OP-11). Consistent with §12.2: the tie branch did not fire.
+
+## What this ruling closes
+
+| | |
+|---|---|
+| **STOP-1** (execution plan §3.1) | **Fired and honoured.** The initiative stops at S0 |
+| **§14.5** *"the initiative is done when… it stopped cleanly at a stop condition with the outcome recorded"* | **Satisfied by this section** |
+| **EVA-01** | Held throughout and now permanently: **no production code was written, and none will be** |
+| **CP2 / CP3** | **Never reached.** CP2 would have been a documented skip anyway (§9.6); CP3's parameters — **OP-1** size cap, **OP-6** delivery mechanism, **OP-4** memory ceiling — **remain unset and are not invented** by this closure |
+| **S5 / S6** | **Remain unactivated**, exactly as before. REL-04 is unaffected: a stopped encoder cannot activate a head |
+
+## What this ruling does not change
+
+- **`ML_Heuristic_design.md` §9.1 remains in force.** It records a ratified *policy exception* —
+  frozen pretrained encoders **may** be used as feature extractors under eight guardrails. That
+  permission was ratified on its own merits and is **not** withdrawn by this outcome. It was simply
+  not exercised: S0 measured, and the evidence said no. A future proposal would re-enter through the
+  same gate, not through a reopened §9.1.
+- **No normative document is amended by this closure** (DOC-04), and no `docs/architecture/` update
+  is due — DOC-03 ties that to S2+S3 shipping, which never happened.
+- **DAT-04 still applies.** Expanding the dataset does not by itself authorise re-running or
+  reversing this outcome. A re-run is a **new owner decision** with its own plan.
+
+## Disposition of the pilot artifacts
+
+`tools/ml-pilot/` is **retained**. It is outside `SmartStudyPlanner.slnx`, so it costs nothing in the
+product build or CI, and it is the only way to re-derive these numbers without rebuilding the whole
+harness. The encoder binaries under `tools/ml-pilot/models/` are **untracked local files** and are not
+part of the repository — the AC-21 CI guard continues to enforce that at every future commit.
+
+**The Gemma Terms of Use question (§18 row 7) is moot** under this ruling: the artifacts are untracked
+local files used for a throwaway measurement, and no bundled distribution will occur. It would become
+blocking again only if the initiative were ever revived with Arm A.
