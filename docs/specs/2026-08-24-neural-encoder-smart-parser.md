@@ -1,6 +1,39 @@
 # Neural Encoder for the Smart Parser — Specification
 
-**Effective date:** 2026-08-24 · **Status:** **RATIFIED by the owner, 2026-08-24**
+**Effective date:** 2026-08-24 · **Status:** **RATIFIED by the owner, 2026-08-24** ·
+**Lifecycle:** **`stopped_at_s0`** — the initiative this specification governs stopped at its S0
+research gate on 2026-08-25; **the ratification itself is untouched**
+
+> ## Closure metadata — added 2026-08-25, amending no requirement
+>
+> **The initiative governed by this specification STOPPED at S0.** S0 ran; the **EVA-16 kill
+> criterion fired** (neither candidate encoder improved macro-F1 over the shipped n-gram baseline —
+> both scored **below** it, at both precisions); the owner accepted that result on 2026-08-25.
+> **S1–S4 were cancelled, not entered. No production code was written and none will be.**
+>
+> - **Evidence + CP1 ruling:** [`../reports/2026-08-25-encoder-pilot.md`](../reports/2026-08-25-encoder-pilot.md)
+> - **Execution plan** (`closed`): [`../plans/2026-08-24-edge-ai-neural-encoder-execution-plan.md`](../plans/2026-08-24-edge-ai-neural-encoder-execution-plan.md)
+> - **Proposal** (`stopped_at_s0`): [`../plans/2026-08-24-edge-ai-encoder-adoption.md`](../plans/2026-08-24-edge-ai-encoder-adoption.md)
+> - **Durable lessons:** [`../knowledge/ml-experimentation.md`](../knowledge/ml-experimentation.md)
+>
+> **This block is metadata, not an amendment.** Per the CP1 ruling, **no normative document is
+> amended by the closure (DOC-04)**: not one requirement, requirement ID, threshold or acceptance
+> criterion below has been changed, and none should be read as withdrawn. What changed is the
+> *world*, not the contract — the requirements were never exercised because the gate that stood in
+> front of them said stop.
+>
+> **What is still in force.** `ML_Heuristic_design.md` §9.1 — the narrow exception permitting frozen
+> pretrained encoders as feature extractors under eight guardrails — **remains in force**. It was
+> ratified on its own merits (PD-1) and landed by S-SPEC (`d141db1`); the S0 outcome did **not**
+> withdraw it. A future encoder proposal re-enters through *that* gate and through a new owner
+> decision — **DAT-04 is explicit that expanding the dataset does not by itself authorise a re-run.**
+> Reading §9.1 as dead would reopen a settled decision; reading this specification as pending
+> implementation would send someone looking for an encoder that was never built. Both are wrong.
+>
+> **How to read the rest of this file.** As the ratified contract it is — the record of what *would*
+> have had to be true. Passages describing S0 as dispatchable or a later slice as next state what was
+> true on 2026-08-24; each carries a dated superseded marker where it appears.
+
 **Derives from:** [`../plans/2026-08-24-edge-ai-encoder-adoption.md`](../plans/2026-08-24-edge-ai-encoder-adoption.md)
 (the approved proposal) and
 [`../plans/2026-08-24-edge-ai-encoder-owner-decision-handoff.md`](../plans/2026-08-24-edge-ai-encoder-owner-decision-handoff.md)
@@ -18,6 +51,9 @@
 >
 > Where this document and the proposal disagree, this document governs *what must be true*; the
 > proposal governs *why* and the execution plan will govern *how*.
+>
+> *Superseded 2026-08-25 as to forward state:* **S0 ran and ended the initiative** — see the closure
+> metadata above. The ratification stated here stands; only "dispatchable now" is out of date.
 
 **Required-section map** (per [`README.md`](README.md)): **Scope** → §1 · **Goal** → below ·
 **Contracts** → §2, §3, §5, §10 · **Acceptance criteria** → §12 · **Non-goals** → §13.
@@ -605,12 +641,18 @@ distinguished from success is not a fallback (AC-03, AC-09).
 
 | Slice | What it is | Intended user-visible change | Gate to enter |
 |---|---|---|---|
-| **S0** | **Research gate.** Offline pilot; throwaway harnesses; no production code. | **None** | None — dispatchable now |
+| **S0** | **Research gate.** Offline pilot; throwaway harnesses; no production code. | **None** | None — dispatchable now *(as written 2026-08-24; S0 has since **run** — see the note below the table)* |
 | **S1** | **Encoder infrastructure seam.** The abstraction and its implementations exist; nothing consumes them for a user-visible result. | **None intended** — REL-01 | S0 report **owner-accepted** |
 | **S2 + S3** | **One production release unit.** Featurizer swap plus confidence recalibration. | **Yes** — classification quality, routing, and the displayed confidence value all change | S1 complete |
 | **S4** | Runtime tiering and model distribution. | Tier visibility and the Tier 2 opt-in | **Owner checkpoint** — delivery mechanism and size cap decided here (§14) |
 | **S5** | Difficulty head. | — | **Not activated.** Two separate gates (§1.3) |
 | **S6** | Temporal span head. | — | **Not activated.** Own plan, own approval (§1.3) |
+
+> *Outcome, 2026-08-25 — the "Gate to enter" column is what was required; this is what happened.*
+> **S0 ran and its report was owner-accepted — and acceptance meant *stop*, not proceed** (EVA-16).
+> **S1, S2+S3 and S4 were therefore never entered and are cancelled.** S5 and S6 are **unchanged**:
+> still not activated, and unaffected either way — a stopped encoder cannot activate a head (REL-04).
+> The requirements in this table are not withdrawn; they were never reached.
 
 **REL-01 (MUST).** S1 MUST NOT change user-visible behaviour. Its correctness is demonstrated by the
 absence of a behaviour delta, not by a feature.
@@ -778,19 +820,24 @@ implementation**. Each is an owner-approved edit in its own right.
 
 ## Status & lifecycle
 
-**RATIFIED by the owner, 2026-08-24.** Ratification confirmed that this text faithfully expresses
-decisions already made; it was **not** a gate and did **not** hold S0 (see the note at the top).
+**RATIFIED by the owner, 2026-08-24 · `stopped_at_s0` since 2026-08-25.** Ratification confirmed that
+this text faithfully expresses decisions already made; it was **not** a gate and did **not** hold S0
+(see the note at the top). **The ratification stands. The initiative it governed does not** — S0 ran,
+EVA-16 fired, and the owner stopped the work on 2026-08-25.
 
-Sequence from here:
+The sequence as specified, against what actually happened:
 
-1. ~~Owner reviews and ratifies this specification.~~ **Done 2026-08-24**, together with **PD-12**
-   (the 500 ms ceiling).
-2. **S0 runs** — dispatchable now — and its report is accepted or rejected. **This is the next
-   action.** Rejection ends the initiative; that is a valid outcome.
-3. On acceptance, the execution plan for S1 and S2+S3 is written against this contract.
-4. **S4's parameters** (OP-1, OP-6) are decided at the S4 owner checkpoint with S0's measurements in
-   hand.
-5. S5 and S6 remain unactivated and each require their own approval.
+| # | Specified step | Outcome |
+|---|---|---|
+| 1 | ~~Owner reviews and ratifies this specification.~~ | ✅ **Done 2026-08-24**, together with **PD-12** (the 500 ms ceiling) |
+| 2 | **S0 runs**; its report is accepted or rejected. Rejection ends the initiative — a valid outcome | ✅ **Ran. Report ACCEPTED 2026-08-25** — and under EVA-16 acceptance *ended* the initiative. The valid outcome is the one that occurred; see [the report](../reports/2026-08-25-encoder-pilot.md) |
+| 3 | On acceptance, the execution plan for S1 and S2+S3 is written against this contract | ⛔ **Never reached.** No winner was declared, so there was nothing to write S1 against |
+| 4 | **S4's parameters** (OP-1, OP-6) decided at the S4 checkpoint with S0's measurements in hand | ⛔ **Never reached.** CP3 never occurred: **OP-1** (size cap), **OP-6** (delivery mechanism) and **OP-4** (memory ceiling) **remain unset**, and the closure did not invent values for them. S0's output-8 sizes exist as measurements only |
+| 5 | S5 and S6 remain unactivated, each requiring its own approval | **Unchanged.** Still unactivated |
 
-This spec stays here while the capability is alive in the product. If a later spec supersedes it,
-link the replacement at the top.
+**Retention.** This spec is **retained** as the ratified record of what was agreed, not as a contract
+awaiting implementation — the capability it describes was never built, so there is no
+`architecture/` description for it to hand off to (DOC-03 ties that to S2+S3 shipping, which never
+happened). It is not superseded by a later spec; it was stopped by evidence. If the initiative is
+ever revived, revival re-enters through a **new owner decision** with its own plan — not by editing
+this file.

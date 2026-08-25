@@ -207,6 +207,10 @@ say if it turns out not to clear that line (see
   scenarios exercise, and "the first real run is a milestone, not a formality".
 - [`system-design.md`](system-design.md) — the rendered-vs-target split that came out of the defect
   this gate's first manual run found.
+- [`ml-experimentation.md`](ml-experimentation.md) — the research-gate counterpart: a gate whose
+  pass/fail criterion was pre-registered, fired against the initiative, and was obeyed. Also the
+  clearest instance of *"a pass read through a faulty instrument is withdrawn"* — there, a wrong
+  sanity check nearly turned a sound null result into a reported harness failure.
 
 ## Sources
 

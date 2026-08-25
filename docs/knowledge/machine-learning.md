@@ -63,9 +63,12 @@ M8 uses an explicit `IMlConfidencePolicy` contract so thresholds are testable + 
 
 - **M7 Study Time** — single threshold: `>= 0.6` use ML, else formula.
 - **M8-A Text Classifier** — single threshold: `>= 0.60` merge classifier output into parse result.
-  *(Current value. [`../specs/2026-08-24-neural-encoder-smart-parser.md`](../specs/2026-08-24-neural-encoder-smart-parser.md) §8
-  forbids carrying 0.60 across a featurizer change unexamined and requires it to be re-derived from a
-  measured confidence curve, with at least one signal independent of the model's raw score.)*
+  *(Current value, unchanged.
+  [`../specs/2026-08-24-neural-encoder-smart-parser.md`](../specs/2026-08-24-neural-encoder-smart-parser.md) §8
+  — ratified, though the initiative it governed is `stopped_at_s0` — forbids carrying 0.60 across a
+  featurizer change unexamined and requires it to be re-derived from a measured confidence curve,
+  with at least one signal independent of the model's raw score. See the next section for what
+  happened when that curve was actually measured for the **current** featurizer.)*
 - **M8-B Weight Optimizer** — tiered (user trust matters more here):
   - `>= 0.75` → auto-suggest + one-click apply (still requires the click).
   - `0.60 ≤ c < 0.75` → suggest only, require explicit review.
@@ -73,10 +76,73 @@ M8 uses an explicit `IMlConfidencePolicy` contract so thresholds are testable + 
 
 Thresholds are **hard-coded in the service layer** for this release — not user-configurable. They live behind `IMlConfidencePolicy` for testability.
 
+## Validating a confidence threshold: plot the curve, don't reason about the number
+
+A threshold is a claim about a distribution — *above this value the model is right often enough to
+trust*. Until someone measures the confidence-versus-accuracy curve, that claim has never been
+checked, no matter how reasonable the number looks.
+
+The M8-A gate is `>= 0.60` (`Services/ML/DefaultMlConfidencePolicy.cs:13`; the type's own XML doc
+records the effective rule — *callers treat anything except `Reject` as merge*). In 2026-08 the curve
+was measured for the first time, as a by-product of the encoder pilot's **baseline** arm — the
+shipped n-gram classifier, no encoder involved — over 205 real held-out rows:
+
+| Bin | Relative to the `0.60` gate | observed accuracy (seed 42) | n |
+|---|---|---|---|
+| `[0.5, 0.6)` | **below** — rejected, heuristic used | 0.273 | 22 |
+| **`[0.6, 0.7)`** | **above — ML result merged** | **0.000** | **11** |
+| `[0.7, 0.8)` | above; spans the 0.75 auto-apply boundary | 0.333 | 15 |
+| `[0.8, 0.9)` | above | 0.571 | 7 |
+| `[0.9, 1.0]` | above | 0.983 | 119 |
+
+**The band immediately above the gate scored worse than the band immediately below it.** The
+distribution is also **bimodal and non-monotonic**: 58 % of rows land in the top bin at 0.983, the
+rest scatter across bins that never exceed 0.571. It behaves like a near-binary confident /
+not-confident flag, not a graded score — which means a *threshold* is the wrong instrument shape for
+it, independent of where the threshold sits.
+
+**Scope, which must travel with this.** Bin populations are small (11 rows at seed 42; 0.033 pooled
+across five seeds, n=60), and this is real `collected_v4` input scored against a model trained on
+synthetic rows — it says nothing about the synthetic-heavy distribution the shipped model was
+validated against. **It is an indication, not a proven defect**, it is **deferred, not scheduled**
+(`../specs/system_roadmap.md` §A.4), and **nothing here was changed**: re-deriving a shipped
+threshold is a user-visible behaviour change that needs its own decision.
+
+**The coupling that makes a naive fix dangerous.** `DefaultMlConfidencePolicy` is consumed by
+**both** `IntentClassifierAdapter` (the parser path) **and** `WeightOptimizerViewModel` (the M8-B
+suggestion path). These are different models with different error costs sharing one policy instance.
+Any future re-derivation must **separate the policies rather than retune both** — a change that fixes
+the parser gate by moving a shared constant is a regression wearing a fix's clothes.
+
+**The transferable lessons:**
+
+- **Measure the curve before defending or moving a number.** A threshold nobody has plotted is a
+  guess with a decimal point.
+- **Check monotonicity, not just the cut point.** A non-monotonic score cannot be gated well at *any*
+  threshold; the finding is about the signal's shape, and moving the number would not fix it.
+- **Bin populations are part of the finding.** 0.000 over 11 rows and 0.000 over 1 100 rows are
+  different claims. Report `n` beside every rate, and don't pool across seeds to make a bin look
+  populated — the same rows appearing five times are not five samples.
+- **A shared policy object couples unrelated gates.** Find every consumer before touching one.
+- This is the first quantitative evidence for a rule the project already held: **never trust a raw
+  model score as the only gating signal — compare against the deterministic baseline.**
+
+Evidence and method: [`../reports/2026-08-25-encoder-pilot.md`](../reports/2026-08-25-encoder-pilot.md)
+§14 F-1 · deferred item: [`../specs/system_roadmap.md`](../specs/system_roadmap.md) §A.4.
+
 ## Algorithm choice
 
 - **Regression (StudyTimePredictor)** → `FastTreeRegressionTrainer(numberOfLeaves: 20, numberOfTrees: 100)`. Handles non-linear interactions between difficulty/credits/days-left without feature engineering. Trains 180 rows in ~2-3 s on CPU.
 - **Text classification (M8-A)** → planned `TextFeaturizer` → `SdcaMaximumEntropy` for multi-class on `TaskType`. Vietnamese text is handled by tokenization-friendly featurizer; no language-specific preprocessing needed for the MVP.
+  - **Replacing that n-gram featurizer with a frozen neural sentence encoder was evaluated and
+    rejected on measured evidence in 2026-08** — two candidates, two precisions each, all four
+    scoring **below** the n-gram baseline's macro-F1 on the same split. **Read
+    [`ml-experimentation.md`](ml-experimentation.md) before proposing it again**: the confounds are
+    documented there (untuned head, 698 synthetic training rows, 3-of-5 class coverage), the result
+    is scoped to *this* setting rather than to encoders generally, and the evidence points at the
+    **dataset** as the binding constraint. Re-running is a new owner decision — dataset growth alone
+    does not authorise it. The policy exception permitting frozen encoders
+    (`../specs/ML_Heuristic_design.md` §9.1) **remains in force**; it was never exercised.
 - **Multi-output regression for weights (M8-B)** → either AutoML over the dataset or 4 independent FastTree regressors with a normalization post-step so the 4 outputs sum to 1.0.
 
 ## Pipeline definition (M7, working code)
@@ -180,3 +246,13 @@ Tag slow ML training tests with `[Trait("Category", "ML")]` so fast unit runs ca
 - Never put ML.NET types into `Models/*` or `ViewModels/*`.
 - Never train inline on the UI thread.
 - Never trust raw model confidence as the only gating signal — compare against the deterministic baseline.
+
+## See also
+
+- [`ml-experimentation.md`](ml-experimentation.md) — how to run an ML experiment whose answer you can
+  trust: pre-registered kill criteria, instrument verification before believing a null result,
+  split-drift guards, dataset-maturity measurement, and edge-inference numbers with their context.
+- [`review-methodology.md`](review-methodology.md) — *"A green check is evidence only after you've
+  shown it can go red"*; *"Set the bar before you measure"*.
+- [`../specs/ML_Heuristic_design.md`](../specs/ML_Heuristic_design.md) — the normative ML/heuristic
+  boundary, including §9.1's narrow frozen-encoder exception.

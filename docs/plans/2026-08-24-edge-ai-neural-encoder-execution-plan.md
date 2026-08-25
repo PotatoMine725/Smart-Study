@@ -1,13 +1,15 @@
 # Edge AI Neural Encoder — Execution Plan
 
-**Date:** 2026-08-24 · **Status:** **`closed` — S0 executed, initiative STOPPED at S0 (owner ruling, 2026-08-25)**
+**Date:** 2026-08-24 · **Status:** **`closed`** · **Lifecycle:** **`stopped_at_s0`** — S0 executed,
+initiative STOPPED at S0 (owner ruling, 2026-08-25)
 **Outcome:** [`../reports/2026-08-25-encoder-pilot.md`](../reports/2026-08-25-encoder-pilot.md) — EVA-16 kill criterion fired; S1–S4 **cancelled, not entered**
 
 > **Read this before reading the plan.** Only **Phase S0** was ever executed. Everything from
 > **WP-1.0 onward describes work that never happened** and is retained as the design it was, not as a
 > record of anything built. The stop was a designed outcome (STOP-1, PD-3), not a failure of the plan.
-**Implements:** [`../specs/2026-08-24-neural-encoder-smart-parser.md`](../specs/2026-08-24-neural-encoder-smart-parser.md) (RATIFIED 2026-08-24)
-**Reasoning / history:** [`2026-08-24-edge-ai-encoder-adoption.md`](2026-08-24-edge-ai-encoder-adoption.md) (approved proposal, ACTIVE)
+**Implements:** [`../specs/2026-08-24-neural-encoder-smart-parser.md`](../specs/2026-08-24-neural-encoder-smart-parser.md) (RATIFIED 2026-08-24, `stopped_at_s0`)
+**Reasoning / history:** [`2026-08-24-edge-ai-encoder-adoption.md`](2026-08-24-edge-ai-encoder-adoption.md) (approved proposal, `stopped_at_s0`)
+**Durable lessons:** [`../knowledge/ml-experimentation.md`](../knowledge/ml-experimentation.md)
 **Ratification record:** [`2026-08-24-edge-ai-encoder-owner-decision-handoff.md`](2026-08-24-edge-ai-encoder-owner-decision-handoff.md) (PD-1 … PD-10)
 
 > **Precedence.** The specification governs *what must be true*. The proposal governs *why*. **This
@@ -35,8 +37,14 @@ holds. Shipping this looks like: Smart Add classifies `tgk giải tích tuần s
 the displayed confidence means what it says, and deleting every model file still leaves a fully
 working application.
 
-**Status.** `draft`. S-SPEC is **executed** (`d141db1`). **S0 is dispatchable now and is the next
-action.** Nothing downstream of S0 may begin until the S0 report is owner-accepted (EVA-01).
+**Status.** **`closed` · `stopped_at_s0` — S0 executed, initiative STOPPED at S0** (owner ruling,
+2026-08-25; EVA-16).
+S-SPEC is **executed** (`d141db1`) and S0 **ran**; **S1–S4 were cancelled and never entered.** EVA-01
+held throughout and now permanently: no file under `SmartStudyPlanner/` was created or modified.
+
+> *As written 2026-08-24 — superseded:* `draft`. *S0 is dispatchable now and is the next action.
+> Nothing downstream of S0 may begin until the S0 report is owner-accepted (EVA-01).* The report was
+> accepted, and under EVA-16 acceptance meant **stop**, so nothing downstream ever began.
 
 **Shape of the work.** Four phases, strictly sequential, separated by three owner checkpoints:
 
