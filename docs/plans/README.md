@@ -116,6 +116,13 @@ execution plan, a decision/handoff record, and a report. When it ends, walk the 
 > packages landed, Epic 2 entry criteria 12/12) but stays here rather than archived — its Progress
 > table is still the single-table summary of the phase; see its own Lifecycle line.
 >
+> Retention 2026-08-25 (edge-AI encoder, `stopped_at_s0`): the **execution plan**, the **proposal**
+> and the **owner decision handoff** all stay in `plans/` rather than being archived. Nothing shipped,
+> so there is no `architecture/` description for them to hand off to, and for an initiative stopped by
+> evidence the record of *why* it stopped is the artifact worth keeping beside the report that closed
+> it — the same basis on which the Epic 1 closure-gate record is kept here. A future sweep should
+> leave all three. Outcome: [`../reports/2026-08-25-encoder-pilot.md`](../reports/2026-08-25-encoder-pilot.md).
+>
 > Two `dev`-only drafts remain here deliberately, not archived: `2026-06-25-dashboard-redesign-native-charts.md`
 > (a competing, untested native-XAML chart redesign — never merged, would overwrite the shipped
 > LiveCharts-based Dashboard) and `2026-06-25-m8c-study-time-predictor-retrain.md` (the real M8-C

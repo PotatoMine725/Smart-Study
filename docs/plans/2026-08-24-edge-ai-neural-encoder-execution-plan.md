@@ -1,6 +1,7 @@
 # Edge AI Neural Encoder — Execution Plan
 
-**Date:** 2026-08-24 · **Status:** **`closed` — S0 executed, initiative STOPPED at S0 (owner ruling, 2026-08-25)**
+**Date:** 2026-08-24 · **Status:** **`closed`** · **Lifecycle:** **`stopped_at_s0`** — S0 executed,
+initiative STOPPED at S0 (owner ruling, 2026-08-25)
 **Outcome:** [`../reports/2026-08-25-encoder-pilot.md`](../reports/2026-08-25-encoder-pilot.md) — EVA-16 kill criterion fired; S1–S4 **cancelled, not entered**
 
 > **Read this before reading the plan.** Only **Phase S0** was ever executed. Everything from
@@ -36,7 +37,8 @@ holds. Shipping this looks like: Smart Add classifies `tgk giải tích tuần s
 the displayed confidence means what it says, and deleting every model file still leaves a fully
 working application.
 
-**Status.** **`closed` — S0 executed, initiative STOPPED at S0** (owner ruling, 2026-08-25; EVA-16).
+**Status.** **`closed` · `stopped_at_s0` — S0 executed, initiative STOPPED at S0** (owner ruling,
+2026-08-25; EVA-16).
 S-SPEC is **executed** (`d141db1`) and S0 **ran**; **S1–S4 were cancelled and never entered.** EVA-01
 held throughout and now permanently: no file under `SmartStudyPlanner/` was created or modified.
 
