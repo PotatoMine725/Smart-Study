@@ -4,6 +4,45 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
+## 2026-08-25 — Edge AI neural encoder: **evaluated and rejected at the S0 gate** — *no user-visible change*
+
+> **Nothing shipped.** This entry exists because the alternative is a repository containing a ratified
+> encoder specification, a narrow deep-learning exception in `ML_Heuristic_design.md` §9.1, and no
+> record of what happened to either. A decision not to build is a change to the project's state.
+
+The initiative proposed replacing the M8-A task-type classifier's n-gram featurizer with a frozen,
+bundled, locally-executed neural sentence encoder. **S0 — a hard pre-production gate with a kill
+criterion stated in advance — measured it and said no.** The owner accepted that ruling on
+2026-08-25 and the initiative **stopped at S0**. S1–S4 were **cancelled, not entered**.
+
+| Item | Result | Verification |
+|---|---|---|
+| **Ruling** | **EVA-16 kill criterion fired.** Neither candidate improved macro-F1 over the shipped n-gram baseline — both scored **below** it, at both precisions | Baseline mean **0.6575**; EmbeddingGemma-300M 0.6394 (fp32) / 0.6484 (int8); multilingual-e5-small 0.5934 / 0.6404. Pre-registered rule *(arm min > baseline max)* fails for all four |
+| **Production code** | **None.** Zero files under `SmartStudyPlanner/` created or modified (EVA-01) | `gitnexus_detect_changes` → 0 changed symbols, 0 affected processes on every commit; suite **487 passed / 0 failed**, unchanged |
+| **User-visible change** | **None** | No parse path, threshold, model or dependency was touched |
+| **Instrument verified before the null was believed** | Encoders demonstrably work — bit-identical vectors across runs, stripped-diacritic partner retrieved at rank 1 in 5/8 and 6/8 vs chance 1/8 | Report §14 F-3 |
+| **New CI guard (retained)** | `Assert no model binary is tracked` — asserts over `git ls-files`, blocks any `.onnx` / `.safetensors` / oversized file entering git (AST-05) | **Proven red in CI** — run [32792616833](https://github.com/PotatoMine725/Smart-Study/actions/runs/32792616833) |
+| **New test data (retained)** | `datasheets/vn_input_fixtures.csv` — the DAT-05 Vietnamese input fixture set, 39 rows across six categories | Verifier proven red 4 ways |
+
+**Findings kept, though the initiative stopped:**
+
+- **Data, not the encoder, is the binding constraint.** `tgk` appears in **28 of 205** real test rows
+  and **0 of 698** training rows; **94.6 %** of real rows contain a token the synthetic training set
+  never shows. Both featurizers were trained on a distribution largely lacking the surface forms they
+  were tested on — and the n-gram baseline still won.
+- **Deferred to `system_roadmap.md` §A.4:** the shipped M8-A merge gate is `≥0.60`, while the
+  **baseline** classifier's own `[0.6,0.7)` band scored **0.000** on real held-out rows — worse than
+  the band *below* the gate. An indication, not a proven defect; produced by the baseline arm, so it
+  outlives the encoder decision.
+- **Tokenization / runtime:** in-graph tokenization is unavailable for both candidates; e5-small needs
+  a fairseq **+1 id offset** that, if missed, yields plausible-looking token ids wrong in every
+  position; `Microsoft.ML.Tokenizers` 2.0.0 needs **no `Microsoft.ML` version bump**; EmbeddingGemma's
+  int8 export is **~6× slower** than its fp32 export on CPU.
+
+**`ML_Heuristic_design.md` §9.1 remains in force** — the frozen-encoder policy exception was ratified
+on its own merits and is **not withdrawn**, only never exercised. Full evidence and the CP1 ruling:
+[`reports/2026-08-25-encoder-pilot.md`](reports/2026-08-25-encoder-pilot.md).
+
 ## 2026-08-04 → 2026-08-19 — Epic 3: Study Optimization Engine (SOE) — **code complete 2026-08-07, manual gate CLOSED 2026-08-19**
 
 > **Read the scope line before the table.** Epic 3 shipped **two** things, and only one of them runs

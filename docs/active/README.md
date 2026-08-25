@@ -12,9 +12,10 @@
 **487**. See `docs/CHANGELOG.md`, the [gate closure](../reports/2026-08-19-epic3-manual-gate-closure.md),
 and the [closing note](../reports/2026-08-07-epic3-closing-note.md).
 
-**One effort is in progress: the edge-AI encoder adoption** — scope-frozen and activated
-2026-08-24 for S-SPEC through S3, with S-SPEC already executed and **S0 the next action**. The other
-two rows are queued/proposed, not being worked.
+**The edge-AI encoder adoption is CLOSED (2026-08-25)** — S0 ran, the **EVA-16 kill criterion fired**,
+and the owner accepted the stop. **No production code was written and none will be.** See the
+[pilot report](../reports/2026-08-25-encoder-pilot.md) and the CP1 ruling at its end.
+**Nothing is in progress right now** — the two rows below are queued/proposed, not being worked.
 
 *Superseded 2026-08-19 (kept for history):* the previous banner said *"Epic 3 (SOE) is next"*, which
 was true when written on 2026-08-02. The order it cited still holds — the
@@ -25,13 +26,33 @@ With E1 and E3 both closed, the next epic in that sequence is the **LAN-sync epi
 Epic 3 optimizer into production, still unscheduled — could reasonably come first. That call is the
 owner's and has not been made.
 
-## Current (2026-08-24)
+## Current (2026-08-25)
 
 | Work | Plan | State |
 |---|---|---|
-| **Edge AI — neural encoder for the Smart Parser (M8-A)** | [`../plans/2026-08-24-edge-ai-encoder-adoption.md`](../plans/2026-08-24-edge-ai-encoder-adoption.md) | **ACTIVE** — S-SPEC–S3 scope-frozen and activated 2026-08-24. **S-SPEC executed** (`d141db1`): `ML_Heuristic_design.md` gains §9.1 (narrow frozen-encoder exception, eight guardrails) and §10 "Unit of the cap" (artifacts, not heads), under PD-1/PD-2. **Next: S0**, the offline pilot — a hard gate with a kill criterion; **a null result ends the plan**. S4 left open by design (PD-11: delivery mechanism + size cap decided there, from S0's measurements); S5–S6 not activated, each needs its own owner approval. Owner decisions: [`../plans/2026-08-24-edge-ai-encoder-owner-decision-handoff.md`](../plans/2026-08-24-edge-ai-encoder-owner-decision-handoff.md) |
 | **Analytics two-section redesign** | [`../plans/2026-07-20-analytics-two-section-redesign.md`](../plans/2026-07-20-analytics-two-section-redesign.md) | QUEUED — design brief, **plus a delivered implementation package** (2026-08-02) now under version control at [`../assets/analytics-ui-package/`](../assets/analytics-ui-package/). **Not integrated**; no code merged. Phase 3 unlocked, not started. *Known gap: the package README cites an interactive mockup `Analytics Redesign Proposal.dc.html` that is not in the repository.* |
 | **UI fidelity + mobile-ready polish** | [`../plans/2026-07-05-ui-mobile-ready-polish.md`](../plans/2026-07-05-ui-mobile-ready-polish.md) | PROPOSED, on `dev` — `ui_rf` was adopted as the tested trunk and merged (PR #49, 2026-07-26), so the plan is no longer branch-scoped; it remains unimplemented |
+
+## Closed from here (2026-08-25)
+
+**Edge AI — neural encoder for the Smart Parser (M8-A)** — **STOPPED at S0** on the EVA-16 kill
+criterion, owner-accepted 2026-08-25. Neither candidate encoder improved macro-F1 over the shipped
+n-gram baseline; both scored **below** it, at both precisions. A null result was a designed, valid
+outcome of the S0 gate (PD-3), and it cost one throwaway harness and one report — **zero production
+symbols touched**.
+
+- **Outcome + CP1 ruling:** [`../reports/2026-08-25-encoder-pilot.md`](../reports/2026-08-25-encoder-pilot.md)
+- **Plan** (`closed`; only Phase S0 was ever executed): [`../plans/2026-08-24-edge-ai-neural-encoder-execution-plan.md`](../plans/2026-08-24-edge-ai-neural-encoder-execution-plan.md)
+- **Contract** (stays as the ratified record): [`../specs/2026-08-24-neural-encoder-smart-parser.md`](../specs/2026-08-24-neural-encoder-smart-parser.md)
+
+**`ML_Heuristic_design.md` §9.1 remains in force.** The ratified policy exception permitting frozen
+pretrained encoders as feature extractors was **not withdrawn** — only never exercised. A future
+proposal re-enters through that gate, and **DAT-04** means dataset growth alone does not authorise a
+re-run.
+
+**One finding outlived the initiative**, now tracked in `specs/system_roadmap.md` §A.4: the shipped
+M8-A merge gate sits at `≥0.60` while the **baseline** classifier's own `[0.6,0.7)` band scored 0.000
+on 205 real held-out rows. Produced by the baseline arm — no encoder involved.
 
 Deferred items tracked in the roadmap (§A.4), not here — listed so they are not mistaken for active
 work: **G3-1** (wire `IScheduleOptimizer.Optimize` into production — the engine has no production
