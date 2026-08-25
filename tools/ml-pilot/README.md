@@ -89,6 +89,7 @@ in these arms originates in the **head's training seed**, not the featurizer.
 | **Seeds** | `MLContext(seed: N)` for **N ∈ {42, 1337, 2026, 7, 99}** — 5 runs per arm | 42 is the shipped production seed and must be included; the other four exist to expose spread |
 | **Split** | WP-0.4's split, consumed **verbatim** by every arm and every seed. The test set never varies | EVA-04 is absolute — no re-splitting, no re-shuffling, no stratification pass |
 | **Reported per arm** | Per-class precision / recall / support for the 3 covered classes, per seed; and macro-F1 per seed with **mean, min, max, sample SD** across seeds | EVA-08 output 1 is per-class. **No single headline accuracy figure is emitted anywhere**, including in intermediate JSON |
+| **Confidence bins (output 2)** | **Per-seed populations are the primary view.** A pooled-across-seeds view may also be shown, but only **labelled as non-independent**. Raw rows persist as `(row_id, seed, confidence, correct)` — **amended 2026-08-25, see below** | 205 test rows × 5 seeds is **not** 1 025 independent samples; the same row appears five times |
 | **"Run-to-run variance"** | The observed spread of macro-F1 across the 5 seeds, **per arm** | EVA-16 and EVA-14 dimension 1 are both defined relative to this quantity |
 
 **Pre-registered comparison rule (EVA-16's "beyond run-to-run variance").** An arm improves beyond
@@ -102,12 +103,37 @@ macro-F1 across the 5 seeds** — i.e. the two seed-wise ranges do not overlap.
 - **EVA-14 is a strictly higher bar.** Passing this rule means an arm survived the kill criterion; it
   does not mean the arm won. All five EVA-14 dimensions are answered separately and in writing.
 
+> **Amendment, 2026-08-25 — confidence-bin independence (before any accuracy number existed).** As
+> first written, §2.2 fixed the seed protocol but left open whether output 2's bins pool across
+> seeds. Pooling 205 test rows × 5 seeds yields 1 025 counts that are **not 1 025 independent
+> samples** — every row appears five times, so each bin looks five times more populated than it is.
+>
+> **WP-2.5 derives the shipped confidence threshold from this exact table** (CNF-03), and EVA-14
+> dimension 3 asks whether the measured relationship has *enough population near a plausible
+> boundary*. A five-fold inflated denominator would answer both questions wrongly, in the
+> permissive direction, and nothing downstream would reveal it.
+>
+> Per-seed populations are therefore primary; any pooled view is labelled non-independent; and the
+> raw rows persist as `(row_id, seed, confidence, correct)` rather than `(confidence, correct)` so
+> a later reader can de-pool them without re-running S0.
+
 ### 2.3 Model invocation — the prefix question, ruled before the run
 
-`multilingual-e5-small` is trained with a `"query: "` / `"passage: "` input prefix, and
-EmbeddingGemma carries task-specific prompt templates. **Each encoder is invoked exactly as its own
-model card specifies.** Handicapping a candidate by misusing it produces worse evidence than a
-documented invocation difference does.
+**Each encoder is invoked exactly as its own model card specifies.** Handicapping a candidate by
+misusing it produces worse evidence than a documented invocation difference does.
+
+**Both prefixes were checked against the model cards on 2026-08-25 — they are `[fact]`, not recall:**
+
+| Arm | Prefix used | Source |
+|---|---|---|
+| **A** EmbeddingGemma-300M | `task: classification | query: ` | Model card, *Prompt Instructions* → recommended-prompt table, **Classification** row: *"task: classification \| query: {content}"*, described as *"optimized to classify texts according to preset labels"* |
+| **B** multilingual-e5-small | `query: ` | Model card FAQ 1: *"Use `query: ` prefix if you want to use embeddings as features, such as **linear probing classification**, clustering"* — literally this initiative's use case (BEH-06) |
+
+> **Why this needed checking rather than asserting.** The tokenization comparison prepends the same
+> prefix string to both sides — oracle and .NET route — so it is **invariant to whether the prefix is
+> correct**. A wrong prefix reproduces 39/39 perfectly and still degrades the encoder. The
+> tokenizer check cannot catch a prefix error, so the prefix is verified against its own source
+> instead.
 
 Consequences, recorded here rather than discovered later:
 
@@ -167,10 +193,31 @@ Runtime outputs 3, 4 and 5 must be taken on the PRF-01 reference class: a 10th-g
 mobile U-series CPU or equivalent capability, **8 GB RAM**, integrated graphics, Windows 10 build
 19041 or a supported newer environment.
 
-**The development machine is not that class** — it is materially faster — and PRF-03 forbids
-treating a developer-machine-only number as the product floor. This is UQ-1 in the execution plan's
-§16.1, and it is **an open owner escalation**, recorded in the report and raised at CP1. Outputs 6
-(tokenization viability) and 8 (packaged size) are hardware-independent and are unaffected.
+**The development machine is not that class** — Intel Core i7-12700H, 16 GB RAM, Windows 11 build
+26200 — and it is materially faster than a 10th-gen U-series student laptop. PRF-03 forbids treating
+a developer-machine-only number as the product floor. This is **UQ-1** in the execution plan's §16.1,
+and it is **an open owner escalation** raised at CP1.
+
+**What is unaffected.** Outputs **6** (tokenization viability) and **8** (packaged size) are
+hardware-independent: token ids are a function of the vocabulary and the input string, and file sizes
+are a function of the artifact. EVA-09 lists outputs 3–6 together because most of them are runtime
+measurements, but output 6 is a *correctness* result, and it carries across machines. Outputs **3, 4
+and 5** — load time, latency, peak RSS — do not.
+
+**The decision the owner actually has at CP1** is not simply "is a reference machine available".
+There are three options, and the second is not the same as the thing UQ-1 forbids:
+
+| Option | What it yields | Status |
+|---|---|---|
+| **1. Measure on a PRF-01-class machine** | A valid output 3/4/5. The only route to a legitimate **pass** on EVA-14 dimension 4 | Requires such a machine to exist and be available |
+| **2. Measure on the dev machine as a labelled one-directional bound** | A number that is **valid only in the FAIL direction**: if an i7-12700H cannot hit 500 ms, no 10th-gen U-series machine will, so dimension 4 fails **decidably** with no reference machine needed. It can **never** establish a pass | **Owner's call.** Offered, not assumed |
+| **3. Do not measure** | Outputs 3/4/5 recorded as **NOT RUN**, dimension 4 undecided, and any winner declaration incomplete | Always available |
+
+Option 2 is deliberately distinguished from *"substitute the dev machine and annotate it"*, which
+UQ-1 forbids and which this is not: a substitution treats the number as the product floor in both
+directions, whereas a one-directional bound is inadmissible for a pass by construction. **That
+distinction is the owner's to accept or reject, not this harness's to assume**, so the report states
+it as an option and the pilot takes the measurement without claiming it satisfies PRF-01.
 
 ---
 

@@ -1,0 +1,109 @@
+{
+  "_note": "EVA-08 outputs 3, 4, 5 and 8, measured on the .NET stack the product would use (EVA-09): Microsoft.ML.OnnxRuntime InferenceSession \u002B the real SentencePiece tokenizer.",
+  "arm": "arm_b",
+  "label": "multilingual-e5-small",
+  "precision": "fp32",
+  "onnx_file": "model.onnx",
+  "execution_provider": "CPU (PRF-02, AST-07)",
+  "machine": {
+    "cpu": "12th Gen Intel(R) Core(TM) i7-12700H",
+    "logical_processors": "20",
+    "total_ram": "16788885504",
+    "os": "Microsoft Windows 11 Home Single Language",
+    "os_build": "10.0.26200.0",
+    "runtime": "10.0.9",
+    "onnxruntime": "Microsoft.ML.OnnxRuntime 1.29.0"
+  },
+  "machine_is_prf01_reference_class": false,
+  "machine_caveat": "UQ-1. Materially faster than the PRF-01 class (10th-gen Intel U-series, 8 GB, integrated graphics). PRF-03 forbids treating a developer-machine number as the product floor, so outputs 3/4/5 are valid ONLY as a one-directional bound: they can establish a FAILURE of the 500 ms ceiling, never a pass. Owner\u0027s call at CP1.",
+  "protocol": {
+    "pre_registered_in": "tools/ml-pilot/README.md \u00A72.1, before any number existed (PRF-06)",
+    "warm_or_cold": "warm (PRF-04: \u0027with the model already loaded\u0027)",
+    "warmup_iterations_discarded": 20,
+    "samples": 200,
+    "outlier_handling": "none \u2014 no trimming, no winsorising",
+    "boundary": "PRF-05: tokenization \u002B encoder forward pass; model load EXCLUDED",
+    "inputs": "DAT-05 realistic categories, cycled deterministically; empty and pathological reported as named cases"
+  },
+  "output_3_cold_load_ms": {
+    "fresh_processes": 5,
+    "median": 1684.5,
+    "min": 1682.9,
+    "max": 1701.8
+  },
+  "output_4_warm_latency_ms": {
+    "p50": 5.29,
+    "p95": 6.79,
+    "max": 26.19,
+    "ceiling_ms": 500,
+    "p95_under_ceiling_on_this_machine": true,
+    "named_cases": {
+      "empty": [
+        {
+          "fixture": "F031",
+          "input_chars": 0,
+          "ms": 4.5
+        },
+        {
+          "fixture": "F032",
+          "input_chars": 1,
+          "ms": 3.95
+        },
+        {
+          "fixture": "F033",
+          "input_chars": 3,
+          "ms": 3.92
+        },
+        {
+          "fixture": "F034",
+          "input_chars": 3,
+          "ms": 4.08
+        },
+        {
+          "fixture": "F035",
+          "input_chars": 1,
+          "ms": 5.51
+        },
+        {
+          "fixture": "F036",
+          "input_chars": 6,
+          "ms": 4.43
+        }
+      ],
+      "pathological": [
+        {
+          "fixture": "F037",
+          "input_chars": 5269,
+          "ms": 77.52
+        },
+        {
+          "fixture": "F038",
+          "input_chars": 2040,
+          "ms": 75.31
+        },
+        {
+          "fixture": "F039",
+          "input_chars": 20159,
+          "ms": 72.95
+        }
+      ]
+    }
+  },
+  "output_5_peak_resident_mb": {
+    "peak_working_set_mb": 953.5,
+    "budget_mb": 8192,
+    "pct_of_budget": 11.64,
+    "ceiling_asserted": false,
+    "note": "PRF-08: no ceiling asserted. Derived at S4 (OP-4) from this measurement."
+  },
+  "output_8_packaged_bytes": {
+    "encoder_bytes": 470268510,
+    "tokenizer_bytes": 5069051,
+    "total_bytes": 475337561,
+    "total_mb": 453.3,
+    "files": [
+      "model.onnx",
+      "sentencepiece.bpe.model"
+    ]
+  }
+}
