@@ -16,18 +16,25 @@ This folder contains all living documentation for Smart Study Planner. Outdated/
    - [usecase-flows.md](architecture/usecase-flows.md) — UC-01..UC-12 step-by-step.
    - [lessons-learned.md](architecture/lessons-learned.md) — engineering postmortem of the 2026-07 architecture review (why the decisions exist).
 4. **active/** — pointers to work in progress only (read [active/README.md](active/README.md) before editing).
-   **Current state (2026-08-20):** Epic 1 **Released** 2026-07-20; post-Epic-1 stabilization
+   **Current state (2026-08-25):** Epic 1 **Released** 2026-07-20; post-Epic-1 stabilization
    **closed** 2026-08-02 (suite 391); Epic 3 (Study Optimization Engine) **code complete**
    2026-08-07 with its manual QA gate **CLOSED 2026-08-19** — *PASS WITH FINDINGS, no defects*.
+   The **edge-AI neural encoder initiative STOPPED at its S0 research gate 2026-08-25** — the
+   pre-registered kill criterion fired, the owner accepted the stop, and **no production code was
+   written**; see [reports/2026-08-25-encoder-pilot.md](reports/2026-08-25-encoder-pilot.md) and
+   [knowledge/ml-experimentation.md](knowledge/ml-experimentation.md).
    Suite **487**. **Nothing is in progress.** The next epic per the master plan (E1 → E3 → E2 → E4)
    is the LAN-sync epic, which has not been started; the largest piece of deferred work is **G3-1**,
    wiring the Epic 3 optimizer into production — it has no production call site today. Queued but
    unstarted: the Analytics two-section redesign (design brief + a delivered, un-integrated
    implementation package) and UI mobile-ready polish (proposed). See
    [active/README.md](active/README.md) and [specs/system_roadmap.md](specs/system_roadmap.md) §A.3–A.4.
-5. **knowledge/** — extracted lessons (programming, system design, ML, debugging, release
-   engineering, review methodology, sync data model, architecture process, incident
-   investigation, QA gates).
+5. **knowledge/** — extracted lessons (programming, system design, ML, **ML experimentation**,
+   debugging, release engineering, review methodology, sync data model, architecture process,
+   incident investigation, QA gates). *[ml-experimentation.md](knowledge/ml-experimentation.md) is
+   the newest (2026-08-25): running an ML experiment whose answer you can trust — pre-registered kill
+   criteria, verifying the instrument before believing a null result, dataset-maturity measurement,
+   and why representation quality is not task-level improvement.*
 6. **specs/**, **plans/**, **reports/**, **review/** — working areas for new work. Each has a README explaining when/how to add files.
 7. **[ux_quality_gate_checklist.md](ux_quality_gate_checklist.md)** — regression checklist for UI work.
 
