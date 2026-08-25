@@ -1,6 +1,11 @@
 # Edge AI Neural Encoder — Execution Plan
 
-**Date:** 2026-08-24 · **Status:** `draft` — awaiting owner review
+**Date:** 2026-08-24 · **Status:** **`closed` — S0 executed, initiative STOPPED at S0 (owner ruling, 2026-08-25)**
+**Outcome:** [`../reports/2026-08-25-encoder-pilot.md`](../reports/2026-08-25-encoder-pilot.md) — EVA-16 kill criterion fired; S1–S4 **cancelled, not entered**
+
+> **Read this before reading the plan.** Only **Phase S0** was ever executed. Everything from
+> **WP-1.0 onward describes work that never happened** and is retained as the design it was, not as a
+> record of anything built. The stop was a designed outcome (STOP-1, PD-3), not a failure of the plan.
 **Implements:** [`../specs/2026-08-24-neural-encoder-smart-parser.md`](../specs/2026-08-24-neural-encoder-smart-parser.md) (RATIFIED 2026-08-24)
 **Reasoning / history:** [`2026-08-24-edge-ai-encoder-adoption.md`](2026-08-24-edge-ai-encoder-adoption.md) (approved proposal, ACTIVE)
 **Ratification record:** [`2026-08-24-edge-ai-encoder-owner-decision-handoff.md`](2026-08-24-edge-ai-encoder-owner-decision-handoff.md) (PD-1 … PD-10)
@@ -2363,17 +2368,28 @@ saying so).
 
 ## Lifecycle
 
-**`draft`** — awaiting owner review. This plan does not authorise execution by itself; **S0 is already
-authorised by the 2026-08-24 scope freeze and is dispatchable now** (§2.2, D-3).
+**`closed` — 2026-08-25.** The plan ran to a stop condition it defined in advance and reached the
+completion state §14.5 describes: *"the initiative stopped cleanly at a stop condition (§3.1) with the
+outcome recorded."*
 
-Sequence from here:
+What actually happened, against the sequence this section originally laid out:
 
-1. Owner reviews this execution plan.
-2. **S0 runs** (Cards S0-A → S0-B ∥ S0-C → WP-0.8). **This is the next action.**
-3. **CP1** — the report is accepted or rejected. **Rejection ends the initiative; that is a valid
-   outcome.**
-4. On acceptance: S1, then S2+S3 as one release unit.
-5. **CP3** decides S4's parameters with S0's measurements in hand.
-6. S5 and S6 remain unactivated and each require their own approval.
+| # | Planned | Actual |
+|---|---|---|
+| 1 | Owner reviews this execution plan | Execution was directed from it in session; the `draft` status was **deliberately left unchanged** at the time rather than flipped on a verbal direction, and is closed here by the CP1 ruling instead |
+| 2 | **S0 runs** (WP-0.1 … WP-0.8) | ✅ **Executed.** All eight EVA-08 outputs, three arms, two precisions. Cards S0-A/B/C were run in one session rather than dispatched to sub-agents — the parallel pair WP-0.6 ∥ WP-0.7 shared a single .NET harness, so splitting them would have duplicated it |
+| 3 | **CP1** — report accepted or rejected | ✅ **ACCEPTED 2026-08-25**, and **the kill criterion fired**. Acceptance of the report *is* acceptance of the stop |
+| 4 | On acceptance: S1, then S2+S3 | ❌ **Cancelled, not entered.** EVA-16 forecloses it |
+| 5 | **CP3** decides S4's parameters | ❌ **Never reached.** OP-1, OP-4 and OP-6 remain **unset** |
+| 6 | S5 and S6 remain unactivated | ✅ **Still unactivated**, unchanged. REL-04 is unaffected — a stopped encoder activates nothing |
 
-If a later plan supersedes this one, link the replacement here.
+**STOP-1 fired and was honoured.** The plan's own §1 says S0 exists so the initiative can die cheaply,
+and it did: one throwaway harness, one report, **zero production symbols touched** (EVA-01).
+
+**This plan is retained in `docs/plans/` rather than archived.** The archive is a gitignored local
+folder, and the record of *why* the encoder work stopped — and of the guardrails it was built against
+— is worth keeping in the tree next to the report that closed it.
+
+**Reviving this work needs a new owner decision, not this plan.** DAT-04 is explicit that expanding
+the dataset does not by itself authorise re-running or reversing an S0 outcome. If a later plan
+supersedes this one, link the replacement here.
