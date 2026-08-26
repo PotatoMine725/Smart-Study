@@ -179,8 +179,8 @@ namespace SmartStudyPlanner.ViewModels
                         var risk = riskById.TryGetValue(task.MaTask, out var cached)
                             ? cached
                             : _riskAnalyzer.Assess(task, mon); // fallback: pipeline was skipped
-                        bool isMl;
-                        var predictedMinutes = _decisionEngine.PredictStudyMinutes(task, mon, out isMl);
+                        var prediction = _decisionEngine.PredictStudyMinutes(task, mon);
+                        bool isMl = prediction.IsMLPrediction;
                         topTasks.Add(new TaskDashboardItem
                         {
                             TenMonHoc = mon.TenMonHoc,
@@ -188,10 +188,16 @@ namespace SmartStudyPlanner.ViewModels
                             HanChot = task.HanChot,
                             DiemUuTien = task.DiemUuTien,
                             MucDoCanhBao = warningLevel,
-                            ThoiGianGoiY = isMl ? $"{predictedMinutes} phút" : _decisionEngine.SuggestStudyTime(task),
+                            ThoiGianGoiY = isMl ? $"{prediction.Minutes} phút" : _decisionEngine.SuggestStudyTime(task),
                             TaskGoc = task,
                             MonHocGoc = mon,
                             IsMLPrediction = isMl,
+                            // DFD-9a: log what was predicted, on BOTH branches. On the rejected branch
+                            // (confidence < 0.6) the predictor returns the formula estimate with
+                            // IsMLPrediction=false — that population is exactly the one needed to tell
+                            // whether the threshold sits in the right place, so it must not be dropped.
+                            PredictedMinutes = prediction.Minutes,
+                            Confidence = prediction.Confidence,
                             MucDoRuiRo = risk.DisplayLabel,
                             RiskScore = risk.Score
                         });

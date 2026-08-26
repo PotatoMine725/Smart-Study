@@ -18,8 +18,15 @@ namespace SmartStudyPlanner.Models
         // M7 — ML prediction marker
         public bool IsMLPrediction { get; set; }
 
+        // DFD-9a — the prediction itself, carried numerically so the write site can log it.
+        // ThoiGianGoiY holds it only as a formatted display string ("N phút"), and only on the
+        // ML branch; parsing it back would be a hack and would lose the rejected branch entirely.
+        // Null = no prediction was produced for this item.
+        public int? PredictedMinutes { get; set; }
+        public float? Confidence { get; set; }
+
         // Risk Analyzer fields (Module 4)
         public string MucDoRuiRo { get; set; } = "—";
         public double RiskScore { get; set; } = 0.0;
     }
-}
+}

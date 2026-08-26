@@ -37,8 +37,8 @@ namespace SmartStudyPlanner.Services
         public string SuggestStudyTime(StudyTask task)
             => _orchestrator.SuggestStudyTime(task);
 
-        public int PredictStudyMinutes(StudyTask task, MonHoc monHoc, out bool isMlPrediction)
-            => _orchestrator.PredictStudyMinutes(task, monHoc, out isMlPrediction);
+        public StudyTimePredictionResult PredictStudyMinutes(StudyTask task, MonHoc monHoc)
+            => _orchestrator.PredictStudyMinutes(task, monHoc);
 
         public Task<WeightConfigSuggestion?> SuggestWeightConfigAsync(CancellationToken ct = default)
             => _orchestrator.SuggestWeightConfigAsync(ct);
