@@ -178,18 +178,17 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
 
 ## A.4 Deferred / out of scope
 
-- **DFD-9a — `PredictedMinutes` / `Confidence` written as `null` on every `StudyTimeOutcomeLog` row.**
-  **Raised 2026-08-26 as a shipped-code defect, not yet implemented** — the owner ruling separated it
-  from the Data Maturation workstream precisely because **delay is irreversible**: every completed study
-  session writes a row that records *that* a prediction happened but not *what it was*, and the value is
-  not recomputable afterwards. Root cause is a data-flow truncation across three layers, not a forgotten
-  assignment: `StudyTimePredictorService` computes the confidence, `SchedulingOrchestrator.PredictStudyMinutes`
-  drops it at an `out`-parameter seam, and `TaskDashboardItem` has nowhere to carry the number.
-  `gitnexus_impact` LOW on the production chain; 9 test doubles implement the seam. **This is about
-  recording the number, never about acting on it** — no threshold and no confidence gate is in scope,
-  and it does not reopen the M8-A F-1 item below (a different consumer: `DefaultMlConfidencePolicy` is
-  used by `IntentClassifierAdapter` and `WeightOptimizerViewModel`, not by the study-time predictor).
-  Owner go/no-go pending: [`../plans/2026-08-26-prediction-instrumentation-defect.md`](../plans/2026-08-26-prediction-instrumentation-defect.md).
+- **DFD-9a — prediction instrumentation: FIXED 2026-08-26.** `StudyTimeOutcomeLog.PredictedMinutes` /
+  `Confidence` were written as literal `null` on every row, so the telemetry recorded *that* a prediction
+  happened but not *what it was* — no residual could be formed, no confidence bin populated. Root cause
+  was a data-flow truncation across three layers, not a forgotten assignment. The seam now returns
+  `StudyTimePredictionResult` instead of `int` + `out bool`, `TaskDashboardItem` carries the number and
+  the confidence, and the write site logs both **on the rejected branch too**. Suite **487 → 492**.
+  Record: [`../plans/2026-08-26-prediction-instrumentation-defect.md`](../plans/2026-08-26-prediction-instrumentation-defect.md).
+  **Still open, and deliberately so:** rows written before 2026-08-26 remain unusable for calibration —
+  the value is not reconstructible — and DFD-5 row-level provenance on this table was **not** folded in
+  (it belongs to the Data Maturation proposal). No threshold moved; F-1 below is untouched and remains
+  deferred, though it is now *investigable* on real telemetry once rows accrue.
 
 - **Data foundation — decision phase closed 2026-08-26, execution not authorized.** The project now
   formally holds **zero verified real user rows** (DFD-1); `collected_v4` is AI-generated and

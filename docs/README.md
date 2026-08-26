@@ -28,8 +28,9 @@ This folder contains all living documentation for Smart Study Planner. Outdated/
    verified real user rows** (`collected_v4` is AI-generated, AI-labelled), nine policies are ratified
    ([ruling](plans/2026-08-26-data-foundation-owner-decision-handoff.md)), 12 documents were corrected
    by dated amendment ([pass](reports/2026-08-26-data-foundation-correction-pass.md)), one shipped-code
-   defect is **raised and awaiting a go/no-go**
-   ([DFD-9a](plans/2026-08-26-prediction-instrumentation-defect.md) — delay is irreversible), and the
+   defect was **raised and fixed the same day**
+   ([DFD-9a](plans/2026-08-26-prediction-instrumentation-defect.md) — suite 487 → 492; its end-to-end
+   check still needs the owner), and the
    [Data Maturation proposal](plans/2026-08-26-data-maturation-coverage-expansion.md) is written but
    **not authorized**.
    The next epic per the master plan (E1 → E3 → E2 → E4)

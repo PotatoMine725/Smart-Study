@@ -4,6 +4,22 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
+## 2026-08-26 — DFD-9a: prediction instrumentation **fixed** — *no user-visible change*
+
+| Area | Change | Verification |
+|---|---|---|
+| Core/Scheduling + Services | `PredictStudyMinutes` returns `StudyTimePredictionResult` instead of `int` + `out bool isMlPrediction`. The `out` seam had nowhere to put `Confidence` and silently dropped it — root cause, not a symptom | build 0 errors; 8 test doubles updated |
+| Models + ViewModels | `TaskDashboardItem` gains `PredictedMinutes` / `Confidence`; `DashboardViewModel` populates both **on both branches**; `FocusViewModel` logs them instead of literal `null` | **492 pass** (487 → 492) |
+| Tests | 5 new, each proven able to fail by mutating production: seam ×2, dashboard hop ×2 (the project's first `DashboardViewModel` tests), rejected-branch write ×1. `OutcomeRow_MappingIsCorrect` rewritten from `Assert.Null` — it failed `Expected: 45, Actual: null` on the unfixed tree | `gitnexus_detect_changes`: 2 affected processes, both expected |
+
+**The mutation that mattered:** deleting the dashboard's two assignments left all 490 tests green — the
+hop that actually caused the defect was covered by nothing. That is why the dashboard tests exist.
+
+**Not undone, only stopped:** rows written before today remain unusable for calibration; the value is
+not reconstructible. `Confidence = 0` stays ambiguous between "model not ready" and "zero agreement" —
+separating them needs DFD-5 provenance, deliberately out of scope. No threshold moved; F-1 remains
+deferred, now with its prerequisite met. **The end-to-end check has not been run.**
+
 ## 2026-08-26 — Data foundation: **decision phase closed, nine policies ratified** — *no user-visible change*
 
 > **Nothing shipped, and nothing was implemented.** This entry exists because the project's position on
@@ -16,7 +32,7 @@
 | Owner ruling | **P-1 … P-3 resolved, DFD-1 … DFD-9 ratified.** Real-data policy, canonical annotation spec before further labelled data, two-tier Gold (**Gold-A** authored / **Gold-R** real), dual-layer provenance, synthetic-for-Silver-only, external datasets evaluable but not ingestible, owner as sole Gold authority. Filed at [`plans/2026-08-26-data-foundation-owner-decision-handoff.md`](plans/2026-08-26-data-foundation-owner-decision-handoff.md) | Ruling appended to the brief; audit's `OD-1…OD-6` + `K.1`/`K.2` all closed |
 | Provenance | **`collected_v4.csv` is AI-generated, not collected** — owner templates → Meta AI generation → GitHub Copilot labelling. The 189 untraceable rows descend from ~2 000 Meta AI rows aggregated by Copilot; the 136 in the seed stay | Owner recall (**ruling**, no written record); corroborates the audit's 7 measured regularities |
 | Correction pass | **12 documents + 3 tool files corrected** under DFD-1 — live artifacts in place, dated artifacts by appended amendment with the superseded passage marked. Includes the 96.2% footnote, which was itself a *wrong correction*: the figure predates `collected_v4` by 13 days | [`reports/2026-08-26-data-foundation-correction-pass.md`](reports/2026-08-26-data-foundation-correction-pass.md) |
-| Defect raised | **`PredictedMinutes` / `Confidence` written as `null`** on every `StudyTimeOutcomeLog` row — the telemetry records *that* a prediction happened but not *what it was*. Raised under DFD-9a; **not implemented** | [`plans/2026-08-26-prediction-instrumentation-defect.md`](plans/2026-08-26-prediction-instrumentation-defect.md) — `gitnexus_impact` LOW, 9 test doubles in the fan-out |
+| Defect raised | **`PredictedMinutes` / `Confidence` written as `null`** on every `StudyTimeOutcomeLog` row — the telemetry records *that* a prediction happened but not *what it was*. Raised under DFD-9a; **fixed the same day** — see the entry above | [`plans/2026-08-26-prediction-instrumentation-defect.md`](plans/2026-08-26-prediction-instrumentation-defect.md) |
 | Next phase | **Data Maturation & Coverage Expansion proposal** written, staged behind taxonomy review → annotation spec → provenance → Gold | [`plans/2026-08-26-data-maturation-coverage-expansion.md`](plans/2026-08-26-data-maturation-coverage-expansion.md) — proposal, not authorization |
 
 **Figures re-scoped, none retracted:** 96.2% (2026-06-05) is an in-distribution held-out score over the

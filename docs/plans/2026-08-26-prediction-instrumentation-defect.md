@@ -10,12 +10,14 @@
 
 ## Status
 
-**`draft` — raised and specified; implementation NOT authorized.**
+**`done` — fixed 2026-08-26 on owner authorization.** Suite **487 → 492**, build green.
 
-The ruling authorizes *raising* the defect. It states explicitly that it is *"a separate engineering
-task, not authorization to change the confidence gate"*, and the record it comes from does not
-authorize implementation by itself. **This document does not entitle anyone to start the fix.** The
-owner's go/no-go is the next event; §7 states what to decide.
+The record below is kept as written when the defect was raised; §9 records what was actually
+implemented and how it was verified. The owner's go/no-go (§7) came back *implement now, Slice 3 out*.
+
+*As raised, 2026-08-26 (superseded by the ruling above): `draft` — raised and specified,
+implementation NOT authorized. The ruling authorizes raising the defect, and states it is "a separate
+engineering task, not authorization to change the confidence gate".*
 
 ## 1. The defect
 
@@ -173,10 +175,13 @@ in silently.** Named here so the sequencing is a choice rather than an oversight
 | **Modules** | `Services` (direct), `ViewModels` (indirect) |
 
 **The number that matters is not in that table.** `PredictStudyMinutes` resolves to **12 symbols**:
-2 interface declarations (`IDecisionEngine:26`, `ISchedulingOrchestrator:16`), 1 production
-implementation, and **9 test doubles** across `TaskNotesTests`, `SoeBaselineMetrics`,
-`PipelineStageTests`, `WorkloadServiceScheduleTests` (×2), `WeightChangeLogLoggingTests`,
-`WeightOptimizerViewModelTests`, `WorkloadServiceIdentityTests`. A signature change touches every one.
+2 interface declarations (`IDecisionEngine:26`, `ISchedulingOrchestrator:16`), 2 production
+implementations (`DecisionEngineService`, `SchedulingOrchestrator`), and **8 test doubles** across
+`TaskNotesTests`, `SoeBaselineMetrics`, `PipelineStageTests`, `WorkloadServiceScheduleTests` (×2),
+`WeightChangeLogLoggingTests`, `WeightOptimizerViewModelTests`, `WorkloadServiceIdentityTests`. A
+signature change touches every one. *(Corrected 2026-08-26 during implementation: this paragraph first
+read "1 production implementation and 9 test doubles" — the count was taken from the resolver's
+candidate list without separating the two production classes from the doubles.)*
 
 `[inference]` **Risk classification: LOW production risk, MEDIUM churn.** The production blast radius
 is one call chain with no behavioural change; the cost is mechanical test-double updates. Nine
@@ -227,3 +232,88 @@ it is the same instrument that will later show the fix working.
 - **`DifficultyLabelLogs`.** Real human judgements, small, currently unconsumed — a DFD-9b matter, not
   a defect.
 - **The M8-C `R² ≥ 0.45` gate and the ≥ 50-row retrain threshold.** Untouched.
+
+---
+
+## 9. Implementation record — 2026-08-26
+
+**Owner ruling on §7:** *implement now*; **Slice 3 (DFD-5 row-level provenance) left out**, so the write
+site will be opened a second time when the Data Maturation proposal decides that shape. Folding it in
+silently was the thing §4 warned against.
+
+### 9.1 What changed
+
+| Layer | File | Change |
+|---|---|---|
+| Seam contract | `Core/Scheduling/Contracts/ISchedulingOrchestrator.cs`, `Services/IDecisionEngine.cs` | `int PredictStudyMinutes(task, monHoc, out bool)` → `StudyTimePredictionResult PredictStudyMinutes(task, monHoc)`. The `out` parameter is **gone**, not supplemented — a second `out` would have rebuilt the defect's own shape |
+| Seam impl | `Core/Scheduling/Orchestrators/SchedulingOrchestrator.cs` | Returns the predictor's result verbatim; the method body that discarded `Confidence` no longer exists |
+| Facade | `Services/DecisionEngineService.cs` | Delegates the record through |
+| Carrier | `Models/TaskDashboardItem.cs` | **+`int? PredictedMinutes`, +`float? Confidence`** (additive) |
+| Producer | `ViewModels/DashboardViewModel.cs` | Populates both from the prediction, **on both branches** |
+| Write site | `ViewModels/FocusViewModel.cs` | Logs `TaskHienTai.PredictedMinutes` / `.Confidence` instead of literal `null` |
+| Test doubles | 8 files | Updated to the new signature |
+
+**Values are logged from `TaskHienTai`, not re-predicted at completion time.** Re-predicting would
+score a *different* number — `StudiedMinutesSoFar` and `DaysLeft` have both moved by then — and the row
+must record what the user was actually shown.
+
+`[fact]` One thing the lineage explains: the archived M8-C retrain plan
+(`2026-06-25-m8c-study-time-predictor-retrain.md:107`) specified this mapping as *"`PredictedMinutes` /
+`WasMlPrediction` from `TaskHienTai` (TaskDashboardItem có `IsMLPrediction` + predicted minutes)"*. The
+design was right; the parenthetical was wrong. `TaskDashboardItem` never had predicted minutes — only
+`ThoiGianGoiY`, a formatted display string, and only on the ML branch. The defect is a false premise
+about a carrier, written into a plan and never checked against the type.
+
+### 9.2 Verification — with each signal proven able to fail
+
+| Gate | Result |
+|---|---|
+| `rtk dotnet build SmartStudyPlanner.slnx` | **0 errors** |
+| `rtk dotnet test --no-build` | **492 passed**, 0 failed (487 baseline + 5 new) |
+| `gitnexus_detect_changes` | 76 symbols / 21 files; **2 affected processes**, both `PredictStudyMinutes` flows. No unrelated symbol touched |
+| Discriminating test **red first** | `OutcomeRow_MappingIsCorrect`, rewritten from `Assert.Null` to the populated values, failed on the unfixed tree: **`Expected: 45, Actual: null`**. Green after the write-site fix |
+
+**Mutation testing — three mutations, run against production code:**
+
+| Mutation | Result |
+|---|---|
+| Seam returns `Confidence = 0f` (re-creates loss #1) | **RED** — both new `DecisionEngineTests` seam tests failed |
+| `DashboardViewModel` stops assigning the two fields (re-creates loss #2) — **run before the dashboard tests existed** | **GREEN, all 490 passing.** The hop that actually caused the defect was unguarded |
+| Same mutation, after adding `DashboardViewModelPredictionCarryTests` | **RED** — both dashboard tests failed |
+
+`[analysis]` The middle mutation is the one worth keeping. The write-site tests only prove
+`FocusViewModel` maps whatever `TaskDashboardItem` hands it; they say nothing about whether the
+dashboard puts anything there — which is exactly the hop that broke. Without running the mutation the
+fix would have shipped with its central hop covered by nothing, and the suite would have said 490 pass.
+`DashboardViewModelPredictionCarryTests` is the project's first `DashboardViewModel` test and exists
+solely because that mutation came back green.
+
+### 9.3 New tests
+
+| Test | Guards |
+|---|---|
+| `DecisionEngineTests.PredictStudyMinutes_TraVeConfidence_KhongNuotOSeam` | The seam does not swallow `Confidence` (loss #1). Stub uses `0.64f` — neither 0 nor 1 — so a default-substituting seam cannot pass by coincidence |
+| `DecisionEngineTests.PredictStudyMinutes_NhanhBiTuChoi_VanMangConfidence` | The rejected branch (`confidence < 0.6`) still carries its confidence |
+| `DashboardViewModelPredictionCarryTests` (×2) | The dashboard hop (loss #2), both branches |
+| `FocusViewModelOutcomeLogTests.OutcomeRow_NhanhBiTuChoi_VanGhiConfidence` | The write site logs the rejected branch too |
+| `FocusViewModelOutcomeLogTests.OutcomeRow_MappingIsCorrect` (rewritten) | The write site logs the ML branch — the original `Assert.Null` pair, inverted |
+
+### 9.4 What is still true after the fix — read before citing this as closed
+
+- **Rows written before 2026-08-26 are still unusable.** Nothing was backfilled; §3 explains why it is
+  impossible. The defect stopped accruing; it was not undone.
+- **`Confidence = 0` is ambiguous.** `StudyTimePredictorService.Fallback` returns `0f` when the model
+  is not ready, which is indistinguishable in the row from a genuine zero-agreement prediction. Telling
+  them apart needs a provenance column — **DFD-5 territory, deliberately out of scope** here. A
+  calibration study must treat `Confidence = 0 && !WasMlPrediction` as *unknown*, not as *zero*.
+- **No threshold moved.** Not the inline `≥ 0.6` ML-vs-formula switch, not `DefaultMlConfidencePolicy`.
+  F-1 stays deferred — this fix is its **prerequisite**, not its resolution, and F-1 cannot be
+  investigated on real telemetry until enough instrumented rows exist.
+- **The end-to-end check (§6) has NOT been run.** No completed focus session was performed against a
+  real database and read back. The automated tests cover all three hops in isolation and in
+  composition-by-stub; they do not prove the production wiring in `App.xaml.cs` / `ServiceLocator`
+  resolves the same objects. **This is the one gate in §6 left open**, and it needs the owner at a
+  keyboard.
+- **Loss rate was not measured.** §6 suggested counting existing rows and their date span to price the
+  delay. Not done — it needs a dev database, and the fix landed the same day the defect was raised, so
+  the number would have priced a delay that did not happen.
