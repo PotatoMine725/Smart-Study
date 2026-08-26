@@ -23,7 +23,16 @@ This folder contains all living documentation for Smart Study Planner. Outdated/
    pre-registered kill criterion fired, the owner accepted the stop, and **no production code was
    written**; see [reports/2026-08-25-encoder-pilot.md](reports/2026-08-25-encoder-pilot.md) and
    [knowledge/ml-experimentation.md](knowledge/ml-experimentation.md).
-   Suite **487**. **Nothing is in progress.** The next epic per the master plan (E1 → E3 → E2 → E4)
+   Suite **487**. **Nothing is in progress.**
+   **Data foundation, 2026-08-26:** the decision phase closed — the project formally holds **zero
+   verified real user rows** (`collected_v4` is AI-generated, AI-labelled), nine policies are ratified
+   ([ruling](plans/2026-08-26-data-foundation-owner-decision-handoff.md)), 12 documents were corrected
+   by dated amendment ([pass](reports/2026-08-26-data-foundation-correction-pass.md)), one shipped-code
+   defect is **raised and awaiting a go/no-go**
+   ([DFD-9a](plans/2026-08-26-prediction-instrumentation-defect.md) — delay is irreversible), and the
+   [Data Maturation proposal](plans/2026-08-26-data-maturation-coverage-expansion.md) is written but
+   **not authorized**.
+   The next epic per the master plan (E1 → E3 → E2 → E4)
    is the LAN-sync epic, which has not been started; the largest piece of deferred work is **G3-1**,
    wiring the Epic 3 optimizer into production — it has no production call site today. Queued but
    unstarted: the Analytics two-section redesign (design brief + a delivered, un-integrated
