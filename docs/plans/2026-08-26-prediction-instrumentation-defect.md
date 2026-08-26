@@ -198,7 +198,7 @@ count that makes people prefer a hack at the write site over a fix at the source
 | Suite | `rtk dotnet test --no-build` | **487 baseline**, no regression |
 | Discriminating test | `FocusViewModelOutcomeLogTests.OutcomeRow_MappingIsCorrect`, rewritten | **Red on the unfixed tree**, green after. A fix whose test never went red proves nothing |
 | Both branches | New case: prediction rejected (`confidence < 0.6`) still writes a non-null `Confidence` | Populated, `WasMlPrediction` false |
-| End-to-end | Run the app, complete one focus session, read the row back from `StudyTimeOutcomeLogs` | `PredictedMinutes` and `Confidence` both non-null and plausible |
+| End-to-end | **Runbook: [`2026-08-26-dfd9a-instrumentation-runbook.md`](2026-08-26-dfd9a-instrumentation-runbook.md)** — run the app, complete one focus session, read the row back from `StudyTimeOutcomeLogs` | `PredictedMinutes` and `Confidence` both non-null and plausible |
 
 **The end-to-end check is not optional and not substitutable by unit tests.** The unit tests exercise
 `FocusViewModel` with a stub; they cannot show that the *production* dashboard→focus path carries the
@@ -310,7 +310,10 @@ solely because that mutation came back green.
   F-1 stays deferred — this fix is its **prerequisite**, not its resolution, and F-1 cannot be
   investigated on real telemetry until enough instrumented rows exist.
 - **The end-to-end check (§6) has NOT been run.** No completed focus session was performed against a
-  real database and read back. The automated tests cover all three hops in isolation and in
+  real database and read back. **A runbook now exists for it** —
+  [`2026-08-26-dfd9a-instrumentation-runbook.md`](2026-08-26-dfd9a-instrumentation-runbook.md), ~10
+  minutes, with the pass/fail criteria fixed in advance and the two pre-fix rows in the owner's own
+  database serving as the negative control that proves the reading channel can display a failure. The automated tests cover all three hops in isolation and in
   composition-by-stub; they do not prove the production wiring in `App.xaml.cs` / `ServiceLocator`
   resolves the same objects. **This is the one gate in §6 left open**, and it needs the owner at a
   keyboard.
