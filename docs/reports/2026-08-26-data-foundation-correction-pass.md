@@ -77,8 +77,10 @@ artifacts are corrected by appending a dated amendment and marking the supersede
 `docs/plans/2026-08-24-edge-ai-neural-encoder-execution-plan.md` ·
 `docs/plans/2026-08-24-edge-ai-encoder-owner-decision-handoff.md`
 
-In each, the load-bearing occurrences are struck through in place with a pointer, and a single
-`## Amendment, 2026-08-26` section withdraws the claim document-wide. **Non-load-bearing occurrences
+In each, the load-bearing occurrences are marked in place — struck through where the passage is a
+short table cell, and left verbatim under a dated *"as written …; superseded"* note where striking
+through would have damaged the prose (the encoder spec's `EVA-03` row and its §6.1 paragraph) — and a
+single `## Amendment, 2026-08-26` section withdraws the claim document-wide. **Non-load-bearing occurrences
 were deliberately left unedited** — a document with twenty scattered instances of "real" would need
 twenty rewrites to satisfy a search-and-replace standard, and the result would be a document that no
 longer shows what its authors believed. The amendment states this explicitly so a reader knows the
@@ -150,13 +152,31 @@ quota match — but agreement is corroboration, not documentation.
 
 | Check | How | Result |
 |---|---|---|
-| Every §F.3 site corrected | Re-grep of all 8 named sites | **8/8** — each carries a strike-through marker or in-place correction |
+| Every §F.3 site corrected | Re-grep of all 8 named sites, enumerated below | **8/8** — see the enumeration under this table |
 | No uncorrected claim left | `grep -riE "real[^.]{0,60}collected_v4\|205 real\|real held-out"` over `docs/ datasheets/ tools/ SmartStudyPlanner/`, minus corrected/quoted/amended lines | **0 remaining.** All residual hits are (a) the audit's §F.3 evidence quotes, which must stay verbatim, (b) amendment text, (c) non-load-bearing occurrences inside amended documents, covered document-wide |
 | Amendments applied exactly once | Script asserts `"## Amendment, 2026-08-26" not in file` before appending | 6/6 appended, no duplicates |
 | Every in-place edit matched a unique anchor | Each replacement asserted `count(old) == 1` before substituting | All passed; no silent no-op edits |
 | Generated file matches its generator | Ran `python tools/ml-pilot/split/build_split.py` | `wrote train.csv, test.csv, SPLIT.md`; exit 0; counts re-asserted at 698 / 205 / 903; leak 0; **`train.csv` / `test.csv` unchanged in `git status`** |
 | Chronology behind the 96.2% correction | Re-read the brief's §2.1 table against `CHANGELOG.md` and the cited commits (`9603c17`, `8855874`, `ab5112c`) | Confirmed: 2026-06-05 vs 2026-06-18, and n=106 fits 698 not 903 |
 | Build / test suite | **NOT RUN** | No production code was touched. `build_fixtures.py` and `build_split.py` are outside the solution; `build_split.py` was executed and exited 0. The .NET suite is unaffected by this pass and running it would prove nothing about it |
+
+### The 8 §F.3 sites, enumerated
+
+Asserted as a verification result above, so it is countable here rather than left as a number.
+
+| # | §F.3 site | How it was corrected |
+|---|---|---|
+| 1 | `docs/specs/2026-08-24-neural-encoder-smart-parser.md:361` (`EVA-03`, tagged `[fact]`) | Row left **verbatim**; dated superseded note added beneath the table withdrawing *real* and its `[fact]` tag, plus the document-level amendment |
+| 2 | `tools/ml-pilot/split/SPLIT.md` | Corrected **at its generator** (`build_split.py`) and regenerated |
+| 3 | `docs/reports/2026-08-25-encoder-pilot.md:558` | Marked in place (*"as written 2026-08-25 … superseded"*) + amendment |
+| 4 | `docs/plans/2026-08-24-edge-ai-encoder-adoption.md:140` | Table cell struck through with the corrected value + amendment |
+| 5 | `docs/knowledge/machine-learning.md:105` | Edited in place (live artifact) |
+| 6 | `docs/specs/system_roadmap.md:180` | Edited in place (live artifact), with the widened gap stated |
+| 7 | `datasheets/vn_input_fixtures.md:80` | Edited in place — provenance sentence replaced and dated |
+| 8 | `tools/ml-pilot/build_fixtures.py:13` | Edited in place — module docstring |
+
+Sites 5–8 carry **no strike-through**, by design: they are live artifacts, whose convention is
+correction in place. Each states the correction and its date in the replacing text.
 
 ## Follow-ups
 

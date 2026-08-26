@@ -358,8 +358,13 @@ complete outcome.**
 | ID | Requirement |
 |---|---|
 | **EVA-02 (MUST)** | Train on the **synthetic subset only** — the 597 `m8a_uniform` and 101 `synthetic_v3` rows (698 total) **[fact]**. |
-| **EVA-03 (MUST)** | Evaluate on the **205 held-out ~~real~~ `collected_v4` rows** ~~**[fact]**~~, which MUST be excluded from training for this evaluation. **The word "real" and its `[fact]` tag are withdrawn — see the Amendment at the end of this specification (2026-08-26).** The requirement itself is unchanged. |
+| **EVA-03 (MUST)** | Evaluate on the **205 held-out real `collected_v4` rows** **[fact]**, which MUST be excluded from training for this evaluation. |
 | **EVA-04 (MUST)** | The split MUST be constructed **once** and consumed **verbatim** by every arm. No arm may re-split. |
+
+> **EVA-03 as ratified 2026-08-24; partly superseded 2026-08-26 — see the Amendment at the end of this
+> specification.** The word **real** and its **`[fact]`** tag are **withdrawn**: `collected_v4` is
+> AI-generated and AI-labelled (DFD-1). **The requirement itself is unchanged** — the 205 rows, the
+> hold-out, and the exclusion from training all stand exactly as written.
 
 **[limit] Class coverage.** The real subset covers **3 of the 5 classes** — `ThiGiuaKy` 99,
 `BaiTapVeNha` 56, `DoAnCuoiKy` 50; no `KiemTraThuongXuyen`, no `ThiCuoiKy` **[fact]**. This is
@@ -368,12 +373,19 @@ complete outcome.**
 **[limit] Data maturity.** The corpus is immature in the senses listed in §9. Also accepted for the
 pilot.
 
-**[fact] The published 96.2% held-out figure is not a generalization number.** ~~The real rows were
-merged into the training seed before it was measured.~~ **The stated reason is withdrawn 2026-08-26 —
-it is chronologically impossible (see the Amendment).** The conclusion stands: it MUST NOT be cited as
-a synthetic→real baseline. ~~EVA-02/03 construct the split that produces one.~~ **Also withdrawn: the
-split EVA-02/03 construct is authored-vs-authored, so it does not produce a synthetic→real baseline
-either.**
+**[fact] The published 96.2% held-out figure is not a generalization number.** The real rows were
+merged into the training seed before it was measured. It MUST NOT be cited as a synthetic→real
+baseline; EVA-02/03 construct the split that produces one.
+
+> **Paragraph as written 2026-08-24; two of its three claims superseded 2026-08-26 — see the
+> Amendment at the end of this specification.**
+>
+> - **Stands:** 96.2% is not a generalization number and must not be cited as a synthetic→real baseline.
+> - **Withdrawn — the stated reason.** *"The real rows were merged into the training seed before it was
+>   measured"* is chronologically impossible: 96.2% was measured 2026-06-05 at the 698-row v3 seed,
+>   thirteen days **before** `collected_v4.csv` entered the repository (2026-06-18).
+> - **Withdrawn — the closing clause.** *"EVA-02/03 construct the split that produces one"*: that split
+>   is authored-vs-authored, so it cannot produce a synthetic→real baseline either.
 
 ## 6.2 Arms
 
