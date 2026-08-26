@@ -84,7 +84,9 @@ any citation of it:
    from this encoder"*.
 2. **698 synthetic training rows**, largely lacking the surface forms the test set is made of (see
    the dataset section below).
-3. **3 of 5 classes** present in the real evaluation set; two classes had zero real rows.
+3. **3 of 5 classes** present in the held-out evaluation set; two classes had zero rows. (That set,
+   `collected_v4`, was called "real" when this was written — **corrected 2026-08-26**: it is
+   AI-generated and AI-labelled, DFD-1.)
 4. **One domain, one collection pass, one evaluation set** of 205 rows.
 
 State the scope every time: this is evidence about *this encoder family, in this head, untuned, on
@@ -240,8 +242,8 @@ Measured off the committed split for this task:
 | Training vocabulary | 934 distinct tokens over **698** rows (100 % synthetic) |
 | Test tokens unseen in training | **401 / 1 604 = 25.0 %** (23.3 % diacritic-insensitive) |
 | **Test rows containing ≥ 1 unseen token** | **194 / 205 = 94.6 %** |
-| The most common real domain abbreviation, `tgk` | **28** of 205 test rows · **0** of 698 training rows |
-| Class coverage in real collected data | **3 of 5** — two classes had zero real rows |
+| The most common domain abbreviation in the test set, `tgk` | **28** of 205 test rows · **0** of 698 training rows |
+| Class coverage in the held-out set | **3 of 5** — two classes had zero rows |
 | Class balance | Runs *opposite* to training: the smallest training class (85/698) is the largest test class (99/205); the largest training class (188/698) has no test rows |
 
 **The engineering implication:**
@@ -258,11 +260,22 @@ same unrepresentative distribution.
 What it does **not** establish: that a matured dataset would change the encoder verdict. Nobody has
 measured that. It changes where the next measurement should be spent, and nothing else.
 
-**The reusable form of the lesson.** When a synthetic training set feeds a model evaluated on real
-input, measure the **unseen-token rate and the per-class coverage of the real set before drawing
-architectural conclusions** — otherwise you are attributing to the model what belongs to the data.
-And a held-out accuracy figure computed after real rows were merged into the training seed is **not**
-a synthetic→real generalization number; it cannot be cited as one.
+**The reusable form of the lesson.** When a training set of one provenance feeds a model evaluated on
+a held-out set of another, measure the **unseen-token rate and the per-class coverage of the held-out
+set before drawing architectural conclusions** — otherwise you are attributing to the model what
+belongs to the data. And an accuracy figure whose held-out set was drawn from the training corpus is
+**not** a generalization number; it cannot be cited as one.
+
+> **Correction, 2026-08-26 (DFD-1).** This section was written calling the 205-row `collected_v4` test
+> set *real*. It is not: owner recall establishes it as Meta AI-generated text labelled by GitHub
+> Copilot. **Every measurement above stands** — the unseen-token rate, the 94.6 %, the class skew were
+> measured over repository bytes and do not depend on provenance. What changes is the *inference*: the
+> train/test mismatch is between **two authored distributions**, not between synthetic and real, so it
+> is not evidence about production input. The lesson survives in the corrected form above; the
+> stronger version — *measure the gap against real input before concluding anything about real input*
+> — is the one this project could not apply, because it has no real input. See
+> [`../reports/2026-08-25-data-audit-gap-map.md`](../reports/2026-08-25-data-audit-gap-map.md) and
+> [`../plans/2026-08-26-data-foundation-owner-decision-handoff.md`](../plans/2026-08-26-data-foundation-owner-decision-handoff.md).
 
 ---
 

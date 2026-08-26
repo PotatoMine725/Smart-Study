@@ -10,9 +10,11 @@ Run from the repository root:  python tools/ml-pilot/build_fixtures.py
 
 Deterministic: re-running produces a byte-identical file.
 
-Realistic rows are drawn from `datasheets/collected_v4.csv` (real collected user
-input) so the set reflects how students actually type, not how a developer
-imagines they do.
+Realistic rows are drawn from `datasheets/collected_v4.csv`. That file is NOT real
+user input: it is AI-generated (Meta AI, from owner templates) and AI-labelled
+(GitHub Copilot) -- owner ruling 2026-08-26, DFD-1. The fixtures reflect how an
+authoring process rendered student input, not how students actually type, and no
+result derived from them may be reported as evidence about real input.
 """
 
 import csv
