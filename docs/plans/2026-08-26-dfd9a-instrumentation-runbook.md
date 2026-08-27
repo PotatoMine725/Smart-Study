@@ -11,13 +11,25 @@
 
 **Time:** ~10 minutes, of which ~3 are sitting watching a timer.
 
+> **Shell: Windows PowerShell**, which is what this machine opens by default. Every command below was
+> executed in PowerShell before being written down, not translated into it.
+>
+> *Corrected 2026-08-27.* The first version of this runbook was written in bash — `&&`, `ls -la`,
+> `$APPDATA`, and a `<<'PY'` heredoc, **five of its six commands** — and the read command in §2 was
+> verified with a bash tool rather than in the shell the operator actually uses. It stopped the first
+> run at §2. A check whose instructions cannot be executed by the person running them has not been
+> verified, however carefully its logic was reasoned. See §8.
+>
+> Using Git Bash instead? Then `python tools/qa/read_outcome_logs.py` still works unchanged — it takes
+> no shell syntax — and the rest are ordinary file operations you can translate freely.
+
 ---
 
 ## 1. Preconditions
 
 ### 1.1 Build the tree you think you are testing
 
-```bash
+```powershell
 rtk dotnet build SmartStudyPlanner.slnx
 ```
 
@@ -28,11 +40,15 @@ Expect **0 errors**.
 The whole check is void if you run yesterday's executable. Confirm the exe was written by the build
 you just ran, and that the DFD-9a commit is actually in your tree:
 
-```bash
-cd "d:/Code/C#/SmartStudyPlanner"
-ls -la "SmartStudyPlanner/bin/Debug/net10.0-windows10.0.19041.0/SmartStudyPlanner.exe"
-git log --oneline -1 --format='%h %ad %s' --date=short -- SmartStudyPlanner/ViewModels/FocusViewModel.cs
+```powershell
+Set-Location "D:\Code\C#\SmartStudyPlanner"
+Get-Item "SmartStudyPlanner\bin\Debug\net10.0-windows10.0.19041.0\SmartStudyPlanner.exe" |
+    Select-Object Name, Length, LastWriteTime | Format-Table -AutoSize
+git log -1 --date=short --format="%h %ad %s" -- SmartStudyPlanner/ViewModels/FocusViewModel.cs
 ```
+
+The exe's `LastWriteTime` must be **later** than the commit date `git log` prints. If it is earlier,
+the build did not run or wrote somewhere else — stop and fix that before going further.
 
 **The exe's mtime must be later than the commit date.** If it is older, the build did not run or you
 are about to launch a different copy — **stop and rebuild**.
@@ -54,9 +70,14 @@ answer, so the read command below prints the file's path and mtime every time. C
 **Back it up first.** §3's Scenario 2 marks a task complete, and both scenarios add studied minutes —
 real changes to real test data:
 
-```bash
-cd "SmartStudyPlanner/bin/Debug/net10.0-windows10.0.19041.0" && cp SmartStudyData.db "SmartStudyData.db.pre-dfd9a-$(date +%Y%m%d-%H%M).bak"
+```powershell
+$db = "SmartStudyPlanner\bin\Debug\net10.0-windows10.0.19041.0\SmartStudyData.db"
+Copy-Item $db "$db.pre-dfd9a-$(Get-Date -Format 'yyyyMMdd-HHmm').bak"
+Get-ChildItem "$db.pre-dfd9a-*.bak" | Select-Object Name, Length | Format-Table -AutoSize
 ```
+
+> A backup taken **2026-08-27 16:26** already exists — it was created while verifying these commands,
+> from the same untouched database. Taking another is harmless; the timestamp is in the filename.
 
 Now take the baseline with the read command from §2:
 
@@ -78,9 +99,14 @@ The ML path only runs when a trained model exists at
 `%APPDATA%\SmartStudyPlanner\models\study_time.zip`. On the owner's machine this file is present
 (dated 2026-06-27), so predictions should take the real ML path.
 
-```bash
-ls -la "$APPDATA/SmartStudyPlanner/models/study_time.zip"
+```powershell
+$model = "$env:APPDATA\SmartStudyPlanner\models\study_time.zip"
+if (Test-Path $model) { Get-Item $model | Select-Object FullName, Length, LastWriteTime | Format-List }
+else { Write-Output "ABSENT: $model" }
 ```
+
+*Verified 2026-08-27:* **present**, 12 607 bytes, dated 2026-06-27 — so this run should take the real
+ML branch, and `Confidence` should be a genuine agreement score rather than the fallback `0`.
 
 | Model file | What you will see | Does the check still work? |
 |---|---|---|
@@ -105,23 +131,33 @@ path: correctly instrumented, but it says nothing about the model. It is **not**
 Run this from the repository root, **with the app closed**, both for the baseline and after each
 scenario. Closing the app also guarantees the write is flushed.
 
-```bash
-cd "d:/Code/C#/SmartStudyPlanner" && python - <<'PY'
-import sqlite3, os, datetime
-p = "SmartStudyPlanner/bin/Debug/net10.0-windows10.0.19041.0/SmartStudyData.db"
-print("FILE :", os.path.abspath(p))
-print("MTIME:", datetime.datetime.fromtimestamp(os.path.getmtime(p)))
-con = sqlite3.connect("file:%s?mode=ro" % p, uri=True)
-rows = con.execute("""select CreatedUtc, ActualMinutes, PredictedMinutes, WasMlPrediction, Confidence
-                      from StudyTimeOutcomeLogs order by CreatedUtc""").fetchall()
-print("ROWS :", len(rows))
-print("%-22s %8s %10s %6s %11s" % ("CreatedUtc","Actual","Predicted","WasML","Confidence"))
-for c, a, pm, ml, cf in rows:
-    f = lambda v: "NULL" if v is None else v
-    print("%-22s %8s %10s %6s %11s" % (str(c)[:22], f(a), f(pm), f(ml), f(cf)))
-con.close()
-PY
+```powershell
+python tools/qa/read_outcome_logs.py
 ```
+
+It is a committed script — [`../../tools/qa/read_outcome_logs.py`](../../tools/qa/read_outcome_logs.py) —
+not a pasted snippet, so it carries no shell syntax and behaves identically in PowerShell, cmd and
+bash. It resolves the Debug database from its **own** location, so it works from any working
+directory, and it opens the file **read-only**. Pass a path to read a different database.
+
+**Verified output, 2026-08-27, run in PowerShell against the untouched Debug database:**
+
+```text
+FILE : D:\Code\C#\SmartStudyPlanner\SmartStudyPlanner\bin\Debug\net10.0-windows10.0.19041.0\SmartStudyData.db
+MTIME: 2026-07-26 20:44:36.097919
+ROWS : 2
+CreatedUtc               Actual  Predicted  WasML  Confidence
+2026-07-15 11:36:31.39      1.0       NULL      0        NULL
+2026-07-20 13:28:20.53      1.0       NULL      1        NULL
+```
+
+**That is your baseline, and it is also the negative control.** Both rows predate the fix. The second
+one is the defect stated in data: `WasML = 1` says a model prediction happened, `Confidence = NULL`
+says the app cannot tell you what it was.
+
+If the script prints an `ERROR:` block, read which one. *"zero tables"* means the instrument is
+broken and you should record **no verdict**; *"table not in this database"* with a table count means
+you are reading the wrong file.
 
 **Read `NULL` literally.** The script prints the string `NULL` only where the column really is null —
 it never coerces a null to `0`. That distinction is the entire check, which is why the two pre-fix
@@ -288,8 +324,79 @@ record reopens on that evidence.
 Scenario 2 marks a task complete and both scenarios add studied minutes — real changes to your test
 data. To undo, close the app and restore the backup from §1.3:
 
-```bash
-cd "SmartStudyPlanner/bin/Debug/net10.0-windows10.0.19041.0" && cp SmartStudyData.db.pre-dfd9a-*.bak SmartStudyData.db
+```powershell
+$db  = "SmartStudyPlanner\bin\Debug\net10.0-windows10.0.19041.0\SmartStudyData.db"
+$bak = Get-ChildItem "$db.pre-dfd9a-*.bak" | Sort-Object Name | Select-Object -Last 1
+Write-Output "restoring from: $($bak.Name)"
+Copy-Item $bak.FullName $db -Force
 ```
 
+**Sort by `Name`, not by `LastWriteTime`.** `Copy-Item` preserves the *source* file's timestamp, so
+every backup carries the database's mtime and sorting by time picks an arbitrary one. The name holds
+the real stamp, and `yyyyMMdd-HHmm` sorts correctly as text.
+
 Restoring **deletes the evidence rows** as well. Read and record them first — §6 before §7.
+
+---
+
+## 8. Correction record — 2026-08-27
+
+The first version of this runbook, written 2026-08-26, **could not be executed by its own operator.**
+It stopped the first run at §2. Recorded here rather than silently rewritten, because the failure is
+not a typo and the same mistake is available to any future runbook.
+
+### 8.1 What was wrong
+
+| # | Where | Written as | Fails because |
+|---|---|---|---|
+| 1 | §1.2 | `ls -la "…"` | `ls` is an alias for `Get-ChildItem`; `-la` is not one of its parameters |
+| 2 | §1.3 | `cd … && cp … "$(date +%Y%m%d-%H%M)"` | `&&` is a parser error in Windows PowerShell 5.1; `date +%…` is not `Get-Date` |
+| 3 | §1.4 | `ls -la "$APPDATA/…"` | PowerShell reads environment variables as `$env:APPDATA` |
+| 4 | **§2** | `cd … && python - <<'PY'` | Both halves fail: `&&`, and bash heredocs do not exist in PowerShell. **This is where the run stopped** |
+| 5 | §7 | `cd … && cp ….bak …` | `&&` again |
+
+**Five of six commands.** Only `rtk dotnet build` was portable, by accident rather than by design.
+
+### 8.2 The root cause is not the syntax
+
+§2 of the original said the read command had been *"run verbatim to prove it executes."* It had — in
+a bash tool, which is not the shell the operator uses. **The verification and the operator were on
+different instruments**, so what it proved was that the logic was sound, not that the runbook was
+runnable.
+
+`[observation]` This is the project's own standing rule about manual checks — *test the observation
+channel by an independent path, and verify the instrument before trusting a result* — failing at a
+step earlier than the one it is usually applied to. The instrument here was not the SQL query. **It
+was the shell.** Reasoning about a command is not the same as running it, and running it somewhere
+else is not the same as running it here.
+
+### 8.3 Two silent faults found while fixing it
+
+Both were introduced by the fix and caught by running it. Both are worth knowing about because they
+fail **quietly, in the direction of a false verdict**:
+
+1. **`sqlite3.connect("file:" + windows_path, uri=True)` opens an empty database.** `file:D:/x.db` is
+   not a valid URI, and SQLite does not complain — it reports **zero tables**, which reads exactly
+   like *"the migration never ran."* The first run of the new script produced a confident
+   *"StudyTimeOutcomeLogs is not in this database"* about a database that contains it.
+2. **The `#` in `C#` truncates a hand-built URI.** `#` opens a fragment, so the path silently ends at
+   `D:/Code/C`. Specific to this repository's location, and invisible until something downstream is
+   empty.
+
+Both are fixed by building the URI with `pathlib.Path(p).as_uri()`, and the script now treats *"zero
+tables"* as **a broken instrument that must not produce a verdict**, rather than as a finding.
+
+`[inference]` The general shape is the one worth carrying: **a diagnostic that reports "absent" is
+making a claim, and it can be wrong in the same ways any other claim can.** An error path that
+confidently names a cause — *"wrong file, or an older schema"* — is more dangerous than one that
+admits it does not know, because it hands the operator a conclusion to record.
+
+### 8.4 What is now verified, and how
+
+Every command in this runbook was executed in **Windows PowerShell** on 2026-08-27 before being
+written down, against the real Debug database, and its actual output is reproduced where it matters
+(§1.4, §2). The read command is a committed script rather than a pasted snippet, so what is verified
+and what is run are the same bytes.
+
+**What is still unverified is the thing the runbook is for:** the scenarios in §3 need the
+application driven by a human, and the result table in §5 is still blank.
