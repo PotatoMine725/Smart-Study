@@ -22,6 +22,13 @@ project holds **zero verified real user rows**). It produced two items that need
 completed correction pass — see the table below and
 [`../plans/2026-08-26-data-foundation-owner-decision-handoff.md`](../plans/2026-08-26-data-foundation-owner-decision-handoff.md).
 
+**The proposal's own review closed 2026-08-27** — the owner ruled on **Q-1 … Q-5**, the five questions
+the proposal had declined to answer with invented figures
+([`../plans/2026-08-27-data-maturation-owner-decision-outcomes.md`](../plans/2026-08-27-data-maturation-owner-decision-outcomes.md)).
+**Four of the five rulings are instructions not to invent the number yet.** The proposal is now at
+**revision 2** and waits on *authorization*, not decisions. Its immediate next step, **S-1**, needs no
+tooling and no data — only four owner rulings.
+
 *Superseded 2026-08-19 (kept for history):* the previous banner said *"Epic 3 (SOE) is next"*, which
 was true when written on 2026-08-02. The order it cited still holds — the
 [master plan](../plans/2026-07-03-master-plan.md) sequences **E1 → E3 → E2 → E4**, and *"Epic 2 entry
@@ -36,7 +43,8 @@ owner's and has not been made.
 | Work | Plan | State |
 |---|---|---|
 | **Prediction instrumentation defect (DFD-9a)** | [`../plans/2026-08-26-prediction-instrumentation-defect.md`](../plans/2026-08-26-prediction-instrumentation-defect.md) | **FIXED 2026-08-26**, suite 487 → 492. Seam returns the prediction record, `TaskDashboardItem` carries it, the write site logs both columns on both branches. **One gate still open:** the end-to-end check needs the owner at a keyboard — automated tests cover the three hops but not the production DI wiring. Runbook ready (~10 min): [`../plans/2026-08-26-dfd9a-instrumentation-runbook.md`](../plans/2026-08-26-dfd9a-instrumentation-runbook.md) |
-| **Data Maturation & Coverage Expansion** | [`../plans/2026-08-26-data-maturation-coverage-expansion.md`](../plans/2026-08-26-data-maturation-coverage-expansion.md) | **DRAFT, awaiting owner review** — staged S-1…S-8. Not authorized, not scheduled. Next step is a *measurement*, not a stage: adjudicate 20 rows under the annotation spec and time it (Q-1) |
+| **Data Maturation & Coverage Expansion** | [`../plans/2026-08-26-data-maturation-coverage-expansion.md`](../plans/2026-08-26-data-maturation-coverage-expansion.md) | **Rev 2 (2026-08-27) — DRAFT, awaiting *authorization*.** Reviewed; Q-1…Q-5 ruled. Staged S-1…S-8 plus the **S-T** telemetry strand; maturity is now a `T-0…T-3` tier ladder with three binary invariants, **all three false today**. Not authorized, not scheduled. **Next: S-1**, the limited taxonomy review — four owner rulings, no tooling. Then S-2, then the Q-1 measurement |
+| **Owner decision outcomes (Q-1…Q-5)** | [`../plans/2026-08-27-data-maturation-owner-decision-outcomes.md`](../plans/2026-08-27-data-maturation-owner-decision-outcomes.md) | **RATIFIED 2026-08-27**, implementation still not authorized. Owner has a bounded participant network (Q-2); collection runs outside the app (Q-3); hybrid sampling, no forced quotas (Q-4); tiered maturity (Q-5); adjudication effort is measured, not estimated (Q-1). **Where its wording differs from the 2026-08-26 handoff, this one governs** — one such difference is material, see its §A.2 |
 | **Analytics two-section redesign** | [`../plans/2026-07-20-analytics-two-section-redesign.md`](../plans/2026-07-20-analytics-two-section-redesign.md) | QUEUED — design brief, **plus a delivered implementation package** (2026-08-02) now under version control at [`../assets/analytics-ui-package/`](../assets/analytics-ui-package/). **Not integrated**; no code merged. Phase 3 unlocked, not started. *Known gap: the package README cites an interactive mockup `Analytics Redesign Proposal.dc.html` that is not in the repository.* |
 | **UI fidelity + mobile-ready polish** | [`../plans/2026-07-05-ui-mobile-ready-polish.md`](../plans/2026-07-05-ui-mobile-ready-polish.md) | PROPOSED, on `dev` — `ui_rf` was adopted as the tested trunk and merged (PR #49, 2026-07-26), so the plan is no longer branch-scoped; it remains unimplemented |
 

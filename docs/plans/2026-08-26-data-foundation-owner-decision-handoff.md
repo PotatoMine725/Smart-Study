@@ -490,16 +490,16 @@ Do not implement from this document alone.
 | Close the audit's deferred decisions | §1, §2, §3 | Dated amendment on [`../reports/2026-08-25-data-audit-gap-map.md`](../reports/2026-08-25-data-audit-gap-map.md) — `OD-1…OD-6`, `K.1`, `K.2` all closed | **Done** |
 | Record the ruling against the brief that asked for it | §1 | *Owner ruling* section appended to [`../reports/2026-08-26-data-foundation-owner-decision-brief.md`](../reports/2026-08-26-data-foundation-owner-decision-brief.md), per the reports-README convention | **Done** |
 | Raise the prediction-instrumentation defect **now**, separately | §13, §17 (DFD-9a) | [`2026-08-26-prediction-instrumentation-defect.md`](2026-08-26-prediction-instrumentation-defect.md) — root-caused, sliced, impact-analysed | **Raised. NOT implemented** — the ruling authorizes raising, not fixing |
-| Commission the Data Maturation & Coverage Expansion proposal | §16, §19 | [`2026-08-26-data-maturation-coverage-expansion.md`](2026-08-26-data-maturation-coverage-expansion.md) | **Written. `draft`, awaiting owner review** |
+| Commission the Data Maturation & Coverage Expansion proposal | §16, §19 | [`2026-08-26-data-maturation-coverage-expansion.md`](2026-08-26-data-maturation-coverage-expansion.md) | **Written; reviewed 2026-08-27; now at revision 2.** `draft`, awaiting **authorization** |
 | Record the state change even though nothing shipped | project convention | `docs/CHANGELOG.md`, entry dated 2026-08-26 | **Done** |
 
 ## A.2 What was deliberately not done
 
 | Not done | Why |
 |---|---|
-| **The DFD-9a fix itself** | §Purpose withholds implementation authorization; §13 says *raise*. The defect record states the owner's go/no-go as its next event |
+| ~~**The DFD-9a fix itself**~~ — *superseded 2026-08-26: the owner gave the go-ahead and it shipped the same day, moving no confidence threshold. Its end-to-end check remains open.* | §Purpose withholds implementation authorization; §13 says *raise*. The defect record states the owner's go/no-go as its next event |
 | **The limited taxonomy review (P-3)** | §16 places it as stage 1 of the pipeline the proposal must describe, and DFD-2 makes it the precursor to the annotation spec. Executing it ahead of the proposal would front-run the sequencing just ratified. It is scoped as **S-1** in the proposal |
-| **Quantifying owner effort, collection throughput, privacy implications, Gold-R strategy** | §19 asks for them; the repository cannot answer them. They are filed as named open questions **Q-1 … Q-5** in the proposal's §4.2. Supplying plausible figures would repeat the defect this record exists to correct |
+| **Quantifying owner effort, collection throughput, privacy implications, Gold-R strategy** | §19 asks for them; the repository cannot answer them. They were filed as named open questions **Q-1 … Q-5** in the proposal's §4.2. Supplying plausible figures would repeat the defect this record exists to correct. **Closed 2026-08-27** — the owner ruled on all five ([`2026-08-27-data-maturation-owner-decision-outcomes.md`](2026-08-27-data-maturation-owner-decision-outcomes.md)); four of the rulings direct that the figures be *measured or observed*, not estimated |
 | **Rewriting the non-load-bearing "real" mentions in closed initiative documents** | §5: *"Do not rewrite history."* Each such document carries one amendment withdrawing the claim document-wide, and says the remaining instances are covered rather than missed |
 | **Retrofitting lineage onto the existing 903 rows** | DFD-5 governs rows at creation. Backfilling would mean inventing provenance |
 | **Reopening the Edge AI initiative** | §18 |

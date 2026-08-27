@@ -4,6 +4,34 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
+## 2026-08-27 — Data Maturation proposal **reviewed; Q-1 … Q-5 ruled** — *no user-visible change*
+
+> **Nothing shipped and nothing was implemented.** This entry exists because the project's position on
+> its own data *plan* changed: the five questions the proposal declined to answer with invented figures
+> now have owner rulings, and **four of the five rule that the figure must be measured or observed
+> rather than estimated.** The proposal moved from awaiting *decisions* to awaiting *authorization*.
+
+| Area | Change | Verification |
+|---|---|---|
+| Owner ruling | **Q-1 … Q-5 decided**, P-1…P-3 and DFD-1…DFD-9b restated. Adjudication effort becomes a measurement (Q-1); the owner has a bounded participant network (Q-2); collection runs **outside** the production app (Q-3); Gold-R sampling is hybrid — a floor for all five classes, otherwise the observed distribution, **no forced quotas** (Q-4); maturity is **tiered**, not one gate (Q-5). Filed at [`plans/2026-08-27-data-maturation-owner-decision-outcomes.md`](plans/2026-08-27-data-maturation-owner-decision-outcomes.md) | Ruling filed verbatim; `Prompt/` is gitignored, so the proposal's citations would otherwise point at nothing |
+| Proposal | **Revision 2**, revised in place — a `draft` that was never ratified, and the owner commissioned *"the next proposal revision."* New **`S-T`** telemetry strand (stage numbers unchanged, so inbound citations still resolve); §5 rebuilt as a `T-0…T-3` tier ladder; §4.2 now carries each ruling **and the parameter it leaves open** | [`plans/2026-08-26-data-maturation-coverage-expansion.md`](plans/2026-08-26-data-maturation-coverage-expansion.md) §9.3 tracks all seven of the ruling's requirements |
+| Maturity model | The three owner-named **invariants** — provenance completeness, held-out reservation, Gold/Silver separation — are split out from quality thresholds as `I-1`/`I-2`/`I-3`. They are binary, they cost nothing but sequence, and **all three are false today**. Every threshold sits at the top tier, which the tier below it generates the evidence for | Q-5's *"without arbitrary thresholds before evidence exists"* is satisfied rather than deferred |
+| Restated ruling, changed meaning | **P-3 grew a fourth item** on 2026-08-27: *is the 29.6% disagreement caused by taxonomy semantics or annotation inconsistency?* It decides whether the annotation spec can close the disagreement at all — if the cause is taxonomic, no guideline can. Now S-1's fourth scope row and part of its exit criteria | The later wording governs. Recorded in the filed ruling's §A.2 — a reconciliation reading only the *new* decisions would have missed a change inside a restated one |
+| Two stale baselines corrected | The proposal's rev 1 was written hours before the DFD-9a fix shipped, so its `[measured]` telemetry row and its M-8 criterion were accurate when written and **stale the same afternoon**. M-8's blocker moved from **impossible** to **pending volume** — the ≥50-row retrain gate has still never been met | Superseded wording preserved in the proposal's §9.2 rather than overwritten |
+
+**Deliberately still open, and named:** the Q-4 class floor, every T-3 threshold, Track B's consent
+basis (Q-3 rules on Track A's venue only), and **`R-1`** — who performs the annotation spec's two
+independent passes, which changes what its agreement rate measures and therefore what threshold can
+honestly be pre-registered.
+
+**One consequence derived, not decided:** Q-2's network of friends and students is a **convenience
+sample**. That is a sound basis for Gold-R — it is real data from real people, which the project has
+none of — but it does not license *"this is how students write."* Claim scope (participant count +
+recruitment route) is now an S-5 exit criterion.
+
+**Next step is S-1**, the limited taxonomy review: four owner rulings, no tooling, no data.
+**Nothing is authorized.**
+
 ## 2026-08-26 — DFD-9a: prediction instrumentation **fixed** — *no user-visible change*
 
 | Area | Change | Verification |
