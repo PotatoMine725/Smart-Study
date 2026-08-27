@@ -559,3 +559,8 @@ been found by re-reading it:
 `[inference]` The pattern across §8.1, §8.3 and both of these: **every one was a claim that looked
 settled on the page and was wrong in the environment.** A runbook is a claim about a machine, and the
 only way to check a claim about a machine is on the machine.
+
+**Distilled 2026-08-27** into [`../knowledge/qa-gates.md`](../knowledge/qa-gates.md) — four lessons,
+generalised past this defect and cross-linked to the Epic 3 QA cycle. The Windows-specific traps
+(WAL mtime, SQLite URI construction) are in
+[`../knowledge/debugging.md`](../knowledge/debugging.md) under *Build / dependency gotchas*.

@@ -131,3 +131,13 @@ tools/ml-pilot/**/*.model
 # Python bytecode from the pilot harness scripts
 __pycache__/
 *.pyc
+
+# =============================
+# Claude Code per-machine settings
+# =============================
+# `settings.local.json` is Claude Code's per-machine file: it accumulates
+# permission grants that include absolute paths to this machine (home dir,
+# editor install, node binary). Tracking it conflicts on every other checkout
+# and leaks local layout. `.claude/settings.json` — the shared config — stays
+# tracked deliberately.
+.claude/settings.local.json
