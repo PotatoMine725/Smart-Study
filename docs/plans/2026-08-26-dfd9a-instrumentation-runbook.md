@@ -298,9 +298,22 @@ where the pre-fix rows still read NULL is exactly the transition §4 asks for.
 It does leave one thing unshown: **no row in the run carries a non-zero prediction.** One extra
 ~2-minute session closes it.
 
-1. Create a task with a deadline **3–7 days from today** and `DoKho` 3–5. That window matters:
-   past-deadline hits `OverdueRule` (score 0), under 1 day hits `ImminentRule`, and beyond
-   `HorizonDays = 60` hits `BeyondHorizonRule` — only the middle range reaches the real component sum.
+1. Create a task whose deadline is **in the future — 3 to 7 days of runway left**, not overdue. Run
+   on 2026-08-27 that means a `HanChot` of **2026-08-30 … 2026-09-03**. Give it `DoKho` 3–5.
+
+   The window matters, because `PriorityCalculator` runs five short-circuit rules **in this order**
+   and the first one that matches wins — `daysLeft = HanChot.Date - Today`:
+
+   | `daysLeft` | Rule that fires | `DiemUuTien` | Usable? |
+   |---|---|---|---|
+   | ≤ −4 | `OverdueRule` | **0** | **No** — formula returns 0. *This is what the 2026-08-27 run hit* |
+   | −3 … −1 | `JustOverdueRule` | 100 | Yes, but a pinned constant |
+   | 0 (today) | `ImminentRule` | 95 | Yes, but a pinned constant |
+   | **1 … 60** | *none — the weighted component sum* | **computed** | **Yes — use this** |
+   | > 60 | `BeyondHorizonRule` | 1 | Barely; only the difficulty bonus survives |
+
+   Only the `1 … 60` band produces a priority the weights actually shaped, which is what makes the
+   resulting prediction worth reading. **3–7 days sits safely inside it.**
 2. Run Scenario 1 on it (70+ seconds, *Thoát khẩn cấp*).
 3. Read §2.
 
@@ -352,7 +365,12 @@ surprising, the surprise is the finding.
 **Results do not live in this runbook.** Per `docs/reports/README.md`, what the person at the keyboard
 saw is an **evidence record**, in their own words:
 
-> `docs/reports/2026-08-26-dfd9a-instrumentation-observation.md`
+> [`../reports/2026-08-27-dfd9a-instrumentation-observation.md`](../reports/2026-08-27-dfd9a-instrumentation-observation.md)
+
+*Dated by the run (2026-08-27), not by this runbook. It did not exist until the run happened — the
+path above was a destination, and an earlier draft of this section cited an `08-26` name that was
+never created.* A scaffold is now committed with the machine-captured provenance and raw output
+already filled in; **§3, §4 and §5 of it are blank on purpose** and are the owner's to write.
 
 Write down what appeared on screen, including anything unexpected, and **do not** reformat it into
 report sections — an evidence record is exempt from them, and tidying it corrupts the thing it exists
