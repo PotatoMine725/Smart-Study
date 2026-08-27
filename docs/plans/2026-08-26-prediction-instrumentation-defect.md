@@ -302,6 +302,11 @@ solely because that mutation came back green.
 
 ### 9.4 What is still true after the fix — read before citing this as closed
 
+> **Updated 2026-08-27.** One bullet below is struck through: the end-to-end check **has now been run
+> and passed**. Everything else in this section still stands — unusable pre-fix rows, the
+> `Confidence = 0` ambiguity, no threshold moved, loss rate unmeasured. Read the strike-through as
+> *"this was the open gate, and it is the only one that closed"*, not as a sign the section is stale.
+
 - **Rows written before 2026-08-26 are still unusable.** Nothing was backfilled; §3 explains why it is
   impossible. The defect stopped accruing; it was not undone.
 - **`Confidence = 0` is ambiguous.** `StudyTimePredictorService.Fallback` returns `0f` when the model

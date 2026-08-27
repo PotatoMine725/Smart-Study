@@ -93,6 +93,20 @@ prediction happened and cannot say what it was.
 > has used the app since. Write down what you actually saw and use *your* number as the baseline.
 > Never adjust the observation to match this document.
 
+> ### ⚠️ Re-running this after 2026-08-27? The baseline is **6 rows**, not 2.
+>
+> The gate was run and passed on 2026-08-27 (§5). The database now holds **6 rows**: the two 2026-07
+> rows with `NULL` / `NULL`, and **four instrumented rows** written by that run. The "2 rows" figure
+> below is the *pre-run* capture, kept because it is what the PASS was measured against.
+>
+> **Do not restore the backup to "get back to a clean baseline."** `SmartStudyData.db.pre-dfd9a-*.bak`
+> predates the run, so restoring it **deletes the four rows that are the evidence for the closure**.
+> §7 exists to undo the run, and the run is not something you want undone any more.
+>
+> The two 2026-07 rows are a **permanent negative control** — they can never be backfilled (defect
+> record §3), so they will keep proving the reader can display a `NULL` for as long as the database
+> survives.
+
 ### 1.4 Know which branch you are on before you start
 
 The ML path only runs when a trained model exists at
@@ -140,7 +154,9 @@ not a pasted snippet, so it carries no shell syntax and behaves identically in P
 bash. It resolves the Debug database from its **own** location, so it works from any working
 directory, and it opens the file **read-only**. Pass a path to read a different database.
 
-**Verified output, 2026-08-27, run in PowerShell against the untouched Debug database:**
+**Historical capture — the state *before* the run, 2026-08-27, PowerShell, untouched Debug database.**
+This is **not** what you will see today; the run added four rows and the database now reads **6**
+(§5). Kept because it is the baseline the PASS was measured against:
 
 ```text
 FILE : D:\Code\C#\SmartStudyPlanner\SmartStudyPlanner\bin\Debug\net10.0-windows10.0.19041.0\SmartStudyData.db
@@ -151,9 +167,10 @@ CreatedUtc               Actual  Predicted  WasML  Confidence
 2026-07-20 13:28:20.53      1.0       NULL      1        NULL
 ```
 
-**That is your baseline, and it is also the negative control.** Both rows predate the fix. The second
-one is the defect stated in data: `WasML = 1` says a model prediction happened, `Confidence = NULL`
-says the app cannot tell you what it was.
+**That was the baseline, and those two rows are also the negative control.** Both predate the fix. The
+second one is the defect stated in data: `WasML = 1` says a model prediction happened,
+`Confidence = NULL` says the app cannot tell you what it was. **They still read `NULL` today** — no
+backfill is possible — so they remain the standing proof that this command can display a failure.
 
 If the script prints an `ERROR:` block, read which one. *"zero tables"* means the instrument is
 broken and you should record **no verdict**; *"table not in this database"* with a table count means
@@ -411,6 +428,16 @@ updated 2026-08-27, after the verdict:**
 record reopens on that evidence.
 
 ## 7. Restoring afterwards
+
+> **As of 2026-08-27, do not run this section.** The run happened, the verdict is PASS, and the four
+> instrumented rows in that database are the evidence behind a gate now recorded as closed in three
+> documents. The only backup on disk predates them, so restoring it **destroys that evidence**. The
+> written record survives in
+> [`../reports/2026-08-27-dfd9a-instrumentation-observation.md`](../reports/2026-08-27-dfd9a-instrumentation-observation.md),
+> but the rows themselves would be gone and cannot be recreated — the two 2026-07 control rows least
+> of all.
+>
+> Kept below for a **future** run of this runbook, which would take its own fresh backup first.
 
 Scenario 2 marks a task complete and both scenarios add studied minutes — real changes to your test
 data. To undo, close the app and restore the backup from §1.3:
