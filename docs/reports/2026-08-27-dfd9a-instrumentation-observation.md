@@ -73,12 +73,71 @@ B2403F0D-… | 2026-08-27 10:38:29.93 | 6E9F9920-… | 4 | 5.0 | 4.0 | -77.0 | 0
 
 Both tasks: `HanChot = 2026-06-11`, i.e. **77 days past deadline**, `DiemUuTien = 0.0`.
 
-### 2.4 Note on the database mtime
+### 2.4 Second pass — two new tasks with deadlines in the future
 
-The file's mtime (17:51) is later than the last outcome row (17:38 local). The application was opened
-again after Scenario 2 and wrote something — **no new outcome row appeared**, and the row count is
-still 4. If a third focus session was attempted and lasted under 60 seconds, that is the expected
-result (`LuuThoiGianThucTe` guards on `_tongGiayDaHoc / 60 > 0`), not a failure.
+The owner did **not** restore the backup, and instead ran Scenarios 1 and 2 again against two
+**newly created, non-overdue** tasks — runbook §3.1. Captured 2026-08-27 18:34 local:
+
+```text
+FILE : D:\Code\C#\SmartStudyPlanner\SmartStudyPlanner\bin\Debug\net10.0-windows10.0.19041.0\SmartStudyData.db
+MTIME: 2026-08-27 17:51:37.427884
+ROWS : 6
+CreatedUtc               Actual  Predicted  WasML  Confidence
+2026-07-15 11:36:31.39      1.0       NULL      0        NULL
+2026-07-20 13:28:20.53      1.0       NULL      1        NULL
+2026-08-27 10:24:35.24     16.0        0.0      0         0.0
+2026-08-27 10:38:29.93      2.0        0.0      0         0.0
+2026-08-27 11:30:16.24      3.0      132.0      1  0.8999999761581421
+2026-08-27 11:32:35.20      1.0       88.0      1  0.7333333492279053
+```
+
+Full columns, and the tasks they point at:
+
+```text
+CreatedUtc              MaTask     Type Diff Cred DaysLeft Studied Actual Predicted ML Confidence
+2026-08-27 11:30:16.24  59AE3156-…    1  3.0  4.0      5.0     0.0    3.0     132.0  1  0.8999999761581421
+2026-08-27 11:32:35.20  51C13862-…    0  3.0  4.0      4.0     0.0    1.0      88.0  1  0.7333333492279053
+
+MaTask      TenTask   HanChot       TrangThai    DiemUuTien  DoKho  ThoiGianDaHoc
+59AE3156-…  Task A    2026-09-01    Chưa làm          73.19      3              3
+51C13862-…  Task B    2026-08-31    Hoàn thành        68.38      3              1
+```
+
+Task B is `Hoàn thành` because Scenario 2's `✅ Đã Xong` completed it — expected, per runbook §3.
+
+### 2.5 The logged confidences reproduce exactly from the source arithmetic
+
+`confidence = 1 - clamp(|predicted - formula| / max(formula, 1), 0, 1)`, and
+`formula = round(((DiemUuTien/100)·120 + (DoKho/5)·60) / 15) · 15`:
+
+| Task | `DiemUuTien` | `formula` | `predicted` | Expected confidence | **Logged** |
+|---|---|---|---|---|---|
+| A | 73.19 | `round(123.83/15)·15 = 120` | 132 | `1 − 12/120` = **0.9** | `0.8999999761581421` |
+| B | 68.38 | `round(118.06/15)·15 = 120` | 88 | `1 − 32/120` = **0.73333…** | `0.7333333492279053` |
+
+Both match to `float32` precision — the trailing digits are the single-precision representation of
+`0.9` and `11/15`, not noise. **This is independent confirmation that the logged `Confidence` is the
+real computed agreement score**, not a placeholder or a rounded display value: the number could not
+reproduce from the inputs by coincidence.
+
+Both are ≥ `0.6`, so the ML branch was **accepted** and `PredictedMinutes` holds the model's own
+output (132, 88) rather than the formula's 120.
+
+### 2.6 Note on the database mtime — WAL
+
+The main `.db` mtime (17:51) is **older than the last two rows** (18:30, 18:32 local). This is not an
+anomaly: the database runs in `journal_mode = wal`, so recent commits live in
+`SmartStudyData.db-wal` (104.6 KB at time of capture) until a checkpoint folds them into the main
+file. The read script sees them because SQLite reads the WAL transparently.
+
+Re-checked at 18:37 after the application was closed: the sidecars are **gone**, the main file's mtime
+is `2026-08-27 18:36:59`, and all **6 rows** read back from it. SQLite checkpointed on the last
+connection close, so the evidence is durable in the `.db` itself — nothing is stranded in a WAL.
+
+**This still matters for §7 of the runbook.** Copying a `.bak` over the `.db` while a stale
+`-wal`/`-shm` pair is present lets SQLite replay that WAL against the restored file. It did not
+happen here only because the app was closed first. The restore procedure has been corrected to check
+for the sidecars explicitly rather than rely on that.
 
 ---
 
@@ -114,15 +173,41 @@ shows is filled in; the ruling is the owner's.
 | 3 | Pre-fix rows still read `NULL` in the same output | Both 2026-07 rows still `NULL` / `NULL` | |
 | 4 | `ActualMinutes` matches the time actually sat | `16.0` and `2.0` — **only the owner can confirm these** | |
 
+**Second pass (§2.4), against non-overdue tasks — the same four criteria, independently:**
+
+| # | Criterion | What the output shows | Owner's ruling |
+|---|---|---|---|
+| 1 | S1 on Task A | 4 → 5 rows; `Predicted = 132.0`, `Confidence = 0.9`, both non-null | |
+| 2 | S2 on Task B | 5 → 6 rows; `Predicted = 88.0`, `Confidence = 0.733…`, both non-null | |
+| 3 | Pre-fix rows still `NULL` | Both 2026-07 rows still `NULL` / `NULL` in the 6-row output | |
+| 4 | `ActualMinutes` matches time sat | `3.0` and `1.0` — **only the owner can confirm these** | |
+
 **Overall verdict (PASS / FAIL / NOT RUN):** ____________
 
 ---
 
 ## 5. Scenario 4 — which branch produced these rows
 
-**Result: UNDETERMINED.** Not a failure; the row genuinely cannot answer it.
+**Result: DETERMINED by the second pass — the real ML branch ran.**
 
-Both new rows read `WasMlPrediction = 0`, `Confidence = 0.0`, `PredictedMinutes = 0.0`. For a task
+| Pass | Tasks | Row reads | Scenario 4 line |
+|---|---|---|---|
+| First (§2.2) | 77 days overdue | `WasML = 0`, `Confidence = 0.0`, `Predicted = 0.0` | **Undetermined** — see below |
+| Second (§2.4) | 4–5 days of runway | `WasML = 1`, `Confidence = 0.90` / `0.73`, `Predicted = 132` / `88` | **Real ML prediction above the `0.6` switch** |
+
+The second pass lands on the **first** line of runbook §3's Scenario-4 table: `WasMlPrediction = 1`
+with a confidence strictly between 0 and 1. That combination is reachable only through the ML branch —
+`Fallback()` hard-codes `0f`, and the rejected branch hard-codes `IsMLPrediction = false`. Together
+with §2.5's arithmetic reproduction, the model demonstrably ran, scored, and was accepted.
+
+`[inference]` It follows that `IsReady` was true throughout the session, and therefore almost
+certainly during the first pass an hour earlier as well — the model file did not change between them.
+Still an inference: the first pair of rows remains individually unfalsifiable, and is not upgraded
+retroactively.
+
+### 5.1 Why the first pass could not answer it
+
+Both first-pass rows read `WasMlPrediction = 0`, `Confidence = 0.0`, `PredictedMinutes = 0.0`. For a task
 more than 3 days overdue this output is *arithmetically forced*, and two different code paths
 produce it identically:
 
@@ -148,9 +233,20 @@ looking for. `StudiedMinutesSoFar` independently corroborates it — `1.0` on th
 `0.0` on the second, each matching its own task's pre-session `ThoiGianDaHoc`, so a per-task value is
 demonstrably flowing through that write block rather than a constant.
 
-**What this run therefore does not show:** no row in it carries a *non-zero* prediction, because every
-task in this database is past its deadline. Runbook §3.1 describes the optional extra session that
-would produce one.
+### 5.2 What the second pass added
+
+The first pass left one thing unshown: no row carried a *non-zero* prediction, because every task in
+the database was past its deadline. The second pass closes it, and closes more than was asked:
+
+- `PredictedMinutes` takes **two different non-zero values** (132, 88) on two different tasks —
+  a per-task number, not a constant.
+- `Confidence` takes **two different fractional values** that reproduce exactly from each task's own
+  `DiemUuTien` (§2.5). A hard-coded or mis-wired value could not do that.
+- `WasMlPrediction = 1` distinguishes the branch, which the first pass could not.
+
+Taken with the pre-fix rows still reading `NULL` in the same output, the observation channel has now
+displayed **three distinct states** — `NULL`, a real zero, and a real non-zero — which is what makes a
+PASS on it mean something.
 
 ---
 

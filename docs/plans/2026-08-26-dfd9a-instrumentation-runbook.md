@@ -290,7 +290,13 @@ to know which of those two things your run established.
 
 ### 3.1 Optional — one session on a task that is not overdue
 
-Every task in the current Debug database is past its deadline, so **no session on existing data can
+> **EXECUTED 2026-08-27, and it resolved Scenario 4.** Two new tasks (deadlines 4 and 5 days out) ran
+> through Scenarios 1 and 2 and logged `WasMlPrediction = 1`, `PredictedMinutes` = 132 and 88, and
+> `Confidence` = 0.90 and 0.7333 — both reproducing exactly from each task's own `DiemUuTien`.
+> Evidence: [`../reports/2026-08-27-dfd9a-instrumentation-observation.md`](../reports/2026-08-27-dfd9a-instrumentation-observation.md) §2.4–§2.5.
+> Kept here because the reasoning below is what makes that result readable.
+
+Every task in the original Debug database is past its deadline, so **no session on that data can
 produce a non-zero prediction**. That does not invalidate a PASS: a logged `0` is a real zero the
 formula produced for an abandoned task, not a dropped value, and NULL → `0.0` in the same output
 where the pre-fix rows still read NULL is exactly the transition §4 asks for.
@@ -390,12 +396,32 @@ record reopens on that evidence.
 Scenario 2 marks a task complete and both scenarios add studied minutes — real changes to your test
 data. To undo, close the app and restore the backup from §1.3:
 
+**Close the application first, and confirm it stayed closed.** This database runs in
+`journal_mode = wal`: recent commits live in `SmartStudyData.db-wal` until SQLite checkpoints them,
+which normally happens when the last connection closes. Restoring over a live or stale WAL lets
+SQLite replay it against the file you just restored.
+
+```powershell
+$db = "SmartStudyPlanner\bin\Debug\net10.0-windows10.0.19041.0\SmartStudyData.db"
+foreach ($s in "$db-wal", "$db-shm") {
+    if (Test-Path $s) { Write-Output "SIDECAR STILL PRESENT: $s" } else { Write-Output "ok, absent: $s" }
+}
+```
+
+If either prints `SIDECAR STILL PRESENT`, the app is **still running** or did not close cleanly.
+Close it and re-check. Only once both read `ok, absent`:
+
 ```powershell
 $db  = "SmartStudyPlanner\bin\Debug\net10.0-windows10.0.19041.0\SmartStudyData.db"
 $bak = Get-ChildItem "$db.pre-dfd9a-*.bak" | Sort-Object Name | Select-Object -Last 1
 Write-Output "restoring from: $($bak.Name)"
+Remove-Item "$db-wal", "$db-shm" -ErrorAction SilentlyContinue
 Copy-Item $bak.FullName $db -Force
 ```
+
+> **Deleting a sidecar that still holds uncheckpointed commits destroys them.** That is why the
+> preflight is a separate step: run it, read it, then restore. Never delete the sidecars to "clean up"
+> while the app is open.
 
 **Sort by `Name`, not by `LastWriteTime`.** `Copy-Item` preserves the *source* file's timestamp, so
 every backup carries the database's mtime and sorting by time picks an arbitrary one. The name holds
