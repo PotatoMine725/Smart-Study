@@ -256,11 +256,59 @@ Not pass/fail. It records **what the row is evidence of**, and takes one glance 
 |---|---|---|
 | `1` | > 0 | Real ML prediction above the `0.6` switch. `Confidence` is a genuine agreement score |
 | `0` | > 0 | ML ran and was **rejected** (< 0.6); the logged minutes are the formula estimate. **This is a valid, wanted row** — it is the population F-1 will eventually need |
-| `0` | `0` | **Fallback** — no model was ready. Correctly instrumented, but says nothing about the model. Expected if §1.4 found no `study_time.zip` |
+| `0` | `0` | **Undetermined.** Fallback *and* rejected-ML converge on this row and cannot be told apart — see below |
+
+**Corrected 2026-08-27.** The third line previously read *"Fallback — no model was ready."* **That is
+not a conclusion this row can support**, and writing it down would put a false statement in the
+evidence record. §1.5 already says `Confidence = 0` stays ambiguous under DFD-5; this table
+contradicted that caveat, and the ambiguity turns out to be *arithmetically forced*:
+
+`ComputeFormulaMinutes` returns `0` when `DiemUuTien <= 0`, and `OverdueRule` sets `DiemUuTien = 0`
+for any task more than 3 days past its deadline. With `formula = 0`, the confidence expression
+
+```
+confidence = 1 - clamp(|predicted - formula| / max(formula, 1), 0, 1)
+```
+
+collapses to `1 - clamp(predicted)` — **exactly `0` for any ML prediction of 1 minute or more**. That
+is below the `0.6` switch, so the ML branch is rejected and logs `(0, false, 0f)`. `Fallback()`
+returns `(0, false, 0f)` as well. **The two paths are byte-identical in the row**, so a `0 / 0` line
+on an overdue task tells you nothing about whether the model ran.
+
+`[inference]` `MLModelManager.InitializeAsync` retrains from seed data and sets `IsReady = true` even
+when no valid model is on disk, which makes the true fallback path hard to reach in production —
+suggesting the ML branch usually *did* run. Not verified against the production DI wiring, and moot
+either way: the row cannot distinguish them.
+
+**To get a determinate answer, the task must not be overdue** — see §3.1.
 
 Record which line you got. A run that only ever produces the third line still **passes** the check
-(the columns are populated) while proving nothing about the predictor — and a later reader needs to
-know which of those two things your run established.
+(the columns are populated) while establishing nothing about the predictor — and a later reader needs
+to know which of those two things your run established.
+
+---
+
+### 3.1 Optional — one session on a task that is not overdue
+
+Every task in the current Debug database is past its deadline, so **no session on existing data can
+produce a non-zero prediction**. That does not invalidate a PASS: a logged `0` is a real zero the
+formula produced for an abandoned task, not a dropped value, and NULL → `0.0` in the same output
+where the pre-fix rows still read NULL is exactly the transition §4 asks for.
+
+It does leave one thing unshown: **no row in the run carries a non-zero prediction.** One extra
+~2-minute session closes it.
+
+1. Create a task with a deadline **3–7 days from today** and `DoKho` 3–5. That window matters:
+   past-deadline hits `OverdueRule` (score 0), under 1 day hits `ImminentRule`, and beyond
+   `HorizonDays = 60` hits `BeyondHorizonRule` — only the middle range reaches the real component sum.
+2. Run Scenario 1 on it (70+ seconds, *Thoát khẩn cấp*).
+3. Read §2.
+
+**What it establishes:** `PredictedMinutes` non-zero proves the value carries a genuine per-task
+number, and a `Confidence` strictly **between 0 and 1** can only come from the ML branch — which
+resolves Scenario 4 for real instead of leaving it undetermined.
+
+This writes a new task to the test database; §7's restore removes it along with everything else.
 
 ---
 
