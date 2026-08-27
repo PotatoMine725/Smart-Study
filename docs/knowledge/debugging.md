@@ -37,6 +37,16 @@
 - **Root cause**: capacity is stored in a separate `capacity.txt` file, not in SQLite. Behavior is correct — the doc was missing.
 - **Fix**: documented in CHANGELOG + ROADMAP. Lesson: when settings span multiple stores, document each store's reset behavior.
 
+### Scheduler tests **hang instead of failing** — `ClampCapacityMinutes`
+
+- **Symptom**: a test run or CI job sits until its timeout with no failing test. Nothing goes red; the job is simply killed. Observed once at 90 s wall clock with testhost burning 189 s of CPU — a spinning loop, not a deadlock.
+- **Root cause**: `GenerateScheduleWithIdentity`'s allocation loop is `while (remainingMinutes > 0)` (`WorkloadServiceImpl.cs:184`), and its **only** termination guarantee is `ClampCapacityMinutes` (`:110-116`). Two ways past that guard hang rather than throw:
+  1. **capacity < 1 minute** — `spaceLeft` is 0, the loop makes no progress, `remainingMinutes` never decreases.
+  2. **overflow** — casting an out-of-range `double` to `int` is undefined and in practice yields `int.MinValue`, making `spaceLeft` negative so `remainingMinutes` **grows** each pass. This one runs away from termination rather than merely failing to reach it.
+- **Fix / do not undo**: the guard clamps below-floor input to `MinCapacityMinutes` and caps at `int.MaxValue`. Note it is written `if (!(capacityHours >= MinCapacityHours))`, **not** `if (capacityHours < MinCapacityHours)` — the negated form also catches `NaN`, since every comparison against `NaN` is false. Rewriting it to the "cleaner" form silently reopens the `NaN` path.
+- **Generalized lesson**: **a guard whose absence causes a hang is invisible to a test suite**, because a suite reports red and green, and a hang is neither. Guards like this must be named where the timeout will be read — a CI timeout in scheduling code should be checked against this *first*, before anyone starts bisecting. It is also why the guard was proven non-vacuous by deleting it and watching the suite **hang** rather than by watching it go red (commit `0e5d448`).
+- **See also**: [`qa-gates.md`](qa-gates.md) — *discriminating power is a property of each claim*; a green suite says nothing about a failure mode it cannot express. Ratified as risk **R4** in [`../plans/2026-08-04-epic-3-execution-plan.md`](../plans/2026-08-04-epic-3-execution-plan.md).
+
 ## Reading the codebase efficiently
 
 ### Use the graph first
@@ -148,6 +158,7 @@ If a chart looks empty, check the ViewModel's `HasData` / `EmptyStateMessage`. P
 
 - **Build red** → check `dotnet build SmartStudyPlanner.slnx` locally (sandbox may be lying).
 - **Test red** → check `dotnet test --filter "Category!=Seed&Category!=ML"` first for fast signal.
+- **Nothing red — the run just *hangs* until a timeout** → this is a different class from a failure; don't bisect yet. If scheduling code was touched, check `ClampCapacityMinutes` (`WorkloadServiceImpl.cs:110-116`) **first** — weakening it makes `GenerateScheduleWithIdentity`'s loop non-terminating. Confirm it's a spin, not a deadlock, by whether testhost is burning CPU.
 - **Runtime crash** → check `EnsureCreated` vs `Migrate` mismatch; check schema drift; check ML artifact corruption (delete + restart).
 - **UI quiet** → check `IsLoading` / `HasData` / `HasError`; the data probably loaded fine but the view is in an unhandled state.
 - **ML giving weird numbers** → check `IsMLPrediction`; if true, check `confidence` calc; if false, the formula is winning (probably correct).
