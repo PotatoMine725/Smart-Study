@@ -245,6 +245,18 @@ measure different things and must not be collapsed:
 had already ruled on once — which measures recall, not adjudication. Forty rows out of 208 is
 affordable, and the Q-1 batch is not wasted: it is the first 20 rows of J-1, done for real.
 
+**Reserve the reproducibility batch before S-2 starts, not when the test is run.** Design constraint 1
+above makes the 208 disagreeing rows the raw material for the ambiguous-example catalogue — so a spec
+author working through them will *see* the reproducibility batch unless it was set aside first, and a
+spec written while looking at the rows it is later tested on cannot fail that test honestly.
+
+`[inference]` **This is `I-2` — held-out reservation — applied to spec authoring instead of training
+merge**, and the failure mode is the one `_merge_seed.py` already committed once: carving out the
+held-out set after the fact, when the thing it was meant to be independent of has already touched it.
+The invariant is not a rule about CSV files; it is the general principle that *independence is
+established by sequence, and cannot be reconstructed afterwards.* Reserve the 20, record the
+reservation, then write the spec.
+
 **Q-1 harvests more than a stopwatch.** The ruling asks for ambiguous cases and guideline gaps as
 outputs alongside the timing. That makes it a **pilot of S-4, and a second test of S-2** — if the first
 20 real adjudications surface gaps the spec does not cover, the spec returns for a `v2` before the

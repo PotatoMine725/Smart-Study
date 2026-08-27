@@ -220,6 +220,8 @@ it is the same instrument that will later show the fix working.
 - **Any change to a confidence threshold or gate.** Not the `≥ 0.6` ML-vs-formula switch in
   `StudyTimePredictorService`, and not `DefaultMlConfidencePolicy`. The ruling says so in as many
   words. This defect is about **recording** the number, never about **acting** on it.
+  *(Reaffirmed 2026-08-27: the owner decision outcomes restate DFD-9a as "do not change any confidence
+  threshold as part of this defect". The shipped fix moved none — see §9.4.)*
 - **F-1**, the deferred M8-A confidence-gate calibration anomaly (`specs/system_roadmap.md` §A.4).
   This fix is a *prerequisite* for investigating F-1 on real data; it is not that investigation, and
   it does not reopen it. Note also that F-1 lives in a **different** consumer — `DefaultMlConfidencePolicy`
