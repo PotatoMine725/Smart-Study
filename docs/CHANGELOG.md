@@ -4,6 +4,28 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
+## 2026-08-27 — DFD-9a **end-to-end gate CLOSED** — *no code change; the last check was run by hand*
+
+> **Nothing shipped.** The fix shipped 2026-08-26; what changed today is that it is now *known to work
+> in the shipped application*. The gate no automated test could close — 492 green tests exercise the
+> three hops and their composition against stubs, none resolves the production DI wiring in
+> `App.xaml.cs` / `ServiceLocator` against the real SQLite file — was closed by the owner at a
+> keyboard, on pass/fail criteria fixed before the run and not adjusted after seeing the output.
+
+| Area | Change | Verification |
+|---|---|---|
+| Manual gate | **PASS**, both command paths (`✖ Thoát khẩn cấp` and `✅ Đã Xong`), two independent passes, four new rows — all with `PredictedMinutes` and `Confidence` non-null, while the two pre-fix rows still read `NULL` **in the same output** | Evidence record: [`reports/2026-08-27-dfd9a-instrumentation-observation.md`](reports/2026-08-27-dfd9a-instrumentation-observation.md). Owner-authored §3–§5, machine-captured §1–§2 |
+| Discriminating evidence | The second pass used tasks with **runway left** rather than 77 days overdue, and logged `WasMlPrediction = 1`, `PredictedMinutes` 132 and 88, `Confidence` 0.90 and 0.7333. Both confidences **reproduce exactly** from each task's own `DiemUuTien` — a hard-coded value cannot reproduce from inputs it never saw | Channel has now displayed three distinct states — `NULL`, a real zero, a real non-zero. That is what makes the PASS mean something |
+| Runbook corrected mid-run | Scenario 4's table resolved `WasML=0, Confidence=0` to *"Fallback — no model was ready"*. **Not a conclusion the row can support**: `OverdueRule` zeroes `DiemUuTien`, so `formula = 0`, so confidence collapses to `1 − clamp(predicted)` = exactly `0`, and rejected-ML and `Fallback()` emit byte-identical rows | Contradicted the runbook's own §1.5 DFD-5 caveat; would have put a false statement in the evidence record |
+| Restore procedure fixed | The database runs `journal_mode = wal`. Mid-run the new commits sat in a 104 KB `-wal` sidecar while the main `.db` mtime read an hour earlier. §7 copied a `.bak` over the `.db` with no mention of sidecars — **SQLite would replay a stale WAL against the restored file** | §7 now runs a separate preflight that *reports* the sidecars before anything is deleted; deleting one holding uncheckpointed commits destroys them |
+| Reader committed as code | The §2 read step is now [`tools/qa/read_outcome_logs.py`](../tools/qa/read_outcome_logs.py) rather than a pasted heredoc, so what is verified and what is run are the same bytes | Opens read-only, resolves the Debug DB from its own location, and treats *"zero tables"* as a broken instrument that must not produce a verdict |
+
+**Deliberately still open:** rows written before 2026-08-26 remain unusable — no backfill is possible,
+which is why the defect was urgent. `Confidence = 0` stays ambiguous pending DFD-5. **F-1** (the
+`≥ 0.60` gate calibration) is untouched and still deferred; this fix is its prerequisite, not its
+resolution. And nothing in this gate says the predicted numbers are *good* — only that they are
+recorded.
+
 ## 2026-08-27 — Data Maturation proposal **reviewed; Q-1 … Q-5 ruled** — *no user-visible change*
 
 > **Nothing shipped and nothing was implemented.** This entry exists because the project's position on

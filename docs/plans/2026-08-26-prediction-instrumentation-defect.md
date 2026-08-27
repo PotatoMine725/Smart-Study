@@ -308,17 +308,44 @@ solely because that mutation came back green.
   is not ready, which is indistinguishable in the row from a genuine zero-agreement prediction. Telling
   them apart needs a provenance column — **DFD-5 territory, deliberately out of scope** here. A
   calibration study must treat `Confidence = 0 && !WasMlPrediction` as *unknown*, not as *zero*.
+
+  *Confirmed in the field 2026-08-27, and the mechanism is sharper than "the fallback returns `0f`".*
+  For any task more than 3 days overdue, `OverdueRule` zeroes `DiemUuTien`, `ComputeFormulaMinutes`
+  then returns `0`, and the confidence expression collapses to `1 − clamp(predicted)` — **exactly `0`
+  for any prediction of 1 minute or more**. The rejected-ML branch and `Fallback()` therefore emit
+  byte-identical `(0, false, 0f)` rows. The ambiguity is not a gap in the logging; it is forced by the
+  arithmetic, and no amount of care at the write site can resolve it without DFD-5. The first pass of
+  the end-to-end check produced exactly such a pair — see the evidence record §5.1.
 - **No threshold moved.** Not the inline `≥ 0.6` ML-vs-formula switch, not `DefaultMlConfidencePolicy`.
   F-1 stays deferred — this fix is its **prerequisite**, not its resolution, and F-1 cannot be
   investigated on real telemetry until enough instrumented rows exist.
-- **The end-to-end check (§6) has NOT been run.** No completed focus session was performed against a
+- ~~**The end-to-end check (§6) has NOT been run.** No completed focus session was performed against a
   real database and read back. **A runbook now exists for it** —
   [`2026-08-26-dfd9a-instrumentation-runbook.md`](2026-08-26-dfd9a-instrumentation-runbook.md), ~10
   minutes, with the pass/fail criteria fixed in advance and the two pre-fix rows in the owner's own
   database serving as the negative control that proves the reading channel can display a failure. The automated tests cover all three hops in isolation and in
   composition-by-stub; they do not prove the production wiring in `App.xaml.cs` / `ServiceLocator`
   resolves the same objects. **This is the one gate in §6 left open**, and it needs the owner at a
-  keyboard.
+  keyboard.~~
+
+  **SUPERSEDED 2026-08-27 — the check was run and PASSED.** Kept struck through rather than deleted,
+  because it is the statement that made the runbook necessary. Owner at the keyboard, both command
+  paths, real Debug database, ruled PASS on all four pre-registered criteria across two independent
+  passes. Evidence:
+  [`../reports/2026-08-27-dfd9a-instrumentation-observation.md`](../reports/2026-08-27-dfd9a-instrumentation-observation.md).
+
+  Four rows written by the shipped application through its production DI wiring, all four with both
+  columns non-null, alongside the two pre-fix rows still reading `NULL` in the same output:
+
+  | Pass | Task deadline | `PredictedMinutes` | `WasMlPrediction` | `Confidence` |
+  |---|---|---|---|---|
+  | 1 — emergency exit | 77 days overdue | `0.0` | `0` | `0.0` |
+  | 1 — completion | 77 days overdue | `0.0` | `0` | `0.0` |
+  | 2 — emergency exit | 5 days out | **`132.0`** | **`1`** | **`0.9`** |
+  | 2 — completion | 4 days out | **`88.0`** | **`1`** | **`0.7333`** |
+
+  **The gate this closes is narrow and worth stating exactly:** the production wiring carries the
+  prediction to the write site. It says nothing about whether the predicted numbers are any good.
 - **Loss rate was not measured.** §6 suggested counting existing rows and their date span to price the
   delay. Not done — it needs a dev database, and the fix landed the same day the defect was raised, so
   the number would have priced a delay that did not happen.

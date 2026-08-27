@@ -141,54 +141,72 @@ for the sidecars explicitly rather than rely on that.
 
 ---
 
-## 3. What the person at the keyboard saw — **owner to complete**
+## 3. What the person at the keyboard saw — **owner's attestation**
 
-### 3.1 Scenario 1 — emergency exit (`✖ Thoát khẩn cấp`)
+Given by the owner, 2026-08-27 18:58, verbatim:
 
-- Time actually sat with the timer running: ____________
-- *Tiến độ: Đã học N phút* observed ticking? ____________
-- Any dialog, error, or anything unexpected: ____________
+> "i ran for a few minutes, not just 70 secs, and recorded the changes in numbers"
 
-### 3.2 Scenario 2 — completion (`✅ Đã Xong`)
+**What that covers.** The 70-second figure in runbook §3 is a *minimum* (a session under 60 s writes
+no row at all), not a target. Every session exceeded it. The owner watched the on-screen progress
+counter change during the sessions and confirms the logged `ActualMinutes` are consistent with what
+was displayed — which is what runbook §3 step 4 asks for, and it is the reason the "no row appeared"
+mis-run case does not apply to any of these four rows.
 
-- Time actually sat with the timer running: ____________
-- Task dropped off the dashboard's active list afterwards? ____________
-- Any dialog, error, or anything unexpected: ____________
+**Scope of this attestation.** It is *"the displayed counter tracked the session and the logged
+numbers match what I saw"* — **not** an independently stopwatched duration per session. No separate
+timing instrument was used, and none was called for: `ActualMinutes` is itself the recorded duration,
+and the attestation is that it agrees with the observation.
 
-### 3.3 Anything else worth recording
+**Not separately reported by the owner, so not recorded as observed:** whether any dialog or error
+appeared during each individual session. No save-error dialog is reported, and the successful writes
+are inconsistent with the *"Lỗi lưu dữ liệu"* failure mode.
 
-____________
+**Machine-observed, alongside the attestation** (not owner testimony): Task B reads
+`TrangThai = 'Hoàn thành'` after Scenario 2, so the `✅ Đã Xong` completion path did what §3 says it
+does.
 
 ---
 
-## 4. Pre-registered criteria — **owner to rule**
+## 4. Pre-registered criteria — **owner's ruling, 2026-08-27**
 
-The criteria were fixed in runbook §4 before the run and must not be adjusted now. What the data
-shows is filled in; the ruling is the owner's.
+The criteria were fixed in runbook §4 before the run and were not adjusted after seeing the output.
 
 | # | Criterion | What the output shows | Owner's ruling |
 |---|---|---|---|
-| 1 | S1: exactly one new row, `PredictedMinutes` and `Confidence` both NOT NULL | 2 → 3 rows; new row `0.0` / `0.0` — non-null | |
-| 2 | S2: exactly one further new row, same two columns non-null | 3 → 4 rows; new row `0.0` / `0.0` — non-null | |
-| 3 | Pre-fix rows still read `NULL` in the same output | Both 2026-07 rows still `NULL` / `NULL` | |
-| 4 | `ActualMinutes` matches the time actually sat | `16.0` and `2.0` — **only the owner can confirm these** | |
+| 1 | S1: exactly one new row, `PredictedMinutes` and `Confidence` both NOT NULL | 2 → 3 rows; new row `0.0` / `0.0` — non-null | **PASS** |
+| 2 | S2: exactly one further new row, same two columns non-null | 3 → 4 rows; new row `0.0` / `0.0` — non-null | **PASS** |
+| 3 | Pre-fix rows still read `NULL` in the same output | Both 2026-07 rows still `NULL` / `NULL` | **PASS** |
+| 4 | `ActualMinutes` matches the time actually sat | `16.0` and `2.0` — attested in §3 | **PASS** |
 
 **Second pass (§2.4), against non-overdue tasks — the same four criteria, independently:**
 
 | # | Criterion | What the output shows | Owner's ruling |
 |---|---|---|---|
-| 1 | S1 on Task A | 4 → 5 rows; `Predicted = 132.0`, `Confidence = 0.9`, both non-null | |
-| 2 | S2 on Task B | 5 → 6 rows; `Predicted = 88.0`, `Confidence = 0.733…`, both non-null | |
-| 3 | Pre-fix rows still `NULL` | Both 2026-07 rows still `NULL` / `NULL` in the 6-row output | |
-| 4 | `ActualMinutes` matches time sat | `3.0` and `1.0` — **only the owner can confirm these** | |
+| 1 | S1 on Task A | 4 → 5 rows; `Predicted = 132.0`, `Confidence = 0.9`, both non-null | **PASS** |
+| 2 | S2 on Task B | 5 → 6 rows; `Predicted = 88.0`, `Confidence = 0.733…`, both non-null | **PASS** |
+| 3 | Pre-fix rows still `NULL` | Both 2026-07 rows still `NULL` / `NULL` in the 6-row output | **PASS** |
+| 4 | `ActualMinutes` matches time sat | `3.0` and `1.0` — attested in §3 | **PASS** |
 
-**Overall verdict (PASS / FAIL / NOT RUN):** ____________
+**Overall verdict: PASS** — ruled by the owner, 2026-08-27, on both passes.
+
+**What this PASS is evidence of, precisely.** The shipped application, through its production DI
+wiring and against the real SQLite file, writes a non-null `PredictedMinutes` and `Confidence` on both
+the emergency-exit and the completion command paths. DFD-9a's remaining gate — the one no automated
+test could close, because none of the 492 exercises the production wiring — is closed.
+
+**What it is not evidence of:** that the predicted numbers are *good*. Runbook §1.5 puts that out of
+scope, and nothing here bears on it.
 
 ---
 
 ## 5. Scenario 4 — which branch produced these rows
 
 **Result: DETERMINED by the second pass — the real ML branch ran.**
+
+> **Owner's ruling, 2026-08-27:** *"the 2nd branch (3-7 days out)"* — i.e. the determinate answer is
+> taken from the second pass, the tasks with runway remaining, and **not** from the first pass's
+> overdue tasks. Recorded as the answer to Scenario 4.
 
 | Pass | Tasks | Row reads | Scenario 4 line |
 |---|---|---|---|

@@ -352,17 +352,34 @@ surprising, the surprise is the finding.
 
 ---
 
-## 5. Result table — leave blank until the run happens
+## 5. Result table — **RUN 2026-08-27, verdict PASS**
 
-| # | Scenario | Verdict | Row count before → after | `PredictedMinutes` | `Confidence` | `WasMlPrediction` | Notes |
+Summary only. The evidence is
+[`../reports/2026-08-27-dfd9a-instrumentation-observation.md`](../reports/2026-08-27-dfd9a-instrumentation-observation.md);
+if the two ever disagree, **the evidence record wins.**
+
+**Pass 1 — the tasks already in the database (both 77 days overdue):**
+
+| # | Scenario | Verdict | Rows before → after | `PredictedMinutes` | `Confidence` | `WasMlPrediction` | Notes |
 |---|---|---|---|---|---|---|---|
-| — | Baseline read (§1.3) | | | | | | |
-| 1 | Emergency-exit path | | | | | | |
-| 2 | Completion path | | | | | | |
-| 3 | Channel integrity (old rows NULL) | | — | | | — | |
-| 4 | Branch taken (record only) | n/a | — | — | | | |
+| — | Baseline read (§1.3) | n/a | — → 2 | `NULL`, `NULL` | `NULL`, `NULL` | `0`, `1` | The negative control |
+| 1 | Emergency-exit path | **PASS** | 2 → 3 | `0.0` | `0.0` | `0` | A real formula zero, not a dropped value |
+| 2 | Completion path | **PASS** | 3 → 4 | `0.0` | `0.0` | `0` | Task marked complete as expected |
+| 3 | Channel integrity | **PASS** | — | old rows still `NULL` | still `NULL` | — | Both states in one output |
+| 4 | Branch taken | n/a | — | — | `0` | `0` | **Undetermined** — see §3's Scenario 4 |
 
-**Run by:** ______________  **Date:** ______________  **Build / exe mtime:** ______________
+**Pass 2 — two new tasks with 4–5 days of runway (§3.1):**
+
+| # | Scenario | Verdict | Rows before → after | `PredictedMinutes` | `Confidence` | `WasMlPrediction` | Notes |
+|---|---|---|---|---|---|---|---|
+| 1 | Emergency-exit path | **PASS** | 4 → 5 | **`132.0`** | **`0.9`** | **`1`** | Task A, `DiemUuTien` 73.19 |
+| 2 | Completion path | **PASS** | 5 → 6 | **`88.0`** | **`0.7333`** | **`1`** | Task B, `DiemUuTien` 68.38 |
+| 3 | Channel integrity | **PASS** | — | old rows still `NULL` | still `NULL` | — | Three states now: `NULL`, real 0, real non-zero |
+| 4 | Branch taken | n/a | — | — | 0.90 / 0.7333 | `1` | **Real ML prediction above the `0.6` switch** |
+
+Both confidences reproduce exactly from each task's own `DiemUuTien` — see the evidence record §2.5.
+
+**Run by:** owner (Wotbl) **Date:** 2026-08-27 **Build / exe mtime:** 178 176 B, 2026-08-27 15:57:57
 
 ---
 
@@ -383,10 +400,12 @@ report sections — an evidence record is exempt from them, and tidying it corru
 to preserve. The table above may be copied in as a summary; the raw read-command output is the actual
 evidence.
 
-Then, and only then, update the two documents that currently say this gate is open:
+Then, and only then, update the two documents that currently say this gate is open. **Both were
+updated 2026-08-27, after the verdict:**
 
-- [`2026-08-26-prediction-instrumentation-defect.md`](2026-08-26-prediction-instrumentation-defect.md) §9.4 — *"The end-to-end check has NOT been run"*
-- [`../active/README.md`](../active/README.md) — the DFD-9a row's *"One gate still open"*
+- [`2026-08-26-prediction-instrumentation-defect.md`](2026-08-26-prediction-instrumentation-defect.md) §9.4 — ~~*"The end-to-end check has NOT been run"*~~ **struck through and superseded**, with the four rows tabled. Kept, not deleted: it is the statement that made this runbook necessary
+- [`../active/README.md`](../active/README.md) — the DFD-9a row's ~~*"One gate still open"*~~ now **"CLOSED 2026-08-27"**, plus a banner line
+- [`../CHANGELOG.md`](../CHANGELOG.md) — a 2026-08-27 entry, marked *no code change*, because what changed is what is **known**, not what ships
 
 **If the run fails**, do not edit the fix into looking correct. File the observation, and the defect
 record reopens on that evidence.
@@ -490,5 +509,26 @@ written down, against the real Debug database, and its actual output is reproduc
 (§1.4, §2). The read command is a committed script rather than a pasted snippet, so what is verified
 and what is run are the same bytes.
 
-**What is still unverified is the thing the runbook is for:** the scenarios in §3 need the
-application driven by a human, and the result table in §5 is still blank.
+~~**What is still unverified is the thing the runbook is for:** the scenarios in §3 need the
+application driven by a human, and the result table in §5 is still blank.~~
+
+**Closed 2026-08-27.** The scenarios were run, twice, and §5 is filled. The verdict is **PASS**.
+
+### 8.5 Two further corrections the run itself produced
+
+Recorded for the same reason as §8.1 — both were found *by running the thing*, and neither would have
+been found by re-reading it:
+
+1. **Scenario 4's table asserted a branch its own row cannot identify.** It resolved
+   `WasML=0, Confidence=0` to *"Fallback — no model was ready"*, which contradicted §1.5's own DFD-5
+   caveat and was probably false. The ambiguity turned out to be *arithmetically forced* for any
+   overdue task, not a gap in the wording. The first pass produced exactly that row, so the error was
+   on the path to the evidence record, not hypothetical.
+2. **§7 would have replayed a stale WAL over a restored database.** The database runs
+   `journal_mode = wal`, and mid-run the new commits sat in a 104 KB `-wal` sidecar while the main
+   `.db` mtime still read an hour earlier. Copying a `.bak` over the `.db` in that state lets SQLite
+   apply the sidecar to the file just restored. It did not bite only because the app was closed first.
+
+`[inference]` The pattern across §8.1, §8.3 and both of these: **every one was a claim that looked
+settled on the page and was wrong in the environment.** A runbook is a claim about a machine, and the
+only way to check a claim about a machine is on the machine.
