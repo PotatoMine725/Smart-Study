@@ -555,8 +555,10 @@ On the baseline's own measured confidence-versus-accuracy relationship over 205 
 Pooled across five seeds the same bin scores 0.033 (n=60).
 
 **Scope of this claim.** The bin populations are small (11 rows at seed 42), and this is measured on
-real `collected_v4` input against a model trained on synthetic rows — it says nothing about the
-gate's behaviour on the synthetic-heavy distribution the shipped model was validated against. **It is
+`collected_v4` input against a model trained on other authored rows — *as written 2026-08-25 this
+sentence said "real `collected_v4` input"; superseded 2026-08-26, see the Amendment* — so it says
+nothing about production input at all, nor about the synthetic-heavy distribution the shipped model
+was validated against. **It is
 an indication, not a proven defect.** But CNF-01 already records that gating on a raw model score
 alone is a rule this project holds and the current task-type gate does not satisfy. **This is the
 first quantitative evidence on that point, and the baseline arm produced it — no encoder required.**
@@ -858,3 +860,47 @@ part of the repository — the AC-21 CI guard continues to enforce that at every
 **The Gemma Terms of Use question (§18 row 7) is moot** under this ruling: the artifacts are untracked
 local files used for a throwaway measurement, and no bundled distribution will occur. It would become
 blocking again only if the initiative were ever revived with Arm A.
+
+---
+
+## Amendment, 2026-08-26 — `collected_v4` is not real data
+
+**Provenance grade: ruling, not measurement.** Owner recall on 2026-08-26 established that
+`datasheets/collected_v4.csv` was produced as *owner templates/examples → Meta AI generation → GitHub
+Copilot labelling*. No collection record exists in or out of the repository, and no artifact
+corroborates the recall — but it agrees with seven independently measured distributional regularities
+and an exact quota match. The repository holds **zero verified real user rows**.
+
+Ruling: [`../plans/2026-08-26-data-foundation-owner-decision-handoff.md`](../plans/2026-08-26-data-foundation-owner-decision-handoff.md) (**DFD-1**) ·
+Evidence: [`2026-08-25-data-audit-gap-map.md`](2026-08-25-data-audit-gap-map.md) §E.5–E.6,
+[`2026-08-26-data-foundation-owner-decision-brief.md`](2026-08-26-data-foundation-owner-decision-brief.md) §2 ·
+Pass record: [`2026-08-26-data-foundation-correction-pass.md`](2026-08-26-data-foundation-correction-pass.md)
+
+**Every description of `collected_v4` in this document as *real*, *collected* or *user-authored* is
+withdrawn.** The load-bearing occurrences are marked in place above. The remainder are deliberately
+**not** individually edited: rewriting them would erase what was believed when this document was
+written, which is precisely what the amendment convention exists to preserve. Read the whole document
+through this amendment.
+
+### Every measurement in this report stands
+
+Nothing measured here is retracted. Macro-F1 per arm, the confidence-bin table, the unseen-token rate,
+the export timings and the tokenization findings were all computed over repository bytes and do not
+depend on where those bytes came from. **The S0 verdict is unchanged**: both encoder arms scored below
+the n-gram baseline on one shared split, the EVA-16 kill criterion fired, and the initiative stays
+stopped.
+
+### Three interpretations change
+
+1. **The split was never synthetic→real.** It is `m8a_uniform` + `synthetic_v3` (authored) → `collected_v4`
+   (authored by a different process). The pilot measured **cross-authoring-process generalization**.
+   That is a real and useful thing to have measured; it is not what the report says it measured.
+2. **The dataset-maturity finding survives, with its inference narrowed.** `tgk` at 28/205 test vs
+   0/698 train, and 94.6 % of test rows carrying an unseen token, are facts about two authored corpora
+   diverging — not evidence that production input is abbreviation-heavy. The report already flagged the
+   positive claim as **Low** confidence and a hypothesis; this amendment confirms that caution was
+   correct and now makes it structural.
+3. **F-1's scope widens.** *"Measured on real input against a synthetic-trained model"* is withdrawn —
+   both sides are authored. The gate's behaviour on **real student input has never been measured**, and
+   under DFD-9a it cannot be until `PredictedMinutes` / `Confidence` are instrumented. F-1 stays
+   deferred; the dependency is now named in the roadmap.

@@ -16,7 +16,12 @@
 | Split | Rows | Rule | Spec |
 |---|---|---|---|
 | **train** | **698** | `Source ∈ {`m8a_uniform`, `synthetic_v3`}` — synthetic only | EVA-02 |
-| **test** | **205** | `Source = ` `collected_v4` — real, held out, **excluded from training** | EVA-03 |
+| **test** | **205** | `Source = ` `collected_v4` — held out, **excluded from training** | EVA-03 |
+
+> **This is not a synthetic→real split** *(corrected 2026-08-26, DFD-1)*. `collected_v4` is
+> AI-generated and AI-labelled, established by owner recall with no collection record. Both sides are
+> authored; the split measures generalization across **authoring processes**, not to real student
+> input. No result derived from it may be reported as accuracy on real input.
 | total | 903 | | |
 
 `build_split.py` **stops with exit 2** if these do not match 698 / 205 / 903. The
@@ -45,7 +50,7 @@ number to absorb.
 | `ThiCuoiKy` | 0 | 0.0% |
 | `ThiGiuaKy` | 99 | 48.3% |
 
-**Absent from the real evaluation subset: `KiemTraThuongXuyen`, `ThiCuoiKy`.**
+**Absent from the held-out evaluation subset: `KiemTraThuongXuyen`, `ThiCuoiKy`.**
 
 This is the source of EVA-08 output 7 and of the **DAT-01** reporting bound: no
 claim of *general* production accuracy or generalization may be made from a
@@ -62,11 +67,16 @@ visible; a single averaged figure would not.
 **Exact-text overlap between train and test: 0.** Asserted in
 `build_split.py`, not assumed.
 
-This matters more here than it usually would. The 205 real rows were merged *into*
-the seed by `datasheets/_merge_seed.py` before the published **96.2%** figure was
-measured — which is exactly why that figure **is not a generalization number** and
-must not be cited as a synthetic→real baseline. A leaky split would recreate that
-error inside S0 itself.
+This matters more here than it usually would. The 205 `collected_v4` rows were merged
+*into* the seed by `datasheets/_merge_seed.py`, so any split drawn from the seed after
+that date can leak. A leaky split would recreate that error inside S0 itself.
+
+*Corrected 2026-08-26 (DFD-1): this paragraph previously said the merge happened before
+the published 96.2% figure was measured, and called the rows real. Neither holds — 96.2%
+was measured 2026-06-05 at the 698-row v3 seed, thirteen days before `collected_v4`
+entered the repository, and `collected_v4` is AI-generated. The figure is still not a
+generalization number; the reason is that its held-out rows came from its own training
+corpus.*
 
 **Near-duplicate overlap (diacritic-and-punctuation-insensitive): 0 test rows.**
 

@@ -25,7 +25,7 @@ namespace SmartStudyPlanner.Tests.Services.Pipeline
             public double CalculatePriority(StudyTask task, MonHoc monHoc) => task.DoKho + monHoc.SoTinChi;
             public int CalculateRawSuggestedMinutes(StudyTask task) => 120;
             public string SuggestStudyTime(StudyTask task) => "2 giờ";
-            public int PredictStudyMinutes(StudyTask task, MonHoc monHoc, out bool isMlPrediction) { isMlPrediction = false; return 0; }
+            public StudyTimePredictionResult PredictStudyMinutes(StudyTask task, MonHoc monHoc) => new StudyTimePredictionResult(0, false, 0f);
             public Task<WeightConfigSuggestion?> SuggestWeightConfigAsync(CancellationToken ct = default) => Task.FromResult<WeightConfigSuggestion?>(null);
         }
 

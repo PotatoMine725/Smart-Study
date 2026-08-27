@@ -137,7 +137,7 @@ debouncing or an embed-on-submit-only redesign. It does not.
 |---|---|---|---|
 | `m8a_uniform` | v3 | 597 | synthetic |
 | `synthetic_v3` | v3 | 101 | synthetic |
-| **`collected_v4`** | **v4** | **205** | **real, collected** |
+| **`collected_v4`** | **v4** | **205** | ~~**real, collected**~~ → **AI-generated, AI-labelled** *(corrected 2026-08-26, DFD-1 — see the Amendment)* |
 | | | **903** | |
 
 **[F]** Verified by parsing the CSV. The 205 real rows also exist standalone as
@@ -1315,4 +1315,39 @@ durable lessons are distilled into
 [`../knowledge/ml-experimentation.md`](../knowledge/ml-experimentation.md). S0's results live in
 `docs/reports/`, **not** in this file.
 
+---
 
+## Amendment, 2026-08-26 — `collected_v4` is not real data
+
+**Provenance grade: ruling, not measurement.** Owner recall on 2026-08-26 established that
+`datasheets/collected_v4.csv` was produced as *owner templates/examples → Meta AI generation → GitHub
+Copilot labelling*. No collection record exists in or out of the repository, and no artifact
+corroborates the recall — but it agrees with seven independently measured distributional regularities
+and an exact quota match. The repository holds **zero verified real user rows**.
+
+Ruling: [`2026-08-26-data-foundation-owner-decision-handoff.md`](2026-08-26-data-foundation-owner-decision-handoff.md) (**DFD-1**) ·
+Evidence: [`../reports/2026-08-25-data-audit-gap-map.md`](../reports/2026-08-25-data-audit-gap-map.md) §E.5–E.6,
+[`../reports/2026-08-26-data-foundation-owner-decision-brief.md`](../reports/2026-08-26-data-foundation-owner-decision-brief.md) §2 ·
+Pass record: [`../reports/2026-08-26-data-foundation-correction-pass.md`](../reports/2026-08-26-data-foundation-correction-pass.md)
+
+**Every description of `collected_v4` in this document as *real*, *collected* or *user-authored* is
+withdrawn.** The load-bearing occurrences are marked in place above. The remainder are deliberately
+**not** individually edited: rewriting them would erase what was believed when this document was
+written, which is precisely what the amendment convention exists to preserve. Read the whole document
+through this amendment.
+
+### The premise this proposal was built on
+
+The S0 design rests on *"test on the 205 held-out **real** rows"* — the proposal's own framing of the
+gate question was *"does the encoder show enough evidence of value on the **real** data?"*. That
+premise was false when written. S0 could not have answered the question as posed, because the project
+had no real data to answer it with.
+
+**This changes nothing about the outcome.** S0 ran, both arms lost to the n-gram baseline on the same
+split, EVA-16 fired and the initiative stopped. A false premise that made the gate *easier to fail*
+does not rescue an arm that failed it. The proposal stays `stopped_at_s0`, and **DAT-04 stands**:
+dataset growth alone does not authorise re-running the experiment.
+
+**What it does change** is what a revival would have to establish. Reviving this initiative now
+requires real evaluation data (**Gold-R**, DFD-3/DFD-4) that does not yet exist — a strictly higher
+bar than the one this proposal set, and a new owner decision on top.

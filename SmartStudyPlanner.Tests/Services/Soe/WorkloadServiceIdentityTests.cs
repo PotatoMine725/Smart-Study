@@ -9,6 +9,7 @@ using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Services.Soe;
 using SmartStudyPlanner.Tests.TestDoubles;
 using Xunit;
+using SmartStudyPlanner.Services.ML;
 
 namespace SmartStudyPlanner.Tests.Services.Soe
 {
@@ -258,11 +259,8 @@ namespace SmartStudyPlanner.Tests.Services.Soe
 
             public string SuggestStudyTime(StudyTask task) => string.Empty;
 
-            public int PredictStudyMinutes(StudyTask task, MonHoc monHoc, out bool isMlPrediction)
-            {
-                isMlPrediction = false;
-                return CalculateRawSuggestedMinutes(task);
-            }
+            public StudyTimePredictionResult PredictStudyMinutes(StudyTask task, MonHoc monHoc)
+                => new StudyTimePredictionResult(CalculateRawSuggestedMinutes(task), false, 0f);
 
             public Task<WeightConfigSuggestion?> SuggestWeightConfigAsync(CancellationToken ct = default)
                 => Task.FromResult<WeightConfigSuggestion?>(null);

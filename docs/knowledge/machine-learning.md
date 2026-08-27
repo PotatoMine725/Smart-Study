@@ -85,7 +85,8 @@ checked, no matter how reasonable the number looks.
 The M8-A gate is `>= 0.60` (`Services/ML/DefaultMlConfidencePolicy.cs:13`; the type's own XML doc
 records the effective rule — *callers treat anything except `Reject` as merge*). In 2026-08 the curve
 was measured for the first time, as a by-product of the encoder pilot's **baseline** arm — the
-shipped n-gram classifier, no encoder involved — over 205 real held-out rows:
+shipped n-gram classifier, no encoder involved — over the 205 held-out `collected_v4` rows
+(**not real data** — AI-generated and AI-labelled; corrected 2026-08-26, DFD-1):
 
 | Bin | Relative to the `0.60` gate | observed accuracy (seed 42) | n |
 |---|---|---|---|
@@ -102,9 +103,11 @@ not-confident flag, not a graded score — which means a *threshold* is the wron
 it, independent of where the threshold sits.
 
 **Scope, which must travel with this.** Bin populations are small (11 rows at seed 42; 0.033 pooled
-across five seeds, n=60), and this is real `collected_v4` input scored against a model trained on
-synthetic rows — it says nothing about the synthetic-heavy distribution the shipped model was
-validated against. **It is an indication, not a proven defect**, it is **deferred, not scheduled**
+across five seeds, n=60), and — **corrected 2026-08-26 (DFD-1)** — this is *not* real input: both
+the `collected_v4` test rows and the training rows are authored/AI-generated, so the measurement says
+nothing about production input at all. The gap is wider than this passage originally claimed: the
+gate has **never** been measured on real student input. **It is an indication, not a proven defect**,
+it is **deferred, not scheduled**
 (`../specs/system_roadmap.md` §A.4), and **nothing here was changed**: re-deriving a shipped
 threshold is a user-visible behaviour change that needs its own decision.
 

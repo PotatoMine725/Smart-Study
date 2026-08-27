@@ -148,9 +148,16 @@ namespace SmartStudyPlanner.ViewModels
                     DaysLeft            = (float)(TaskHienTai.TaskGoc.HanChot - DateTime.Today).TotalDays,
                     StudiedMinutesSoFar = studiedSoFar,
                     ActualMinutes       = phutDaHoc,
-                    PredictedMinutes    = null,
+                    // DFD-9a: log what was predicted, not merely that a prediction happened.
+                    // Both columns were hard-coded null until 2026-08-26 because the value was
+                    // dropped three layers upstream; a row with an outcome and no prediction can
+                    // never produce an error term, and one with no confidence can never be binned.
+                    // Values come from TaskHienTai (what the user was actually shown) rather than
+                    // from a fresh predict call -- re-predicting here would score a different
+                    // number, since ThoiGianDaHoc and DaysLeft have both moved since.
+                    PredictedMinutes    = TaskHienTai.PredictedMinutes,
                     WasMlPrediction     = TaskHienTai.IsMLPrediction,
-                    Confidence          = null,
+                    Confidence          = TaskHienTai.Confidence,
                 });
             }
 

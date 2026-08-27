@@ -30,7 +30,7 @@ Core flows = UC-01, UC-02, UC-06, UC-07, UC-08. Supporting = the rest.
   3. `IStudyTelemetry.Track("dashboard_open", ...)`.
   4. `IPipelineOrchestrator.Execute(new PipelineContext { ... })`.
   5. `BuildDashboardSummary(pipelineResult)`.
-  6. Per task loop: `IDecisionEngine.CalculateRawSuggestedMinutes(task)` → `IRiskAnalyzer.Assess(task, mon)` (when pipeline didn't fill risk) → `PredictStudyMinutes(task, mon, out isMl)`.
+  6. Per task loop: `IDecisionEngine.CalculateRawSuggestedMinutes(task)` → `IRiskAnalyzer.Assess(task, mon)` (when pipeline didn't fill risk) → `PredictStudyMinutes(task, mon)` → `StudyTimePredictionResult(Minutes, IsMLPrediction, Confidence)`, all three carried onto the `TaskDashboardItem` so the focus-session write site can log what was predicted (DFD-9a, 2026-08-26).
   7. Apply summary → native XAML chart collections (`StatusSegment`, `SubjectTimeProgress`, `SubjectWorkload`) → today's schedule → adaptations → streak (`IStreakManager.GetCurrentStreak`).
   8. `RaiseNotification(topTasks)` if any urgent.
 - **Output**: `ThongKe`, `Top5Task`, chart collections, `LichHocHomNay`, `AdaptationItems`, `ChuoiStreak`, optional toast.

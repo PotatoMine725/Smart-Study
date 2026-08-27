@@ -77,11 +77,16 @@ thing that changed.
 | `empty` | 6 | `""`, `" "`, `"   "`, tabs, a bare newline, CRLF surrounded by spaces |
 | `pathological` | 3 | 2 040 / 5 269 / 20 159 characters. The 2 040-char row contains **no whitespace at all** |
 
-Realistic rows are drawn from `collected_v4.csv` — real collected student input — so the set reflects
-how students actually type rather than how a developer imagines they do. Several are verbatim rows;
+Realistic rows are drawn from `collected_v4.csv`. **Corrected 2026-08-26 (DFD-1):** this line
+previously described that file as *"real collected student input"*. It is not — `collected_v4.csv` is
+AI-generated (Meta AI, from owner-supplied templates) and AI-labelled (GitHub Copilot), established by
+owner recall, with no collection record. The fixtures therefore reflect **how an authoring process
+rendered student input**, not how students actually type. That is still useful for exercising the
+parser's surface handling; it is **not** evidence about real input, and no fixture-derived result may
+be reported as such. Several are verbatim rows;
 `Note` says which.
 
-**Two rows deliberately name classes absent from the real evaluation subset** (`thicuoiky…`,
+**Two rows deliberately name classes absent from the held-out evaluation subset** (`thicuoiky…`,
 `kiemtrathuongxuyen…`). The 3-of-5 coverage limit (spec §6.1) bounds what S0 can *measure*; it is not
 a reason for the fixture set to pretend those classes do not exist.
 

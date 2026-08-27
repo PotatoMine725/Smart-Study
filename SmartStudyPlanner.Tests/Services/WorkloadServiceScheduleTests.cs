@@ -8,6 +8,7 @@ using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Tests.TestDoubles;
 using Xunit;
+using SmartStudyPlanner.Services.ML;
 
 namespace SmartStudyPlanner.Tests.Services
 {
@@ -439,11 +440,8 @@ namespace SmartStudyPlanner.Tests.Services
 
             public string SuggestStudyTime(StudyTask task) => string.Empty;
 
-            public int PredictStudyMinutes(StudyTask task, MonHoc monHoc, out bool isMlPrediction)
-            {
-                isMlPrediction = false;
-                return CalculateRawSuggestedMinutes(task);
-            }
+            public StudyTimePredictionResult PredictStudyMinutes(StudyTask task, MonHoc monHoc)
+                => new StudyTimePredictionResult(CalculateRawSuggestedMinutes(task), false, 0f);
 
             public Task<WeightConfigSuggestion?> SuggestWeightConfigAsync(CancellationToken ct = default)
                 => Task.FromResult<WeightConfigSuggestion?>(null);
@@ -472,11 +470,8 @@ namespace SmartStudyPlanner.Tests.Services
 
             public string SuggestStudyTime(StudyTask task) => string.Empty;
 
-            public int PredictStudyMinutes(StudyTask task, MonHoc monHoc, out bool isMlPrediction)
-            {
-                isMlPrediction = false;
-                return CalculateRawSuggestedMinutes(task);
-            }
+            public StudyTimePredictionResult PredictStudyMinutes(StudyTask task, MonHoc monHoc)
+                => new StudyTimePredictionResult(CalculateRawSuggestedMinutes(task), false, 0f);
 
             public Task<WeightConfigSuggestion?> SuggestWeightConfigAsync(CancellationToken ct = default)
                 => Task.FromResult<WeightConfigSuggestion?>(null);

@@ -361,6 +361,11 @@ complete outcome.**
 | **EVA-03 (MUST)** | Evaluate on the **205 held-out real `collected_v4` rows** **[fact]**, which MUST be excluded from training for this evaluation. |
 | **EVA-04 (MUST)** | The split MUST be constructed **once** and consumed **verbatim** by every arm. No arm may re-split. |
 
+> **EVA-03 as ratified 2026-08-24; partly superseded 2026-08-26 — see the Amendment at the end of this
+> specification.** The word **real** and its **`[fact]`** tag are **withdrawn**: `collected_v4` is
+> AI-generated and AI-labelled (DFD-1). **The requirement itself is unchanged** — the 205 rows, the
+> hold-out, and the exclusion from training all stand exactly as written.
+
 **[limit] Class coverage.** The real subset covers **3 of the 5 classes** — `ThiGiuaKy` 99,
 `BaiTapVeNha` 56, `DoAnCuoiKy` 50; no `KiemTraThuongXuyen`, no `ThiCuoiKy` **[fact]**. This is
 **accepted for the pilot** and is a reporting obligation (EVA-11), not a reason to defer S0.
@@ -371,6 +376,16 @@ pilot.
 **[fact] The published 96.2% held-out figure is not a generalization number.** The real rows were
 merged into the training seed before it was measured. It MUST NOT be cited as a synthetic→real
 baseline; EVA-02/03 construct the split that produces one.
+
+> **Paragraph as written 2026-08-24; two of its three claims superseded 2026-08-26 — see the
+> Amendment at the end of this specification.**
+>
+> - **Stands:** 96.2% is not a generalization number and must not be cited as a synthetic→real baseline.
+> - **Withdrawn — the stated reason.** *"The real rows were merged into the training seed before it was
+>   measured"* is chronologically impossible: 96.2% was measured 2026-06-05 at the 698-row v3 seed,
+>   thirteen days **before** `collected_v4.csv` entered the repository (2026-06-18).
+> - **Withdrawn — the closing clause.** *"EVA-02/03 construct the split that produces one"*: that split
+>   is authored-vs-authored, so it cannot produce a synthetic→real baseline either.
 
 ## 6.2 Arms
 
@@ -841,3 +856,50 @@ awaiting implementation — the capability it describes was never built, so ther
 happened). It is not superseded by a later spec; it was stopped by evidence. If the initiative is
 ever revived, revival re-enters through a **new owner decision** with its own plan — not by editing
 this file.
+
+---
+
+## Amendment, 2026-08-26 — `collected_v4` is not real data
+
+**Provenance grade: ruling, not measurement.** Owner recall on 2026-08-26 established that
+`datasheets/collected_v4.csv` was produced as *owner templates/examples → Meta AI generation → GitHub
+Copilot labelling*. No collection record exists in or out of the repository, and no artifact
+corroborates the recall — but it agrees with seven independently measured distributional regularities
+and an exact quota match. The repository holds **zero verified real user rows**.
+
+Ruling: [`../plans/2026-08-26-data-foundation-owner-decision-handoff.md`](../plans/2026-08-26-data-foundation-owner-decision-handoff.md) (**DFD-1**) ·
+Evidence: [`../reports/2026-08-25-data-audit-gap-map.md`](../reports/2026-08-25-data-audit-gap-map.md) §E.5–E.6,
+[`../reports/2026-08-26-data-foundation-owner-decision-brief.md`](../reports/2026-08-26-data-foundation-owner-decision-brief.md) §2 ·
+Pass record: [`../reports/2026-08-26-data-foundation-correction-pass.md`](../reports/2026-08-26-data-foundation-correction-pass.md)
+
+**Every description of `collected_v4` in this document as *real*, *collected* or *user-authored* is
+withdrawn.** The load-bearing occurrences are marked in place above. The remainder are deliberately
+**not** individually edited: rewriting them would erase what was believed when this document was
+written, which is precisely what the amendment convention exists to preserve. Read the whole document
+through this amendment.
+
+### What is **not** withdrawn
+
+- **No requirement is amended.** EVA-01 … EVA-16 stand as ratified. They were never exercised past the
+  S0 gate, and a factual correction to the prose around them does not withdraw normative text.
+- **The `ML_Heuristic_design.md` §9.1 exception remains in force**, as recorded at the initiative's
+  closure. This amendment does not touch it.
+- **EVA-02/03/04 describe the split that was actually built and consumed.** The counts (698 / 205 / 903),
+  the disjointness assertion and the one-split rule are all correct as written.
+
+### What is withdrawn or re-scoped
+
+| Passage | As ratified 2026-08-24 | 2026-08-26 |
+|---|---|---|
+| **EVA-03** | *"205 held-out **real** `collected_v4` rows" **[fact]**"* | The word **real** and its `[fact]` tag are **withdrawn**. `[fact]` was asserted without any document recording a collection — the specific governance failure the audit names `G-9` |
+| **§6.1, 96.2% paragraph** | *"The real rows were merged into the training seed before it was measured"* | **Chronologically impossible.** 96.2% was measured **2026-06-05** at the 698-row v3 seed (n=106 fits 698 × 0.15, not 903 × 0.15); `collected_v4.csv` entered the repository **2026-06-18** (`8855874`, merged `ab5112c`) — thirteen days later. The **conclusion** — not a generalization number, do not cite as a synthetic→real baseline — **stands and is stronger** |
+| **§6.1 closing clause** | *"EVA-02/03 construct the split that produces one"* [a synthetic→real baseline] | **Withdrawn.** The split is authored-vs-authored. S0 could not have produced a synthetic→real baseline, because no real evaluation data exists |
+| **`[limit] Class coverage`** | *"The **real** subset covers 3 of the 5 classes"* | Counts unchanged (`ThiGiuaKy` 99, `BaiTapVeNha` 56, `DoAnCuoiKy` 50). "Real" withdrawn |
+
+### The consequence for DAT-01
+
+DAT-01 bounded reporting because the evaluation set covered 3 of 5 classes. That bound is now
+**strictly wider**: no claim of production accuracy or generalization may be made from this
+specification's evaluation design **at any class coverage**, because the evaluation set is not drawn
+from the population the claim would be about. Re-running S0 on a larger authored corpus would not
+lift the bound (**DAT-04** already says corpus growth alone does not authorise a re-run).

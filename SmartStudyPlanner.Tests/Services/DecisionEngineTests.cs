@@ -19,6 +19,20 @@ namespace SmartStudyPlanner.Tests.Services
                 => Task.FromResult(new StudyTimePredictionResult(0, false, 0f));
         }
 
+        /// <summary>
+        /// DFD-9a: a predictor whose confidence is neither 0 nor 1, so a seam that drops the value
+        /// and substitutes a default cannot pass by coincidence.
+        /// </summary>
+        private sealed class StubPredictor : IStudyTimePredictor
+        {
+            private readonly StudyTimePredictionResult _result;
+            public StubPredictor(int minutes, bool isMl, float confidence)
+                => _result = new StudyTimePredictionResult(minutes, isMl, confidence);
+            public bool IsReady => true;
+            public Task<StudyTimePredictionResult> PredictAsync(StudyTask task, MonHoc monHoc, CancellationToken ct = default)
+                => Task.FromResult(_result);
+        }
+
         // Shared frozen "now" for the engine clock AND date-sensitive task deadlines, so the
         // priority-ordering asserts below don't flip as the real wall clock drifts past this date.
         private static readonly DateTime FixedNow = new DateTime(2026, 4, 11, 9, 0, 0);
@@ -191,5 +205,44 @@ namespace SmartStudyPlanner.Tests.Services
             Assert.NotNull(dir);
             return dir!.FullName;
         }
+
+        [Fact]
+        public void PredictStudyMinutes_TraVeConfidence_KhongNuotOSeam()
+        {
+            // DFD-9a root cause: the old signature was `int PredictStudyMinutes(..., out bool)`,
+            // which had nowhere to put Confidence and therefore discarded it. This test fails on
+            // any seam that returns only minutes + a flag.
+            var clock = new FakeClock(FixedNow);
+            var sut = new DecisionEngineService(
+                new DefaultTaskTypeWeightProvider(), clock, new StubPredictor(73, true, 0.64f));
+
+            var result = sut.PredictStudyMinutes(
+                new StudyTask("BT", FixedNow.AddDays(3), LoaiCongViec.BaiTapVeNha, 3),
+                new MonHoc("Toan", 3));
+
+            Assert.Equal(73, result.Minutes);
+            Assert.True(result.IsMLPrediction);
+            Assert.Equal(0.64f, result.Confidence);
+        }
+
+        [Fact]
+        public void PredictStudyMinutes_NhanhBiTuChoi_VanMangConfidence()
+        {
+            // The rejected branch (confidence < 0.6 -> formula estimate, IsMLPrediction = false) is
+            // exactly the population needed to tell whether the 0.6 threshold sits in the right
+            // place. Logging Confidence only when the ML branch wins would rebuild the blind spot
+            // one level down.
+            var clock = new FakeClock(FixedNow);
+            var sut = new DecisionEngineService(
+                new DefaultTaskTypeWeightProvider(), clock, new StubPredictor(30, false, 0.41f));
+
+            var result = sut.PredictStudyMinutes(
+                new StudyTask("BT", FixedNow.AddDays(3), LoaiCongViec.BaiTapVeNha, 3),
+                new MonHoc("Toan", 3));
+
+            Assert.False(result.IsMLPrediction);
+            Assert.Equal(0.41f, result.Confidence);
+        }
+
     }
 }

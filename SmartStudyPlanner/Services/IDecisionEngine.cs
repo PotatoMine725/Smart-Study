@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using SmartStudyPlanner.Core.ML.Contracts;
 using SmartStudyPlanner.Models;
+using SmartStudyPlanner.Services.ML;
 
 namespace SmartStudyPlanner.Services
 {
@@ -23,8 +24,11 @@ namespace SmartStudyPlanner.Services
         /// <summary>Chuỗi gợi ý thời gian còn lại (đã trừ ThoiGianDaHoc) cho DataGrid.</summary>
         string SuggestStudyTime(StudyTask task);
 
-        /// <summary>Trả về phút học dự đoán với ngữ cảnh môn học nếu ML predictor sẵn sàng.</summary>
-        int PredictStudyMinutes(StudyTask task, MonHoc monHoc, out bool isMlPrediction);
+        /// <summary>
+        /// Trả về kết quả dự đoán phút học (Minutes + IsMLPrediction + Confidence) với ngữ cảnh môn học.
+        /// Confidence đi kèm để write-site telemetry ghi lại được cái ĐÃ dự đoán, không chỉ việc CÓ dự đoán.
+        /// </summary>
+        StudyTimePredictionResult PredictStudyMinutes(StudyTask task, MonHoc monHoc);
 
         /// <summary>
         /// M8-B: đề xuất WeightConfig dựa trên thống kê người dùng (read-only, không tự apply).

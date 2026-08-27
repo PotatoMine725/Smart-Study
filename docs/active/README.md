@@ -15,7 +15,25 @@ and the [closing note](../reports/2026-08-07-epic3-closing-note.md).
 **The edge-AI encoder adoption is CLOSED (2026-08-25)** — S0 ran, the **EVA-16 kill criterion fired**,
 and the owner accepted the stop. **No production code was written and none will be.** See the
 [pilot report](../reports/2026-08-25-encoder-pilot.md) and the CP1 ruling at its end.
-**Nothing is in progress right now** — the two rows below are queued/proposed, not being worked.
+**Nothing is in progress right now** — the rows below are queued/proposed/raised, not being worked.
+
+**DFD-9a's last gate closed 2026-08-27** — the end-to-end check no automated test could perform was
+run by the owner at a keyboard and ruled **PASS**. The shipped application demonstrably logs what it
+predicted, through its production DI wiring, on both command paths
+([evidence](../reports/2026-08-27-dfd9a-instrumentation-observation.md)). Telemetry now accrues
+usable rows; it does not make the *existing* ones usable, and says nothing about prediction quality.
+
+**The data-foundation decision phase closed 2026-08-26** (owner ruling: nine policies ratified; the
+project holds **zero verified real user rows**). It produced two items that need an owner call and one
+completed correction pass — see the table below and
+[`../plans/2026-08-26-data-foundation-owner-decision-handoff.md`](../plans/2026-08-26-data-foundation-owner-decision-handoff.md).
+
+**The proposal's own review closed 2026-08-27** — the owner ruled on **Q-1 … Q-5**, the five questions
+the proposal had declined to answer with invented figures
+([`../plans/2026-08-27-data-maturation-owner-decision-outcomes.md`](../plans/2026-08-27-data-maturation-owner-decision-outcomes.md)).
+**Four of the five rulings are instructions not to invent the number yet.** The proposal is now at
+**revision 2** and waits on *authorization*, not decisions. Its immediate next step, **S-1**, needs no
+tooling and no data — only four owner rulings.
 
 *Superseded 2026-08-19 (kept for history):* the previous banner said *"Epic 3 (SOE) is next"*, which
 was true when written on 2026-08-02. The order it cited still holds — the
@@ -26,10 +44,13 @@ With E1 and E3 both closed, the next epic in that sequence is the **LAN-sync epi
 Epic 3 optimizer into production, still unscheduled — could reasonably come first. That call is the
 owner's and has not been made.
 
-## Current (2026-08-25)
+## Current (2026-08-26)
 
 | Work | Plan | State |
 |---|---|---|
+| **Prediction instrumentation defect (DFD-9a)** | [`../plans/2026-08-26-prediction-instrumentation-defect.md`](../plans/2026-08-26-prediction-instrumentation-defect.md) | **FIXED 2026-08-26**, suite 487 → 492. Seam returns the prediction record, `TaskDashboardItem` carries it, the write site logs both columns on both branches. **CLOSED 2026-08-27 — the last gate is shut.** The owner ran the end-to-end check at a keyboard against the real Debug database: four new rows through the production DI wiring, both command paths, all with `PredictedMinutes` and `Confidence` non-null, while the two pre-fix rows still read `NULL` in the same output. Ruled **PASS** on all four pre-registered criteria, twice. The second pass (non-overdue tasks) logged `WasMlPrediction = 1` with `Confidence` 0.90 and 0.7333, both reproducing exactly from each task's own `DiemUuTien` — so the ML branch demonstrably ran. Evidence: [`../reports/2026-08-27-dfd9a-instrumentation-observation.md`](../reports/2026-08-27-dfd9a-instrumentation-observation.md). Runbook: [`../plans/2026-08-26-dfd9a-instrumentation-runbook.md`](../plans/2026-08-26-dfd9a-instrumentation-runbook.md). **Still true:** pre-2026-08-26 rows remain unusable (no backfill is possible), `Confidence = 0` stays ambiguous under DFD-5, and nothing here says the predicted numbers are *good* |
+| **Data Maturation & Coverage Expansion** | [`../plans/2026-08-26-data-maturation-coverage-expansion.md`](../plans/2026-08-26-data-maturation-coverage-expansion.md) | **Rev 2 (2026-08-27) — DRAFT, awaiting *authorization*.** Reviewed; Q-1…Q-5 ruled. Staged S-1…S-8 plus the **S-T** telemetry strand; maturity is now a `T-0…T-3` tier ladder with three binary invariants, **all three false today**. Not authorized, not scheduled. **Next: S-1**, the limited taxonomy review — four owner rulings, no tooling. Then S-2, then the Q-1 measurement |
+| **Owner decision outcomes (Q-1…Q-5)** | [`../plans/2026-08-27-data-maturation-owner-decision-outcomes.md`](../plans/2026-08-27-data-maturation-owner-decision-outcomes.md) | **RATIFIED 2026-08-27**, implementation still not authorized. Owner has a bounded participant network (Q-2); collection runs outside the app (Q-3); hybrid sampling, no forced quotas (Q-4); tiered maturity (Q-5); adjudication effort is measured, not estimated (Q-1). **Where its wording differs from the 2026-08-26 handoff, this one governs** — one such difference is material, see its §A.2 |
 | **Analytics two-section redesign** | [`../plans/2026-07-20-analytics-two-section-redesign.md`](../plans/2026-07-20-analytics-two-section-redesign.md) | QUEUED — design brief, **plus a delivered implementation package** (2026-08-02) now under version control at [`../assets/analytics-ui-package/`](../assets/analytics-ui-package/). **Not integrated**; no code merged. Phase 3 unlocked, not started. *Known gap: the package README cites an interactive mockup `Analytics Redesign Proposal.dc.html` that is not in the repository.* |
 | **UI fidelity + mobile-ready polish** | [`../plans/2026-07-05-ui-mobile-ready-polish.md`](../plans/2026-07-05-ui-mobile-ready-polish.md) | PROPOSED, on `dev` — `ui_rf` was adopted as the tested trunk and merged (PR #49, 2026-07-26), so the plan is no longer branch-scoped; it remains unimplemented |
 
@@ -53,8 +74,8 @@ symbols touched**.
 | Item | Evidence status | Disposition |
 |---|---|---|
 | Neither encoder beat the n-gram baseline | **Confirmed** — measured, both arms, both precisions, one shared split | **The S0 conclusion.** Closed. Revival needs a new owner decision + its own plan |
-| Dataset-distribution limitation (94.6 % of real rows carry an unseen token; `tgk` 28/205 test vs 0/698 train; 3-of-5 class coverage) | **Confirmed observation** | **Knowledge**, plus a *candidate* for a future dataset proposal. **Not scheduled.** DAT-04: dataset growth alone does not authorise re-running the encoder experiment |
-| **F-1** — M8-A merge gate at `≥0.60` vs a 0.000-accuracy `[0.6,0.7)` band | **Indication**, not a proven defect — n=11 at seed 42, real input against a synthetic-trained model | **Separate investigation candidate.** Deferred by owner ruling to [`../specs/system_roadmap.md`](../specs/system_roadmap.md) §A.4. **Not fixed, not scheduled**; a fix must *separate* the shared `DefaultMlConfidencePolicy`, not retune both consumers |
+| Dataset-distribution limitation (94.6 % of the held-out `collected_v4` rows — **authored, not real**, DFD-1 — carry an unseen token; `tgk` 28/205 test vs 0/698 train; 3-of-5 class coverage) | **Confirmed observation** | **Knowledge**, plus a *candidate* for a future dataset proposal. **Not scheduled.** DAT-04: dataset growth alone does not authorise re-running the encoder experiment |
+| **F-1** — M8-A merge gate at `≥0.60` vs a 0.000-accuracy `[0.6,0.7)` band | **Indication**, not a proven defect — n=11 at seed 42, and **authored** input against a model trained on other authored rows (DFD-1, 2026-08-26) | **Separate investigation candidate.** Deferred by owner ruling to [`../specs/system_roadmap.md`](../specs/system_roadmap.md) §A.4, and **reinforced 2026-08-27**: DFD-9a's ratified wording says *"do not change any confidence threshold as part of this defect."* The shipped fix moved none. **Not fixed, not scheduled**; a fix must *separate* the shared `DefaultMlConfidencePolicy`, not retune both consumers |
 | EmbeddingGemma int8 export ~6× slower than its fp32 export, at ~2× peak memory | **Measured observation**, on non-reference hardware — bounded to that export / runtime / CPU | **Knowledge** ([`../knowledge/ml-experimentation.md`](../knowledge/ml-experimentation.md)). Not a general claim that int8 is slower; **not optimised** — the initiative stopped |
 | Tokenization / runtime facts (no in-graph tokenization; fairseq `+1` offset; whitespace-axis divergence; no shared-package version bump needed) | **Confirmed**, verified against real vocabularies with the checks proven red first | **Knowledge.** Accepted by the owner at CP1 |
 | **Arm C** (`hiieu/halong_embedding`) | **Not tested** — never acquired | **Remains unactivated.** The tie branch did not fire; a third encoder on the same 698 synthetic rows would test the hypothesis that just failed |
@@ -68,7 +89,8 @@ re-run.
 
 **One finding outlived the initiative**, now tracked in `specs/system_roadmap.md` §A.4: the shipped
 M8-A merge gate sits at `≥0.60` while the **baseline** classifier's own `[0.6,0.7)` band scored 0.000
-on 205 real held-out rows. Produced by the baseline arm — no encoder involved.
+on the 205 held-out `collected_v4` rows — which are **not real data** (AI-generated, AI-labelled;
+DFD-1, 2026-08-26). Produced by the baseline arm — no encoder involved.
 
 Deferred items tracked in the roadmap (§A.4), not here — listed so they are not mistaken for active
 work: **G3-1** (wire `IScheduleOptimizer.Optimize` into production — the engine has no production

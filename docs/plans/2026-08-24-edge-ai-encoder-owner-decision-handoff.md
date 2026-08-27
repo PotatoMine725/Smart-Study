@@ -499,3 +499,38 @@ State whether the proposal is now ready for owner review and possible
 scope-freeze, or what still prevents that.
 
 No implementation.
+
+---
+
+## Amendment, 2026-08-26 — `collected_v4` is not real data
+
+**Provenance grade: ruling, not measurement.** Owner recall on 2026-08-26 established that
+`datasheets/collected_v4.csv` was produced as *owner templates/examples → Meta AI generation → GitHub
+Copilot labelling*. No collection record exists in or out of the repository, and no artifact
+corroborates the recall — but it agrees with seven independently measured distributional regularities
+and an exact quota match. The repository holds **zero verified real user rows**.
+
+Ruling: [`2026-08-26-data-foundation-owner-decision-handoff.md`](2026-08-26-data-foundation-owner-decision-handoff.md) (**DFD-1**) ·
+Evidence: [`../reports/2026-08-25-data-audit-gap-map.md`](../reports/2026-08-25-data-audit-gap-map.md) §E.5–E.6,
+[`../reports/2026-08-26-data-foundation-owner-decision-brief.md`](../reports/2026-08-26-data-foundation-owner-decision-brief.md) §2 ·
+Pass record: [`../reports/2026-08-26-data-foundation-correction-pass.md`](../reports/2026-08-26-data-foundation-correction-pass.md)
+
+**Every description of `collected_v4` in this document as *real*, *collected* or *user-authored* is
+withdrawn.** The load-bearing occurrences are marked in place above. The remainder are deliberately
+**not** individually edited: rewriting them would erase what was believed when this document was
+written, which is precisely what the amendment convention exists to preserve. Read the whole document
+through this amendment.
+
+**This is an owner record and its body is not edited** — not one word above this line is changed. The
+amendment is filed here only so a reader of the 2026-08-24 ruling learns what a later ruling
+established.
+
+Where this record says *"the current **real** dataset covers only 3 of 5 classes"* and frames the S0
+gate as *"value on the **real** data"*, the dataset in question is `collected_v4`, since established as
+AI-generated and AI-labelled. **PD-1 … PD-10 are not withdrawn or reopened** — they were ratified on a
+premise that later proved wrong, and the initiative they governed had already stopped on independent
+evidence (the EVA-16 kill criterion, which fired on measurements this correction does not touch).
+
+The later ruling — [`2026-08-26-data-foundation-owner-decision-handoff.md`](2026-08-26-data-foundation-owner-decision-handoff.md)
+§18 — states explicitly that the Data Foundation decisions **do not reopen or reactivate** the Edge AI
+initiative. Future model work needs new evidence and a new owner decision.

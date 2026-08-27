@@ -977,3 +977,45 @@ behind DFD-4 as well as DFD-2 — instead of adopting it and discovering later t
 real as the measurement. Check that the instrument exists before writing the constraint that depends
 on it — the same lesson the audit recorded when it declined to proxy those five phenomena with
 regexes.
+
+---
+
+# Owner ruling — appended 2026-08-26
+
+> **This section is the owner's decision, not the author's.** It is appended, never folded in: §4's
+> decision table above stands exactly as submitted, and the **Decisions made** section above it holds
+> the *author's process decisions*, which are a different thing. A reader looking for "the decision"
+> wants this section.
+>
+> The ruling was issued as a standalone record and is filed verbatim at
+> [`../plans/2026-08-26-data-foundation-owner-decision-handoff.md`](../plans/2026-08-26-data-foundation-owner-decision-handoff.md).
+> Only the verdicts are reproduced here; the reasoning, the policy text and the constraints on the
+> next phase live in that record and are normative there.
+
+**Status of §4 as of 2026-08-26: ruled in full.** Nine decisions closed, three prerequisites closed.
+
+| Item | Ruling | Where §4 stated the question |
+|---|---|---|
+| **P-1** | **Resolved.** `collected_v4.csv` = owner templates → Meta AI generation → GitHub Copilot labelling. Synthetic/AI-authored; AI-assisted labels, not owner-verified Gold | §3 |
+| **P-2** | **Resolved.** The 189 rows descend from ~2 000 Meta AI-generated rows aggregated by GitHub Copilot into two datasheets; 136 reached the production seed. Provenance now known at the *process* level; still synthetic, and label correctness is not established | §3 |
+| **P-3** | **Limited taxonomy review**, not a redesign. The five-class production taxonomy stays the working baseline; no silent changes | §3 |
+| **DFD-1** | **Ratified.** The repository contains no verified real/user-authored Smart Parser dataset. Real-world generalization claims stay disabled until Gold-R exists. Correction by dated amendment — history is not rewritten | §4 |
+| **DFD-2** | **Ratified.** A full canonical annotation specification precedes any further labelled data, and P-3 precedes its finalization | §4 |
+| **DFD-3** | **Ratified.** Two Gold tiers: **Gold-A** (human-verified authored) and **Gold-R** (human-verified real user), separately named, versioned and traceable | §4 |
+| **DFD-4** | **Ratified.** Both bounded real-user collection *and* ongoing in-app organic accrual. Held-out data reserved before training merge | §4 |
+| **DFD-5** | **Ratified.** Dual-layer provenance — file-level datasheet + row-level lineage, captured at creation/ingest time | §4 |
+| **DFD-6** | **Ratified.** Synthetic data is Silver/training augmentation only; barred from Gold-R and from held-out evaluation | §4 |
+| **DFD-7** | **Ratified.** External datasets may be evaluated, not ingested for training. ViLexNorm's `CC BY-NC-SA 4.0` remains an unresolved owner question; instrument use is a separate consideration | §4 |
+| **DFD-8** | **Ratified.** Owner is the Gold authority. AI may pre-label, detect disagreement, curate Silver and prioritize review — it may not establish Gold ground truth | §4 |
+| **DFD-9a** | **Ratified — raise now.** The missing `PredictedMinutes` / `Confidence` instrumentation is an independent shipped-code defect, not part of the Data Maturation proposal | §4 (`9a`) |
+| **DFD-9b** | **Ratified.** `DifficultyLabelLogs` and `StudyTimeOutcomeLogs` are designated future real-data sources, subject to provenance, privacy and data-contract prerequisites. Not authorized for training or evaluation use today | §4 (`9b`) |
+
+**Effect on §2 of this brief.** The ruling adopts §2's re-scoping wholesale: the 96.2%, the
+97.24%/97.25% recall figures and the S0 comparison keep their downgraded readings, and DFD-1 turns
+§2 from an argument into an obligation. The correction pass it requires is
+[`2026-08-26-data-foundation-correction-pass.md`](2026-08-26-data-foundation-correction-pass.md).
+
+**Effect on the Follow-ups table above.** Rows 1 and 2 are **closed** by this ruling. Rows 3, 4 and 5
+are **authorized as work** and were executed on 2026-08-26 — see the correction-pass report and
+[`../plans/2026-08-26-prediction-instrumentation-defect.md`](../plans/2026-08-26-prediction-instrumentation-defect.md).
+Rows 6, 7 and 8 are untouched by the ruling and remain as stated.

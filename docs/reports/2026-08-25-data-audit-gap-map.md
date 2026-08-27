@@ -770,6 +770,9 @@ guideline exists reproduces `G-1` at greater volume.
 
 ## K. Open Questions
 
+> **Table as written 2026-08-25; rows 1 and 2 superseded — see the Amendment at the end of
+> this report.** Both were answered by owner recall on 2026-08-26. Rows 3–7 stand.
+
 | # | Question | Who can answer | Status |
 |---|---|---|---|
 | 1 | **What produced the 189 rows between `_balanced.csv` and `uniform`?** 136 are in the shipped model. `[inferred]` machine-produced; the process is not in the repo | **Owner recall** — faster than forensics | open |
@@ -846,6 +849,9 @@ every intervention that adds rows. Everything else is a sequencing choice; this 
 ---
 
 ## Owner Decisions Required
+
+> **Table as written 2026-08-25; all six ruled 2026-08-26 — see the Amendment at the end of
+> this report.** Left unedited: what an audit could not decide is part of its record.
 
 Only questions that genuinely need owner judgement.
 
@@ -1067,3 +1073,57 @@ section's content, not just its citations. It also clarified that the *actionabl
 no dataset names at all: no public Vietnamese corpus carries this label space, so every public-data
 path routes through `G-1`. Lead with the conclusion that survives regardless of which corpus is
 picked.
+
+---
+
+## Amendment, 2026-08-26 — the owner ruling closed every decision this audit deferred
+
+This report deferred six decisions (`OD-1 … OD-6`) and two provenance questions (`K.1`, `K.2`). All
+eight were closed by the owner on 2026-08-26. The ruling is filed verbatim at
+[`../plans/2026-08-26-data-foundation-owner-decision-handoff.md`](../plans/2026-08-26-data-foundation-owner-decision-handoff.md);
+the brief that framed the choices is
+[`2026-08-26-data-foundation-owner-decision-brief.md`](2026-08-26-data-foundation-owner-decision-brief.md).
+
+**Nothing in the body above is rewritten.** Two tables carry a superseded marker at their heading; the
+rows themselves stand as written, because what the audit could and could not establish is the part of
+this document with the longest shelf life.
+
+### K.1 and K.2 — answered by owner recall
+
+| # | Audit status | Answer, 2026-08-26 |
+|---|---|---|
+| **K.2** | open, *"highest value"* — how was `collected_v4.csv` produced? | **Owner templates/examples → Meta AI generation → GitHub Copilot labelling.** Synthetic/AI-authored throughout; the labels are AI-assigned, not owner-verified |
+| **K.1** | open — what produced the 189 rows between `_balanced.csv` and `uniform`? | **~2 000 Meta AI-generated rows, aggregated by GitHub Copilot into two datasheets**, from which the 189 descend; **136** reached the production seed. They stay in the seed |
+
+**Provenance grade — read this before citing either answer.** Both are **rulings**: an authorised
+person's statement, with no written collection or generation record in or out of the repository. They
+are not observations, and no artifact was found that corroborates them. What they establish is
+*process-level* origin. They do **not** establish label correctness, and they do not convert either
+corpus into evidence about real student input.
+
+**What this confirms, and what it changes.** §E.6 inferred from seven distributional regularities and
+an exact quota match that `collected_v4` was authored to a spec; §E.5 inferred from generator
+fingerprints that the 136 are machine-produced. The ruling **agrees with both inferences and names the
+mechanism**, which the measurements could not. The `[inferred]` tags in §E.5/§E.6 are therefore
+corroborated rather than replaced — a measured inference plus an independent recall pointing the same
+way is a stronger record than either alone. **No number in this report changes.**
+
+### OD-1 … OD-6 — every deferred decision, ruled
+
+| # | Audit's question | Ruling | Consequence for this report |
+|---|---|---|---|
+| **OD-1** | Disposal of the eight documents asserting `collected_v4` is real (§F.3) | **DFD-1 ratified** — corrected by dated amendment, never by rewrite | §F.3's list was executed on 2026-08-26; see [`2026-08-26-data-foundation-correction-pass.md`](2026-08-26-data-foundation-correction-pass.md) |
+| **OD-2** | What actually happened when `collected_v4` was produced | **P-1 resolved** (above) | §K.2 closed; §E.6 corroborated |
+| **OD-3** | What produced the 189 rows, and whether the 136 stay | **P-2 resolved** (above); the 136 **stay** | §K.1 closed; §E.5 corroborated |
+| **OD-4** | Is `CC BY-NC-SA 4.0` (ViLexNorm) compatible with this project? | **Unresolved by design.** DFD-7 permits evaluation of external datasets, prohibits training ingestion, and holds the licence question open as an owner decision | §I.2 stands; ViLexNorm remains a *candidate instrument*, not an approved source |
+| **OD-5** | Raise `G-7` (missing `PredictedMinutes`) as a defect now? | **DFD-9a ratified — yes, now, separately** | Raised as [`../plans/2026-08-26-prediction-instrumentation-defect.md`](../plans/2026-08-26-prediction-instrumentation-defect.md) |
+| **OD-6** | Is the taxonomy reopened? | **P-3 — limited review only.** The five-class production taxonomy remains the working baseline; no silent changes | §J-2 narrows: the review targets retired-class transitions and boundary collisions, not a redesign. §D-3's partition of the 51.8% raw disagreement is its starting point |
+
+### The one ordering constraint, re-confirmed
+
+The audit's *Data Maturation Inputs* section stated a single dependency: `G-1` (guideline +
+adjudication) precedes every intervention that adds rows. The ruling ratifies that as policy — DFD-2
+requires a canonical annotation specification **before** further labelled data is collected, imported,
+generated or promoted, and P-3 precedes DFD-2's finalization. The staged foundation the ruling
+prescribes is carried into
+[`../plans/2026-08-26-data-maturation-coverage-expansion.md`](../plans/2026-08-26-data-maturation-coverage-expansion.md).

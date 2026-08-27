@@ -37,9 +37,18 @@
 | M8 Telemetry | `DifficultyLabelLog` + `WeightChangeLog` capture; `OutcomeMaturationService` (14-day cohort fill) | shipped 2026-06-11 |
 | UI/UX | Design system, sidebar, dashboard, analytics heatmap, WorkloadBalancer page | shipped |
 
-> ¹ **Provenance of the 96.2% figure** *(annotated 2026-08-24)*: it was measured after the 205 real
-> `collected_v4` rows had been merged into the training seed, so it is **not** a synthetic→real
-> generalization number and must not be cited as one. See [`2026-08-24-neural-encoder-smart-parser.md`](2026-08-24-neural-encoder-smart-parser.md) §6.1.
+> ¹ **Provenance of the 96.2% figure** *(annotated 2026-08-24; **the annotation was itself wrong and is
+> corrected here, 2026-08-26**)*. The conclusion stands and is stronger: 96.2% is **not** a
+> synthetic→real generalization number and must not be cited as one. The **mechanism** the 2026-08-24
+> annotation gave — *"measured after the 205 real `collected_v4` rows had been merged into the training
+> seed"* — is chronologically impossible. The figure was measured **2026-06-05 at the 698-row v3 seed**
+> (n=106 fits 698 × 0.15, not 903 × 0.15), **thirteen days before** `collected_v4.csv` entered the
+> repository (`8855874`; merged into the seed by `ab5112c`, both 2026-06-18). At that date the seed
+> held **zero** `collected_v4` rows — and `collected_v4` is not real data in any case (**DFD-1**;
+> owner ruling 2026-08-26). Cite it only as *an in-distribution held-out score over the 698-row v3
+> authored seed, 2026-06-05, n=106, against labels of ~29.6% inter-pass stability*.
+> See [`2026-08-24-neural-encoder-smart-parser.md`](2026-08-24-neural-encoder-smart-parser.md) §6.1
+> and [`../reports/2026-08-26-data-foundation-owner-decision-brief.md`](../reports/2026-08-26-data-foundation-owner-decision-brief.md) §2.1.
 | M1.1 | Epic 1 — single stamping seam + A6 (`SyncStamper` in `AppDbContext.SaveChanges*` stamps `Rev`/`ModifiedAtUtc`/`ModifiedByDeviceId`; `StudyLog` write awaited, `DeviceId` populated) | merged `3193adf` (2026-07-05) |
 | M1.2 | Epic 1 — schema upgrade + tombstones, gate G1 (`SyncSchema.EnsureColumns` versioned upgrade + backup + migration report; soft-delete tombstones replace hard cascades; `TaskCascadeHelper` cascade-tombstones FK-only children, M1.2-R1 remediation) | merged `e2f8268` (2026-07-10) |
 | M1.3 | Epic 1 — MonHoc identity & dedup (`MonHocIdentity.Normalize` single dedup definition, 4 read-side sites + `ThemMon` prevent-at-source; folded fix for a pre-existing `LuuHocKyAsync` task-reconcile gap surfaced by the widened dedup key, Option A) | merged `a3a0a3d` (2026-07-11) — **Epic 1 code complete** |
@@ -169,6 +178,27 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
 
 ## A.4 Deferred / out of scope
 
+- **DFD-9a — prediction instrumentation: FIXED 2026-08-26.** `StudyTimeOutcomeLog.PredictedMinutes` /
+  `Confidence` were written as literal `null` on every row, so the telemetry recorded *that* a prediction
+  happened but not *what it was* — no residual could be formed, no confidence bin populated. Root cause
+  was a data-flow truncation across three layers, not a forgotten assignment. The seam now returns
+  `StudyTimePredictionResult` instead of `int` + `out bool`, `TaskDashboardItem` carries the number and
+  the confidence, and the write site logs both **on the rejected branch too**. Suite **487 → 492**.
+  Record: [`../plans/2026-08-26-prediction-instrumentation-defect.md`](../plans/2026-08-26-prediction-instrumentation-defect.md).
+  **Still open, and deliberately so:** rows written before 2026-08-26 remain unusable for calibration —
+  the value is not reconstructible — and DFD-5 row-level provenance on this table was **not** folded in
+  (it belongs to the Data Maturation proposal). No threshold moved; F-1 below is untouched and remains
+  deferred, though it is now *investigable* on real telemetry once rows accrue.
+
+- **Data foundation — decision phase closed 2026-08-26, execution not authorized.** The project now
+  formally holds **zero verified real user rows** (DFD-1); `collected_v4` is AI-generated and
+  AI-labelled. Nine policies are ratified (annotation spec before further labelled data, two-tier Gold,
+  dual-layer provenance, synthetic-for-Silver-only, owner as sole Gold authority). The staged proposal
+  — taxonomy review → annotation spec → provenance → Gold-A/Gold-R → evaluation → controlled expansion
+  — is written and **awaiting owner review**, not scheduled:
+  [`../plans/2026-08-26-data-maturation-coverage-expansion.md`](../plans/2026-08-26-data-maturation-coverage-expansion.md).
+  Ruling: [`../plans/2026-08-26-data-foundation-owner-decision-handoff.md`](../plans/2026-08-26-data-foundation-owner-decision-handoff.md).
+
 - **G3-1 — wire `IScheduleOptimizer.Optimize` into production.** The single largest piece of
   deferred work on the board. The engine is built, tested, gated and reachable from tests only; no
   Epic 3 task card owned the integration, and none has been written since. Deliberate, not an
@@ -177,12 +207,15 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
   a durable artifact (see the [doc-sync report](../reports/2026-08-20-doc-synchronization.md) §2).
 - **M8-A confidence-gate calibration — deferred by owner ruling, 2026-08-25.** The shipped merge gate
   is `≥ 0.60` (`DefaultMlConfidencePolicy.cs:13`; the type's own doc states *"callers treat anything
-  except `Reject` as merge"*). On 205 real held-out `collected_v4` rows the production n-gram
+  except `Reject` as merge"*). On the 205 held-out `collected_v4` rows the production n-gram
   classifier's **`[0.6, 0.7)` band scored 0.000 observed accuracy** — *worse than the `[0.5, 0.6)`
   band below the gate, which scored 0.273*. Populations are small (11 rows at seed 42; 0.033 pooled
-  over five seeds, n=60), so this is **an indication, not a proven defect**, and it is measured on
-  real input against a model trained on synthetic rows — it says nothing about the synthetic-heavy
-  distribution the shipped model was validated against. It is nonetheless the first quantitative
+  over five seeds, n=60), so this is **an indication, not a proven defect**. **Corrected 2026-08-26
+  (DFD-1):** this entry previously read *"measured on real input against a model trained on synthetic
+  rows"*. `collected_v4` is **not real data** — it is AI-generated and AI-labelled — so both sides of
+  that comparison are authored, and the measurement says nothing about production input at all. The
+  gap it leaves is *wider*, not narrower: the gate's behaviour on real student input has **never** been
+  measured. It is nonetheless the first quantitative
   evidence for the standing project rule that a raw model score should not be the only gating signal.
   Note the shared-policy exposure: `WeightOptimizerViewModel` consumes the **same**
   `DefaultMlConfidencePolicy`, so any re-derivation must **separate the policies rather than retune

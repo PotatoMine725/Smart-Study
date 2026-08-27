@@ -416,8 +416,8 @@ Columns: `Id`, `Category`, `Input`, `Note`. Categories are exactly the six DAT-0
 | `empty` | Empty string and whitespace-only inputs | AC-28, FLB-01 |
 | `pathological` | Pathologically long input | AC-28, FLB-01 |
 
-Draw the realistic rows from `datasheets/collected_v4.csv`, which already contains real collected
-input. **Pair the `diacritics` and `stripped` rows** — same semantic content, one row each — so AC-30
+Draw the realistic rows from `datasheets/collected_v4.csv`, which already contains ~~real collected~~
+**AI-generated** input *(corrected 2026-08-26, DFD-1 — see the Amendment)*. **Pair the `diacritics` and `stripped` rows** — same semantic content, one row each — so AC-30
 can measure preprocessing independence as a within-pair comparison rather than across unrelated
 inputs.
 
@@ -503,7 +503,7 @@ modify anything under `SmartStudyPlanner/`).
 
 - **train** = the synthetic subset only: rows where `Source` ∈ {`m8a_uniform`, `synthetic_v3`} —
   expect **597 + 101 = 698** rows (EVA-02).
-- **test** = the real held-out subset: rows where `Source` = `collected_v4` — expect **205** rows
+- **test** = the ~~real~~ held-out subset *(2026-08-26: "real" withdrawn, see the Amendment)*: rows where `Source` = `collected_v4` — expect **205** rows
   (EVA-03), **excluded from training**.
 - Assert the counts. If they do not match 698 / 205 / 903, **stop and report** — the seed has changed
   since the specification's `[fact]` was established, and that is a finding, not something to absorb.
@@ -2401,3 +2401,38 @@ folder, and the record of *why* the encoder work stopped — and of the guardrai
 **Reviving this work needs a new owner decision, not this plan.** DAT-04 is explicit that expanding
 the dataset does not by itself authorise re-running or reversing an S0 outcome. If a later plan
 supersedes this one, link the replacement here.
+
+---
+
+## Amendment, 2026-08-26 — `collected_v4` is not real data
+
+**Provenance grade: ruling, not measurement.** Owner recall on 2026-08-26 established that
+`datasheets/collected_v4.csv` was produced as *owner templates/examples → Meta AI generation → GitHub
+Copilot labelling*. No collection record exists in or out of the repository, and no artifact
+corroborates the recall — but it agrees with seven independently measured distributional regularities
+and an exact quota match. The repository holds **zero verified real user rows**.
+
+Ruling: [`2026-08-26-data-foundation-owner-decision-handoff.md`](2026-08-26-data-foundation-owner-decision-handoff.md) (**DFD-1**) ·
+Evidence: [`../reports/2026-08-25-data-audit-gap-map.md`](../reports/2026-08-25-data-audit-gap-map.md) §E.5–E.6,
+[`../reports/2026-08-26-data-foundation-owner-decision-brief.md`](../reports/2026-08-26-data-foundation-owner-decision-brief.md) §2 ·
+Pass record: [`../reports/2026-08-26-data-foundation-correction-pass.md`](../reports/2026-08-26-data-foundation-correction-pass.md)
+
+**Every description of `collected_v4` in this document as *real*, *collected* or *user-authored* is
+withdrawn.** The load-bearing occurrences are marked in place above. The remainder are deliberately
+**not** individually edited: rewriting them would erase what was believed when this document was
+written, which is precisely what the amendment convention exists to preserve. Read the whole document
+through this amendment.
+
+Only **WP-0.x and Phase S0** ever executed; S1–S4 were cancelled at the kill gate. The amendment
+therefore lands mostly on work-package text that was never run.
+
+**Two executed work packages carried the false premise into artifacts, and both are corrected at
+source, not only here:**
+
+| WP | Artifact | Correction |
+|---|---|---|
+| **WP-0.4** | `tools/ml-pilot/split/build_split.py` → `SPLIT.md` | Generator **and** generated file corrected 2026-08-26. The module docstring also repeated the chronologically impossible 96.2% mechanism; both are fixed and the file regenerated so the two stay in sync |
+| **WP-0.5** | `tools/ml-pilot/build_fixtures.py`, `datasheets/vn_input_fixtures.md` | Both corrected in place: the realistic fixture rows are drawn from AI-generated text, so fixture-derived results are not evidence about real input |
+
+The `train ∩ test = ∅` assertion and the leakage check are unaffected — disjointness is a property of
+the bytes, not of their provenance.
