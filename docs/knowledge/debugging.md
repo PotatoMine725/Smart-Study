@@ -122,6 +122,8 @@ When a test depends on randomness, **always** seed the RNG. `new Random(42)` in 
   - Nullable reference type warnings across files predating `nullable enable`.
   - `NU1904 — System.Drawing.Common 4.7.0` vulnerability (~30 min upgrade, tracked as backlog item N6).
 - Sandbox builds may fail with `NU1301` (NuGet restore blocked). Verify locally before assuming red is real.
+- **`SmartStudyData.db` runs in `journal_mode = wal`, so the file's mtime lies about data recency.** Recent commits sit in `SmartStudyData.db-wal` until a checkpoint (normally the last connection closing), so the main `.db` can read an hour stale while a query returns rows written seconds ago. Two consequences: never use mtime to judge whether the app wrote something, and **never copy a backup over the `.db` while a `-wal`/`-shm` pair exists** — SQLite replays the stale sidecar onto the file you just restored. Close the app, confirm the sidecars are gone, then restore. Deleting a sidecar that still holds uncheckpointed commits destroys them.
+- **Building a SQLite URI by string concatenation fails twice on this repo's path, both silently.** `sqlite3.connect("file:" + path, uri=True)` — `file:D:/x.db` is not a valid URI, so SQLite opens an *empty* database reporting zero tables rather than erroring; and the `#` in `C#` starts a URI fragment, truncating the path at `D:/Code/C`. Use `pathlib.Path(p).as_uri()`. Both faults present as "the table isn't there," which reads like a real finding.
 
 ## WPF / theming
 

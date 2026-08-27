@@ -7,6 +7,14 @@
 > itself lives in [`review-methodology.md`](review-methodology.md), and how to classify what a gate
 > finds lives in [`incident-investigation.md`](incident-investigation.md). The findings themselves
 > live in the source documents at the bottom.
+>
+> **Extended 2026-08-27 from the DFD-9a instrumentation cycle** — a single-scenario gate that no
+> automated test could close, because 492 green tests covered the three hops and their composition
+> against stubs while none resolved the production DI wiring against a real database. It passed, and
+> produced four lessons the Epic 3 cycle did not: that a check's discriminating power is *per claim*,
+> that a procedure verified in the wrong shell is unverified, that a diagnostic must refuse a cause it
+> cannot distinguish, and that closing a gate can turn a document's own recovery step into the way to
+> destroy its evidence.
 
 ## A green suite over unreachable code is not release evidence
 
@@ -196,6 +204,175 @@ move too: decide in advance what would make the new test worth its maintenance, 
 say if it turns out not to clear that line (see
 [`review-methodology.md`](review-methodology.md), *Set the bar before you measure*).
 
+## Discriminating power is a property of each claim, not of the check
+
+**Problem.** The DFD-9a end-to-end check asked four pre-registered questions of one output. Against
+the tasks that happened to be in the database, three were decisively answerable and the fourth was
+not — and nothing in the output said so.
+
+**Why it was hard.** The check passed, correctly. The criterion that mattered — *is
+`PredictedMinutes` recorded?* — was fully discriminating: the two pre-fix rows read `NULL` in the
+same output where the new rows read `0.0`, so both outcomes were visibly available and the run proved
+the reader could display a failure. Nothing about it felt degenerate. The blindness was confined to
+one sub-question — *did the ML branch run, or the fallback?* — and the runbook's own table answered
+that one anyway: `WasML = 0, Confidence = 0` → *"Fallback — no model was ready."*
+
+**Wrong assumption.** That a check has *one* discriminating power. It has one per claim. The same
+rows that decisively answered "is the value recorded?" could not answer "which branch produced it,"
+and the reason was arithmetic rather than wording. Both tasks were 77 days overdue, so `OverdueRule`
+zeroed `DiemUuTien`, `ComputeFormulaMinutes` returned `0`, and
+
+```
+confidence = 1 − clamp(|predicted − formula| / max(formula, 1), 0, 1)
+```
+
+collapsed to `1 − clamp(predicted)` — **exactly `0`** for any prediction of one minute or more. The
+rejected-ML branch and the fallback therefore emit byte-identical `(0, false, 0f)` rows. No
+observation of that row could separate them, and the table asserting otherwise would have put a false
+statement into the evidence record. It also contradicted the runbook's own §1.5, which had already
+declared `Confidence = 0` ambiguous.
+
+**The input decided it, not the instrument.** The reader was sound. The *data* was degenerate: every
+task in the database was past its deadline, so every field collapsed to the same value. Re-running
+against tasks with runway left produced `PredictedMinutes` 132 and 88 with `Confidence` 0.90 and
+0.7333 — and answered the fourth question immediately, because `WasMlPrediction = 1` paired with a
+fractional confidence is reachable only through the ML branch.
+
+**How it was solved — recompute the logged value from state the writer never saw.** Both confidences
+reproduce exactly from each task's own stored `DiemUuTien`: 73.19 and 68.38 both give `formula = 120`,
+hence `1 − 12/120 = 0.9` and `1 − 32/120 = 0.7333`, matching the logged `float32` to its last digit.
+This is the strongest available proof that a logged value **travelled** rather than being written: a
+hard-coded constant, a default-initialised field, and a mis-wired assignment are all incapable of
+reproducing from inputs they never read. It costs one query against upstream state and it converts
+"the column is populated" into "the column is populated *with the right number, from the right
+place*."
+
+**Principle.** Before recording a pass, ask of each claim separately: *what would this output look
+like if this particular thing were false?* If the answer is "the same," that claim is unmeasured no
+matter how green the rest is. Sound instrument plus degenerate input still yields no evidence.
+
+**How to avoid it next time.** Choose the input so the expected value is **distinctive** — pick the
+case where a right answer and a wrong answer look as different as possible, and avoid the input where
+everything collapses to a default. Where a value is supposed to have travelled, recompute it from
+upstream state as part of the check. And when a runbook table maps observations to conclusions, audit
+each row for whether the observation can actually carry the conclusion; a table is a set of claims,
+and it can be wrong the way any other claim can. The research-side counterpart of choosing before
+measuring is [`ml-experimentation.md`](ml-experimentation.md), *Don't manufacture independence, and
+choose the input distribution before measuring*.
+
+## A check verified somewhere other than where it runs has not been verified
+
+**Problem.** The DFD-9a runbook's read step was written as `cd … && python - <<'PY' … PY`. The
+operator runs Windows PowerShell, where `&&` is a parser error and heredocs do not exist. Five of the
+runbook's six commands were bash — `ls -la`, `$APPDATA`, `date +%Y%m%d` — and the run stopped dead at
+the read step.
+
+**Why it was hard.** The command was not sloppy and it had been *run*. Its SQL was correct, its null
+handling was the entire point of the check, and it had been executed verbatim to prove it worked —
+in a bash tool. Every property anyone thought to verify about it was true.
+
+**Wrong assumption.** That "I ran it and it worked" is a property of the command. It is a property of
+the command *and the shell*. This is not the [faulty-instrument](#a-pass-read-through-a-faulty-instrument-is-withdrawn-not-defended)
+case above, where the instrument was broken: here the instrument was in perfect order and was simply
+**a different instrument than the operator's**. Reasoning about a command is not running it, and
+running it somewhere else is not running it here.
+
+**How it was solved.** Every command was rewritten in PowerShell and executed in PowerShell before
+being written down, with the real output pasted in beside it. The read step became a committed
+script, [`tools/qa/read_outcome_logs.py`](../../tools/qa/read_outcome_logs.py), so that what is
+verified and what is run are the same bytes and no shell syntax sits on the critical path at all.
+
+**Principle.** A runbook is a claim about a machine, and the only place to check a claim about a
+machine is on that machine, in the environment its reader will use. A procedure that its own operator
+cannot execute has not been verified, however carefully its logic was reasoned.
+
+**How to avoid it next time.** State the target shell at the top of any runbook. Prefer a committed
+script over a pasted snippet for anything longer than a line — it removes shell dialect from the
+procedure and makes the verified artifact and the executed artifact identical. And when a runbook is
+written by someone whose environment differs from the operator's, that difference is a risk to be
+named in the document, not an implementation detail.
+
+## A diagnostic must refuse to name a cause it cannot distinguish
+
+**Problem.** The replacement read script opened the database with
+`sqlite3.connect("file:" + path, uri=True)` and reported *"table `StudyTimeOutcomeLogs` is not in this
+database"* — about a database that contains it. Two Windows-specific faults, both silent:
+`file:D:/x.db` is not a valid URI, so SQLite opens an **empty** database rather than failing; and the
+`#` in this repository's path (`C#`) starts a URI fragment, truncating the path at `D:/Code/C`.
+
+**Why it was hard.** Neither fault raises. Both produce an empty result, and an empty result from a
+telemetry table reads exactly like a real finding — *the migration never ran*, *the app never wrote a
+row*. The output was well-formed and confident. Worse, the error message named a cause: *"Wrong file,
+or a schema older than the outcome-log migration."* Neither had been established. The tool was
+handing the operator a conclusion to write into an evidence record.
+
+**Wrong assumption.** That an error path is exempt from the standards applied to the success path.
+A diagnostic reporting *absent* is making a claim, and it can be wrong in all the ways any claim can.
+The general epistemics — check the instrument before believing a null — is
+[`ml-experimentation.md`](ml-experimentation.md), *Verify the instrument before you believe a null
+result*. What is new here is narrower and is a **design rule for tools**: the refusal has to be built
+into the diagnostic, because the operator reads what it prints.
+
+**How it was solved.** The URI is now built with `pathlib.Path(p).as_uri()`, and the tool distinguishes
+two states it previously conflated:
+
+- **zero tables** → exit 3, *"opened, but the database reports zero tables. Treat this as a broken
+  instrument, NOT as an observation about the app. Do not record a verdict from this run."*
+- **the table missing while other tables exist** → exit 2, *"wrong file, or a schema older than the
+  migration"* — a diagnosis it has now actually earned, because a populated `sqlite_master` rules out
+  the broken-handle case.
+
+**Principle.** An error path that confidently names a cause is more dangerous than one that admits it
+does not know, because a named cause gets recorded. A diagnostic should distinguish *"I measured
+absence"* from *"I could not measure"*, and say the second one plainly when it applies.
+
+**How to avoid it next time.** Give every tool that can report a negative a self-check that runs
+first and can veto the reading — here, counting tables before looking for one. Make "instrument
+broken" a distinct exit path with distinct wording, and have that wording tell the operator what
+*not* to do. Then prove the veto fires: point the tool at a path you know is wrong and confirm it
+says *broken*, not *absent*.
+
+## Closing a gate obsoletes the documents that described the state before it
+
+**Problem.** With the gate passed and the verdict recorded, the runbook's §5 read PASS while its §1.3
+still said *"Expected baseline: **2 rows**"* and its §2 still embedded the two-row output as *"your
+baseline."* The database now held six.
+
+**Why it was hard.** Nothing was wrong when written, and the closure edits all landed in the places
+that obviously needed them — the defect record, the active README, the changelog, the result table.
+The stale statements were in the *preconditions*, which nobody re-reads when finishing a run.
+
+**Wrong assumption.** That closing a gate is an additive edit. It also invalidates every `[measured]`
+figure describing the pre-run world, and those figures usually live in the setup section of the same
+document. **The failure mode is not confusion, it is a plausible destructive recovery:** a future
+operator reads "expect 2," sees 6, and takes the documented remedy — restore the backup from §1.3.
+That backup predates the run, so restoring it deletes the four rows the closure rests on, and the two
+pre-fix control rows can never be recreated because nothing backfills them. The runbook's own recovery
+step had become the way to destroy its own evidence.
+
+**A supporting hazard, found on the way.** The database runs `journal_mode = wal`. Mid-run the new
+commits sat in a 104 KB `-wal` sidecar while the main `.db` mtime still read an hour earlier — so
+**file mtime is not evidence of data recency**. The restore step compounded it: copying a `.bak` over
+the `.db` while a stale `-wal` is present lets SQLite replay that sidecar onto the file just restored.
+Restore now runs a preflight that *reports* the sidecars before anything is deleted, because deleting
+one that still holds uncheckpointed commits destroys them.
+
+**How it was solved.** §2's output was relabelled a historical capture, §1.3 gained the post-run state
+and an explicit *do not restore to "get back to a clean baseline"*, and §7 gained a do-not-run banner
+while keeping the procedure for a future run that would take its own backup first. The superseded
+statements were struck through rather than deleted — a struck line records that the situation
+changed, which a deleted one does not.
+
+**Principle.** A document that records a measured baseline carries a maintenance obligation that a
+document of opinion does not. When a gate closes, sweep the same document for what its *setup* claimed
+about the world, and treat the recovery instructions as part of the sweep: the most dangerous stale
+statement is the one that tells someone how to undo the thing you just proved.
+
+**How to avoid it next time.** When writing a `[measured]` figure, mark it with its capture date at
+the point of use, so a later reader can see it is a snapshot rather than an invariant. When closing
+anything, re-read the whole document rather than the sections you are editing. And ask specifically:
+*if someone followed the recovery path in here tomorrow, what would they lose?*
+
 ## See also
 
 - [`review-methodology.md`](review-methodology.md) — mutation as the technique this gate ran on
@@ -210,7 +387,11 @@ say if it turns out not to clear that line (see
 - [`ml-experimentation.md`](ml-experimentation.md) — the research-gate counterpart: a gate whose
   pass/fail criterion was pre-registered, fired against the initiative, and was obeyed. Also the
   clearest instance of *"a pass read through a faulty instrument is withdrawn"* — there, a wrong
-  sanity check nearly turned a sound null result into a reported harness failure.
+  sanity check nearly turned a sound null result into a reported harness failure. Its *choose the
+  input distribution before measuring* is the research-side twin of *discriminating power is a
+  property of each claim*, and its *verify the instrument before you believe a null result* is the
+  epistemics that *a diagnostic must refuse to name a cause it cannot distinguish* turns into a tool
+  design rule.
 
 ## Sources
 
@@ -221,3 +402,10 @@ say if it turns out not to clear that line (see
 - [`docs/reports/2026-08-14-workload-balancer-stale-chart-fix-report.md`](../reports/2026-08-14-workload-balancer-stale-chart-fix-report.md) — the fix the first manual run produced; §3/§3.1 is the withdrawn-instrument case and the criteria-stated-in-advance table.
 - [`docs/plans/2026-08-19-e6-cascade-coverage-test.md`](../plans/2026-08-19-e6-cascade-coverage-test.md) and [`docs/reports/2026-08-20-e6-cascade-coverage-test.md`](../reports/2026-08-20-e6-cascade-coverage-test.md) — the E6 follow-up end to end: the design that set the acceptance bar and its fallback in advance, and the campaign that missed the bar and said so.
 - [`docs/reports/2026-08-19-epic3-manual-gate-closure.md`](../reports/2026-08-19-epic3-manual-gate-closure.md) — the closure: scenario ledger with provenance, the E1–E4 ruling, the E6 coverage finding.
+
+**DFD-9a instrumentation cycle (2026-08-27):**
+
+- [`docs/plans/2026-08-26-dfd9a-instrumentation-runbook.md`](../plans/2026-08-26-dfd9a-instrumentation-runbook.md) — the runbook, with criteria fixed in advance. §8 is its own correction record: the bash-in-PowerShell failure (§8.1–8.2), the two silent URI faults (§8.3), and the two corrections the run itself produced (§8.5).
+- [`docs/reports/2026-08-27-dfd9a-instrumentation-observation.md`](../reports/2026-08-27-dfd9a-instrumentation-observation.md) — the evidence record. §2.5 is the confidence-reproduction check; §5 is the undetermined-then-determined branch question; §3 shows an owner attestation quoted verbatim with its scope stated rather than paraphrased.
+- [`docs/plans/2026-08-26-prediction-instrumentation-defect.md`](../plans/2026-08-26-prediction-instrumentation-defect.md) — the defect record. §9.4 is the *"what is still true after the fix"* list, with the one closed gate struck through rather than deleted.
+- [`tools/qa/read_outcome_logs.py`](../../tools/qa/read_outcome_logs.py) — the reader, committed so that the verified artifact and the executed artifact are the same bytes. Its comments carry the two Windows URI traps and its exit codes separate *broken instrument* from *wrong file*.
