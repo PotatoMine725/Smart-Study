@@ -1,13 +1,19 @@
 # Canonical Annotation Specification — SmartStudyPlanner task corpus
 
-**`GuidelineVersion: v1`** · drafted 2026-09-04 · **Status: `draft — awaiting owner ratification`**
+**`GuidelineVersion: v1`** · drafted 2026-09-04 ·
+**Status: `ratified for test — frozen`. Not validated.**
+
+> **Ratified for testing, not validated.** The owner ratified `v1` on **2026-09-04** as the **frozen
+> specification the reproducibility test runs against**. Ratification says the instrument is fixed so the
+> test can measure it — **it does not say S-2 has passed, and no figure from §10 exists.** See §14.
 
 This is the S-2 deliverable: **the document that makes a label reproducible.** It carries the semantic
 contract, the boundary rules, the Difficulty anchors, the ambiguous-example catalogue, the adjudication
 procedure, the provenance requirements, and its own version semantics.
 
 **It has not yet been tested.** The reproducibility test (§10) is pre-registered and authorized, and has
-**not been performed**. Nothing here may be described as validated.
+**not been performed**. Nothing here may be described as validated, and **§14 forbids changing any of it
+after test results are seen.**
 
 | | |
 |---|---|
@@ -576,7 +582,59 @@ ruling:
 | Correct the B-2 defect rows in the seed | **Not corrected.** D-4 keeps them as observed material |
 | Perform the reproducibility test | **§10** — pre-registered, not performed |
 
-**Open for owner decision:** `[observation]` **DFD-2 bars further labelled data "until [the spec]
-exists."** Whether the *existence* of this specification lifts that bar, or whether it lifts only on
-**passing §10's test**, is not settled by the ratified text. **This document does not resolve it and
-does not claim DFD-2 is satisfied.**
+**DFD-2 — ruled by the owner, 2026-09-04.** DFD-2 bars further labelled data *"until [the spec] exists."*
+Whether *existence* lifts that bar or only *passing* §10 does was not settled by the ratified text. **For this
+execution, DFD-2 is satisfied only after the pre-registered §10 test passes** — unless a later explicit
+owner decision changes the interpretation.
+
+**DFD-2 therefore remains unsatisfied today.** Neither the existence of this specification nor its
+ratification for testing lifts the labelled-data gate. **No labelled data may be collected, imported,
+generated or promoted on the strength of this document.**
+
+---
+
+## 14. Freeze (owner ratification, 2026-09-04)
+
+**`v1` is frozen.** It was ratified as the specification the §10 test runs **against**, so that the test
+measures the instrument rather than a moving target.
+
+**Locked — and specifically locked against change after results are seen:**
+
+| Locked | Where |
+|---|---|
+| The decision procedure | §3 |
+| The six boundary rules `B-1`–`B-6` | §4 |
+| The Difficulty 1–5 anchors and their three rules | §5 |
+| The catalogue, **exactly as evidence-derived** | §6 |
+| The 5-way adjudication procedure | §8 |
+| The thresholds — TaskType ≥ 17/20, Difficulty ≥ 18/20, exact match | §10 |
+| Every reporting rule — G2, G3, G4, C4, the level-1/2 caveat, the D-2 diagnostic | §10 |
+
+**S-2.7's invariant is the reason:** *thresholds must not be changed after observing results.* §14
+extends the same discipline to the procedure, the anchors and the reporting rules — a spec revised
+after seeing its own score measures nothing.
+
+**The catalogue stays exactly as it is.** The three zero-evidence boundaries are **not** to be filled by
+authored examples and the short boundaries are **not** to be re-drawn. They stand as
+**catalogue-coverage findings** (§7) and are routed to **S-4 authored examples**.
+
+**The sealed 20-row scored batch stays unchanged.** It is **not** re-reserved on the strength of its
+shared-label vs third-pass-forced composition; that composition is a **required diagnostic on every S-2
+figure, never a selection criterion**.
+
+**If the test fails**, the route is the one already ratified: spec revision — which is a
+**`GuidelineVersion` bump** under §11 — plus the pre-reserved **v2 retest batch**. Revision happens
+*after* a recorded failure, never *instead of* one.
+
+### Freeze anchor
+
+The frozen text is the content of this file at the commit that carries this section. The anchor — that
+commit and the file's `sha256` at it — is recorded in
+[`../plans/2026-09-04-s2-v1-freeze-record.md`](../plans/2026-09-04-s2-v1-freeze-record.md), so the freeze
+is **verifiable rather than asserted**: recompute the hash and compare.
+
+### Blocking prerequisite
+
+**One independent human reader from the Q-2 network must be recruited before the test can start.** Q-2
+establishes that a network *exists*; it assigns nobody. **No AI substitute** (S-2.2). Recruitment is
+owner action, and until it completes §10 cannot begin.
