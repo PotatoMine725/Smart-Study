@@ -1275,8 +1275,11 @@ pre-registration at
 [`../specs/annotation-guideline.md`](../specs/annotation-guideline.md) (`GuidelineVersion: v1`, **awaiting owner
 ratification**), catalogue selection pre-registered at
 [`2026-09-04-s2-catalogue-preregistration.md`](2026-09-04-s2-catalogue-preregistration.md).
+**`v1` ratified for test and frozen 2026-09-04** — anchor at
+[`2026-09-04-s2-v1-freeze-record.md`](2026-09-04-s2-v1-freeze-record.md). **Ratified for testing, not validated.**
 **S-2's reproducibility test (S-2.1–S-2.7) is pre-registered and NOT performed** — it blocks on a recruited
-independent reader. **No stage after S-2's specification has been performed.**
+independent reader, and **DFD-2 is ruled satisfied only once that test passes**. **No stage after S-2's
+specification has been performed.**
 
 ---
 
