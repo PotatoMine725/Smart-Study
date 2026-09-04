@@ -191,8 +191,9 @@ rows, so it versions nothing.
 ## 2. The starting position, measured
 
 Everything in this table is `[measured]` from repository bytes by the Phase 0 audit (2026-08-25),
-amended where the 2026-09-04 pass measured it more precisely. It is the baseline any maturity claim
-will be measured against. Corrections to figures that were **wrong when written** are recorded in §11.
+amended where the 2026-09-04 pass measured it more precisely — **with one stated exception: the
+**13.7%** restricted-Difficulty figure is marked inline as working-notes-derived and this header does
+not cover it.** It is the baseline any maturity claim will be measured against. Corrections to figures that were **wrong when written** are recorded in §11.
 
 | Dimension | Current state |
 |---|---|
@@ -1380,7 +1381,7 @@ amended** to match this text.
 | 5 | The S-T **local gate** was rendered *"closable now"* / *"open — closable now"*, which reads as available | Rendered **BLOCKED today**: S-T.1's *closable once policy and controls are satisfied* is kept as the **condition**, and S-T.4's uninstantiated retention window — blocked on the **authorised but unperformed** S-T.3 measurement — is stated as the **current state** | No — this reconciles two ratified statements without altering either. The two-gate model is intact |
 | 6 | Rev 3 and the 2026-09-04 Outcomes described the same status in different words | Normalised to `draft — awaiting authorization`, with the relationship to the Outcomes' wording stated in the banner. **The status itself did not change** | No |
 | 7 | **133** was labelled *production-relevant*; the ratified erratum attaches that scope to **36** | *Production-relevant* now attaches to the **36** under its narrower historical scope. **133** is stated as *distinct contested rows* | No |
-| 8 | **13.7%** (96 / 703) and the **2026-08-09** branch-protection date sat in the baseline as if audit-derived | Both labelled **working-notes-derived**. The `[measured]` stamp was removed from the date, which is a configuration fact, not a corpus measurement | No |
+| 8 | **13.7%** (96 / 703) and the **2026-08-09** branch-protection date sat in the baseline as if audit-derived | Both labelled **working-notes-derived**, and §2's blanket *"everything in this table is `[measured]` by the audit"* header now names the 13.7% as its one exception. The `[measured]` stamp was removed from the date, which is a configuration fact, not a corpus measurement | No |
 | 9 | `S-0` was presented as a new stage | Retained for traceability, explicitly marked a **draft-document sequencing label, not a ratified stage**; `T-1`'s entry condition now anchors to **S-1.2 / S-2.5** rather than to the label | No |
 | 10 | §S-3's consumer table named `TextClassifierModelManager` / `TextClassifierDatasetImporter`, which come from **working-notes evidence**, not from S-3.4's ruling | The table carries the ruled category — *the production application* — and the two class names moved to an explicitly **non-normative codebase-evidence note** with their provenance and a re-verification instruction | No |
 | 11 | S-T gate labels `2a` / `2b` read as ratified gate identifiers | Both are gate **2**, with **`Local`** and **`Egress`** as **descriptive labels**, marked as such. S-T.1 splits the question; it does not number the halves | No |
