@@ -70,10 +70,14 @@ Apply in order. Stop at the first branch that resolves.
 
 1. **Is the task an examination sitting, or work the student produces and submits?**
    The object of the sentence decides this, not the vocabulary around it.
-2. **If an examination sitting** — which one?
-   - Recurring, short, routine → **`KiemTraThuongXuyen`**
+2. **If an examination sitting** — **check for a term marker first.**
    - Marked `giữa kỳ` / `GK` → **`ThiGiuaKy`**
    - Marked `cuối kỳ` / `CK` / final examination → **`ThiCuoiKy`**
+   - **No term marker**, and the assessment is recurring, short or routine →
+     **`KiemTraThuongXuyen`**
+
+   The marker check comes **first**, by rule B-4. Reversing these two steps sends
+   `bài kiểm tra giữa kỳ` to `KiemTraThuongXuyen`, which B-4 forbids.
 3. **If produced work** — how is it shaped?
    - **Multi-part and sustained** — several artifacts (report *and* demo *and* source), or weeks of
      work, or a defence → **`DoAnCuoiKy`**
@@ -167,6 +171,10 @@ available)` per boundary.
 **Per K1, no entry below is an adjudication.** Cataloguing is not adjudication; S-2 does not adjudicate
 the remaining contested rows, and **no entry may be cited as its row's label.** Each carries its
 `sha256`, every source file and line (K3, S-2.10/H1), and the labels each pass assigned.
+
+**19 entries cover 15 distinct rows.** Four rows are contested on *both* the cross-pass and third-pass
+axes, so the selection rule buckets each of them under two boundaries and they appear twice — different
+entry numbers, same `sha256`. This is the rule working as pre-registered, not duplication.
 
 **The reserved 60 rows are absent from this catalogue by construction** — an example drawn from the
 scored batch would train a reader on a row they are later measured against.
@@ -403,6 +411,10 @@ examples were chosen.
 | **Complete** (3–4 examples) | `BaiTapVeNha`\|`DoAnCuoiKy` · `BaiTapVeNha`\|`ThiCuoiKy` · `KiemTraThuongXuyen`\|`ThiCuoiKy` · `ThiCuoiKy`\|`ThiGiuaKy` |
 | **Short** (1–2 examples) | `BaiTapVeNha`\|`KiemTraThuongXuyen` (2) · `KiemTraThuongXuyen`\|`ThiGiuaKy` (2) · `DoAnCuoiKy`\|`ThiCuoiKy` (1) |
 | **No corpus evidence** (0) | `BaiTapVeNha`\|`ThiGiuaKy` · `DoAnCuoiKy`\|`KiemTraThuongXuyen` · `DoAnCuoiKy`\|`ThiGiuaKy` |
+
+**The per-boundary target was pre-registered at `min(4, available)`** — mid-range of S-2.9's 3–5, leaving
+headroom above the floor without exhausting the thin boundaries. It was fixed before selection and is
+not a post-hoc choice.
 
 **Two of the four "complete" boundaries sit exactly on the floor.** `KiemTraThuongXuyen`\|`ThiCuoiKy`
 has 6 rows but **3 templates**; `ThiCuoiKy`\|`ThiGiuaKy` has 12 rows but **3 templates**. Row counts
