@@ -1,6 +1,6 @@
 # Data Maturation & Coverage Expansion — Proposal
 
-**Revision 3 — 2026-09-04. Status: `draft` — awaiting *authorization*. Nothing here is approved,
+**Revision 3 — 2026-09-04. Status: `draft — awaiting authorization`. Nothing here is approved,
 scheduled, or committed work.**
 
 > **What changed at rev 3, in one line:** rev 2 carried eight stages whose internal decisions were
@@ -10,6 +10,11 @@ scheduled, or committed work.**
 > **Ruling every decision is not the same as authorizing the work.** The stage decision surface is
 > closed; **implementation is not authorized.** This proposal still waits on a go-ahead, and rev 3
 > changes what it says, not what it is permitted to do.
+>
+> **Status vocabulary, normalised.** The 2026-09-04 Outcomes records rev 2 as `draft` pending two
+> separate things: the stage-decision **review**, and **authorization**. Rev 3 is the product of that
+> review, so the review half is discharged and only authorization remains — which is what
+> `draft — awaiting authorization` means here. Same state, one description.
 >
 > Commissioned by the owner ruling of 2026-08-26
 > ([`2026-08-26-data-foundation-owner-decision-handoff.md`](2026-08-26-data-foundation-owner-decision-handoff.md) §19);
@@ -194,8 +199,8 @@ will be measured against. Corrections to figures that were **wrong when written*
 | Production seed | **903 rows** — 698 train (461 derived + 101 `synthetic_v3` + **136 untraceable**) + 205 `collected_v4` |
 | **Verified real rows** | **0**, in every class |
 | Label stability | **29.6%** disagreement (**208 / 703**) between the legacy and interim passes, over the rows whose old label survived that taxonomy change. A further 325 rows moved because their class was retired. **This is a measurement in the legacy→interim frame; it is not the Gold-A work scope** — see S-4 |
-| `Difficulty` stability | **16.2%** disagreement (167 / 1028) across the full common set, **13.7%** (96 / 703) restricted to the same surviving-label rows. Both true, different scope |
-| Contested pool, production-relevant | **133** distinct rows. **J-1 as originally defined is 36**; a third annotation pass contributes a further **121**, and the two pools are boundary-disjoint |
+| `Difficulty` stability | **16.2%** disagreement (167 / 1028) across the full common set, **13.7%** (96 / 703) restricted to the same surviving-label rows — *working-notes-derived (2026-09-04 pass), not an audit figure*. Both true, different scope |
+| Contested pool | **133** distinct rows, after deduplicating **157** contested appearances across two boundary-disjoint pools (**J-1 as originally defined is 36**; a third annotation pass contributes a further **121**). *Production-relevant* is established for the **36** under the narrower historical scope, **not** for all 133 |
 | Untraceable share | **15.1%** of the shipped corpus; **37.8%** of `KiemTraThuongXuyen`, **35.3%** of `ThiCuoiKy` |
 | Class coverage in evaluation | **3 of 5.** `KiemTraThuongXuyen` and `ThiCuoiKy` have **zero** evaluation rows |
 | Evaluation skew | `ThiGiuaKy` is 12.2% of training and **48.3%** of evaluation |
@@ -221,6 +226,12 @@ dependency chain and can start at any time. See §0.
 
 **Purpose.** Set aside the rows that later tests depend on being independent of, **before anything
 reads them.**
+
+> **`S-0` is a draft-document sequencing label, not a ratified stage.** The reservation itself *is*
+> ratified — by **S-1.2** (it must precede S-1) and **S-2.5** (one event, forty rows, pre-registered
+> composition). Numbering it `S-0` is this proposal's rendering choice, made so the dependency is
+> visible in §0's chain. **It creates no stage, no decision, and no obligation that S-1.2 and S-2.5 do
+> not already carry.**
 
 **One reservation event, forty rows, pre-partitioned** (S-2.5):
 
@@ -268,7 +279,7 @@ recomputing it. **A third annotation pass is in scope as evidence, not as a new 
 |---|---|---|
 | Retired-class transitions | Largest genuine transitions among rows whose old label survived: `OnTap→NhacNho` (105), `KiemTraThuongXuyen→NhacNho` (29), `ThiCuoiKy→BaiTap` (26) `[audit §E.1]` | **Ruled (S-1.1):** retirement is **confirmed** — `OnTap`/`NhacNho` do not return as production classes. **Reminder-ness is relocated, not deleted:** it remains a *derived* attribute/surface, and S-1 must say so explicitly so S-2 does not re-litigate it as a missing class |
 | The one genuine collision | `ThiCuoiKy→BaiTap` (26), plus the third pass's 121 rows on the same boundary | Where is the boundary between an exam task and coursework for it? |
-| `Difficulty` semantics | 16.2% disagreement across the full set, 13.7% restricted; transitions cluster at 5→4, 3→4, 1→3 | **Ruled (S-1.4):** Difficulty is an **explicit 1–5 semantic/ordinal scale with written anchors**, defined here so S-2 can govern future labels. S-1 does **not** audit or change current consumers — that is **FU-1** |
+| `Difficulty` semantics | 16.2% disagreement across the full set, 13.7% restricted (*working-notes-derived*); transitions cluster at 5→4, 3→4, 1→3 | **Ruled (S-1.4):** Difficulty is an **explicit 1–5 semantic/ordinal scale with written anchors**, defined here so S-2 can govern future labels. S-1 does **not** audit or change current consumers — that is **FU-1** |
 | Two classes with no evaluation data | `KiemTraThuongXuyen`, `ThiCuoiKy` — the **two largest training classes, 358/698 = 51.3%** | **Ruled (S-1.5):** the question is kept but **reframed onto product-intent grounds** — do these classes earn their place in the product? The **evaluation defect moves to S-6** |
 | **Cause of the disagreement itself** | The contested rows, read as a set | **Ruled (S-1.6):** issue a **separate cause ruling for each production-relevant contested boundary**. Do **not** collapse into one global verdict |
 
@@ -419,8 +430,8 @@ once — which measures recall, not adjudication. **Forty rows out of a live poo
 pools with different meanings) is affordable.
 
 **What Q-1 does and does not estimate (S-2.6).** Q-1 draws from the contested backlog, and its result
-estimates **contested adjudication time only** — **explicitly not total Gold-A workload.** J-3 disposal
-and J-7 residue must be estimated **separately**, and **no invented weighting factor may fold them
+estimates **contested adjudication time only** — **explicitly not total Gold-A workload.** The `J-3`
+eligibility adjudication and the `J-7` residue must be estimated **separately**, and **no invented weighting factor may fold them
 together.** *This is a narrowing of the ratified Q-1, made on the owner's own authority; it is not a
 reopening.*
 
@@ -456,11 +467,21 @@ the lean CSV export, which is a **deployment artifact, not the source of truth**
 
 | Consumer | After S-3 |
 |---|---|
-| `TextClassifierModelManager` / `TextClassifierDatasetImporter` | Read the **lean export** — production runtime, unchanged in shape |
+| **The production application** | Reads the **lean export** — unchanged in shape. The ruled category is *the production app*, not any named class |
 | `build_split.py` | **Repointed to canonical** |
 | `TextClassifierEval` | **Repointed to canonical** |
 | Downstream research tooling | **Repointed to canonical** |
 | `_merge_seed.py` | **Retired, not converted** (S-3.7) — it is a write path, and only the generator writes the export |
+
+> **The ruled consumer set** (S-3.4, as narrowed by the owner on 2026-09-04) is `build_split.py`,
+> `TextClassifierEval`, and downstream research tooling — repointed — with `_merge_seed.py` **retired
+> rather than repointed**. Nothing else in this table is a ruling.
+>
+> *Codebase evidence, non-normative:* the production read path was inventoried on 2026-08-30 as
+> `TextClassifierModelManager` / `TextClassifierDatasetImporter`. That inventory is **working-notes
+> evidence, not ruled text**. It is recorded here as a starting point for the verification **S-3.3
+> already requires** — *S-3 is not complete until the consumer boundary is resolved and verified* — and
+> **not as a settled consumer list.**
 
 **Both existing hash pins are updated**: `SPLIT.md`'s research-reproducibility pin repoints to
 canonical; `ModelMeta.SeedHash` keeps doing its existing job on the export, because canonical is not
@@ -549,8 +570,9 @@ point**.
 > **The guarantee, stated at the reach the mechanism has.** CI gates the **merge** into `main`/`dev`,
 > not the commit. So the guarantee is: **invalid canonical content never enters `main`/`dev` history
 > through merge.** It is *not* a claim that CI prevents invalid content from existing in feature-branch
-> history. `[measured]` The enforcement point is already wired — branch protection plus CI have been in
-> force since 2026-08-09 — so the validator is a step to add, not infrastructure to build.
+> history. The enforcement point is already wired — branch protection plus CI have been in force since
+> **2026-08-09** `[fact — working-notes-derived, not an audit figure]` — so the validator is a step to
+> add, not infrastructure to build.
 
 **Exit criteria.** No row enters any corpus without complete lineage, enforced by CI rather than by
 discipline; the consumer boundary resolved **and verified**; the build manifest emitted; the governed
@@ -568,8 +590,11 @@ S-2 guideline. **Explicitly not real-user evidence** — that separation is the 
 
 Gold-A is **two components with two purposes, both required**:
 
-1. **The full production-relevant contested pool** — **133** distinct rows (**J-1 as originally defined
-   is 36**; the third annotation pass contributes **121**, boundary-disjoint from the first).
+1. **The full contested pool** — **133** distinct rows, after deduplicating **157** contested
+   appearances across two boundary-disjoint pools (**J-1 as originally defined is 36**; the third
+   annotation pass contributes **121**). *Production-relevant* is established for the **36** under the
+   narrower historical scope; it is **not** established for all 133. **157 counts appearances; 133
+   counts rows — the two are different dimensions and must never be added or equated.**
 2. **A deliberately designed representative authored sample**, covering the defined TaskType/Difficulty
    space and **especially the currently absent low-Difficulty range**.
 
@@ -579,10 +604,18 @@ omission. **The authored sample is not a substitute for the contested backlog.**
 
 | Item | Volume | Why a human, and why it cannot be delegated |
 |---|---|---|
-| **J-1** — adjudicate the contested rows | **133** distinct (36 + 121) | Passes disagreed; no third opinion exists for the boundary. An automated tiebreak encodes whichever pass the current model was trained on |
-| **J-2** — the authored sample | `[unknown]` — rule first, number after approval | It covers space the corpus does not contain, especially low Difficulty |
-| **J-3** — dispose of the untraceable rows | **≤136** | **S-4.2 rules them eligible for Gold-A after adjudication** |
+| **J-1** — adjudicate the contested rows | **133** distinct rows (**157** contested appearances, deduplicated) | Passes disagreed; no third opinion exists for the boundary. An automated tiebreak encodes whichever pass the current model was trained on |
+| **W-1** — the authored sample | `[unknown]` — rule first, number after approval | It covers space the corpus does not contain, especially low Difficulty |
+| **J-3** — **adjudicate the untraceable rows for Gold-A eligibility** | **≤136** | **S-4.2 rules them eligible for Gold-A after owner adjudication**, carrying the persistent origin-unknown qualifier |
 | **J-7** — rows adjudication cannot decide | `[unknown]` count; **the policy is no longer unknown** (S-4.4) | The natural residue of J-1 |
+
+> **Identifier namespaces in this table.** `J-*` are the **audit's §J** human-labeling items and keep
+> the audit's numbering. In particular **the audit's `J-2` is *"define the class boundaries that
+> actually collide"* — a guideline item that gates `J-1` — and it is not in this table.** Where a
+> ratified stage decision changes what an audit item now requires, this table states the current
+> operation and names the ruling (`J-3` under S-4.2, which replaced *dispose* with *adjudicate for
+> eligibility*). **`W-*` is a namespace introduced by this proposal** for work the audit's §J does not
+> enumerate; **`W-1` is the S-4.1 authored sample**, and it is not an audit item.
 
 **How long it takes is a scheduled measurement, not a guess** — Q-1, **scoped by S-2.6 to contested
 adjudication only.** J-3 and J-7 are estimated separately.
@@ -788,7 +821,7 @@ S-T's consent question **splits in two**, and they close on different schedules:
 
 | Gate | Governs | State |
 |---|---|---|
-| **Local** — collection / retention / handling | Accrual on the user's own device, retention duration, handling, disposal | **Closable now**, once its policy and controls are satisfied |
+| **Local** — collection / retention / handling | Accrual on the user's own device, retention duration, handling, disposal | **BLOCKED today.** S-T.1 rules it **closable once its policy and controls are satisfied** — nothing outside this strand gates it. But S-T.4 makes an **instantiated retention window** one of those controls, and the window is `[unknown]` because the **S-T.3 measurement has not been performed**. *Authorised to measure is not measured; closable in principle is not closed.* |
 | **Egress / transfer** — governed by **S-5.1** | Any row leaving the user's machine | **`N/A` while no transfer mechanism exists**, and **BLOCKING the moment one is introduced** |
 
 `N/A` is **not** `closed` and **not** `satisfied`: it must not be mistakable for a met condition.
@@ -805,11 +838,15 @@ non-conforming.** Building a transfer mechanism is a **gate-state transition, no
 | # | Gate | State |
 |---|---|---|
 | **1** | **Provenance at write time** — S-3 row-level lineage applied to both tables | Not started |
-| **2a** | **Local collection / retention / handling** | Open — closable now |
-| **2b** | **Egress / transfer** (S-5.1) | **`N/A`** — no mechanism exists |
+| **2** | **Local** collection / retention / handling | **BLOCKED** — gate 3's window is `[unknown]`, so S-T.4's precondition for closing is unmet |
+| **2** | **Egress / transfer** (S-5.1) | **`N/A`** — no mechanism exists |
 | **3** | **Retention rule and window** | Rule fixed; **window `[unknown]`** |
 | **4** | **The S-3.6 datasheet, live-source section** | Not started |
 | **5** | **Sufficient volume** | **`[unknown]`** — measurement authorised, not performed |
+
+> **Gate 2 is one consent question rendered as two gates** (S-T.1). **`Local` and `Egress` are
+> descriptive labels, not separate ratified gate identifiers** — the ruling splits the question, it does
+> not number the halves. Both states stay visible; a single roll-up field is non-conforming.
 
 **Gate 1 — capture-complete provenance (S-T.2).** Record **every S-3 lineage field that is meaningful
 for a runtime-captured row**, rather than predicting which fields may be needed later. When it is
@@ -1074,7 +1111,7 @@ leaves open**, because an open parameter that nobody wrote down is how a placeho
 
 | §19 item | Answer | Basis |
 |---|---|---|
-| **Gold-A adjudication scope** | **133** distinct production-relevant contested rows (J-1: 36 + 121, boundary-disjoint) + **≤136** to dispose of (J-3) + a designed **authored sample** whose size is `[unknown]` by ruling (S-4.1, J-2) + an `[unknown]` residue (J-7). **Bounded and enumerated for the contested half; the sample half is ruled at scope level, not as a count** | Audit §E.1, §E.5, §J + the 2026-09-04 pass `[measured]` |
+| **Gold-A adjudication scope** | **133** distinct contested rows — J-1, deduplicated from **157** contested appearances across two boundary-disjoint pools of **36** and **121** — plus **≤136** origin-unknown rows to adjudicate for eligibility (J-3, S-4.2), a designed **authored sample** whose size is `[unknown]` by ruling (S-4.1, **W-1**), and an `[unknown]` residue (J-7). **Bounded and enumerated for the contested half; the sample half is ruled at scope level, not as a count** | Audit §E.1, §E.5, §J + the 2026-09-04 pass `[measured]` |
 | **Provenance implementation cost** | **~8 new fields** on the labelled-corpus schema (7 → ~15); **datasheets for audit Group A's 10 (+B1)**, of which the governed corpora have **0** (one fixture datasheet exists); provenance-at-write on **2 telemetry tables**; plus the canonical/export split, the build manifest, and the CI validator. Model-path risk is low — the shipped classifier reads **one** column | Audit §B.1, §E.2 + CSV headers + the 2026-09-04 pass `[measured]` |
 | **Public-dataset evaluation candidates** | **3 checked, 0 approved, and all three closed for this stage.** ViLexNorm gated on OD-4; UIT-VSFC no licence field; PhoATIS no licence surfaced. No public corpus carries this label space | Audit §I.2 — three dataset cards read at source `[fact]` |
 | **Controlled synthetic-generation opportunities** | **None during Data Maturation.** S-7.2 **suspends** creation of new synthetic batches; there is no permitted purpose during this stage. The nameable gaps — 2 classes at zero evaluation coverage, `ThiGiuaKy`'s skew, the absent abbreviation vocabulary — are gaps **in the authored corpus**, and whether any is a gap in real behaviour is `[unknown]` until S-5. Resumption requires an observed-data gap **and** an explicit warrant | Audit §C.1, §D.3, §G `[measured]` + S-7.2 |
@@ -1091,8 +1128,8 @@ leaves open**, because an open parameter that nobody wrote down is how a placeho
 | **R-1** | *(surfaced by the rulings)* | **Closed by S-2.2.** Owner = Gold/reference pass; one independent human reader from the Q-2 network = blind reproducibility probe. AI supplementary, never a substitute | **None.** The threshold was pre-registered for this shape (S-2.7) |
 
 `[inference]` **Q-1 remains the keystone, and it is a scheduled measurement rather than a hope.** But
-S-2.6 bounds what it settles: it produces contested adjudication time, and the disposal and residue
-costs are separate estimates. **Track B's consent basis, which did not collapse into arithmetic, is now
+S-2.6 bounds what it settles: it produces contested adjudication time, and the **`J-3` eligibility
+adjudication** and **`J-7` residue** costs are separate estimates. **Track B's consent basis, which did not collapse into arithmetic, is now
 closed by ruling rather than by measurement** — which is what a policy question requires.
 
 ---
@@ -1121,7 +1158,7 @@ remaining five keep their numbers.
 | **I-1** *(was M-2)* | **Provenance completeness** | Every row added after S-3 carries all required DFD-5 properties. Enforced by CI at the canonical boundary, not by discipline | **Not enforceable** — the path does not exist. 15.1% of the corpus is untraceable |
 | **I-2** *(was M-5)* | **Held-out reservation** | The held-out partition was reserved **before** training merge, by a pre-registered rule, and the reservation is recorded | **Never done.** `_merge_seed.py` made this exact error once |
 | **I-3** *(was M-7)* | **Gold/Silver separation** | No synthetic row and no `collected_v4`-derived row appears in Gold-R or in any held-out evaluation set. Automated | **Failed once already** — the shipped model trained on all 903 rows |
-| **I-4** *(new, S-5.2)* | **Provenance recorded at creation** | For top-tier membership, provenance was **recorded at creation**, not derived or backfilled. Binary, and set now | **False** for every existing row. Derived-provenance rows are capped below the top tier and barred from the S-6 holdout |
+| **I-4** *(new, S-5.2)* | **Provenance recorded at creation** | Provenance was **recorded at creation**, not derived or backfilled. Binary, and set now — a property of the row, not of a tier | **False** for every existing row. Derived-provenance rows are capped below the top tier and barred from the S-6 holdout |
 
 **All four are currently false, and the first three are free.** That is the single most useful thing
 this section says: the project is at the bottom tier for reasons that mostly cost nothing but sequence.
@@ -1134,7 +1171,7 @@ this proposal invented.**
 | Tier | Name | Entry conditions | Threshold needed? |
 |---|---|---|---|
 | **T-0** | **Unmanaged** | *Where the project is today.* No annotation spec; provenance absent on 15.1% of rows; no held-out real data; label passes disagreeing with no adjudication record | — |
-| **T-1** | **Governed** | S-0 reservation recorded · S-1 findings written, with a cause ruling per contested boundary · S-2 `v1` exists and **passed both pre-registered thresholds** · S-3 shipped, so **I-1** holds for every new row · **I-3** holds · existing rows carry their *known* provenance, with the 136 marked **`untraceable`** and the derived/recorded marker present | **No.** Every condition is an existence or a binary. T-1 is reachable **without a single new row** |
+| **T-1** | **Governed** | The **S-1.2 / S-2.5** reservation recorded (drafted here as `S-0`) · S-1 findings written, with a cause ruling per contested boundary · S-2 `v1` exists and **passed both pre-registered thresholds** · S-3 shipped, so **I-1** holds for every new row · **I-3** holds · existing rows carry their *known* provenance, with the 136 marked **`untraceable`** and the derived/recorded marker present | **No.** Every condition is an existence or a binary. T-1 is reachable **without a single new row** |
 | **T-2** | **Evaluation-ready** | T-1 held · `gold_r_v1` exists with a held-out partition assigned by the **pre-registered rule** and satisfying **I-2** · that partition is non-empty (**M-3**) and covers **all five classes at ≥ the Q-4 floor** (**M-4**) · claim scope recorded · **I-1/I-3/I-4 still hold** | **One** — the Q-4 floor, used here as a **readiness criterion**. Deliberately unset |
 | **T-3** | **Model-development-ready** | T-2 held · **M-1** label reproducibility measured under the spec and accepted · **M-6** real class distribution observed rather than assumed · **M-8** confidence calibration computable from real telemetry · volume sufficient for the intended model work | **Yes, several** — and they are the ones Q-5 forbids setting now. T-2's evidence is what makes them settable |
 
@@ -1198,7 +1235,7 @@ would settle it, and that measurement has not been run.
 | **Provenance deferred "until the schema settles"** | The single failure mode that cannot be repaired later | S-3 before S-4/S-5. The 136 untraceable rows are the standing evidence |
 | **A maturity criterion that cannot fail** | The `M-*` measures could each be written to always pass | A baseline is stated for each. `I-1`…`I-4` are binary, and **all four are false today** |
 | **A convenience sample read as the population** | Q-4 makes the *observed distribution* the sampling target, and the distribution observed is that sample's | Claim scope recorded in the datasheet and repeated at every citation: *"observed among N recruited participants."* An S-5 exit criterion, and M-6 carries it |
-| **A tier or gate declared reached on its visible half** | `S-T` is the sharp case: instrumentation is the only gate that is engineering work | Every tier's conditions are enumerated; `I-1`…`I-4` are continuous. **S-T.1 requires two gate states rendered explicitly — a single roll-up field is non-conforming** |
+| **A tier or gate declared reached on its visible half** | `S-T` is the sharp case: instrumentation is the only gate that is engineering work | Every tier's conditions are enumerated; `I-1`…`I-4` are **continuously in force** — a later violation demotes rather than being grandfathered. **S-T.1 requires two gate states rendered explicitly — a single roll-up field is non-conforming** |
 | **A figure read without its qualifier** | Six reader-facing non-uniformities now exist, each ruled for its own good reason | **§10.** Stated once, cited from the stages, rather than re-derived per figure |
 
 ## 8. Immediate next step
@@ -1285,7 +1322,7 @@ is not granted.**
 |---|---|---|
 | 1 | Banner: rev 3, and an explicit statement that ruling 54 decisions is not authorization | 2026-09-04 record's own framing |
 | 2 | **New §1.2 — rules that apply throughout**: five standing principles, the explicit `N/A` state, rule-now-number-later, manifest-as-attestation, the four version streams, and the owner's **standing directive** that a governance decision is never deferred on implementation grounds | Scope ruling · Outcomes §A.1 |
-| 3 | **New stage `S-0`** — the reservation event, drawn as a step in §0's chain and led with in §8 | S-1.2 · S-1.6 · S-2.5 |
+| 3 | **New sequencing label `S-0`** — the reservation event, drawn as a step in §0's chain and led with in §8. **A rendering choice, not a new ratified stage** | S-1.2 · S-1.6 · S-2.5 |
 | 4 | §1.1 rows for **P-1, P-2, DFD-6, DFD-7 and ruling §18** restated | S-7.1 · S-4.2 · S-7.2 · S-7.3 · S-8.1 |
 | 5 | S-1: retirement **confirmed**, reminder-ness relocated; third pass admitted as evidence; Difficulty anchors defined; zero-coverage reframed and its evaluation defect **moved to S-6**; **a cause ruling per boundary** | S-1.0 … S-1.6 |
 | 6 | S-2: `R-1` **closed**; two thresholds pre-registered; independent per-dimension scoring; one stratified batch scored in full; catalogue boundary-indexed with a pre-registered selection rule; `RowId` and hash addressing; bump semantics; AI-drafting disclosure; **"adjudicate" defined as five-way** | S-2.1 … S-2.12 |
@@ -1298,6 +1335,7 @@ is not granted.**
 | 13 | S-8's placeholder replaced by **four necessary-not-sufficient preconditions**, the hypothesis schema, the versioning clause, and the explicitly unset threshold | S-8.1 |
 | 14 | §5 gains **`I-4` provenance-recorded-at-creation**; §S-6's exclusion list gains a third entry | S-5.2 |
 | 15 | **New §10 — how to read a figure from this project** | Outcomes §A.2 (agent-authored; see §10's preamble) |
+| 16 | **Correction pass, 2026-09-04** — document-integrity repairs only, listed in §9.6. **No ratified decision was reopened, narrowed, or reinterpreted, and no new policy was introduced** | Owner direction after the rev 3 consistency pass |
 | 16 | **New §11 — errata**, kept out of the policy body | Outcomes §A.3 |
 
 ### 9.5 Statements rev 2 made that rev 3 supersedes
@@ -1324,6 +1362,37 @@ are in §11 instead, and the two must not be read as one list.
 | §5.2 T-1: `provenance = unknown` for the 136 | S-3.2 | The marker is **`untraceable`** |
 | §4.1: synthetic opportunities *"nameable but not yet actionable"* | S-7.2 | Creation is **suspended**; there is no permitted purpose during this stage |
 | §1: ViLexNorm *"has a route, not just a blocker"* | S-7.3 | The route exists and **authorises nothing**; OD-4's completion is a hard gate |
+
+### 9.6 Correction pass — 2026-09-04 (document integrity only)
+
+Rev 3 was checked for identifier collisions, arithmetic contradictions, unsupported factual claims and
+status semantics before being put forward. **Every item below is a repair to how rev 3 states something.
+None reopens, narrows or reinterprets a ratified decision, and none adds policy.** The historical
+records — the 2026-08-27 and 2026-09-04 Outcomes, the working notes, and the audit — were **not
+amended** to match this text.
+
+| # | Defect in rev 3 as drafted | Repair | Ratified content touched? |
+|---|---|---|---|
+| 1 | `J-2` was used for the authored sample, colliding with the **audit's `J-2`** (*define the class boundaries that actually collide*, which gates `J-1`) | Renamed to **`W-1`**, a proposal-local namespace, with an explicit namespace note under §S-4's workload table. **The audit's `J-2` is unchanged** | No |
+| 2 | *"133 distinct (36 + 121)"* presented a **count of rows** as the sum of a **count of appearances** — 36 + 121 = **157**, which this document states elsewhere as the live pool | The two dimensions are now stated separately and never added: **157 contested appearances** across two boundary-disjoint pools, deduplicating to **133 distinct rows** | No — both figures are ratified (errata #7, #10); only the phrasing changed |
+| 3 | `I-4` read *"for top-tier membership, provenance was recorded at creation"*, which makes a **binary invariant** look like a tier-specific eligibility rule | Restated as the general invariant: *provenance was recorded at creation* — a property of the row, not of a tier. The tier consequence stays in the *Today* column, where it was already stated | No — S-5.2 unchanged; `T-2` may legitimately require `I-1`/`I-3`/`I-4` |
+| 4 | §S-4's `J-3` row still said **"dispose of"**, the pre-S-4.2 operation | Restated as **adjudicate the untraceable rows for Gold-A eligibility**, preserving the origin-unknown qualifier. *Dispose* is removed as an operation, here and in §S-2's Q-1 narrowing | No — this **applies** S-4.2 rather than changing it |
+| 5 | The S-T **local gate** was rendered *"closable now"* / *"open — closable now"*, which reads as available | Rendered **BLOCKED today**: S-T.1's *closable once policy and controls are satisfied* is kept as the **condition**, and S-T.4's uninstantiated retention window — blocked on the **authorised but unperformed** S-T.3 measurement — is stated as the **current state** | No — this reconciles two ratified statements without altering either. The two-gate model is intact |
+| 6 | Rev 3 and the 2026-09-04 Outcomes described the same status in different words | Normalised to `draft — awaiting authorization`, with the relationship to the Outcomes' wording stated in the banner. **The status itself did not change** | No |
+| 7 | **133** was labelled *production-relevant*; the ratified erratum attaches that scope to **36** | *Production-relevant* now attaches to the **36** under its narrower historical scope. **133** is stated as *distinct contested rows* | No |
+| 8 | **13.7%** (96 / 703) and the **2026-08-09** branch-protection date sat in the baseline as if audit-derived | Both labelled **working-notes-derived**. The `[measured]` stamp was removed from the date, which is a configuration fact, not a corpus measurement | No |
+| 9 | `S-0` was presented as a new stage | Retained for traceability, explicitly marked a **draft-document sequencing label, not a ratified stage**; `T-1`'s entry condition now anchors to **S-1.2 / S-2.5** rather than to the label | No |
+| 10 | §S-3's consumer table named `TextClassifierModelManager` / `TextClassifierDatasetImporter`, which come from **working-notes evidence**, not from S-3.4's ruling | The table carries the ruled category — *the production application* — and the two class names moved to an explicitly **non-normative codebase-evidence note** with their provenance and a re-verification instruction | No |
+| 11 | S-T gate labels `2a` / `2b` read as ratified gate identifiers | Both are gate **2**, with **`Local`** and **`Egress`** as **descriptive labels**, marked as such. S-T.1 splits the question; it does not number the halves | No |
+| 12 | §7 said `I-1`…`I-4` are *"binary"* in one row and *"continuous"* in another, two rows apart | *Continuous* restored to rev 2's own meaning — **continuously in force, a later violation demotes rather than being grandfathered** — which is not a contradiction of *binary*. Found by the second consistency check, not the first | No |
+
+**One residual, deliberately left open.** The two decompositions of the contested pool do not reconcile:
+ratified erratum #7 gives **36 + 121 = 157**, implying a **24-row** overlap against the 133 distinct
+rows, while the working notes decompose the same 133 as *14 cross-pass-only + 97 third-pass-only + 22 in
+both*, implying **119** third-pass rows and a **22-row** overlap. **Both cannot be right.** Rev 3 states
+only the ratified pair (157 appearances → 133 distinct rows) and **does not reproduce the working-notes
+decomposition**, so no arithmetic contradiction enters this document. **Resolving 119 vs 121 requires
+re-measurement and is not a drafting decision.**
 
 ---
 
