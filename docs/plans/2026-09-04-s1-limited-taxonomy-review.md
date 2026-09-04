@@ -1,6 +1,7 @@
 # S-1 — Limited taxonomy review (P-3)
 
-**Status: `executed — agent-authored rulings, awaiting owner acceptance`.** Executed 2026-09-04 under
+**Status: `accepted`.** Accepted by the owner on **2026-09-04**, with four scope clarifications
+recorded at §6. Executed 2026-09-04 under
 the owner authorization of rev 3 as the governing executable plan, after **S-0 sealed the reservation**
 ([snapshot](../../datasheets/reservations/2026-09-04-s0-reservation-snapshot.json),
 [pre-registration](2026-09-04-s0-reservation-preregistration.md)).
@@ -175,8 +176,8 @@ drawn before that was known, and their composition is therefore weighted toward 
 | Clean retest | 12 | **9** (+2 in both strata) |
 
 **Nothing is done about this here.** The snapshot is not reopened, no pool is recomputed, no
-re-reservation is proposed. Whether the S-2 scored batch should be re-scoped is **the owner's decision**,
-and it is listed in §6.
+re-reservation is proposed. **Ruled at acceptance (D-2): the reservation stands and the stratum is not
+re-reserved**; the composition instead travels with every S-2 figure as a diagnostic. See §6.
 
 ---
 
@@ -266,18 +267,74 @@ reconciliation**. Re-measurement remains separately authorized work that has not
 
 ---
 
-## 6. Items requiring an owner decision
+## 6. Owner decisions, recorded 2026-09-04
 
-None of these are ruled here. Each is flagged and left open.
+S-1 was **accepted** on 2026-09-04. The four items S-1 raised were ruled at acceptance. They are
+recorded here as **execution and evidence-scope clarifications**. **No ratified decision is rewritten
+by them** — S-1.3, S-0, P-3 and the S-2.x rulings stand exactly as ratified.
 
-| # | Item |
-|---|---|
-| **O-1** | **S-1.3's premise does not match the evidence.** It admits the third pass's 121 rows as evidence for the `ThiCuoiKy`/`BaiTapVeNha` boundary. `[measured]` **Zero** of the 121 sit on that boundary; **all 121** sit on the `DoAnCuoiKy`/`ThiGiuaKy` subdivision, which the same ruling forbids S-1 to rule on. S-1 executed around this by ruling only the precondition (§3.1). The ruling is **not reopened** |
-| **O-2** | **Reserved-batch composition.** 9 of the S-2 scored batch's 12 contested rows are third-pass-only, i.e. forced-move-equivalent under §3.1. Whether to re-scope is the owner's call; the snapshot is untouched |
-| **O-3** | **`DoAnCuoiKy` and `ThiGiuaKy` entered the production enum through the seed v3 coverage repair and have never been ratified through P-3.** S-1.0 reopened *retirement*; the *additions* were never put. Flagged as a governance gap, not a proposed change |
-| **O-4** | **A live labelling defect survives into the current seed** — the `kiểm tra`-as-verb template (§3.2 B). Corrected nowhere by S-1; S-2 must write the rule, and correcting the rows is a separate authorized action |
+### D-1 — Third-pass scope (clarifies the *execution* of S-1.3, does not amend it)
 
----
+**Ruled.** The third pass's introduction of `DoAnCuoiKy` and `ThiGiuaKy` is a **non-shared-label-space
+transition**. It is **contextual evidence about taxonomy evolution**, not an S-1.6 two-annotator
+disagreement on a shared label space. **That subdivision is not adjudicated under S-1.6.**
+
+**S-1.6 is not narrowed anywhere else.** It continues to apply in full to the cross-pass production
+boundaries where the compared passes **did** share the relevant label space, and **the separate cause
+rulings in §3.2 stand** — boundary A, boundary B and boundary C each keep their own ruling, including
+the two that split.
+
+**S-1.3's ratified text is unchanged.** §3.1's measurement — 121 of 121 relabels enter a class absent
+from pass 2 — is retained as the evidence the clarification rests on. What changes is only *how S-1
+executes against it*: the four third-pass boundaries are recorded as out of S-1.6's reach by label-space
+provenance, rather than ruled on their merits.
+
+### D-2 — The S-0 reservation is unchanged
+
+**Ruled.** The sealed reservation **stands**; the 12-row contested stratum is **not re-reserved**. The
+snapshot is not reopened.
+
+**Why the composition does not invalidate the batch.** S-2 evaluates **reproducibility against the
+current five-class taxonomy** — whether two readers applying the written spec reach the same label —
+**not agreement with the historical pass labels**. A row's provenance as third-pass-forced says nothing
+about whether the spec makes it reproducible.
+
+**Binding reporting requirement on S-2.** The **cross-pass / shared-label vs third-pass-forced
+composition travels with every S-2 figure**, as a diagnostic:
+
+| Reserved batch | Contested | shared-label (cross-pass) | third-pass-forced |
+|---|---|---|---|
+| S-2 scored batch | 12 | 3 | 9 |
+| Q-1 timed adjudication | 20 | 5 | 15 |
+| Clean retest | 12 | 3 | 9 |
+
+*(Rows in the `both` stratum are counted as shared-label, since a cross-pass disagreement exists for
+them independently of the third pass.)* This joins the batch-composition disclosure S-2.4/G4 already
+requires; it is a diagnostic and **never a selection or exclusion criterion**.
+
+### D-3 — The current five-class taxonomy is established
+
+**Ruled.** The historical provenance statement and the current ratification status are **separate
+things and must not be conflated.**
+
+`[observation]` **Governance history:** `DoAnCuoiKy` and `ThiGiuaKy` entered the production enum through
+the seed v3 coverage repair rather than through a P-3 decision. That is a fact about how the enum came
+to be.
+
+**Current status:** the **five-class production taxonomy — `BaiTapVeNha` · `KiemTraThuongXuyen` ·
+`ThiGiuaKy` · `ThiCuoiKy` · `DoAnCuoiKy` — is established** by S-1.0/S-1.1 with §4.1 of this record, now
+accepted. **It is not to be described as unratified**, and the enum-provenance gap is an
+**observation and a governance-history item, not a reason to reopen the taxonomy.** P-3 is not reopened.
+
+### D-4 — The `kiểm tra`-as-verb defect
+
+**Ruled.** Preserved as an **observed live annotation ambiguity**. **The seed is not modified and no
+label is corrected during S-1.** It carries into S-2 as **guideline and worked-example material** — the
+rule drafted at §4.2 and the template itself as the example a reader is trained against.
+
+### D-5 — The sealed residual
+
+The **119-vs-121 / 155-vs-157 residual remains untouched and unresolved.**
 
 ## 7. Exit criteria
 
