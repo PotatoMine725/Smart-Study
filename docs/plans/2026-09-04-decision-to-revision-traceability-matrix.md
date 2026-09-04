@@ -148,11 +148,11 @@ Non-ruled material is mapped separately and **must not be read as owner policy**
 
 | # | Ruled, in short | Proposal section affected | Class | Also | Flag |
 |---|---|---|---|---|---|
-| **S-5.1** | **No row leaves the user's machine without explicit per-participant consent for that transfer**; consent record preserved. **Resolves the Q-3 residual** | §3 S-5 Track B; §4.2 Q-3 residual; §3 S-T consent gate | Policy | Rewrite Obligation | cost, [§6.2](#62-costs-surfaced-but-not-priced) |
+| **S-5.1** | **No row leaves the user's machine without explicit per-participant consent for that transfer**; consent record preserved. **Resolves the Q-3 residual** | §3 S-5 Track B; §4.2 Q-3 residual; §3 S-T consent gate | Policy | Rewrite Obligation | cost, [§6.2](#62-costs-surfaced-but-not-priced--class-open-task) |
 | **S-5.2** | Pre-mechanism rows contributable with **derived/backfilled provenance**, capped **below the top tier**, **ineligible for the S-6 holdout**; grades reported explicitly | §5.2 tier ladder (**new hard invariant**); §3 S-6 exclusion list (**third entry**) | Policy | Rewrite Obligation | A.2 item 2 |
 | **S-5.3** | **One corpus, one authority**, rows **physically partitioned by role**; partition is an enforcement boundary; **role moves explicit and hash-visible** | §3 S-3; §3 S-5 *Exit criteria*; §3 S-6 held-out rules | Policy | Rewrite Obligation | |
 | **S-5.4** | **Gold-A stays in the training partition and export**; S-6 figures need a separately reserved holdout. **§S-6's wording must be corrected** | §3 S-6 *"Gold-A answers is the model consistent with the label definitions"*; §3 S-6 averaging rule | Rewrite Obligation | | A.4 |
-| **S-5.5** | Gold-R labels **owner-assigned under the S-2 spec**; user `FinalDoKho`/`WasOverride` kept as **governed metadata, never the Gold label** → **FU-3** | §3 S-5 *Exit criteria*; §3 S-5 Track B | Policy | Rewrite Obligation | cost, [§6.2](#62-costs-surfaced-but-not-priced) |
+| **S-5.5** | Gold-R labels **owner-assigned under the S-2 spec**; user `FinalDoKho`/`WasOverride` kept as **governed metadata, never the Gold label** → **FU-3** | §3 S-5 *Exit criteria*; §3 S-5 Track B | Policy | Rewrite Obligation | cost, [§6.2](#62-costs-surfaced-but-not-priced--class-open-task) |
 | **S-5.6** | Manifest **fails closed on a missing/changed pinned row**; unrelated churn must not invalidate it; **every contextual dependency explicitly pinned** | §3 S-4 *Exit criteria*; §3 S-5 *Exit criteria*. **Ruling unchanged**; rev 3 must **not** cite the 703-vs-1028 example as its rationale | Policy | Rewrite Obligation | extends S-4.6 · [TF-8](#tf-8) `RULED` |
 | **S-5.7** | **Pre-registered assignment rule** fixed before seeing content; fraction instantiated after volume is known; arrival order and post-hoc balancing excluded; **Q-4 floor is readiness, not allocation**; insufficient volume ⇒ *not yet ready* | §3 S-5 *Exit criteria*; §5.2 T-2 entry conditions; §5.3 M-3/M-4 | Policy | Rewrite Obligation | [TF-25](#tf-25) |
 
@@ -203,7 +203,7 @@ citations resolve; rev 3's errata section simply has no #9.
 
 | # | Location the record names | Correction | Mapping status |
 |---|---|---|---|
-| 1 | §S-1 table | *"Two of the three largest transitions name retired classes"* — false as placed | **Confirmed** at L170. Audit §J-2 carries the same error — **owner call, see [§9](#9-explicitly-out-of-scope)** |
+| 1 | §S-1 table | *"Two of the three largest transitions name retired classes"* — false as placed | **Confirmed** at L170 — the §S-1 half is a live erratum for rev 3. The audit §J-2 half is **`RULED` out of scope** (owner, 2026-09-04): left unchanged, [§9](#9-explicitly-out-of-scope) |
 | 2 | §S-1 `[inference]` prose | *"the fourth item"* / *"the other three answers"* — the table has **five** rows | **Confirmed** at L176–178. Also propagates to **§8** (*"the four bounded questions"*, L695) and **§9.1 change 3** — [TF-26](#tf-26) |
 | 3 | §S-1 table | *"Difficulty … is currently never trained on"* — false; ≥4 live consumers | **Confirmed** at L172 |
 | 4 | §S-1 table | `KiemTraThuongXuyen`/`ThiCuoiKy` as possibly *"aspirational"* — they are **51.3% of training** | **Confirmed** at L173 |
@@ -353,6 +353,8 @@ in place below. The remaining flags are unruled and stand as filed.
 | **TF-1** | **Accept the narrower wording.** The guarantee is that invalid canonical content must never enter `main`/`dev` history **through merge**. Do **not** claim CI prevents invalid content from existing in feature-branch history |
 | **TF-2** | **Confirmed: `_merge_seed.py` is retired, not repointed.** The S-3.4 consumer list in rev 3 is **`build_split.py` · `TextClassifierEval` · downstream research tooling** |
 | **TF-8** | **Drop erratum #9 from rev 3.** No rev 3 errata entry for it. Also **remove or rewrite any S-5.6 rationale that cites this nonexistent error**; the **S-5.6 ruling and its dependency-pinning principle are unchanged** |
+| **TF-8 (scope)** | **Do not amend either historical artifact.** Outcomes §A.3 #9 and the working notes are **preserved as historical records**; the TF-8 resolution **applies to rev 3 only**. Keep #9 **struck through in this matrix for traceability**, remove it from **rev 3's effective errata set**, and state S-5.6's dependency-pinning rationale **without the 703-vs-1028 example** |
+| **Audit §J-2** | **Ruled out of scope.** Left unchanged; not an open call on this matrix |
 
 ### Contradictions
 
@@ -461,8 +463,11 @@ the inheritance mechanism is inference.
    703-vs-1028 example** as the failure that motivates it. The policy is stated on its own terms: a
    figure's dependencies beyond its named rows — a corpus-wide denominator, a comparison set — are
    explicitly pinned, so row-level verification cannot silently leave contextual dependencies unpinned.
-3. **Two existing artifacts still carry the dropped claim** and are **not** edited by this ruling —
-   see [§9](#9-explicitly-out-of-scope) for why each is a separate act.
+3. **Erratum #9 stays struck through in [Matrix B](#4-matrix-b--documentation-errata-outcomes-a3)**, not
+   deleted from it. The matrix is the traceability record: a reader who finds #9 cited elsewhere must
+   be able to land on it here and see that it was dropped, and why.
+4. **The two historical artifacts that carry the claim are preserved, not amended** — `RULED`, see
+   [§9](#9-explicitly-out-of-scope). **The TF-8 resolution applies to rev 3 only.**
 
 <a id="tf-9"></a>**TF-9 · `MISSING MAPPING` · R-1 is closed, and four locations still present it as open.**
 S-2.2 closes it. Rev 2 still describes it as open at **§S-2's `R-1` subsection (L265–280)**, **§4.2's
@@ -603,17 +608,14 @@ overlooked.
   determine — **TF-1, TF-2, TF-8** — were put to the owner and **ruled on 2026-09-04**
   ([§8.0](#80-owner-rulings-on-this-matrix--2026-09-04-after-filing)). No mapping was resolved by
   inference. Where a mechanism rather than a fact is proposed, it is marked `[inference]` in place.
-- **Two artifacts still carry the dropped erratum-#9 claim, and neither was edited.** TF-8's ruling
-  governs **what rev 3 writes**; changing either of these is a **separate act needing its own
-  decision**, because of what each document is:
-  - **Outcomes §A.3 #9** — inside a `ratified` record. Correcting it is an **amendment to a ratified
-    document**, not a rev 3 edit.
-  - **Working notes L220–221, L1489, L1498** — a **dated** agent record whose job is to say what was
-    believed when written. Project convention corrects those by amendment, not in place. They are
-    already declared *"superseded by this record wherever the two differ."*
-- **The audit's §J-2 error** (errata #1's second half) was **not** corrected here, on the same ground
-  the Outcomes record gives: the audit is a separate document and editing it is scope expansion. It
-  remains the **one open owner call** on this matrix.
+- **Neither historical artifact was amended, and neither will be** — `RULED` (owner, 2026-09-04).
+  **Outcomes §A.3 #9** and the **working notes** (L220–221, L1489, L1498) are **preserved as
+  historical records**: each says what was believed when it was written, which is the job those
+  documents exist to do, and a record edited to match a later finding stops being a record. **The
+  TF-8 resolution applies to rev 3 only.** This is a closed position, not a deferred one — a later
+  reader should not reopen it as unfinished business.
+- **The audit's §J-2 error** (errata #1's second half) is **ruled out of scope** — `RULED` (owner,
+  2026-09-04). Left unchanged. **It is not an open owner call on this matrix.**
 - **The working notes were read in seven ranges only** — L218–240, L761–790, L804–832, L925–945,
   L1371–1400, L1476–1500, L2278–2290 — bearing on flags TF-1, TF-2, TF-7, TF-8 and the S-4.6/S-5.6
   closure. They are evidence and rationale; **no ruling below the Outcomes record's text was sourced
