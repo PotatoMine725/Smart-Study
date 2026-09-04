@@ -1,20 +1,23 @@
 # Data Maturation & Coverage Expansion — Proposal
 
-**Revision 3 — 2026-09-04. Status: `draft — awaiting authorization`. Nothing here is approved,
-scheduled, or committed work.**
+**Revision 3 — 2026-09-04. Status: `authorized — governing executable plan`.**
+**Authorized by the owner on 2026-09-04**, accepting commits `0265386`, `fc95385`, `ee4a969` and
+`7fb6ab2` as the final rev 3 revision.
 
 > **What changed at rev 3, in one line:** rev 2 carried eight stages whose internal decisions were
 > still open; the owner has now ruled **all 54** of them, and rev 3 is those rulings written into the
 > stages. Full list of changes: **§9.4**.
 >
-> **Ruling every decision is not the same as authorizing the work.** The stage decision surface is
-> closed; **implementation is not authorized.** This proposal still waits on a go-ahead, and rev 3
-> changes what it says, not what it is permitted to do.
+> **Authorization is of the plan, not evidence that any stage has been performed.** The owner's
+> 2026-09-04 authorization makes this the governing executable plan and permits execution **according
+> to the ruled stage dependencies and gates**. It rules nothing performed: every stage's state is read
+> from its own exit criteria, and `authorized to perform` is not `performed`. Ratified decisions may
+> not be reinterpreted, relaxed or reopened under this authorization.
 >
 > **Status vocabulary, normalised.** The 2026-09-04 Outcomes records rev 2 as `draft` pending two
-> separate things: the stage-decision **review**, and **authorization**. Rev 3 is the product of that
-> review, so the review half is discharged and only authorization remains — which is what
-> `draft — awaiting authorization` means here. Same state, one description.
+> separate things: the stage-decision **review**, and **authorization**. Rev 3 discharged the review
+> half; the authorization of 2026-09-04 discharges the other. **The 119-vs-121 residual recorded in
+> §9.6 remains sealed** — authorization of this plan does not authorize its re-measurement.
 >
 > Commissioned by the owner ruling of 2026-08-26
 > ([`2026-08-26-data-foundation-owner-decision-handoff.md`](2026-08-26-data-foundation-owner-decision-handoff.md) §19);
@@ -1260,7 +1263,12 @@ Then, in order:
 4. Everything else waits on those, except **S-T**, which can start now — and whose authorised
    volume/usability measurement (S-T.3) is the input the retention window (S-T.4) is waiting on.
 
-**Nothing above is authorized.** This is the order the rulings imply, not a plan in motion.
+**Authorized 2026-09-04.** This is the order the rulings imply, and it is now the order in motion.
+**S-0 executed 2026-09-04** — sealed snapshot at
+[`../../datasheets/reservations/2026-09-04-s0-reservation-snapshot.json`](../../datasheets/reservations/2026-09-04-s0-reservation-snapshot.json),
+pre-registration at
+[`2026-09-04-s0-reservation-preregistration.md`](2026-09-04-s0-reservation-preregistration.md).
+**No stage after S-0 has been performed.**
 
 ---
 
