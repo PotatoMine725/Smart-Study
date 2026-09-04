@@ -1271,7 +1271,12 @@ pre-registration at
 **S-1 executed 2026-09-04** — ruling record at
 [`2026-09-04-s1-limited-taxonomy-review.md`](2026-09-04-s1-limited-taxonomy-review.md), agent-authored and
 **awaiting owner acceptance**; it carries four items raised for owner decision and rules on none of them.
-**No stage after S-1 has been performed.**
+**S-2 specification drafted 2026-09-04** — canonical annotation specification at
+[`../specs/annotation-guideline.md`](../specs/annotation-guideline.md) (`GuidelineVersion: v1`, **awaiting owner
+ratification**), catalogue selection pre-registered at
+[`2026-09-04-s2-catalogue-preregistration.md`](2026-09-04-s2-catalogue-preregistration.md).
+**S-2's reproducibility test (S-2.1–S-2.7) is pre-registered and NOT performed** — it blocks on a recruited
+independent reader. **No stage after S-2's specification has been performed.**
 
 ---
 
