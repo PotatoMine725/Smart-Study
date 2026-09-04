@@ -79,7 +79,7 @@ Apply in order. Stop at the first branch that resolves.
      work, or a defence → **`DoAnCuoiKy`**
    - **A single deliverable**, however large → **`BaiTapVeNha`**
 
-**Annotate the task the text describes, not the keywords it contains.** Rules B-1 to B-4 exist because
+**Annotate the task the text describes, not the keywords it contains.** Rules B-1 to B-6 exist because
 this sentence is not self-enforcing.
 
 ---
