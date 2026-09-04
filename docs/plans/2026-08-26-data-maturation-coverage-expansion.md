@@ -522,10 +522,11 @@ ingestion**; presence of the object alone is not sufficient. H2's supersession h
 | **row identity** | **absent** | **`RowId`** (S-2.10), retaining the originating content hash permanently |
 | **derived / recorded-at-creation marker** | absent | **mandatory, and mandatory on export** (S-3.2) |
 
-**Scope, measured:** **~8 new fields (7 → ~15)**, the governed datasheets below, and
-provenance-at-write-time on 2 telemetry tables. The seed's consumer surface is narrow — the shipped
-intent classifier reads **one** column — so widening the schema is low-risk for the model path and
-mostly touches tooling.
+**Scope.** The schema carries **7** columns today `[measured]`. Provenance adds **~8 new fields
+(7 → ~15)** — `[inference]`, a design estimate read off the field table above and **not** a
+measurement. `[measured]` alongside it: the governed datasheets below, and provenance-at-write-time on
+2 telemetry tables. The seed's consumer surface is narrow — the shipped intent classifier reads
+**one** column — so widening the schema is low-risk for the model path and mostly touches tooling.
 
 #### Existing rows (S-3.2)
 
@@ -1112,8 +1113,8 @@ leaves open**, because an open parameter that nobody wrote down is how a placeho
 
 | §19 item | Answer | Basis |
 |---|---|---|
-| **Gold-A adjudication scope** | **133** distinct contested rows — J-1, deduplicated from **157** contested appearances across two boundary-disjoint pools of **36** and **121** — plus **≤136** origin-unknown rows to adjudicate for eligibility (J-3, S-4.2), a designed **authored sample** whose size is `[unknown]` by ruling (S-4.1, **W-1**), and an `[unknown]` residue (J-7). **Bounded and enumerated for the contested half; the sample half is ruled at scope level, not as a count** | Audit §E.1, §E.5, §J + the 2026-09-04 pass `[measured]` |
-| **Provenance implementation cost** | **~8 new fields** on the labelled-corpus schema (7 → ~15); **datasheets for audit Group A's 10 (+B1)**, of which the governed corpora have **0** (one fixture datasheet exists); provenance-at-write on **2 telemetry tables**; plus the canonical/export split, the build manifest, and the CI validator. Model-path risk is low — the shipped classifier reads **one** column | Audit §B.1, §E.2 + CSV headers + the 2026-09-04 pass `[measured]` |
+| **Gold-A adjudication scope** | **133** distinct contested rows — J-1, deduplicated from **157** contested appearances across two boundary-disjoint pools of **36** and **121** — plus **≤136** origin-unknown rows to adjudicate for eligibility (J-3, S-4.2), a designed **authored sample** whose size is `[unknown]` by ruling (S-4.1, **W-1**), and an `[unknown]` residue (J-7). **Bounded and enumerated for the contested half; the sample half is ruled at scope level, not as a count** | Audit §E.1, §E.5, §J + the 2026-09-04 pass. **The `[measured]` stamp covers the counts only** — **133**, **157**, **36**, **121**, **≤136**. The authored sample (S-4.1) and the `J-7` residue (S-4.4) are `[unknown]` **by ruling, not by failed measurement** |
+| **Provenance implementation cost** | The labelled-corpus schema carries **7** columns today; provenance adds **~8** more, taking it to **~15** — `[inference]`, a design estimate read off the §S-3 field table, **not** a count of anything that exists. Alongside it: **datasheets for audit Group A's 10 (+B1)**, of which the governed corpora have **0** (one fixture datasheet exists); provenance-at-write on **2 telemetry tables**. The canonical/export split, the build manifest, and the CI validator are **scope items, not counts**. Model-path risk is low — the shipped classifier reads **one** column | Audit §B.1, §E.2 + CSV headers + the 2026-09-04 pass. **`[measured]`: the 7 current columns, Group A's 10 (+B1), the 0 governed datasheets, the 2 telemetry tables, the one model-read column.** The **~8** and **~15** figures are `[inference]` |
 | **Public-dataset evaluation candidates** | **3 checked, 0 approved, and all three closed for this stage.** ViLexNorm gated on OD-4; UIT-VSFC no licence field; PhoATIS no licence surfaced. No public corpus carries this label space | Audit §I.2 — three dataset cards read at source `[fact]` |
 | **Controlled synthetic-generation opportunities** | **None during Data Maturation.** S-7.2 **suspends** creation of new synthetic batches; there is no permitted purpose during this stage. The nameable gaps — 2 classes at zero evaluation coverage, `ThiGiuaKy`'s skew, the absent abbreviation vocabulary — are gaps **in the authored corpus**, and whether any is a gap in real behaviour is `[unknown]` until S-5. Resumption requires an observed-data gap **and** an explicit warrant | Audit §C.1, §D.3, §G `[measured]` + S-7.2 |
 
@@ -1369,6 +1370,7 @@ are in §11 instead, and the two must not be read as one list.
 Rev 3 was checked for identifier collisions, arithmetic contradictions, unsupported factual claims and
 status semantics before being put forward. **Every item below is a repair to how rev 3 states something.
 None reopens, narrows or reinterprets a ratified decision, and none adds policy.** The historical
+**Rows 13–14 are a second, narrower pass on the same date, confined to evidence-scope wording.**
 records — the 2026-08-27 and 2026-09-04 Outcomes, the working notes, and the audit — were **not
 amended** to match this text.
 
@@ -1386,6 +1388,8 @@ amended** to match this text.
 | 10 | §S-3's consumer table named `TextClassifierModelManager` / `TextClassifierDatasetImporter`, which come from **working-notes evidence**, not from S-3.4's ruling | The table carries the ruled category — *the production application* — and the two class names moved to an explicitly **non-normative codebase-evidence note** with their provenance and a re-verification instruction | No |
 | 11 | S-T gate labels `2a` / `2b` read as ratified gate identifiers | Both are gate **2**, with **`Local`** and **`Egress`** as **descriptive labels**, marked as such. S-T.1 splits the question; it does not number the halves | No |
 | 12 | §7 said `I-1`…`I-4` are *"binary"* in one row and *"continuous"* in another, two rows apart | *Continuous* restored to rev 2's own meaning — **continuously in force, a later violation demotes rather than being grandfathered** — which is not a contradiction of *binary*. Found by the second consistency check, not the first | No |
+| 13 | §4.1's **Gold-A adjudication scope** row carried one trailing `[measured]` over an answer that mixes measured counts with two `[unknown]`s | The Basis cell now scopes the stamp to the counts — **133**, **157**, **36**, **121**, **≤136** — and states that the authored sample (S-4.1) and the `J-7` residue (S-4.4) are `[unknown]` **by ruling, not by failed measurement**. The Answer cell is unchanged | No |
+| 14 | **~8 new fields (7 → ~15)** was presented as `[measured]` at **three sites** — §S-3's *"Scope, measured:"* line, §4.1's provenance-cost row, and §11's erratum #12 under its blanket `[measured]` header. The **7** is measured from the CSV headers; **~8** and **~15** are design estimates | All three now separate the two: the **7** stays `[measured]`, the **~8** / **~15** are marked `[inference]`, a design estimate. **Erratum #12's correction is not withdrawn** — only its evidentiary grade is marked | No |
 
 **One residual, deliberately left open.** The two decompositions of the contested pool do not reconcile:
 ratified erratum #7 gives **36 + 121 = 157**, implying a **24-row** overlap against the 133 distinct
@@ -1469,4 +1473,4 @@ corrected so a reader of an earlier revision can find it.
 | ~~9~~ | — | **Dropped.** An erratum claiming *"the 29.6% denominator is 703, not 1028"* was filed against §4.1. Tracing it found **no artifact that ever stated 208/1028**: the audit's §E.1 and D-3 both already record **208/703**, as did rev 1 and rev 2. The erroneous "correction" originated in agent working notes, not in this proposal. `[owner ruling 2026-09-04]` **The absence of #9 is deliberate; the numbering is preserved so this note is findable.** The historical records that carry the claim are **preserved unamended** |
 | 10 | §4.1 / §S-4 / §7 | **"208" and "~188" were dead as a work scope.** J-1 as originally defined is **36** production-relevant rows; the **distinct contested pool is 133**. **208 survives only as a measurement** in the legacy→interim frame (§2, §S-1), where it is correct and is now labelled as such |
 | 11 | §S-3 / §4.1 | *"File-level datasheets (8 files, 0 exist)"* — **wrong on both counts.** The governed set is audit **Group A's 10 (+B1)**, and **one datasheet already exists** (`datasheets/vn_input_fixtures.md`) — though it covers a fixture set, not a corpus, so **0 governed corpora have one** |
-| 12 | §S-3 / §4.1 | *"~5 new columns (7 → ~12)"* — understated. The real figure is **~8 new fields, 7 → ~15** |
+| 12 | §S-3 / §4.1 | *"~5 new columns (7 → ~12)"* — understated. The figure is **~8 new fields, 7 → ~15** — `[inference]`, a design estimate, **not** `[measured]`; only the **7** is measured, from the CSV headers |
