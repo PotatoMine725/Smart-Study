@@ -1268,7 +1268,10 @@ Then, in order:
 [`../../datasheets/reservations/2026-09-04-s0-reservation-snapshot.json`](../../datasheets/reservations/2026-09-04-s0-reservation-snapshot.json),
 pre-registration at
 [`2026-09-04-s0-reservation-preregistration.md`](2026-09-04-s0-reservation-preregistration.md).
-**No stage after S-0 has been performed.**
+**S-1 executed 2026-09-04** — ruling record at
+[`2026-09-04-s1-limited-taxonomy-review.md`](2026-09-04-s1-limited-taxonomy-review.md), agent-authored and
+**awaiting owner acceptance**; it carries four items raised for owner decision and rules on none of them.
+**No stage after S-1 has been performed.**
 
 ---
 
