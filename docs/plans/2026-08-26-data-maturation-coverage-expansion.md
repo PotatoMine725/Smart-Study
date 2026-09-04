@@ -1114,7 +1114,7 @@ leaves open**, because an open parameter that nobody wrote down is how a placeho
 | §19 item | Answer | Basis |
 |---|---|---|
 | **Gold-A adjudication scope** | **133** distinct contested rows — J-1, deduplicated from **157** contested appearances across two boundary-disjoint pools of **36** and **121** — plus **≤136** origin-unknown rows to adjudicate for eligibility (J-3, S-4.2), a designed **authored sample** whose size is `[unknown]` by ruling (S-4.1, **W-1**), and an `[unknown]` residue (J-7). **Bounded and enumerated for the contested half; the sample half is ruled at scope level, not as a count** | Audit §E.1, §E.5, §J + the 2026-09-04 pass. **The `[measured]` stamp covers the counts only** — **133**, **157**, **36**, **121**, **≤136**. The authored sample (S-4.1) and the `J-7` residue (S-4.4) are `[unknown]` **by ruling, not by failed measurement** |
-| **Provenance implementation cost** | The labelled-corpus schema carries **7** columns today; provenance adds **~8** more, taking it to **~15** — `[inference]`, a design estimate read off the §S-3 field table, **not** a count of anything that exists. Alongside it: **datasheets for audit Group A's 10 (+B1)**, of which the governed corpora have **0** (one fixture datasheet exists); provenance-at-write on **2 telemetry tables**. The canonical/export split, the build manifest, and the CI validator are **scope items, not counts**. Model-path risk is low — the shipped classifier reads **one** column | Audit §B.1, §E.2 + CSV headers + the 2026-09-04 pass. **`[measured]`: the 7 current columns, Group A's 10 (+B1), the 0 governed datasheets, the 2 telemetry tables, the one model-read column.** The **~8** and **~15** figures are `[inference]` |
+| **Provenance implementation cost** | The labelled-corpus schema carries **7** columns today; provenance adds **~8** more, taking it to **~15** — `[inference]`, a design estimate read off the §S-3 field table, **not** a count of anything that exists. Alongside it: **datasheets for audit Group A's 10 (+B1)**, of which the governed corpora have **0** (one fixture datasheet exists); provenance-at-write on **2 telemetry tables**. The canonical/export split, the build manifest, and the CI validator are part of the same cost — **scope items rather than counts**. Model-path risk is low — the shipped classifier reads **one** column | Audit §B.1, §E.2 + CSV headers + the 2026-09-04 pass. **`[measured]`: the 7 current columns, Group A's 10 (+B1), the 0 governed datasheets, the 2 telemetry tables, the one model-read column.** The **~8** and **~15** figures are `[inference]` |
 | **Public-dataset evaluation candidates** | **3 checked, 0 approved, and all three closed for this stage.** ViLexNorm gated on OD-4; UIT-VSFC no licence field; PhoATIS no licence surfaced. No public corpus carries this label space | Audit §I.2 — three dataset cards read at source `[fact]` |
 | **Controlled synthetic-generation opportunities** | **None during Data Maturation.** S-7.2 **suspends** creation of new synthetic batches; there is no permitted purpose during this stage. The nameable gaps — 2 classes at zero evaluation coverage, `ThiGiuaKy`'s skew, the absent abbreviation vocabulary — are gaps **in the authored corpus**, and whether any is a gap in real behaviour is `[unknown]` until S-5. Resumption requires an observed-data gap **and** an explicit warrant | Audit §C.1, §D.3, §G `[measured]` + S-7.2 |
 
@@ -1368,11 +1368,11 @@ are in §11 instead, and the two must not be read as one list.
 ### 9.6 Correction pass — 2026-09-04 (document integrity only)
 
 Rev 3 was checked for identifier collisions, arithmetic contradictions, unsupported factual claims and
-status semantics before being put forward. **Every item below is a repair to how rev 3 states something.
-None reopens, narrows or reinterprets a ratified decision, and none adds policy.** The historical
-**Rows 13–14 are a second, narrower pass on the same date, confined to evidence-scope wording.**
-records — the 2026-08-27 and 2026-09-04 Outcomes, the working notes, and the audit — were **not
-amended** to match this text.
+status semantics before being put forward — **twice**: rows 1–12 from the first pass, rows 13–14 from a
+second, narrower pass on the same date confined to evidence-scope wording. **Every item below is a
+repair to how rev 3 states something. None reopens, narrows or reinterprets a ratified decision, and
+none adds policy.** The historical records — the 2026-08-27 and 2026-09-04 Outcomes, the working
+notes, and the audit — were **not amended** to match this text.
 
 | # | Defect in rev 3 as drafted | Repair | Ratified content touched? |
 |---|---|---|---|
