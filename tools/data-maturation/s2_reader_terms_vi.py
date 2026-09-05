@@ -37,11 +37,11 @@ BANNED_VI = [
     u"mức đồng thuận",      # agreement rate
 ]
 
-# D-5: the owner has not authorised how an `unresolved` response scores. In a
+# D-6: the owner has not authorised how an `unresolved` response scores. In a
 # warmer Vietnamese register the pull toward reassuring the reader is much
 # stronger than it was in English, and this exact class of sentence has already
 # had to be removed once. Scanned over the blind files AND the rendering.
-D5_CLAIMS_VI = [
+D6_CLAIMS_VI = [
     u"được tính là đúng",
     u"tính là đúng",
     u"không bị trừ điểm",

@@ -23,7 +23,7 @@ The checks, and what makes each go red:
   C8  item ids still reconcile against the scoring key      a renumbered or reordered item
   C9  reader files carry no scoring-key material            a hash, locator or seal leaking in
   C10 reader files carry no blindness leaks                 `gold`, `stratum`, a threshold, ...
-  C11 reader files assert no scoring treatment (D-5)        "counts as", "correct outcome", ...
+  C11 reader files assert no scoring treatment (D-6)        "counts as", "correct outcome", ...
   C12 private artefacts are outside the package             manifest or key copied inside
   C13 the private manifest holds no label value             a `difficulty`/`task_type` field
   C14 package files are LF, as committed                    CRLF translation on checkout
@@ -50,7 +50,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from s2_reader_terms_vi import BANNED_VI, D5_CLAIMS_VI, TRIGGERS
+from s2_reader_terms_vi import BANNED_VI, D6_CLAIMS_VI, TRIGGERS
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SNAPSHOT = os.path.join(ROOT, "datasheets", "reservations",
@@ -82,10 +82,10 @@ BANNED = [
     "s0-reservation", "b9691ae", "da98e73", "prediction", "predicted",
     "adjudicat", "disagree", "agreement rate", "other annotator",
 ]
-# D-5: the owner has not authorised how an `unresolved` response scores. The
+# D-6: the owner has not authorised how an `unresolved` response scores. The
 # reader files may preserve the ability to mark it and must claim nothing about
 # how it is treated.
-D5_CLAIMS = [
+D6_CLAIMS = [
     "correct outcome", "correct answer here", "counts as", "does not count",
     "scored as", "is acceptable", "no penalty", "will not count", "counts toward",
     "counts against", "does not affect", "we accept", "is fine",
@@ -95,7 +95,7 @@ LABEL_FIELDS = ["difficulty", "task_type", "tasktype", "label", "gold_answer",
 
 # Against a Vietnamese package the English lists above would pass vacuously.
 BANNED = BANNED + BANNED_VI
-D5_CLAIMS = D5_CLAIMS + D5_CLAIMS_VI
+D6_CLAIMS = D6_CLAIMS + D6_CLAIMS_VI
 
 FENCE = re.compile(u"^````text\n(.*?)\n````$", re.M | re.S)
 
@@ -238,8 +238,8 @@ def main():
     c.add("C10", "no historical-label or measurement term in reader files",
           not hits10, "%d hit(s): %r" % (len(hits10), hits10[:5]))
 
-    hits11 = [t for t in D5_CLAIMS if t.lower() in low9]
-    c.add("C11", "no claim about how a response scores (D-5)",
+    hits11 = [t for t in D6_CLAIMS if t.lower() in low9]
+    c.add("C11", "no claim about how a response scores (D-6)",
           not hits11, "%d hit(s): %r" % (len(hits11), hits11[:5]))
 
     # --- C12 separation ----------------------------------------------------
@@ -283,14 +283,19 @@ def main():
     c.add("C14", "package files are LF, as committed", not crlf, "CRLF in %r" % (crlf,))
 
     # --- C15/C16/C17 the translation --------------------------------------
-    bare = re.sub(r"(?s)```.*?```", u"", rendering)
+    gtext = read(gpath) if os.path.isfile(gpath) else u""
+    frozen = set(l.strip() for l in gtext.split(u"\n") if l.strip())
+    # Only prose this package authored can move a B-2/B-4 boundary; a line that
+    # appears verbatim in frozen v1 is v1's own text, including the catalogue's
+    # quoted corpus rows.
+    bare = u"\n".join(l for l in rendering.split(u"\n") if l.strip() not in frozen)
+    bare = re.sub(r"(?s)```.*?```", u"", bare)
     bare = re.sub(r"`[^`]*`", u"", bare)
     loose = [t for t in TRIGGERS if t in bare]
     c.add("C15", "B-2/B-4 trigger terms appear only inside code spans",
           bool(rendering) and not loose,
           "%d loose term(s)" % len(loose) if rendering else "rendering missing")
 
-    gtext = read(gpath) if os.path.isfile(gpath) else u""
     want = re.findall(r"(?m)^## (\d+)\.", gtext)
     have = re.findall(r"(?m)^## (\d+)\.", rendering)
     c.add("C16", "rendering mirrors v1's section structure",
@@ -302,6 +307,20 @@ def main():
     echoed = [i for i, t in enumerate(texts, 1) if t.strip() and t.strip() in rendering]
     c.add("C17", "no reserved row text appears in the rendering",
           not echoed, "%d echoed row(s)" % len(echoed))
+
+    # --- C18 the D-9 provenance strip -------------------------------------
+    prov = []
+    if re.search(r"[0-9a-f]{64}", rendering):
+        prov.append("row sha256")
+    if re.search(r"\.csv[`\]]?:\d+", rendering):
+        prov.append("source locator")
+    classes = ["BaiTapVeNha", "KiemTraThuongXuyen", "ThiGiuaKy", "ThiCuoiKy", "DoAnCuoiKy"]
+    for line in rendering.split(u"\n"):
+        if u"\u2192" in line and sum(1 for k in classes if k in line) >= 2:
+            prov.append("label progression")
+            break
+    c.add("C18", "rendering carries no per-entry provenance (D-9)",
+          bool(rendering) and not prov, "%r" % (sorted(set(prov)),))
 
     return c.report()
 
