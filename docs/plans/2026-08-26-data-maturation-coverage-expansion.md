@@ -1357,7 +1357,7 @@ private. The sheet at [`../specs/2026-09-05-s2-blind-reader-sheet.md`](../specs/
 is **unmoved and unmodified**; it never reaches the reader, whose handoff is a copy of the package
 directory.
 
-**D-5 — the `unresolved` box stays, and says nothing about how it scores.** The owner has not
+**D-6 — the `unresolved` box stays, and says nothing about how it scores.** The owner has not
 authorised a scoring treatment for an `unresolved` response. The reader can still mark it, no scoring
 semantics were added to `v1`, and the instructions make **no claim** about its treatment. A validator
 check enforces that and was demonstrated firing.
@@ -1378,14 +1378,14 @@ correct. A one-line `.gitattributes` marks `docs/s2-reader-package/**` as `-text
 [`../../tools/data-maturation/s2_reader_package_validate.py`](../../tools/data-maturation/s2_reader_package_validate.py),
 **14 checks, all PASS**: file set · `v1` byte-exactness · 20 item blocks · **blocks byte-identical to
 `b9691ae`** · every row a sealed `scored_batch` hash, once · no foreign row · 12 + 8 · item ids
-reconcile against the scoring key · no key material · no measurement term · **no D-5 scoring claim** ·
+reconcile against the scoring key · no key material · no measurement term · **no D-6 scoring claim** ·
 private artefacts outside the package · manifest label-free · LF endings. The "no row outside the 20"
 check is **hash-set comparison**, never a read of the other 40 reserved rows.
 
 **Every check was demonstrated failing before the green run was believed** — 14 mutated throwaway
 copies: flipped `v1` byte · row block deleted · row text altered · an answer field added inside a
 block · foreign row substituted · items renumbered · `gold`/`probe` injected · a threshold disclosed ·
-a D-5 scoring treatment asserted · row hash leaked · source locator leaked · scoring key copied in ·
+a D-6 scoring treatment asserted · row hash leaked · source locator leaked · scoring key copied in ·
 manifest copied in · CRLF translation. **All 14 fired the expected check.**
 
 **Untouched:** frozen `v1` (still `dd4fc273…684a433`), the sealed S-0 snapshot and its seed, the
@@ -1474,7 +1474,7 @@ The sheet's `guideline_version` still reads `v1`, because `v1` is what is being 
 translation provenance is not the reader's job; the rendering's use is recorded in the manifest
 instead. **Ratification is required before handoff.**
 
-**D-5 unchanged.** The reader can still mark `unresolved`; neither the instructions, the sheet nor
+**D-6 unchanged.** The reader can still mark `unresolved`; neither the instructions, the sheet nor
 the rendering say how it scores, and no scoring semantics were added to `v1`.
 
 **Validation** — **17 checks, all PASS**, extended from 14. The three new ones are translation
@@ -1490,7 +1490,7 @@ scoped to English parity rather than tighter — a Vietnamese list stricter than
 mirrors fired on correct prose during drafting and was loosened, not the file.
 
 **Every check was demonstrated failing before the green run was believed — 25 controls, all fired**,
-including a Vietnamese threshold disclosure, a Vietnamese D-5 claim in the instructions **and** the
+including a Vietnamese threshold disclosure, a Vietnamese D-6 claim in the instructions **and** the
 same claim in the rendering (proving C11 reaches the new file), a loose trigger term, a dropped
 section, an echoed reserved row, and a leaked row hash. **C13 had never been seen red in any earlier
 run**; it scans the private manifest, so it needed a control that mutates the real file and restores
@@ -1505,6 +1505,65 @@ answers.
 **Untouched:** frozen `v1`, the sealed S-0 snapshot and its seed, the scoring key, the `b9691ae`
 sheet, `s2_materialize.py`, every Decision Outcome and Working Note, and the **119-vs-121 /
 155-vs-157 residual**.
+
+### Both blockers ruled 2026-09-05 — `D-7`, `D-8`, `D-9`
+
+Recorded in full in [`2026-09-05-s2-owner-decisions.md`](2026-09-05-s2-owner-decisions.md). The §10
+test is still **not performed**, **no reader is recruited**, and **no figure exists.**
+
+**The finding got worse when it was opened properly.** The first report described §6 as worked
+examples a reader could pattern-match. Reading the whole section showed it also prints, across its 19
+entries, **19 historical pass-label progressions, 19 Difficulty values, 19 row `sha256` and 57 source
+`file:line` locators** — four categories that are all on the reader-package exclusion list, reaching
+the reader inside the frozen guideline. **Two earlier reports understated this**, and the remedy was
+re-proposed against the measured contents rather than the first impression.
+
+**`v1` §6 states the invariant it fails**: *"The reserved 60 rows are absent from this catalogue by
+construction — an example drawn from the scored batch would train a reader on a row they are later
+measured against."* The exclusion ran at **row** granularity; the corpus is template-generated and the
+catalogue's own rule deduplicates **by template**. Zero verbatim matches — the letter holds, the
+spirit does not.
+
+| Ruling | Effect |
+|---|---|
+| **`D-7`** | The frozen 20-row gate is **unchanged** (≥17/20, ≥18/20). The **16 non-twin rows** are additionally reported as the **primary evidence** at ≥14/16 and ≥15/16 — 85%/90% on a denominator of 16, **rounded up**, so the secondary reading is marginally stricter, not looser. Ruled **before any annotation**, so it is pre-registration; S-2.7 closes this door the moment the reader starts |
+| **`D-8`** | The Vietnamese rendering is the instrument, and **both passes use it** — running the Gold pass on English `v1` would have made every disagreement ambiguous between a guideline defect and a translation artifact. Figures carry the scope *"reproducibility of `v1` as rendered in Vietnamese"* |
+| **`D-9`** | Per catalogue entry, the `sha256`, the locators and the pass-label/Difficulty line are **removed from the rendering**; **every example row and every word of commentary is kept.** `v1` §6 itself says no entry may be cited as its row's label, so nothing the reader reasons from was taken |
+
+**Numbering correction.** Earlier records on 2026-09-05 cited **`D-5`** for the unresolved-scoring
+constraint. The owner-decision series `v1` cites — S-1 review §6, source of `D-2` and `D-4` — already
+uses **`D-5` for "the sealed residual."** The constraint is renumbered **`D-6`**; the citations above
+and in the manifest and validator are corrected. **No decision changed, only its label.**
+
+**§6 is now rendered in full**: 19 entries, every example row **verbatim from `v1`** (checked — the
+only non-verbatim quoted lines are the rendering's own note about the strip), all commentary
+translated, zero hashes, zero locators, zero label progressions.
+
+| Reader-facing | `sha256` (LF) |
+|---|---|
+| [`00-READ-ME-FIRST.md`](../s2-reader-package/00-READ-ME-FIRST.md) | `05adbad5…444da38f` |
+| [`01-annotation-guideline-v1.md`](../s2-reader-package/01-annotation-guideline-v1.md) — **frozen, unmodified** | `dd4fc273…684a433` |
+| [`01b-huong-dan-tieng-viet.md`](../s2-reader-package/01b-huong-dan-tieng-viet.md) — **unratified** | `3b1dbd24…a07ca61c` |
+| [`02-annotation-sheet.md`](../s2-reader-package/02-annotation-sheet.md) | `a3c32814…aad96b5e` |
+
+**Validation — 18 checks, all PASS.** New: **`C18`**, which enforces `D-9` by rejecting any row
+`sha256`, source locator or label progression in the rendering. **`C15` was also corrected**: it now
+exempts lines appearing **verbatim in frozen `v1`**, because §6's quoted corpus rows carry trigger
+terms in bare prose and are `v1`'s text, not the translator's — without that fix the check would have
+policed `v1`'s own words while claiming to police the translation.
+
+**26 negative controls, all fire.** `C18` was demonstrated red three ways in isolation — a restored
+`sha256`, a restored locator, a restored pass-label line. The trigger check fired for real a second
+time during this pass, on a stray `nhóm` in the new §6 commentary, which was reworded.
+
+**Still open, and still blocking handoff:** the owner has **not yet read the rendering through**.
+Ratification is that read-through plus recording the rendering's `sha256` in the freeze record.
+Reader recruitment remains a separate owner action.
+
+**The derived labels for the four twins are recorded nowhere** — not here, not in the owner-decisions
+file, not in the manifest. The owner performs the Gold pass, so writing them into a working record
+would prime the pass they anchor.
+
 
 
 
