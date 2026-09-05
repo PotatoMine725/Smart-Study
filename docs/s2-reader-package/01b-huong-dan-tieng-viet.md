@@ -198,13 +198,221 @@ tụt từ 184 xuống 116, mức 4 tăng từ 79 lên 147 và mức 1 tụt t�
 
 ## 6. Danh mục ví dụ khó phân định (S-2.9)
 
-> **Mục này chưa được dịch, và đang chờ chủ sở hữu quyết định.** Trong lúc chuẩn bị bộ tài liệu này,
-> người soạn phát hiện một vấn đề về tính toàn vẹn giữa mục §6 và các dòng đã được giữ riêng để đem
-> ra đo. Vấn đề đó đã được báo lên chủ sở hữu và **phải được xử lý trước khi bộ tài liệu này được
-> giao cho bất kỳ ai.** Bản dịch mục §6 sẽ được làm sau khi có quyết định, vì quyết định đó có thể
-> thay đổi chính nội dung cần dịch.
->
-> Nội dung gốc của mục này vẫn nằm đầy đủ trong tệp tiếng Anh `01-annotation-guideline-v1.md`.
+**Sắp theo từng ranh giới**, chọn bằng máy theo một quy tắc đã đăng ký trước khi bất kỳ ví dụ nào
+được rút ra: chỉ lấy các dòng trong phần chung chưa giữ riêng, sắp theo mã băm, **khử trùng lặp theo
+khuôn mẫu trước**, mỗi ranh giới lấy `min(4, số ví dụ có được)`.
+
+**Theo K1, không mục nào dưới đây là một phán quyết phân xử.** Lập danh mục không phải là phân xử;
+S-2 không phân xử những dòng tranh chấp còn lại, và **không mục nào được viện dẫn như là nhãn của
+dòng đó.**
+
+> **Bản dịch này lược bỏ phần dữ liệu nguồn gốc của từng mục.** Bản gốc tiếng Anh còn in thêm, cho
+> mỗi mục, mã băm `sha256` của dòng, tên tệp và số dòng nguồn, cùng những cái nhãn mà các lượt gán
+> nhãn trước đây đã gán. Ba thứ đó là dữ liệu về nguồn gốc, **không phải căn cứ để quyết định** — và
+> như chính mục này vừa nói, không mục nào được viện dẫn như là nhãn của dòng đó. Chúng được lược bỏ
+> ở đây để bạn quyết định bằng các quy tắc chứ không bằng cách chép lại một cái nhãn cũ. **Phần chữ
+> của mọi ví dụ và toàn bộ lời bình được giữ nguyên, không thiếu chỗ nào.**
+
+**19 mục bao trùm 15 dòng khác nhau.** Bốn dòng bị tranh chấp trên *cả hai* trục — giữa các lượt và
+ở lượt thứ ba — nên quy tắc chọn xếp mỗi dòng đó vào hai ranh giới và chúng xuất hiện hai lần: số
+hiệu mục khác nhau, cùng một dòng. Đây là quy tắc chạy đúng như đã đăng ký, không phải trùng lặp.
+
+**60 dòng đã giữ riêng vắng mặt khỏi danh mục này ngay từ cách dựng** — một ví dụ rút ra từ lô đã
+chấm điểm sẽ huấn luyện người đọc trên chính dòng mà sau đó họ bị đem ra đo.
+
+### `BaiTapVeNha` ↔ `DoAnCuoiKy`
+*Phạm vi 64 dòng chưa giữ riêng / 39 khuôn mẫu — chọn 4, đủ.*
+
+**E-1**
+
+> Deadline bài tập lớn môn Kỹ thuật phần mềm sắp tới, mình đang hoàn thiện phần cuối.
+
+*Ví dụ minh hoạ. Không phải bản ghi phân xử. Không có nhãn Gold nào gắn với dòng này.*
+
+**E-2**
+
+> tình hình tiến độ cái đồ án tới đâu r ae
+
+*Ví dụ minh hoạ. Không phải bản ghi phân xử. Không có nhãn Gold nào gắn với dòng này.*
+
+**E-3**
+
+> Mình phải nộp bài tập lớn Truyền thông đa phương tiện trong tuần này, ai rảnh review giúp mình không?
+
+*Ví dụ minh hoạ. Không phải bản ghi phân xử. Không có nhãn Gold nào gắn với dòng này.*
+
+**E-4**
+
+> Deadline đồ án Kỹ thuật phần mềm đã gần, mình cần hoàn thiện phần demo.
+
+*Ví dụ minh hoạ. Không phải bản ghi phân xử. Không có nhãn Gold nào gắn với dòng này.*
+
+**Những ví dụ này cho thấy gì.** Cái để phân biệt là *nhiều-phần-và-kéo-dài*, không phải kích cỡ và
+không phải chữ `nhóm`. `E-1` và `E-4` nói về **cùng một môn nhưng dùng hai danh từ tác vụ khác
+nhau** — `bài tập lớn` và `đồ án` — và cả hai đều cho ra `DoAnCuoiKy`. `E-2` là lối viết thân mật,
+không mang danh từ tác vụ nào ngoài `đồ án`. `E-3` là một `bài tập lớn` mà **cả hai** lượt gán nhãn
+cũ đều đọc thành bài tập thông thường. **Cũng để ý chỗ Độ khó lệch nhau**: `E-1` mang mức 3 còn
+`E-4` mang mức 4 cho phần việc cùng tầm cỡ — một bất đồng về mốc nằm ngay bên trong một ví dụ về
+`TaskType`.
+
+### `BaiTapVeNha` ↔ `KiemTraThuongXuyen`
+*Phạm vi 2 dòng chưa giữ riêng / 2 khuôn mẫu — chọn 2, **THIẾU**.*
+
+**E-5**
+
+> cô cho bài tập về nhà mon ktvm nhưng mình ghi ko kịp đề, ai chụp giúp mình với
+
+*Ví dụ minh hoạ. Không phải bản ghi phân xử. Không có nhãn Gold nào gắn với dòng này.*
+
+**E-6**
+
+> làm bài tập ktvm sao kho wá, chắc chớt mất
+
+*Ví dụ minh hoạ. Không phải bản ghi phân xử. Không có nhãn Gold nào gắn với dòng này.*
+
+**Những ví dụ này cho thấy gì.** Cả hai rõ ràng là bài tập ở nhà (`bài tập về nhà`, `làm bài tập`)
+mà lượt 1 lại gán thành `KiemTraThuongXuyen`. Cả hai đều ở lối viết không chuẩn — không dấu, tiếng
+lóng, sai chính tả (`mon ktvm`, `sao kho wá`). Việc lối viết có phải là nguyên nhân gây lỗi hay
+không là **một giả thuyết để phép dò tính tái lập kiểm chứng, chưa phải một kết luận**; n=2.
+
+### `BaiTapVeNha` ↔ `ThiCuoiKy`
+*Phạm vi 17 dòng chưa giữ riêng / 9 khuôn mẫu — chọn 4, đủ.*
+
+**E-7**
+
+> Deadline bài tập lớn môn Kỹ thuật phần mềm sắp tới, mình đang hoàn thiện phần cuối.
+
+*Ví dụ minh hoạ. Không phải bản ghi phân xử. Không có nhãn Gold nào gắn với dòng này.*
+
+**E-8**
+
+> Deadline đồ án Kỹ thuật phần mềm đã gần, mình cần hoàn thiện phần demo.
+
+*Ví dụ minh hoạ. Không phải bản ghi phân xử. Không có nhãn Gold nào gắn với dòng này.*
+
+**E-9**
+
+> Bài tập nhóm Nghiên cứu thị trường đang thiếu một vài phần, cần họp nhóm gấp.
+
+*Ví dụ minh hoạ. Không phải bản ghi phân xử. Không có nhãn Gold nào gắn với dòng này.*
+
+**E-10**
+
+> Nhóm mình còn thiếu phần kết luận báo cáo đồ án môn Cơ sở dữ liệu, hoàn thiện trước thứ 5.
+
+*Ví dụ minh hoạ. Không phải bản ghi phân xử. Không có nhãn Gold nào gắn với dòng này.*
+
+**Những ví dụ này cho thấy gì.** Đây là "vụ đụng độ thật sự duy nhất" mà bản rà soát nêu ra. `E-9`
+là trường hợp sạch cho `BaiTapVeNha` — `bài tập nhóm`, một sản phẩm duy nhất phải nộp, dù có làm
+theo `nhóm` đi nữa — và lượt 3 cũng đồng ý như vậy. `E-7`, `E-8` và `E-10` thật ra không thuộc ranh
+giới này: cả ba đều dừng ở `DoAnCuoiKy` một khi lớp đó tồn tại. Chúng được xếp vào đây vì các lượt
+gán nhãn cũ đã tranh chấp chúng ở đây, và chúng minh hoạ **vì sao** lại có tranh chấp — lớp đúng cho
+chúng lúc ấy chưa có.
+
+### `BaiTapVeNha` ↔ `ThiGiuaKy`
+*Phạm vi 0 dòng chưa giữ riêng / 0 khuôn mẫu — chọn 0, **không có bằng chứng trong kho ngữ liệu**.*
+
+**Kho ngữ liệu không có bằng chứng nào cho ranh giới này.** Chưa lượt gán nhãn cũ nào từng tranh
+chấp nó, nên không rút được dòng nào. Chuyển sang **các ví dụ soạn tay ở S-4**; ở đây không soạn gì.
+
+### `DoAnCuoiKy` ↔ `KiemTraThuongXuyen`
+*Phạm vi 0 dòng chưa giữ riêng / 0 khuôn mẫu — chọn 0, **không có bằng chứng trong kho ngữ liệu**.*
+
+**Kho ngữ liệu không có bằng chứng nào cho ranh giới này.** Chưa lượt gán nhãn cũ nào từng tranh
+chấp nó, nên không rút được dòng nào. Chuyển sang **các ví dụ soạn tay ở S-4**; ở đây không soạn gì.
+
+### `DoAnCuoiKy` ↔ `ThiCuoiKy`
+*Phạm vi 1 dòng chưa giữ riêng / 1 khuôn mẫu — chọn 1, **THIẾU**.*
+
+**E-11**
+
+> deadline project final là 23h59 chủ nhật nha
+
+*Ví dụ minh hoạ. Không phải bản ghi phân xử. Không có nhãn Gold nào gắn với dòng này.*
+
+**Những ví dụ này cho thấy gì.** Chỉ một dòng, và nó đúng là trường hợp khó thật: `project final`
+có thể đọc thành *dự án cuối* hoặc *bài thi cuối*. Bản đặc tả giải quyết bằng tân ngữ — `project`
+là phần việc làm ra, nên là `DoAnCuoiKy` — và `final` / `cuối kỳ` gắn vào phần việc làm ra là **dấu
+chỉ thời điểm, không phải dấu chỉ kỳ thi** (quy tắc B-3).
+
+### `DoAnCuoiKy` ↔ `ThiGiuaKy`
+*Phạm vi 0 dòng chưa giữ riêng / 0 khuôn mẫu — chọn 0, **không có bằng chứng trong kho ngữ liệu**.*
+
+**Kho ngữ liệu không có bằng chứng nào cho ranh giới này.** Chưa lượt gán nhãn cũ nào từng tranh
+chấp nó, nên không rút được dòng nào. Chuyển sang **các ví dụ soạn tay ở S-4**; ở đây không soạn gì.
+
+### `KiemTraThuongXuyen` ↔ `ThiCuoiKy`
+*Phạm vi 6 dòng chưa giữ riêng / 3 khuôn mẫu — chọn 3, đủ.*
+
+**E-12**
+
+> Cô Hương nhắc cả lớp bài kiểm tra giữa kỳ môn Kế toán tài chính vào thứ 2 tuần 10.
+
+*Ví dụ minh hoạ. Không phải bản ghi phân xử. Không có nhãn Gold nào gắn với dòng này.*
+
+**E-13**
+
+> Thầy nhắc nộp báo cáo Hóa phân tích, mình cần kiểm tra lại format trước khi gửi.
+
+*Ví dụ minh hoạ. Không phải bản ghi phân xử. Không có nhãn Gold nào gắn với dòng này.*
+
+**E-14**
+
+> Kiểm tra giữa kỳ môn Hệ điều hành vào tuần 8, ôn phần quản lý tiến trình và bộ nhớ.
+
+*Ví dụ minh hoạ. Không phải bản ghi phân xử. Không có nhãn Gold nào gắn với dòng này.*
+
+**Những ví dụ này cho thấy gì — và không cho thấy gì.** Chỉ `E-13` là thật sự nằm trên ranh giới
+này, và nó chính là chỗ hỏng `kiểm tra`-dùng-như-động-từ (D-4): tác vụ là nộp một bản báo cáo,
+`kiểm tra lại format` nghĩa là *rà lại cách trình bày*, còn lớp mà lượt 2 gán thì đến từ cái từ
+khoá. `E-12` và `E-14` có chữ `giữa kỳ` và thuộc về `ThiGiuaKy`; chúng nằm trong cụm này chỉ vì
+không lượt gán nhãn cũ nào có lớp đó. **Ranh giới này thiếu về thực chất dù đủ về số lượng** — được
+báo cáo lại, không đem chọn lại (§7).
+
+### `KiemTraThuongXuyen` ↔ `ThiGiuaKy`
+*Phạm vi 2 dòng chưa giữ riêng / 2 khuôn mẫu — chọn 2, **THIẾU**.*
+
+**E-15**
+
+> Cô Hương nhắc cả lớp bài kiểm tra giữa kỳ môn Kế toán tài chính vào thứ 2 tuần 10.
+
+*Ví dụ minh hoạ. Không phải bản ghi phân xử. Không có nhãn Gold nào gắn với dòng này.*
+
+**E-16**
+
+> Kiểm tra giữa kỳ môn Hệ điều hành vào tuần 8, ôn phần quản lý tiến trình và bộ nhớ.
+
+*Ví dụ minh hoạ. Không phải bản ghi phân xử. Không có nhãn Gold nào gắn với dòng này.*
+
+**Những ví dụ này cho thấy gì.** Cả hai đều nói rõ `giữa kỳ` và cả hai đều cho ra `ThiGiuaKy` theo
+quy tắc B-2. Không cái nào thật sự khó phân định dưới hệ phân loại hiện hành; chúng bị tranh chấp
+chỉ vì lúc được gán nhãn thì `ThiGiuaKy` chưa tồn tại. n=2.
+
+### `ThiCuoiKy` ↔ `ThiGiuaKy`
+*Phạm vi 12 dòng chưa giữ riêng / 3 khuôn mẫu — chọn 3, đủ.*
+
+**E-17**
+
+> Đợt thi giữa kỳ môn Toán rời rạc khó hơn mình dự kiến, phải tập trung hơn.
+
+*Ví dụ minh hoạ. Không phải bản ghi phân xử. Không có nhãn Gold nào gắn với dòng này.*
+
+**E-18**
+
+> Mình cần ôn gấp cho bài thi giữa kỳ Toán cao cấp A3, nội dung khá nhiều.
+
+*Ví dụ minh hoạ. Không phải bản ghi phân xử. Không có nhãn Gold nào gắn với dòng này.*
+
+**E-19**
+
+> Thi giữa kỳ môn Tài chính doanh nghiệp sắp diễn ra, mình đang ôn theo đề cương.
+
+*Ví dụ minh hoạ. Không phải bản ghi phân xử. Không có nhãn Gold nào gắn với dòng này.*
+
+**Những ví dụ này cho thấy gì.** Đây là ranh giới sạch nhất trong danh mục: `giữa kỳ` so với
+`cuối kỳ` là **một dấu hiệu mặt chữ mà bản đặc tả có thể dựa vào**, và cả ba đều được giải quyết chỉ
+bằng dấu hiệu đó. Chúng bị tranh chấp chỉ vì `ThiGiuaKy` ra đời sau các lượt gán nhãn ấy. Để ý
+`E-17` và `E-18` mang Độ khó chuyển từ 5 xuống 4 — đúng hiện tượng trôi dạt đã ghi ở §5.
 
 ---
 

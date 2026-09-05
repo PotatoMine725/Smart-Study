@@ -1,13 +1,17 @@
 {
   "event": "S-2 reader package revision - Vietnamese",
-  "status": "Package PREPARED. The section-10 reproducibility test is NOT performed, no reader is recruited, nothing was annotated, adjudicated or scored, and no figure exists. HANDOFF IS BLOCKED - see blocking_finding.",
+  "status": "Package PREPARED. The section-10 reproducibility test is NOT performed, no reader is recruited, nothing was annotated, adjudicated or scored, and no figure exists. Both blockers are RULED (D-7, D-8); handoff still needs the owner's own verification of the rendering under D-8.",
   "authority": [
     "owner authorisation 2026-09-05 (revise the reader package)",
     "owner instruction 2026-09-05 (translate the package to Vietnamese)",
     "S-2.2",
     "S-2.12",
-    "D-5 (unresolved scoring NOT authorised)"
+    "D-6 (unresolved scoring NOT authorised, 2026-09-05)",
+    "D-7 (16-row secondary reading, pre-registered 2026-09-05)",
+    "D-8 (rendering normative for both passes, 2026-09-05)",
+    "D-9 (catalogue provenance stripped from the rendering, 2026-09-05)"
   ],
+  "numbering_correction": "An earlier revision of this file cited 'D-5' for the unresolved-scoring constraint. The globally-cited owner-decision series (S-1 limited taxonomy review, section 6, which v1 section 10 cites for D-2 and section 13 for D-4) already uses D-5 for 'the sealed residual'. The constraint is renumbered D-6 and the series continues at D-7.",
   "never_hand_to_a_reader": true,
   "holds_no_label": "This file carries no label value, no Gold answer, no historical pass label, no stratum and no D-2 class. The reconciliation map is unchanged and stays where it is: datasheets/reservations/2026-09-05-s2-scoring-key.json",
   "blocking_finding": {
@@ -33,7 +37,41 @@
     "why_it_matters": "Those rows are scored the same as any other against the pre-registered TaskType threshold, so agreement on them is not evidence that the guideline reproduces a label.",
     "no_label_recorded_here": "The derived labels are deliberately NOT written down - not here, not in the plan doc, not in the report. The claim is the template match, nothing more.",
     "not_fixable_by_this_script": "v1 is frozen under S-2.14 and the batch is sealed under S-0. Both sides are owner decisions.",
-    "status": "REPORTED TO OWNER, UNRESOLVED. Do not hand the package to a reader until it is ruled on."
+    "status": "RULED by the owner 2026-09-05. Remedy is D-7: the pre-registered 20-row gate is unchanged, and the 16 rows that are NOT template twins are reported as the primary evidence. See also D-9, which removes the catalogue's label and locator metadata from the reader-facing rendering.",
+    "v1_own_invariant_that_fails": "Section 6 states: 'The reserved 60 rows are absent from this catalogue by construction - an example drawn from the scored batch would train a reader on a row they are later measured against.' The exclusion was implemented at ROW granularity while the corpus is template generated, so template siblings passed through. The letter holds - zero verbatim matches - and the spirit does not."
+  },
+  "d7_secondary_reading": {
+    "ruled": "owner, 2026-09-05, BEFORE any annotation - so this is pre-registration, not a post-hoc adjustment. The window closes the moment the reader starts.",
+    "gate_unchanged": "TaskType >= 17/20 and Difficulty >= 18/20, full-batch, exact match. S-2.7's invariant is untouched: no threshold was changed.",
+    "secondary_reading": "The 16 rows that are not template twins are additionally scored and reported as the PRIMARY evidence, at >= 14/16 TaskType and >= 15/16 Difficulty.",
+    "excluded_from_the_secondary_reading": [
+      "R-01",
+      "R-09",
+      "R-14",
+      "R-16"
+    ],
+    "both_figures_travel_together": true
+  },
+  "d8_rendering": {
+    "ruled": "owner, 2026-09-05",
+    "normative_for_this_test": "the Vietnamese rendering",
+    "both_passes_use_it": "The owner's Gold pass and the reader's blind pass run on the SAME text, so translation cannot become an uncontrolled variable between them.",
+    "scope_that_travels_with_every_figure": "reproducibility of v1 AS RENDERED IN VIETNAMESE",
+    "outstanding": "The owner has not yet read the rendering through. Ratification is that read-through plus recording the rendering's sha256 in the freeze record. Until then the package is not handed to a reader."
+  },
+  "d9_provenance_strip": {
+    "ruled": "owner, 2026-09-05",
+    "what_is_removed": "per catalogue entry: the row sha256, the source file:line locators, and the historical pass-label / Difficulty line",
+    "what_is_kept": "every example row verbatim, and every word of commentary",
+    "why": "Those three are provenance metadata, not decision support. v1 section 6 itself says no entry may be cited as its row's label, so removing them takes nothing the reader is meant to reason from - while removing 19 label progressions and 57 locators from in front of an annotator instructed not to look anything up.",
+    "counts_removed_from_the_rendering": {
+      "label_progressions": 19,
+      "difficulty_values": 19,
+      "row_sha256": 19,
+      "source_locators": 57
+    },
+    "divergence_from_v1": "metadata-only; frozen v1 still ships byte-exact alongside",
+    "enforced_by": "validator check C18"
   },
   "instrument_provenance": {
     "source": "b9691ae131ad4b71d6e69a4b197d3a2de02757ec:docs/specs/2026-09-05-s2-blind-reader-sheet.md",
@@ -59,7 +97,7 @@
     "ratified": false,
     "owner_decision_required": "If the reader works from the rendering then the rendering is in practice the instrument, and it is unratified. It needs owner ratification before handoff.",
     "sections_mirrored": 14,
-    "section_6_untranslated": "Held pending the blocking_finding ruling, which may change what section 6 should say. The rendering says so in place and points at the English original.",
+    "section_6": "Rendered in full - 19 entries, every example row verbatim, all commentary translated - with the provenance lines removed under D-9. The rendering states that removal in place.",
     "fidelity_rule": "No rule added, no example added, no ambiguity resolved. v1's known soft spots - B-2 in particular - are rendered exactly as unclear as they are in the source.",
     "trigger_terms_locked": [
       "giữa kỳ",
@@ -86,7 +124,7 @@
       },
       {
         "path": "docs/s2-reader-package/01b-huong-dan-tieng-viet.md",
-        "sha256": "5f8c48776b6ce832230c36fcb37e76c8f79a3ff62b3a51742a7cd7c2bd24e483",
+        "sha256": "3b1dbd249f3dce248b4ae0a73d5ea5ae45bada33b614d233e01c8ec6a07ca61c",
         "is": "Vietnamese rendering of v1; unratified reading aid"
       },
       {
@@ -108,9 +146,9 @@
     "how": "reader answers carry item ids R-01..R-20; the key maps each id to its sha256 and occurrences. Item ids are unchanged by this revision.",
     "not_copied_here": true
   },
-  "d5": "The owner has not authorised a scoring treatment for `unresolved`. The reader can still mark it; neither the sheet nor the instructions nor the rendering state how it scores, and no scoring semantics were added to v1.",
+  "d6": "The owner has not authorised a scoring treatment for `unresolved`. The reader can still mark it; neither the sheet nor the instructions nor the rendering state how it scores, and no scoring semantics were added to v1.",
   "seal": {
     "algorithm": "sha256 over this document with the seal field absent",
-    "value": "0bd3de99cebc8922f567e998c73fba240d86b296b645e15a3300c832f7b1ca96"
+    "value": "4106e2e64b759caa9f9a0457820d79fcc2ba71ce400e24feb8a1c8035bbea755"
   }
 }
