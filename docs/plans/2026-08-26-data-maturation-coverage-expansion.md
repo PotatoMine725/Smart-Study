@@ -1281,6 +1281,41 @@ ratification**), catalogue selection pre-registered at
 independent reader, and **DFD-2 is ruled satisfied only once that test passes**. **No stage after S-2's
 specification has been performed.**
 
+**Test instrument materialised 2026-09-05**, under owner authorisation to read the 20 reserved row
+texts **solely to render the instrument — this is test-material preparation, not adjudication and not
+measurement.** Two artefacts, separated by content rather than by location:
+
+| Artefact | Faces | Carries |
+|---|---|---|
+| [`../specs/2026-09-05-s2-blind-reader-sheet.md`](../specs/2026-09-05-s2-blind-reader-sheet.md) | **The annotators** | Item id `R-01`–`R-20`, raw text, four blank fields. **No hash, no source locator, no stratum, no historical label, no catalogue reference** |
+| [`../../datasheets/reservations/2026-09-05-s2-scoring-key.json`](../../datasheets/reservations/2026-09-05-s2-scoring-key.json) | **No annotator, ever** | Item ↔ `sha256` ↔ occurrences, `kind`, contested stratum, D-2 class. **No label value of any kind** |
+
+Both are rendered by
+[`../../tools/data-maturation/s2_materialize.py`](../../tools/data-maturation/s2_materialize.py) from the
+sealed snapshot and are deterministic — same inputs, same bytes. Every label needed at scoring time is
+**derived then, from the occurrences**, which is why the key cannot anchor either pass. The sheet's
+presentation order exists to **interleave** contested and Difficulty-spread rows so the sheet itself
+carries no ambiguity signal; **it is not obscurity**, since the salt is committed.
+
+**Gold-pass protocol — an execution control, not an amendment to frozen `v1`.** §10 is frozen and says
+nothing about what an annotator may consult. This record supplies that control and **alters no
+ratified text**:
+
+1. While annotating, **each annotator consults `v1` and nothing else** — not the snapshot, not the
+   corpus CSVs, not the scoring key. The pass-2 `Difficulty` of the eight Difficulty-spread rows sits
+   in the sealed snapshot, so this protocol is what keeps it out of the Gold pass. **No file
+   permission enforces it.**
+2. **Each completed pass is hashed and committed before the other is opened**, and both before either
+   is scored. Otherwise neither pass can be shown not to have been adjusted toward the other.
+3. The reader receives **the sheet and `v1` only**, as exports. Blindness rests on that: the row text
+   is greppable in the corpus, so anyone with repo access can recover the historical labels.
+
+**Pre-test finding, raised and NOT ruled on.** §12 and §2 together require an annotator to mark a row
+`unresolved` rather than guess, but §10's `≥ 17/20` and `≥ 18/20` do not say how an `unresolved` row
+scores. **The gap is in frozen `v1`.** It is recorded here because finding it before the test is
+legitimate, while ruling on it after seeing results is precisely what §14 forbids. **No figure depends
+on it yet, and none may be produced until it is ruled on.**
+
 ---
 
 ## 9. Revision record
