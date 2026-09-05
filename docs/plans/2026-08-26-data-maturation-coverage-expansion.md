@@ -1316,6 +1316,198 @@ scores. **The gap is in frozen `v1`.** It is recorded here because finding it be
 legitimate, while ruling on it after seeing results is precisely what §14 forbids. **No figure depends
 on it yet, and none may be produced until it is ruled on.**
 
+**Reader package revised for handoff 2026-09-05 — PREPARED, NOT PERFORMED.** The §10 test has still
+**not been run**, **no reader is recruited**, nothing was annotated, adjudicated or scored, and **no
+figure exists.**
+
+**The instrument was not re-made.** The materialisation at `b9691ae` is the source of truth: the
+corpus was not read, the sealed snapshot was not re-drawn, and no row was re-selected or re-rendered.
+[`../../tools/data-maturation/s2_reader_package_revise.py`](../../tools/data-maturation/s2_reader_package_revise.py)
+takes the committed sheet **blob**, splits it into header · 20 item blocks · footer, and emits the
+package sheet as *revised header + the same 20 blocks, byte for byte + the same footer*. It asserts
+that identity before it writes. **Row text, row order, item ids `R-01`–`R-20` and the answer fields
+are unchanged**, so the scoring key still reconciles without being re-rendered.
+
+**Three prose edits, and nothing else** — each one required to match exactly once, so a silent no-op
+cannot ship the leak it was meant to remove:
+
+| Removed from the sheet's prose | Why it could not go to a reader |
+|---|---|
+| Title *"blind annotation sheet, sealed scored batch"* | Named the batch and its reserved status |
+| *"Do not discuss the rows with **the other annotator**"* | Disclosed that a second, parallel pass exists |
+| `\| **role** \| ``gold`` or ``probe`` \|` | Disclosed that a **reference pass** exists |
+
+Nothing else in the header moved: the five class names, the `decided_by` line, the `unresolved` line
+and the no-meaningful-order paragraph were already neutral and are byte-identical.
+
+| Reader-facing — [`../s2-reader-package/`](../s2-reader-package/) | `sha256` (LF, as committed) |
+|---|---|
+| [`00-READ-ME-FIRST.md`](../s2-reader-package/00-READ-ME-FIRST.md) — minimal instructions | `01b3b9f9…14d6cc0d` |
+| [`01-annotation-guideline-v1.md`](../s2-reader-package/01-annotation-guideline-v1.md) — **frozen `v1`, byte-exact from `da98e73`, unmodified** | `dd4fc273…684a433` |
+| [`02-annotation-sheet.md`](../s2-reader-package/02-annotation-sheet.md) — the `b9691ae` instrument, prose-revised | `0e3ffea8…97ae7128` |
+
+| Private — never handed to a reader, never linked from the package | Identity |
+|---|---|
+| [`../../datasheets/reservations/2026-09-05-s2-scoring-key.json`](../../datasheets/reservations/2026-09-05-s2-scoring-key.json) — **unchanged**, still the reconciliation map | as committed at `b9691ae` |
+| [`../../datasheets/reservations/2026-09-05-s2-reader-package-manifest.json`](../../datasheets/reservations/2026-09-05-s2-reader-package-manifest.json) — revision record only | internal seal `a4d5a66c…ba9f97a5` |
+
+The manifest holds **no item list, no row hash, no stratum, no D-2 class and no label** — the map
+already exists in the scoring key, and duplicating it would have created a second thing to keep
+private. The sheet at [`../specs/2026-09-05-s2-blind-reader-sheet.md`](../specs/2026-09-05-s2-blind-reader-sheet.md)
+is **unmoved and unmodified**; it never reaches the reader, whose handoff is a copy of the package
+directory.
+
+**D-5 — the `unresolved` box stays, and says nothing about how it scores.** The owner has not
+authorised a scoring treatment for an `unresolved` response. The reader can still mark it, no scoring
+semantics were added to `v1`, and the instructions make **no claim** about its treatment. A validator
+check enforces that and was demonstrated firing.
+
+**Frozen `v1` ships whole, and that is deliberate.** `v1` contains its own §6 catalogue and its §10
+thresholds. Excerpting either would hand the reader **a different instrument than the one §14 froze**,
+so the no-catalogue and no-threshold constraints bind **the sheet and the instructions**, where they
+are enforced and verified — not the guideline copy. **The reader therefore sees the §10 thresholds via
+`v1` itself.** Flagged for the owner; it is not resolvable without either amending `v1` or breaking
+byte-exactness, and **neither is done here.**
+
+**Line endings.** `core.autocrlf=true` on the owner's machine, and this repo had no `.gitattributes`.
+A clone would have CRLF-translated the packaged `v1` on checkout, so `sha256` of the reader's copy
+would **not** be `dd4fc273…684a433` and the freeze check would fail on a file that was in fact
+correct. A one-line `.gitattributes` marks `docs/s2-reader-package/**` as `-text`.
+
+**Validation** —
+[`../../tools/data-maturation/s2_reader_package_validate.py`](../../tools/data-maturation/s2_reader_package_validate.py),
+**14 checks, all PASS**: file set · `v1` byte-exactness · 20 item blocks · **blocks byte-identical to
+`b9691ae`** · every row a sealed `scored_batch` hash, once · no foreign row · 12 + 8 · item ids
+reconcile against the scoring key · no key material · no measurement term · **no D-5 scoring claim** ·
+private artefacts outside the package · manifest label-free · LF endings. The "no row outside the 20"
+check is **hash-set comparison**, never a read of the other 40 reserved rows.
+
+**Every check was demonstrated failing before the green run was believed** — 14 mutated throwaway
+copies: flipped `v1` byte · row block deleted · row text altered · an answer field added inside a
+block · foreign row substituted · items renumbered · `gold`/`probe` injected · a threshold disclosed ·
+a D-5 scoring treatment asserted · row hash leaked · source locator leaked · scoring key copied in ·
+manifest copied in · CRLF translation. **All 14 fired the expected check.**
+
+**Untouched:** frozen `v1` (still `dd4fc273…684a433`), the sealed S-0 snapshot and its seed, the
+scoring key, the `b9691ae` sheet, every Decision Outcome and Working Note, and the **119-vs-121 /
+155-vs-157 residual**.
+
+### Reader package translated to Vietnamese 2026-09-05 — PREPARED, **HANDOFF BLOCKED**
+
+The recruited readers satisfy the Q-2 conditions but **do not study IT or any technical subject**,
+and frozen `v1` is written in English. An instrument the reader cannot read measures reading
+comprehension, not guideline reproducibility, so the owner directed that the package be translated.
+The §10 test is still **not performed**, **no reader is recruited**, nothing was annotated,
+adjudicated or scored, and **no figure exists.**
+
+**Two independent blockers stand between this package and a reader.** Ruling on one does
+**not** clear the other.
+
+#### Blocker 1 — catalogue overlap. **Not a translation defect**
+
+Found by a shingle check while preparing this revision. **It was already present in the
+English package that validated 14 of 14 on 2026-09-05** — those checks did not cover it, and
+the translation neither caused it nor changed it.
+
+**Four of the twenty reserved rows are template-identical to entries in the frozen `v1` §6
+catalogue, differing only in the course name.**
+
+| Item | Frozen `v1` line | Similarity |
+|---|---|---|
+| `R-01` | 332 | 0.86 |
+| `R-09` | 265 | 0.83 |
+| `R-14` | 396 | 0.75 |
+| `R-16` | 256 | 0.83 |
+
+Those catalogue entries carry rulings. `00-READ-ME-FIRST.md` step 1 tells the reader to read the
+guideline **before** the sheet, so a reader can answer these four rows by **pattern-matching a
+worked example** rather than by applying the rules — and they are scored the same as any other row
+against the pre-registered TaskType threshold. **Agreement on them is therefore not evidence that
+the guideline reproduces a label.**
+
+**The derived labels are deliberately not recorded** — not here, not in the manifest, not in the
+report. The claim this record makes is the template match and nothing more.
+
+**Neither side is fixable from here.** `v1` is frozen under §14 and the 20-row batch is sealed under
+S-0; changing either is an owner decision. **The package must not be handed to a reader until this
+is ruled on.** §6 of the Vietnamese rendering is therefore **held untranslated**, since the ruling
+may change what §6 should say; the rendering says so in place and points at the English original.
+
+#### What was translated, and what was not
+
+| | |
+|---|---|
+| **Row text** | **Not translated.** It is the material under test, it is already Vietnamese, and one changed character changes what §10 measures. The 20 item blocks stay byte-identical to `b9691ae` |
+| **Frozen `v1`** | **Not translated in place.** Still byte-exact at `dd4fc273…684a433`, still the text with authority |
+| **The rendering** | New file beside `v1`, its own `sha256`, `derived_from` recorded in the manifest. **Unratified** |
+| **Reader prose** | Instructions, sheet header and footer — the package's own prose, never part of the instrument |
+
+**Fidelity over fluency.** S-2 measures whether **`v1`'s wording** reproduces, so a translation that
+disambiguates `v1` would delete the very defect the test exists to detect. No rule was added, no
+example was added, and **no ambiguity was resolved — `B-2` is rendered exactly as unclear as it is
+in the source.**
+
+**Terminology lock.** In English, the strings `B-2`/`B-4` decide on (`giữa kỳ`, `cuối kỳ`,
+`kiểm tra`, `đồ án`, `bài tập lớn`, `nhóm`) appear only as marked foreign quotations. In Vietnamese
+prose they are ordinary words that would happily turn up in an explanation, and **`B-4` acts on
+their mere presence** — so a careless sentence could move a lexical boundary. They therefore appear
+in the rendering **only inside code spans**, checked mechanically (C15); the surrounding prose uses
+non-matching wordings instead. The check **fired once during drafting** on a stray `nhóm`, which was
+reworded.
+
+| Reader-facing — [`../s2-reader-package/`](../s2-reader-package/) | `sha256` (LF, as committed) |
+|---|---|
+| [`00-READ-ME-FIRST.md`](../s2-reader-package/00-READ-ME-FIRST.md) — Vietnamese instructions | `05adbad5…444da38f` |
+| [`01-annotation-guideline-v1.md`](../s2-reader-package/01-annotation-guideline-v1.md) — **frozen `v1`, unmodified** | `dd4fc273…684a433` |
+| [`01b-huong-dan-tieng-viet.md`](../s2-reader-package/01b-huong-dan-tieng-viet.md) — rendering of `v1`, **unratified** | `5f8c4877…bd24e483` |
+| [`02-annotation-sheet.md`](../s2-reader-package/02-annotation-sheet.md) — the `b9691ae` instrument, Vietnamese prose | `a3c32814…daad96b5e` |
+
+The packaged `v1` still stages as git blob `0dbfc474…`, **the exact blob of frozen `v1` at
+`da98e73`**, and `git check-attr` confirms the `-text` rule now covers the rendering too.
+
+#### Blocker 2 — the rendering is unratified
+
+If the reader works from the rendering, then **the rendering is in practice the
+instrument**, and it has not been ratified the way `v1` was — `v1` was frozen precisely so
+that §10 measures a fixed target.
+The sheet's `guideline_version` still reads `v1`, because `v1` is what is being tested and certifying
+translation provenance is not the reader's job; the rendering's use is recorded in the manifest
+instead. **Ratification is required before handoff.**
+
+**D-5 unchanged.** The reader can still mark `unresolved`; neither the instructions, the sheet nor
+the rendering say how it scores, and no scoring semantics were added to `v1`.
+
+**Validation** — **17 checks, all PASS**, extended from 14. The three new ones are translation
+checks: **C15** trigger terms only inside code spans · **C16** the rendering mirrors `v1`'s 14
+sections · **C17** no reserved row text appears in the rendering, which guards the catalogue overlap
+above from being carried into a future §6 translation.
+
+**The English scans were the real risk and were fixed.** C9/C10/C11 were keyword lists over English
+prose; against a Vietnamese package they would have **passed vacuously**, proving only that the
+package contains no English. They now carry Vietnamese equivalents
+([`../../tools/data-maturation/s2_reader_terms_vi.py`](../../tools/data-maturation/s2_reader_terms_vi.py)),
+scoped to English parity rather than tighter — a Vietnamese list stricter than the English one it
+mirrors fired on correct prose during drafting and was loosened, not the file.
+
+**Every check was demonstrated failing before the green run was believed — 25 controls, all fired**,
+including a Vietnamese threshold disclosure, a Vietnamese D-5 claim in the instructions **and** the
+same claim in the rendering (proving C11 reaches the new file), a loose trigger term, a dropped
+section, an echoed reserved row, and a leaked row hash. **C13 had never been seen red in any earlier
+run**; it scans the private manifest, so it needed a control that mutates the real file and restores
+it — the restore is verified by `sha256` comparison.
+
+**Two real defects were caught by the controls, not by inspection.** `blocks_of()` cut the sheet on
+the English footer's words, so translating the footer made the instrument itself look changed
+(**C4 reported 19 of 20**); it now cuts on the closing `---` rule. And the first Vietnamese term list
+was stricter than its English counterpart, firing on the legitimate instruction not to look for
+answers.
+
+**Untouched:** frozen `v1`, the sealed S-0 snapshot and its seed, the scoring key, the `b9691ae`
+sheet, `s2_materialize.py`, every Decision Outcome and Working Note, and the **119-vs-121 /
+155-vs-157 residual**.
+
+
+
 ---
 
 ## 9. Revision record
