@@ -65,3 +65,36 @@ its shared-label vs third-pass-forced composition. That composition is a **requi
 to every S-2 figure — never a selection or exclusion criterion.**
 
 **The 119-vs-121 / 155-vs-157 residual remains sealed and unresolved.** Nothing in S-2 touches it.
+
+---
+
+## Vietnamese rendering — ratified 2026-09-05
+
+**Appended after the 2026-09-04 freeze. Nothing above is changed** — `v1` is still the frozen text and
+its anchor is exactly as recorded.
+
+Under **`D-8`** the Vietnamese rendering is the instrument the §10 test is performed on, and **both
+passes use it**: the owner's Gold pass and the reader's blind pass. **The owner read it through on
+2026-09-05 and ratified it as pass.**
+
+| | |
+|---|---|
+| **Path** | [`../s2-reader-package/01b-huong-dan-tieng-viet.md`](../s2-reader-package/01b-huong-dan-tieng-viet.md) |
+| **`sha256`** | `3b1dbd249f3dce248b4ae0a73d5ea5ae45bada33b614d233e01c8ec6a07ca61c` |
+| **Derived from** | frozen `v1`, `dd4fc273…684a433` |
+| **Ratified** | owner, 2026-09-05, by read-through |
+| **Was `v1` modified?** | **No.** A byte-exact copy ships beside the rendering |
+
+**Verifiable rather than asserted**, on the same terms as `v1`'s own anchor: recompute the hash and
+compare.
+
+**One deliberate divergence, ruled under `D-9`.** The §6 catalogue's per-entry `sha256`, source
+`file:line` locators and historical pass-label / Difficulty line are **absent from the rendering**;
+every example row and all commentary are present. The divergence is metadata-only, is stated inside
+the rendering itself, and is enforced by validator check `C18`.
+
+**Scope that travels with every figure produced.** The §10 result measures **reproducibility of `v1`
+as rendered in Vietnamese** — not of the English text in isolation.
+
+**What ratification does not do.** It does not perform the test, does not recruit a reader, and does
+not lift DFD-2. **Every gate above stands exactly as it was.**

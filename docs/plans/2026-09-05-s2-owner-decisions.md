@@ -107,9 +107,10 @@ in Vietnamese.**
 **`v1` itself is unchanged** — byte-exact at `dd4fc273…684a433`, still shipped, still the text with
 authority where the two are read against each other.
 
-**Outstanding, and blocking.** The owner has **not yet read the rendering through.** Ratification is
-that read-through plus recording the rendering's `sha256` in the freeze record beside `v1`'s. **Until
-that happens the package is not handed to a reader.**
+**Discharged 2026-09-05.** The owner **read the rendering through and ratified it as pass.** Its
+anchor — `sha256` `3b1dbd249f3dce248b4ae0a73d5ea5ae45bada33b614d233e01c8ec6a07ca61c` — is recorded in the
+[`v1` freeze record](2026-09-04-s2-v1-freeze-record.md), so the ratification is verifiable rather
+than asserted.
 
 ## `D-9` — the catalogue's provenance metadata is stripped from the rendering
 
@@ -132,9 +133,11 @@ still ships beside the rendering byte-exact. **Enforced by validator check `C18`
 
 | Open | Owner action |
 |---|---|
-| **Ratification of the rendering** (`D-8`) | Read it through, then record its `sha256` in the freeze record |
-| **Reader recruitment** | Q-2 establishes that a network exists; it assigns nobody (`v1` §14) |
-| **The §10 test** | Not performed, and not to be started before the two rows above |
+| ~~Ratification of the rendering (`D-8`)~~ | **Done 2026-09-05** — read through, ratified as pass, anchor recorded |
+| **Reader recruitment** | Q-2 establishes that a network exists; it assigns nobody (`v1` §14). **No AI substitute** (S-2.2) |
+| **The §10 test** | Not performed, and not to be started before a reader is recruited |
+
+**Reader recruitment is now the only thing between here and the test.**
 
 ## Decisions made in producing this record
 

@@ -1564,6 +1564,27 @@ Reader recruitment remains a separate owner action.
 file, not in the manifest. The owner performs the Gold pass, so writing them into a working record
 would prime the pass they anchor.
 
+### Rendering ratified 2026-09-05 — `D-8` discharged
+
+**The owner read the Vietnamese rendering through and ratified it as pass.** Its anchor — `sha256`
+`3b1dbd24…a07ca61c` — is recorded in the
+[`v1` freeze record](2026-09-04-s2-v1-freeze-record.md) beside `v1`'s own, so the ratification is
+**verifiable rather than asserted**: recompute the hash and compare. Frozen `v1` is untouched by
+this; it still ships byte-exact at `dd4fc273…684a433`.
+
+**What that settles.** The instrument for the §10 test is now fixed and ratified, and under `D-8`
+**both passes run on it** — so translation is not an uncontrolled variable between the Gold pass and
+the reader's. Every figure produced carries the scope *"reproducibility of `v1` as rendered in
+Vietnamese."*
+
+**What it does not settle.** Ratification does not perform the test, does not recruit a reader, and
+**does not lift DFD-2** — that gate stays shut until the §10 test passes, per the 2026-09-04 ruling.
+
+**Reader recruitment is now the only prerequisite left.** Q-2 establishes that a bounded network
+*exists*; it assigns nobody, it is owner action, and **no AI substitute is permitted** (S-2.2). Until
+a reader is recruited, §10 cannot begin.
+
+
 
 
 

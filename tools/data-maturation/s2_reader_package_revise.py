@@ -201,8 +201,9 @@ def main():
     man["event"] = "S-2 reader package revision - Vietnamese"
     man["status"] = ("Package PREPARED. The section-10 reproducibility test is NOT performed, no "
                      "reader is recruited, nothing was annotated, adjudicated or scored, and no "
-                     "figure exists. Both blockers are RULED (D-7, D-8); handoff still needs the "
-                     "owner's own verification of the rendering under D-8.")
+                     "figure exists. Both blockers are RULED and discharged: the owner read the "
+                     "rendering through and ratified it as pass on 2026-09-05. Reader recruitment "
+                     "is the only remaining prerequisite.")
     man["authority"] = ["owner authorisation 2026-09-05 (revise the reader package)",
                         "owner instruction 2026-09-05 (translate the package to Vietnamese)",
                         "S-2.2", "S-2.12",
@@ -269,9 +270,8 @@ def main():
                                "between them."),
         ("scope_that_travels_with_every_figure",
          "reproducibility of v1 AS RENDERED IN VIETNAMESE"),
-        ("outstanding", "The owner has not yet read the rendering through. Ratification is that "
-                        "read-through plus recording the rendering's sha256 in the freeze "
-                        "record. Until then the package is not handed to a reader."),
+        ("discharged", "owner read the rendering through and ratified it as pass, 2026-09-05; "
+                       "anchor recorded in the v1 freeze record"),
     ])
     man["d9_provenance_strip"] = OrderedDict([
         ("ruled", "owner, 2026-09-05"),
@@ -317,10 +317,11 @@ def main():
         ("frozen_v1_modified", False),
         ("authority", "v1 governs. The rendering is a reading aid and is stated as such in its "
                       "own header and in 00-READ-ME-FIRST.md."),
-        ("ratified", False),
-        ("owner_decision_required",
-         "If the reader works from the rendering then the rendering is in practice the "
-         "instrument, and it is unratified. It needs owner ratification before handoff."),
+        ("ratified", True),
+        ("ratified_by", "owner, 2026-09-05, by read-through"),
+        ("ratification_anchor", "docs/plans/2026-09-04-s2-v1-freeze-record.md, section "
+                                "'Vietnamese rendering - ratified 2026-09-05'"),
+        ("ratified_sha256", "3b1dbd249f3dce248b4ae0a73d5ea5ae45bada33b614d233e01c8ec6a07ca61c"),
         ("sections_mirrored", sections),
         ("section_6", "Rendered in full - 19 entries, every example row verbatim, all "
                        "commentary translated - with the provenance lines removed under D-9. The "
