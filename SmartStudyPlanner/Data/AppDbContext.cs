@@ -120,8 +120,10 @@ namespace SmartStudyPlanner.Data
         // 4. SINGLE STAMPING SEAM (Epic 1 / D-I, M1.1 scope): every write across the 9
         // repositories + App.xaml.cs routes through DbSet Add/Update/Remove into one of these
         // two overloads (SaveChanges()/SaveChangesAsync() are non-virtual wrappers around them).
-        // No production entity implements ISyncMetadata yet (M1.2's T1.1), so this is currently
-        // a no-op pass-through for all real writes — see SyncMetadataStampingTests for coverage.
+        // All six synced entities (HocKy, MonHoc, StudyTask, StudyLog, TaskNote,
+        // TaskReferenceLink — shipped in M1.2/M1.3) implement ISyncMetadata and get stamped
+        // here; SyncBaseSnapshotRow deliberately does not (see its own doc comment) and is
+        // skipped — see SyncMetadataStampingTests for coverage.
         public override int SaveChanges(bool acceptAllChangesOnSuccess)
         {
             SyncStamper.Apply(ChangeTracker, Clock, DeviceIdProvider());

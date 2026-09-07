@@ -30,11 +30,17 @@ namespace SmartStudyPlanner.Tests.Data
 
         private sealed record ColumnInfo(string Name, string Type, bool NotNull);
 
-        private static List<ColumnInfo> ColumnInfos(SqliteConnection conn, string table)
+        // SQLite's PRAGMA statements don't accept bound parameters for identifiers (only
+        // SqliteParameter values can be bound — see TableCount above for that case), so the
+        // table name can't be parameterized here. Hardcoded to the one table this class
+        // tests, instead of taking a variable `table` argument, so there's no
+        // string-interpolated-identifier pattern for a SAST scanner to (correctly, in
+        // general, just not here) flag as an injection shape.
+        private static List<ColumnInfo> ColumnInfos(SqliteConnection conn)
         {
             var result = new List<ColumnInfo>();
             using var cmd = conn.CreateCommand();
-            cmd.CommandText = $"PRAGMA table_info({table})";
+            cmd.CommandText = "PRAGMA table_info(SyncBaseSnapshots)";
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
@@ -118,7 +124,7 @@ namespace SmartStudyPlanner.Tests.Data
             var connEf = TestDb.OpenConnection();
             using var _ef = connEf;
             using (var seed = TestDb.Create(connEf)) { /* EnsureCreated builds SyncBaseSnapshots from the EF model */ }
-            var efColumns = ColumnInfos(connEf, "SyncBaseSnapshots");
+            var efColumns = ColumnInfos(connEf);
 
             var connRaw = TestDb.OpenConnection();
             using var _raw = connRaw;
@@ -127,7 +133,7 @@ namespace SmartStudyPlanner.Tests.Data
                 db.Database.ExecuteSqlRaw("DROP TABLE SyncBaseSnapshots");
                 SyncBaseSnapshotSchema.EnsureTable(db);
             }
-            var rawColumns = ColumnInfos(connRaw, "SyncBaseSnapshots");
+            var rawColumns = ColumnInfos(connRaw);
 
             // Guard against a vacuous pass (e.g. both sides silently returning zero rows
             // because of a wrong table name or a PRAGMA quirk) — pin the expected column
