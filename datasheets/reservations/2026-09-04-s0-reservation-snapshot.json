@@ -1,0 +1,1331 @@
+{
+  "event": "S-0 reservation",
+  "authority": [
+    "S-1.2",
+    "S-1.6",
+    "S-2.3",
+    "S-2.5",
+    "S-2.6",
+    "S-2.10/H1",
+    "S-2.10/H3",
+    "owner ruling 2026-09-04 (pool)"
+  ],
+  "pre_registration": "docs/plans/2026-09-04-s0-reservation-preregistration.md",
+  "identity_key": "sha256(input_text, utf-8); occurrences give source file + line",
+  "master_contested_pool": {
+    "distinct_rows": 133,
+    "strata": {
+      "both": 22,
+      "cross_only": 14,
+      "third_only": 97
+    },
+    "note": "133 distinct rows. 157 is a count of contested appearances and is not a pool size; the two dimensions are never added or equated."
+  },
+  "difficulty_spread_universe": {
+    "rows": 895,
+    "levels_present": {
+      "1": 30,
+      "2": 156,
+      "3": 530,
+      "4": 77,
+      "5": 102
+    },
+    "v1_threshold_governs": [
+      "3",
+      "4",
+      "5"
+    ],
+    "note": "Levels 1-2 are represented so the batch spans the range, but the v1 Difficulty threshold does not govern them (S-2.3)."
+  },
+  "partitions": {
+    "scored_batch": [
+      {
+        "hash": "0074b8af5a8cc2b82d3206df68b36da828029844d4f935c8cd5ae110d376836f",
+        "kind": "difficulty_spread",
+        "difficulty": "4",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 651
+          },
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 708
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 651
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 708
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 672
+          }
+        ]
+      },
+      {
+        "hash": "008a0a56681950dd0dc0e5a6d1519c7dbd0c295175fb3f6a94e5c8134e1b9940",
+        "kind": "difficulty_spread",
+        "difficulty": "3",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 1165
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 1165
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 147
+          }
+        ]
+      },
+      {
+        "hash": "008e760c4da5b48854d97cb32bfcb8ebda31b7a72b4ff71fe822e328b937a19f",
+        "kind": "difficulty_spread",
+        "difficulty": "2",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 941
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 941
+          }
+        ]
+      },
+      {
+        "hash": "01036a414bf9536bcb7d337022493b15469114565bbc81a97dbb61f29d9ccc32",
+        "kind": "difficulty_spread",
+        "difficulty": "3",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 422
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 422
+          }
+        ]
+      },
+      {
+        "hash": "01e7990db7cccf7af046b1285d768fa95670ad78af4cde7adaa9222ec4527c5a",
+        "kind": "difficulty_spread",
+        "difficulty": "5",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 766
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 766
+          }
+        ]
+      },
+      {
+        "hash": "032a983ecd43227412edc7f9f22ebcaabaf2f357567673eb997142ea9b2367b9",
+        "kind": "contested",
+        "stratum": "cross_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 358
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 358
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 23
+          }
+        ]
+      },
+      {
+        "hash": "0330dc2a8982c8577c37a40ef722051d15d85844dadba2fd4030e3fcc42a0e38",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 435
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 435
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 476
+          }
+        ]
+      },
+      {
+        "hash": "04e826910a3956dfd598fdd04de1e24780258c0425f2ab034b9bc5d809ee6604",
+        "kind": "difficulty_spread",
+        "difficulty": "1",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 1302
+          },
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 1332
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 1302
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 1332
+          }
+        ]
+      },
+      {
+        "hash": "056f2e2f0aa94a33e7d00b4ae698b7e9741980a1d2c0b3340c910b1b375f3a5b",
+        "kind": "difficulty_spread",
+        "difficulty": "5",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 770
+          },
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 806
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 770
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 806
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 415
+          }
+        ]
+      },
+      {
+        "hash": "063c9a360e706637fbd7cbc305a20075784f8f0662e69b78adbc58b60f82c30d",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 884
+          },
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 1001
+          },
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 1018
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 884
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 1001
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 1018
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 215
+          }
+        ]
+      },
+      {
+        "hash": "06a0a2537fa6cdcc505cffd32f386e927938f39e3a37bf46cd179588b754229a",
+        "kind": "contested",
+        "stratum": "both",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 397
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 397
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 70
+          }
+        ]
+      },
+      {
+        "hash": "0757314816b5adff768316a596e6082659d681e14fd9c5e328642636c593480b",
+        "kind": "difficulty_spread",
+        "difficulty": "4",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 843
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 843
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 632
+          }
+        ]
+      },
+      {
+        "hash": "08a2c65798bb576588db8eb43786fed8ad605a7a694997dbd1b5cc694c8142f4",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 986
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 986
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 156
+          }
+        ]
+      },
+      {
+        "hash": "08f67bf039cb428523dca18b315530e62a59cf11bcd075b44d42239b650c13c1",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 163
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 163
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 216
+          }
+        ]
+      },
+      {
+        "hash": "0b7f6605867d1c747a6d75924c61572da0fe810ac36ee9dacabcf8c7e8d7b0cc",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 503
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 503
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 303
+          }
+        ]
+      },
+      {
+        "hash": "0ca29c6db58b71ff25f3c8b2c468237c5dc49c15da0ae2bcf2172056d962d5f8",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 1007
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 1007
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 390
+          }
+        ]
+      },
+      {
+        "hash": "0e188b3e0deaa37744900984b928cbc28e793204fa6e01904986c5ba7975b826",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 342
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 342
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 417
+          }
+        ]
+      },
+      {
+        "hash": "1163767278d2f0fb21ef35b9ca3a01509636a6c62813a1e37759253004f6ca57",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 440
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 440
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 702
+          }
+        ]
+      },
+      {
+        "hash": "12a026d60093d2ae387a3084c446a41865744b1ee97b65d8ad9bbf4def6b2704",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 1008
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 1008
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 482
+          }
+        ]
+      },
+      {
+        "hash": "287f69bccfedbe1ff2d6862c8badba1630cdc831cefd592d87d49ad62f296ed0",
+        "kind": "contested",
+        "stratum": "both",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 301
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 301
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 240
+          }
+        ]
+      }
+    ],
+    "q1_timed_adjudication_batch": [
+      {
+        "hash": "0fb5a94e5284b954b238753d189a36492227d669b6f1d8d11003a1aaf2b857c6",
+        "kind": "contested",
+        "stratum": "cross_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 463
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 463
+          }
+        ]
+      },
+      {
+        "hash": "12c9b03292eb34c7e28683054085c07d7bef87c2ccbb06e66852d87f411593cd",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 357
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 357
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 616
+          }
+        ]
+      },
+      {
+        "hash": "12ce239f4bfcdbd4029a54bbaa3afb1866a4be0a779077d3141d6c2de099656e",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 291
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 291
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 981
+          }
+        ]
+      },
+      {
+        "hash": "150af928cb7c706a17efa3ea7abf16d96711f21faa01834ff9f679f11b2a8f33",
+        "kind": "contested",
+        "stratum": "cross_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 339
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 339
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 997
+          }
+        ]
+      },
+      {
+        "hash": "1596721ceb6699913c421b544cb9020ddf708a5b5e6bb39614b98780d14e384d",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 401
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 401
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 320
+          }
+        ]
+      },
+      {
+        "hash": "15a059408870e3db6870905f6eecaefc157e131cfadb5701e3be7ab593806dd5",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 968
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 968
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 270
+          }
+        ]
+      },
+      {
+        "hash": "1c1ae2f001030723b788b5e3d0af4b1d8e758480cf7ff3702fc051f52f61970c",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 374
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 374
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 624
+          }
+        ]
+      },
+      {
+        "hash": "20e74ce9599318f7486ecabbdabf4d51f2dd6d8b0b910d5adaeb91c21bfa680d",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 505
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 505
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 783
+          }
+        ]
+      },
+      {
+        "hash": "24b25a1015d1908e5d3edf5407a64cbbeb9a3df866f844afbff2c889d8842c89",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 449
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 449
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 870
+          }
+        ]
+      },
+      {
+        "hash": "2593f1f744afdb4fb7be719d6e5fb4c5d8dbf13e47e6479c088c24b33005d1c4",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 402
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 402
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 221
+          }
+        ]
+      },
+      {
+        "hash": "28f9d684337bf845e5399d8146c3cdaab484d4b769b05c9118293552c8f285a3",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 383
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 383
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 225
+          }
+        ]
+      },
+      {
+        "hash": "29447bc82fc99288bb57144b11be6289d963140dca30505fedff01efcc20dcb2",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 900
+          },
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 917
+          },
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 920
+          },
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 956
+          },
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 964
+          },
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 978
+          },
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 994
+          },
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 1011
+          },
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 1017
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 900
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 917
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 920
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 956
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 964
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 978
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 994
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 1011
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 1017
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 16
+          }
+        ]
+      },
+      {
+        "hash": "2a0de674358d5fbc4bf2d3f9fe52bd2582bb125f78fe80cef1fb64eabde45bd3",
+        "kind": "contested",
+        "stratum": "both",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 331
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 331
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 10
+          }
+        ]
+      },
+      {
+        "hash": "30708e79ea18f55bf005ae1ba3b88ae02aa7e56c38928fc90471fc5e98b79a21",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 105
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 105
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 414
+          }
+        ]
+      },
+      {
+        "hash": "30bc6985a09628d8bdce59441cc3b2ff0d3c81b0f05232d221460096af68686c",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 412
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 412
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 539
+          }
+        ]
+      },
+      {
+        "hash": "318f20b2866e0cf0a11d2a80baef170ea8c5b0ca434534feb8a8ca6a0eb0f869",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 469
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 469
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 523
+          }
+        ]
+      },
+      {
+        "hash": "35dd91621eec7f84ef91862f3ebadc0980b7888575bee2f5609f236656a55550",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 392
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 392
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 271
+          }
+        ]
+      },
+      {
+        "hash": "393eacfae9b2ef1d7bee43efa8c48e1b20d1cffaefdc446d23cd0bb3c9ad5d91",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 948
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 948
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 683
+          }
+        ]
+      },
+      {
+        "hash": "39455e62cf81823493af77fd822766910ea95674178b31cc00fda125019dfe5c",
+        "kind": "contested",
+        "stratum": "both",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 431
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 431
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 725
+          }
+        ]
+      },
+      {
+        "hash": "3c34ae6d4f3f0c012cd90d82ea23bae738dc21da6b856a5ad5f3df85eccb4cd4",
+        "kind": "contested",
+        "stratum": "both",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 445
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 445
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 400
+          }
+        ]
+      }
+    ],
+    "clean_retest_batch": [
+      {
+        "hash": "01714ae8c488abf16656bd8bf25d65626441d88b43ca3ec54fe6b837f795bfe1",
+        "kind": "difficulty_spread",
+        "difficulty": "3",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 68
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 68
+          }
+        ]
+      },
+      {
+        "hash": "019413b5e51f2c5563c3fe73fd1aa7c53249d5aacc1aedaee2f93100cfade715",
+        "kind": "difficulty_spread",
+        "difficulty": "3",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 169
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 169
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 518
+          }
+        ]
+      },
+      {
+        "hash": "02a2d2f3b4d21e0477b3fe92d97e80ea152f1a74f912d48ceef5f5934f01fb63",
+        "kind": "difficulty_spread",
+        "difficulty": "2",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 1234
+          },
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 1266
+          },
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 1281
+          },
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 1284
+          },
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 1304
+          },
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 1360
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 1234
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 1266
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 1281
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 1284
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 1304
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 1360
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 34
+          }
+        ]
+      },
+      {
+        "hash": "07feb11b4414126ad52597008f594bed385b3775b0e449a7efc565bd4ffdcdc9",
+        "kind": "difficulty_spread",
+        "difficulty": "4",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 840
+          },
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 868
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 840
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 868
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 41
+          }
+        ]
+      },
+      {
+        "hash": "0a0dbcfc1a1224b21ef020334548acba12868cdf3a24cb4468f715625e5fd8ca",
+        "kind": "difficulty_spread",
+        "difficulty": "5",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 599
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 599
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 877
+          }
+        ]
+      },
+      {
+        "hash": "0a20bf7f80778ac70f365677d017f124151b4e55810bc3906ae74e63907756b2",
+        "kind": "difficulty_spread",
+        "difficulty": "4",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 657
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 657
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 948
+          }
+        ]
+      },
+      {
+        "hash": "0c536c3212ec2d4ae930c0fbf9eed22cb21bdf1b6d07605a33697c390aacac14",
+        "kind": "difficulty_spread",
+        "difficulty": "5",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 1070
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 1070
+          }
+        ]
+      },
+      {
+        "hash": "160df06b44508ed018b6119e447b5638c40474f15a7f82b84e61a343fb754bd7",
+        "kind": "difficulty_spread",
+        "difficulty": "1",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 1252
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 1252
+          }
+        ]
+      },
+      {
+        "hash": "3abcb685ca14b5c155f6aec29719ce4c0c2ab8114814bef6dcc91c9809b2d15f",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 437
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 437
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 611
+          }
+        ]
+      },
+      {
+        "hash": "3fc2f99827e11ac089f717c6581dde5b230518898963ad4c8c132810bccfd850",
+        "kind": "contested",
+        "stratum": "both",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 302
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 302
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 526
+          }
+        ]
+      },
+      {
+        "hash": "42951cb7627c0696015cf1b1735cf4164f3d601512b05fce5b9a08afa7021058",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 423
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 423
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 135
+          }
+        ]
+      },
+      {
+        "hash": "42af2c2282689bbdc08660bbdd621ae31839689d0327cb80ce142f263f944de0",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 901
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 901
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 623
+          }
+        ]
+      },
+      {
+        "hash": "4303e42c9eb7d20a175e3d7f686870ec361b0e3c663fe33ec3fab3757c9d7729",
+        "kind": "contested",
+        "stratum": "both",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 450
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 450
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 595
+          }
+        ]
+      },
+      {
+        "hash": "4654ddc2cc8f102439b0f9d4528b0a34f451462926653dd76c47045d841304b4",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 433
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 433
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 995
+          }
+        ]
+      },
+      {
+        "hash": "467466c345369c4abd26327c72ac4a7b250906e77cb5b12a78ee1cb074264655",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 413
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 413
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 405
+          }
+        ]
+      },
+      {
+        "hash": "47bceed226358cec250120e753af7bb17bd54aaf0bf4ba189c1c501df0bbccef",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 391
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 391
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 71
+          }
+        ]
+      },
+      {
+        "hash": "4900c6181510f96657433be0b17be72daa40d57199f73dabaf8890b9353c82b6",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 534
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 534
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 711
+          }
+        ]
+      },
+      {
+        "hash": "4d1f44e02cc316bdd62157bc5776a71198e0e67530ef59d5b69309bd1cca4eaa",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 930
+          },
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 987
+          },
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 1003
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 930
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 987
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 1003
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 166
+          }
+        ]
+      },
+      {
+        "hash": "568b5f9fcd583c4c191a458af3041337155ae523bad8b1a7b6484e947b3dd5cd",
+        "kind": "contested",
+        "stratum": "third_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 448
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 448
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 19
+          }
+        ]
+      },
+      {
+        "hash": "5c55da578e7639a1200ea938a97a0ab0b321685b05c0e18665d2b6fa7c4d859c",
+        "kind": "contested",
+        "stratum": "cross_only",
+        "occurrences": [
+          {
+            "file": "datasheets/normalized_dataset.csv",
+            "line": 330
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a.csv",
+            "line": 330
+          },
+          {
+            "file": "datasheets/normalized_dataset_m8a_uniform.csv",
+            "line": 907
+          }
+        ]
+      }
+    ]
+  },
+  "reserved_total": 60,
+  "timestamp": "2026-09-04T16:48:19+07:00",
+  "pre_registration_commit": "ed1a07572d708fbb7406f0bed5e81c46d2c9a7b9",
+  "seal": {
+    "algorithm": "sha256 over this document with the seal field absent",
+    "value": "5b4a0eae142d6bc9f513580ef9cb3e68d3aaa18a47b02e5b32e91c7aaddb0923"
+  }
+}
