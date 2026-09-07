@@ -185,7 +185,8 @@ ML SHOULD:
 
 # 5. Allowed ML Models
 
-The system should initially contain ONLY 2 ML submodels maximum.
+The system should initially contain ONLY 2 ML submodels maximum — counted by **deployed model
+artifact**, not by prediction head; see §10 *"Unit of the cap"*.
 
 ---
 
@@ -254,6 +255,11 @@ The Smart Parser is ML-first.
 
 Heuristics MAY validate parser output,
 but parsing intelligence should primarily rely on ML/NLP.
+
+> **Precedence** *(added 2026-08-24)*. Where this "ML-first" framing and §6's advisory/fallback
+> policy diverge, **§6 governs**: every ML output stays advisory, and below the confidence gate the
+> heuristic result is authoritative. "ML-first" describes where ML takes precedence **when
+> confident** — it is not an exemption from §6. See [`2026-08-24-neural-encoder-smart-parser.md`](2026-08-24-neural-encoder-smart-parser.md) §2.4.
 
 ---
 
@@ -451,7 +457,7 @@ Telemetry is used for:
 
 DO NOT:
 
-* introduce deep learning
+* introduce deep learning — **except** under the narrow exception in §9.1
 * create autonomous AI scheduling
 * build self-modifying planners
 * tightly couple ML with planner core
@@ -464,6 +470,34 @@ The system should remain:
 * maintainable
 * explainable
 * testable
+
+---
+
+## 9.1 Narrow exception — frozen pretrained encoders
+
+*Amended 2026-08-24 under PD-1. Rationale and guardrail derivation:
+[`../plans/2026-08-24-edge-ai-encoder-adoption.md`](../plans/2026-08-24-edge-ai-encoder-adoption.md).*
+
+**Deep learning remains prohibited.** One narrow exception applies:
+
+> Frozen, pretrained neural encoders may be used as feature extractors / featurizers inside existing
+> prediction pipelines, provided the decision layer remains linear or deterministic and the existing
+> confidence / fallback and offline-first architecture is preserved.
+
+The exception holds only when **all eight** guardrails hold:
+
+1. Frozen only.
+2. No fine-tuning at runtime or on-device.
+3. The encoder is a feature extractor, never an autonomous decision-maker.
+4. The linear / deterministic decision layer remains authoritative.
+5. The confidence and fallback policy of §6 remain in force.
+6. Offline-first inference is preserved.
+7. The deployed-artifact limits of §10 continue to apply.
+8. This exception confers **no** general permission for model sprawl, generative SLMs, or autonomous
+   deep-learning components.
+
+The default remains **prohibited**. Anything outside these terms is a new owner decision, not an
+extension of this one.
 
 ---
 
@@ -497,6 +531,23 @@ Priority:
 
 1. Smart Parser
 2. Performance Predictor
+
+### Unit of the cap
+
+*Amended 2026-08-24 under PD-2. Rationale:
+[`../plans/2026-08-24-edge-ai-encoder-adoption.md`](../plans/2026-08-24-edge-ai-encoder-adoption.md).*
+
+The cap counts **deployed model artifacts**, not prediction heads. One shared frozen encoder serving
+task-type, difficulty, and temporal heads counts as **one** artifact.
+
+Prediction heads are **not** unlimited. Two axes govern separately:
+
+* **artifact count** — governs deployment, runtime, maintenance, and asset surface
+* **capability / head count** — governs product scope and model responsibility
+
+**Each new prediction capability requires explicit owner approval through its own proposal**,
+whatever the artifact count says. A shared encoder must not be used as a loophole for adding heads
+silently.
 
 ---
 

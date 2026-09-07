@@ -1,0 +1,161 @@
+{
+  "_note": "Vocabulary reach of the synthetic training set over the real test set. Measures the shape of the evidence; changes nothing about the split (EVA-04).",
+  "train_rows": 698,
+  "test_rows": 205,
+  "train_vocabulary_size": 934,
+  "test_token_count": 1604,
+  "test_tokens_unseen_in_train": 401,
+  "test_tokens_unseen_pct": 25.0,
+  "test_tokens_unseen_diacritic_insensitive": 373,
+  "test_tokens_unseen_diacritic_insensitive_pct": 23.3,
+  "test_rows_with_at_least_one_unseen_token": 194,
+  "test_rows_with_unseen_pct": 94.6,
+  "most_common_unseen_tokens": [
+    [
+      "bt",
+      54
+    ],
+    [
+      "tgk",
+      28
+    ],
+    [
+      "t6",
+      8
+    ],
+    [
+      "25",
+      6
+    ],
+    [
+      "28",
+      6
+    ],
+    [
+      "xỉu",
+      5
+    ],
+    [
+      "24",
+      4
+    ],
+    [
+      "26",
+      4
+    ],
+    [
+      "29",
+      4
+    ],
+    [
+      "27",
+      4
+    ],
+    [
+      "mt",
+      3
+    ],
+    [
+      "oop",
+      3
+    ],
+    [
+      "tc",
+      3
+    ],
+    [
+      "23",
+      3
+    ],
+    [
+      "attt",
+      3
+    ],
+    [
+      "vxl",
+      3
+    ],
+    [
+      "pt",
+      3
+    ],
+    [
+      "tkht",
+      3
+    ],
+    [
+      "trr",
+      3
+    ],
+    [
+      "linux",
+      3
+    ],
+    [
+      "qtm",
+      3
+    ],
+    [
+      "big",
+      3
+    ],
+    [
+      "cloud",
+      3
+    ],
+    [
+      "blockchain",
+      3
+    ],
+    [
+      "hc",
+      3
+    ],
+    [
+      "qtnl",
+      3
+    ],
+    [
+      "huống",
+      3
+    ],
+    [
+      "kt",
+      3
+    ],
+    [
+      "21",
+      3
+    ],
+    [
+      "cnxhkh",
+      2
+    ]
+  ],
+  "domain_abbreviations": {
+    "tgk": {
+      "train_occurrences": 0,
+      "test_rows_containing": 28
+    },
+    "btvn": {
+      "train_occurrences": 1,
+      "test_rows_containing": 1
+    },
+    "xstk": {
+      "train_occurrences": 1,
+      "test_rows_containing": 4
+    },
+    "csdl": {
+      "train_occurrences": 4,
+      "test_rows_containing": 4
+    },
+    "ktvm": {
+      "train_occurrences": 2,
+      "test_rows_containing": 2
+    },
+    "ktct": {
+      "train_occurrences": 1,
+      "test_rows_containing": 2
+    }
+  }
+}

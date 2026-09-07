@@ -64,6 +64,11 @@ support**: the held-out minority sets grew (ThiGiuaKy 17→37, BaiTapVeNha 25→
 DoAnCuoiKy 26→36), so the recall estimate for exactly the thin, test-guarded classes
 is now far more reliable — which was the stated purpose of v4. §7.3 closed.
 
+> ***"far more reliable"* — as written 2026-06-25; re-scoped 2026-08-26.** All of that added support
+> came from `collected_v4`, now established as AI-generated and AI-labelled. The estimate became more
+> *precise about one authoring process*, not more reliable about student input. See the Amendment at
+> the end of this report.
+
 ## Limitations (read before trusting absolute numbers)
 
 - **The ~97% absolute accuracy is optimistic, not a clean generalization figure.**
@@ -86,3 +91,46 @@ is now far more reliable — which was the stated purpose of v4. §7.3 closed.
 - `rtk dotnet build SmartStudyPlanner.slnx` + `rtk dotnet test --no-build` →
   unchanged at 0 errors / 244 pass (tool is outside the solution).
 - Temp `_seed_v698.csv` was deleted after the run (not committed).
+
+---
+
+## Amendment, 2026-08-26 — `collected_v4` is not real data
+
+**Provenance grade: ruling, not measurement.** Owner recall on 2026-08-26 established that
+`datasheets/collected_v4.csv` was produced as *owner templates/examples → Meta AI generation → GitHub
+Copilot labelling*. No collection record exists in or out of the repository, and no artifact
+corroborates the recall — but it agrees with seven independently measured distributional regularities
+and an exact quota match. The repository holds **zero verified real user rows**.
+
+Ruling: [`../plans/2026-08-26-data-foundation-owner-decision-handoff.md`](../plans/2026-08-26-data-foundation-owner-decision-handoff.md) (**DFD-1**) ·
+Evidence: [`2026-08-25-data-audit-gap-map.md`](2026-08-25-data-audit-gap-map.md) §E.5–E.6,
+[`2026-08-26-data-foundation-owner-decision-brief.md`](2026-08-26-data-foundation-owner-decision-brief.md) §2 ·
+Pass record: [`2026-08-26-data-foundation-correction-pass.md`](2026-08-26-data-foundation-correction-pass.md)
+
+**Every description of `collected_v4` in this document as *real*, *collected* or *user-authored* is
+withdrawn.** The load-bearing occurrences are marked in place above. The remainder are deliberately
+**not** individually edited: rewriting them would erase what was believed when this document was
+written, which is precisely what the amendment convention exists to preserve. Read the whole document
+through this amendment.
+
+### What stands
+
+- **The method.** A stratified 80/20 split mirroring the production pipeline, deterministic, with
+  per-class tallies. The 2026-08-25 audit examined it and found no fault.
+- **The comparison this report was commissioned to make.** *"Minority recall did not regress"* —
+  MacroAccuracy identical at 97.25 % before and after. Both models were measured over the same corpus,
+  so the **relative** result does not depend on that corpus being real. §7.3 stays closed.
+- **This report's own Limitations section**, which was correct when written: the ~97 % absolute figure
+  is optimistic because the seed holds templated near-duplicates and the split is random *within* it.
+
+### What is downgraded
+
+- **The absolute figures.** 97.24 % micro / 97.25 % macro is accuracy on data authored against the very
+  label definitions it is graded by. That is the expected result of the construction, not a model-quality
+  signal. **They must no longer be cited as accuracy on real input** — they never were.
+- **The stated substantive win.** The growth in held-out minority support (ThiGiuaKy 17→37,
+  BaiTapVeNha 25→36, DoAnCuoiKy 26→36) came **entirely** from `collected_v4` rows. More rows from one
+  authoring process make the estimate *more precise about that process*, not *more reliable* about
+  students. The verdict's *"far more reliable"* is re-scoped accordingly and marked in place above.
+- **Citable form:** *a within-corpus before/after regression check at the v903 authored seed,
+  2026-06-25, showing no minority-recall regression.* Nothing about generalization.

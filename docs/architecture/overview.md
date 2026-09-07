@@ -81,6 +81,11 @@ SmartStudyPlanner/
 │   │                            #   TextClassifierModelManager/-Service, IntentClassifierAdapter,
 │   │                            #   TextClassifierDatasetImporter, Schema/*, WeightOptimizer/*
 │   ├── Pipeline/                # IPipelineOrchestrator + 5 stages + PipelineContext
+│   ├── Soe/                     # Epic 3 Study Optimization Engine — BUILT, NOT WIRED (§5.9):
+│   │                            #   IScheduleOptimizer/ScheduleOptimizer, IOptimizerStage/
+│   │                            #   LoadRebalanceStage, IConstraintValidator, IObjectiveEvaluator,
+│   │                            #   IDeadlinePolicy, SoeWeights, OptimizeReport, ScheduledItem,
+│   │                            #   OptimizerRunLogRow/-Writer (T3.7 telemetry)
 │   ├── Strategies/              # IClock, IUrgencyRule, IPriorityComponent, keyword parsers
 │   └── Telemetry/               # IStudyTelemetry + DebugStudyTelemetry,
 │                                #   IOutcomeMaturationService + OutcomeMaturationService (M8-B)
@@ -98,7 +103,7 @@ SmartStudyPlanner/
 - **Pages** (navigated in `MainFrame`): `SetupPage` (start page), `DashboardPage`, `QuanLyMonHocPage`, `QuanLyTaskPage`, `AnalyticsPage`, `WorkloadBalancerPage` (converted Window → Page in commit `6481fc8`).
 - **Windows**: `FocusWindow` (modal, maximized/topmost focus-lock) and `WeightOptimizerWindow` (non-modal, opened from the sidebar; Slice 8 UI, `Views/MainWindow.xaml.cs:204-220`).
 
-An in-flight UI plan ([../plans/2026-07-05-ui-mobile-ready-polish.md](../plans/2026-07-05-ui-mobile-ready-polish.md), status PROPOSED) targets fidelity closure + responsive/touch-friendly polish on branch `ui_rf`.
+A UI plan ([../plans/2026-07-05-ui-mobile-ready-polish.md](../plans/2026-07-05-ui-mobile-ready-polish.md), status **PROPOSED, unimplemented**) targets fidelity closure + responsive/touch-friendly polish. *(Corrected 2026-08-20: it is no longer branch-scoped — `ui_rf` was adopted as the tested trunk and merged in PR #49, 2026-07-26.)*
 
 ### 5.2 Planning / decision
 `IDecisionEngine` → `DecisionEngineService` (facade) → `SchedulingOrchestrator` → `PriorityEvaluator` + `RawMinutesCalculator` + `StudyTimeSuggestionEngine` + `IStudyTimePredictor`. `WorkloadServiceImpl` consumes priorities to distribute across `ScheduleDay` / `ScheduledTask`. The `WeightConfig` singleton is now **loaded from disk** at composition time (`WeightConfigStore.Load()`, `Services/ServiceLocator.cs:67`) and persisted when the user applies a Weight Optimizer suggestion.
@@ -168,6 +173,34 @@ Read paths exclude tombstoned rows **explicitly per query** — there is no glob
 monotonic per-entity counter, never compared across devices (see [L6](lessons-learned.md)). The
 merge engine and LAN transport themselves are **Epic 2** — D-I mechanics are frozen, not yet built
 (see [data-model.md §8](./data-model.md)).
+
+### 5.11 Study Optimization Engine (Epic 3 — code complete 2026-08-07, gate CLOSED 2026-08-19)
+
+`Services/Soe/` — the Epic 3 SOE. **Read this section for what it is *not* as much as what it is.**
+
+Two things shipped, and only one of them is reachable at runtime:
+
+1. **Reachable — the allocator rework (T3.3).** `WorkloadServiceImpl.GenerateSchedule` places each
+   chunk on the **earliest feasible** day instead of the least-loaded one
+   (`WorkloadServiceImpl.cs:204-211`). This is live on every scheduling path today. Its deadline
+   filter is **provably output-inert** — tier-1 and tier-2 select the same day for every input; the
+   branch is retained because it stops being inert once day-capacity becomes non-monotonic
+   ([proof](../plans/2026-08-06-deadline-tier-provably-inert.md), canonical).
+2. **Not reachable — the optimizer itself (T3.9 + supporting seams).**
+   `IScheduleOptimizer.Optimize(schedule, weights) → (schedule, OptimizeReport)` runs a pass loop over
+   `IOptimizerStage` (N=1: `LoadRebalanceStage`), guarded by `IConstraintValidator` (deadline /
+   capacity / calendar as **hard** constraints, D-G) and scored by `IObjectiveEvaluator`
+   (quality-only over `SoeWeights` w1…w5, D-J). The **D-H invariant** — `violations(out) ≤
+   violations(in)` — is a *non-worsening* guarantee, **not** an improvement metric, and is pinned by
+   the T3.4 property suite. `OptimizerRunLogWriter` records per-checkpoint telemetry (T3.7).
+   **Nothing calls it.** No production call site, no `ServiceLocator` registration —
+   [`dependency-flows.md`](dependency-flows.md) §4b.
+
+Wiring the seam into production is **unscheduled integration work outside every Epic 3 task card**
+(roadmap §A.3 item 2, G3-1). Gates G2 (pass accept/commit semantics) and G3 (weight governance) are
+ratified; the manual QA gate closed **PASS WITH FINDINGS** on 2026-08-19 with no defects
+([closure](../reports/2026-08-19-epic3-manual-gate-closure.md)). Contract and measured outcomes:
+[closing note](../reports/2026-08-07-epic3-closing-note.md).
 
 ## 6. Runtime composition (`App.xaml.cs`)
 

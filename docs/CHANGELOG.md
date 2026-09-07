@@ -4,6 +4,179 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
+## 2026-08-27 — DFD-9a **end-to-end gate CLOSED** — *no code change; the last check was run by hand*
+
+> **Nothing shipped.** The fix shipped 2026-08-26; what changed today is that it is now *known to work
+> in the shipped application*. The gate no automated test could close — 492 green tests exercise the
+> three hops and their composition against stubs, none resolves the production DI wiring in
+> `App.xaml.cs` / `ServiceLocator` against the real SQLite file — was closed by the owner at a
+> keyboard, on pass/fail criteria fixed before the run and not adjusted after seeing the output.
+
+| Area | Change | Verification |
+|---|---|---|
+| Manual gate | **PASS**, both command paths (`✖ Thoát khẩn cấp` and `✅ Đã Xong`), two independent passes, four new rows — all with `PredictedMinutes` and `Confidence` non-null, while the two pre-fix rows still read `NULL` **in the same output** | Evidence record: [`reports/2026-08-27-dfd9a-instrumentation-observation.md`](reports/2026-08-27-dfd9a-instrumentation-observation.md). Owner-authored §3–§5, machine-captured §1–§2 |
+| Discriminating evidence | The second pass used tasks with **runway left** rather than 77 days overdue, and logged `WasMlPrediction = 1`, `PredictedMinutes` 132 and 88, `Confidence` 0.90 and 0.7333. Both confidences **reproduce exactly** from each task's own `DiemUuTien` — a hard-coded value cannot reproduce from inputs it never saw | Channel has now displayed three distinct states — `NULL`, a real zero, a real non-zero. That is what makes the PASS mean something |
+| Runbook corrected mid-run | Scenario 4's table resolved `WasML=0, Confidence=0` to *"Fallback — no model was ready"*. **Not a conclusion the row can support**: `OverdueRule` zeroes `DiemUuTien`, so `formula = 0`, so confidence collapses to `1 − clamp(predicted)` = exactly `0`, and rejected-ML and `Fallback()` emit byte-identical rows | Contradicted the runbook's own §1.5 DFD-5 caveat; would have put a false statement in the evidence record |
+| Restore procedure fixed | The database runs `journal_mode = wal`. Mid-run the new commits sat in a 104 KB `-wal` sidecar while the main `.db` mtime read an hour earlier. §7 copied a `.bak` over the `.db` with no mention of sidecars — **SQLite would replay a stale WAL against the restored file** | §7 now runs a separate preflight that *reports* the sidecars before anything is deleted; deleting one holding uncheckpointed commits destroys them |
+| Reader committed as code | The §2 read step is now [`tools/qa/read_outcome_logs.py`](../tools/qa/read_outcome_logs.py) rather than a pasted heredoc, so what is verified and what is run are the same bytes | Opens read-only, resolves the Debug DB from its own location, and treats *"zero tables"* as a broken instrument that must not produce a verdict |
+
+**Deliberately still open:** rows written before 2026-08-26 remain unusable — no backfill is possible,
+which is why the defect was urgent. `Confidence = 0` stays ambiguous pending DFD-5. **F-1** (the
+`≥ 0.60` gate calibration) is untouched and still deferred; this fix is its prerequisite, not its
+resolution. And nothing in this gate says the predicted numbers are *good* — only that they are
+recorded.
+
+## 2026-08-27 — Data Maturation proposal **reviewed; Q-1 … Q-5 ruled** — *no user-visible change*
+
+> **Nothing shipped and nothing was implemented.** This entry exists because the project's position on
+> its own data *plan* changed: the five questions the proposal declined to answer with invented figures
+> now have owner rulings, and **four of the five rule that the figure must be measured or observed
+> rather than estimated.** The proposal moved from awaiting *decisions* to awaiting *authorization*.
+
+| Area | Change | Verification |
+|---|---|---|
+| Owner ruling | **Q-1 … Q-5 decided**, P-1…P-3 and DFD-1…DFD-9b restated. Adjudication effort becomes a measurement (Q-1); the owner has a bounded participant network (Q-2); collection runs **outside** the production app (Q-3); Gold-R sampling is hybrid — a floor for all five classes, otherwise the observed distribution, **no forced quotas** (Q-4); maturity is **tiered**, not one gate (Q-5). Filed at [`plans/2026-08-27-data-maturation-owner-decision-outcomes.md`](plans/2026-08-27-data-maturation-owner-decision-outcomes.md) | Ruling filed verbatim; `Prompt/` is gitignored, so the proposal's citations would otherwise point at nothing |
+| Proposal | **Revision 2**, revised in place — a `draft` that was never ratified, and the owner commissioned *"the next proposal revision."* New **`S-T`** telemetry strand (stage numbers unchanged, so inbound citations still resolve); §5 rebuilt as a `T-0…T-3` tier ladder; §4.2 now carries each ruling **and the parameter it leaves open** | [`plans/2026-08-26-data-maturation-coverage-expansion.md`](plans/2026-08-26-data-maturation-coverage-expansion.md) §9.3 tracks all seven of the ruling's requirements |
+| Maturity model | The three owner-named **invariants** — provenance completeness, held-out reservation, Gold/Silver separation — are split out from quality thresholds as `I-1`/`I-2`/`I-3`. They are binary, they cost nothing but sequence, and **all three are false today**. Every threshold sits at the top tier, which the tier below it generates the evidence for | Q-5's *"without arbitrary thresholds before evidence exists"* is satisfied rather than deferred |
+| Restated ruling, changed meaning | **P-3 grew a fourth item** on 2026-08-27: *is the 29.6% disagreement caused by taxonomy semantics or annotation inconsistency?* It decides whether the annotation spec can close the disagreement at all — if the cause is taxonomic, no guideline can. Now S-1's fourth scope row and part of its exit criteria | The later wording governs. Recorded in the filed ruling's §A.2 — a reconciliation reading only the *new* decisions would have missed a change inside a restated one |
+| Two stale baselines corrected | The proposal's rev 1 was written hours before the DFD-9a fix shipped, so its `[measured]` telemetry row and its M-8 criterion were accurate when written and **stale the same afternoon**. M-8's blocker moved from **impossible** to **pending volume** — the ≥50-row retrain gate has still never been met | Superseded wording preserved in the proposal's §9.2 rather than overwritten |
+
+**Deliberately still open, and named:** the Q-4 class floor, every T-3 threshold, Track B's consent
+basis (Q-3 rules on Track A's venue only), and **`R-1`** — who performs the annotation spec's two
+independent passes, which changes what its agreement rate measures and therefore what threshold can
+honestly be pre-registered.
+
+**One consequence derived, not decided:** Q-2's network of friends and students is a **convenience
+sample**. That is a sound basis for Gold-R — it is real data from real people, which the project has
+none of — but it does not license *"this is how students write."* Claim scope (participant count +
+recruitment route) is now an S-5 exit criterion.
+
+**Next step is S-1**, the limited taxonomy review: four owner rulings, no tooling, no data.
+**Nothing is authorized.**
+
+## 2026-08-26 — DFD-9a: prediction instrumentation **fixed** — *no user-visible change*
+
+| Area | Change | Verification |
+|---|---|---|
+| Core/Scheduling + Services | `PredictStudyMinutes` returns `StudyTimePredictionResult` instead of `int` + `out bool isMlPrediction`. The `out` seam had nowhere to put `Confidence` and silently dropped it — root cause, not a symptom | build 0 errors; 8 test doubles updated |
+| Models + ViewModels | `TaskDashboardItem` gains `PredictedMinutes` / `Confidence`; `DashboardViewModel` populates both **on both branches**; `FocusViewModel` logs them instead of literal `null` | **492 pass** (487 → 492) |
+| Tests | 5 new, each proven able to fail by mutating production: seam ×2, dashboard hop ×2 (the project's first `DashboardViewModel` tests), rejected-branch write ×1. `OutcomeRow_MappingIsCorrect` rewritten from `Assert.Null` — it failed `Expected: 45, Actual: null` on the unfixed tree | `gitnexus_detect_changes`: 2 affected processes, both expected |
+
+**The mutation that mattered:** deleting the dashboard's two assignments left all 490 tests green — the
+hop that actually caused the defect was covered by nothing. That is why the dashboard tests exist.
+
+**Not undone, only stopped:** rows written before today remain unusable for calibration; the value is
+not reconstructible. `Confidence = 0` stays ambiguous between "model not ready" and "zero agreement" —
+separating them needs DFD-5 provenance, deliberately out of scope. No threshold moved; F-1 remains
+deferred, now with its prerequisite met. **The end-to-end check has not been run.**
+
+## 2026-08-26 — Data foundation: **decision phase closed, nine policies ratified** — *no user-visible change*
+
+> **Nothing shipped, and nothing was implemented.** This entry exists because the project's position on
+> its own training data changed: it now formally holds **zero verified real user rows**, and the
+> documents that said otherwise have been corrected. A change to what the repository claims is true is
+> a change to the project's state.
+
+| Area | Change | Verification |
+|---|---|---|
+| Owner ruling | **P-1 … P-3 resolved, DFD-1 … DFD-9 ratified.** Real-data policy, canonical annotation spec before further labelled data, two-tier Gold (**Gold-A** authored / **Gold-R** real), dual-layer provenance, synthetic-for-Silver-only, external datasets evaluable but not ingestible, owner as sole Gold authority. Filed at [`plans/2026-08-26-data-foundation-owner-decision-handoff.md`](plans/2026-08-26-data-foundation-owner-decision-handoff.md) | Ruling appended to the brief; audit's `OD-1…OD-6` + `K.1`/`K.2` all closed |
+| Provenance | **`collected_v4.csv` is AI-generated, not collected** — owner templates → Meta AI generation → GitHub Copilot labelling. The 189 untraceable rows descend from ~2 000 Meta AI rows aggregated by Copilot; the 136 in the seed stay | Owner recall (**ruling**, no written record); corroborates the audit's 7 measured regularities |
+| Correction pass | **12 documents + 3 tool files corrected** under DFD-1 — live artifacts in place, dated artifacts by appended amendment with the superseded passage marked. Includes the 96.2% footnote, which was itself a *wrong correction*: the figure predates `collected_v4` by 13 days | [`reports/2026-08-26-data-foundation-correction-pass.md`](reports/2026-08-26-data-foundation-correction-pass.md) |
+| Defect raised | **`PredictedMinutes` / `Confidence` written as `null`** on every `StudyTimeOutcomeLog` row — the telemetry records *that* a prediction happened but not *what it was*. Raised under DFD-9a; **fixed the same day** — see the entry above | [`plans/2026-08-26-prediction-instrumentation-defect.md`](plans/2026-08-26-prediction-instrumentation-defect.md) |
+| Next phase | **Data Maturation & Coverage Expansion proposal** written, staged behind taxonomy review → annotation spec → provenance → Gold | [`plans/2026-08-26-data-maturation-coverage-expansion.md`](plans/2026-08-26-data-maturation-coverage-expansion.md) — proposal, not authorization |
+
+**Figures re-scoped, none retracted:** 96.2% (2026-06-05) is an in-distribution held-out score over the
+698-row authored seed; 97.24%/97.25% (2026-06-25) remains a valid before/after regression check but is
+not accuracy on real input; the S0 encoder comparison measured cross-authoring-process generalization.
+Every measurement stands — the *inferences* drawn from them are what narrowed.
+
+**The Edge AI initiative stays stopped at S0.** These decisions do not reopen it (§18 of the ruling).
+
+## 2026-08-25 — Edge AI neural encoder: **evaluated and rejected at the S0 gate** — *no user-visible change*
+
+> **Nothing shipped.** This entry exists because the alternative is a repository containing a ratified
+> encoder specification, a narrow deep-learning exception in `ML_Heuristic_design.md` §9.1, and no
+> record of what happened to either. A decision not to build is a change to the project's state.
+
+The initiative proposed replacing the M8-A task-type classifier's n-gram featurizer with a frozen,
+bundled, locally-executed neural sentence encoder. **S0 — a hard pre-production gate with a kill
+criterion stated in advance — measured it and said no.** The owner accepted that ruling on
+2026-08-25 and the initiative **stopped at S0**. S1–S4 were **cancelled, not entered**.
+
+| Item | Result | Verification |
+|---|---|---|
+| **Ruling** | **EVA-16 kill criterion fired.** Neither candidate improved macro-F1 over the shipped n-gram baseline — both scored **below** it, at both precisions | Baseline mean **0.6575**; EmbeddingGemma-300M 0.6394 (fp32) / 0.6484 (int8); multilingual-e5-small 0.5934 / 0.6404. Pre-registered rule *(arm min > baseline max)* fails for all four |
+| **Production code** | **None.** Zero files under `SmartStudyPlanner/` created or modified (EVA-01) | `gitnexus_detect_changes` → 0 changed symbols, 0 affected processes on every commit; suite **487 passed / 0 failed**, unchanged |
+| **User-visible change** | **None** | No parse path, threshold, model or dependency was touched |
+| **Instrument verified before the null was believed** | Encoders demonstrably work — bit-identical vectors across runs, stripped-diacritic partner retrieved at rank 1 in 5/8 and 6/8 vs chance 1/8 | Report §14 F-3 |
+| **New CI guard (retained)** | `Assert no model binary is tracked` — asserts over `git ls-files`, blocks any `.onnx` / `.safetensors` / oversized file entering git (AST-05) | **Proven red in CI** — run [32792616833](https://github.com/PotatoMine725/Smart-Study/actions/runs/32792616833) |
+| **New test data (retained)** | `datasheets/vn_input_fixtures.csv` — the DAT-05 Vietnamese input fixture set, 39 rows across six categories | Verifier proven red 4 ways |
+
+**Findings kept, though the initiative stopped:**
+
+- **Data, not the encoder, is the binding constraint.** `tgk` appears in **28 of 205** test rows
+  and **0 of 698** training rows; **94.6 %** of test rows contain a token the training set
+  never shows. *(As written 2026-08-25 this said "real test rows" — corrected 2026-08-26: the test set
+  is authored, not real. The counts are unchanged; the divergence is between two authoring processes.)* Both featurizers were trained on a distribution largely lacking the surface forms they
+  were tested on — and the n-gram baseline still won.
+- **Deferred to `system_roadmap.md` §A.4:** the shipped M8-A merge gate is `≥0.60`, while the
+  **baseline** classifier's own `[0.6,0.7)` band scored **0.000** on the held-out rows — worse than
+  the band *below* the gate. *(2026-08-26: "real" withdrawn — the gate has never been measured on real
+  student input.)* An indication, not a proven defect; produced by the baseline arm, so it
+  outlives the encoder decision.
+- **Tokenization / runtime:** in-graph tokenization is unavailable for both candidates; e5-small needs
+  a fairseq **+1 id offset** that, if missed, yields plausible-looking token ids wrong in every
+  position; `Microsoft.ML.Tokenizers` 2.0.0 needs **no `Microsoft.ML` version bump**; EmbeddingGemma's
+  int8 export is **~6× slower** than its fp32 export on CPU.
+
+**`ML_Heuristic_design.md` §9.1 remains in force** — the frozen-encoder policy exception was ratified
+on its own merits and is **not withdrawn**, only never exercised. Full evidence and the CP1 ruling:
+[`reports/2026-08-25-encoder-pilot.md`](reports/2026-08-25-encoder-pilot.md).
+
+## 2026-08-04 → 2026-08-19 — Epic 3: Study Optimization Engine (SOE) — **code complete 2026-08-07, manual gate CLOSED 2026-08-19**
+
+> **Read the scope line before the table.** Epic 3 shipped **two** things, and only one of them runs
+> in the product. The allocator rework (T3.3) is live on every scheduling path. The optimizer itself
+> (T3.9 and its seams) is built, tested, gated and **has zero production call sites** — wiring it is
+> unscheduled integration work outside every Epic 3 task card (G3-1). Nothing below claims the
+> optimizer changed a schedule a user has seen.
+
+| Card / Task | Change | Verification |
+|---|---|---|
+| Gate **G2** (2026-08-05) | Pass accept/commit semantics ratified: a pass runs **all** stages unconditionally, then commits the best admissible checkpoint prefix `C_k*` (**G2-1**, "run-all, commit-best-prefix" — the candidate L8 of `architecture/lessons-learned.md` had floated); admissibility = D-H first, quality second (**G2-2**); zero tolerance for objective regression bar a numerical-noise guard (**G2-3**); `Optimize` is a deterministic fixed-point loop where the *committed state* is the only thing that varies and `k*=0` is the fixed point (**G2-4**); every checkpoint carries exactly one reason code (**G2-6**) | [decision note](plans/2026-08-04-g2-optimization-pass-semantics.md), ratified at CP-1 `cc8eba5` |
+| Gate **G3** (2026-08-07) | `w1…w5` weight-vector governance — ownership, guardrails, and the relation to the existing M8-B `WeightOptimizer` (they are different weights, deliberately) | [decision note](plans/2026-08-07-g3-weight-vector-governance.md), ratified `1e18bb7` |
+| Card C — **T3.8** | Schedule identity seam — a stable identity for a scheduled item so a rearrangement can be compared to its input | `308e85c` + review fixes `63aa79d`; seam shape ratified at CP-2 (`4f49153`) |
+| Card D — **T3.1** | `IConstraintValidator` — the hard-filter seam. Deadline feasibility, capacity and calendar limits are **hard constraints**, per the 2026-07-02 freeze (D-G) | `cca9d9b`, review fix `f7655d1` |
+| Card E — **T3.2** | `IObjectiveEvaluator` — **quality-only** objective, no deadline term (D-J). Deadline information reaches the engine as a constraint, never as a score term | `fde4aeb` |
+| Card F — **T3.3** | **The one change users can observe.** Allocator placement reworked least-loaded → **earliest-feasible** in `WorkloadServiceImpl.GenerateSchedule`: the earliest day with room that does not pass the task's `HanChot`, falling back to the earliest day with room at all. The allocator never *refuses* to place — the deadline chooses *which* day, never *whether*. **The deadline tier is provably output-inert today** (tier-1 and tier-2 return the same day for every input — algebraic proof + empirical confirmation), so no discriminating test was written for it and the branch is retained only because it stops being inert once day-capacity becomes non-monotonic. Scope narrowed mid-card (`b608db2`): the G2 pass loop was split out to T3.9. `DiemUuTien` write-through was dropped, then **restored** under an amended CP-2 (`de01561`/`60fae4d`) | `5197784` + review rounds `390e353`, `24e62e8`, `0208b7f`; [inertness proof](plans/2026-08-06-deadline-tier-provably-inert.md); naming-debt descope ratified `50a274b` |
+| Card G — **T3.9** | `IScheduleOptimizer.Optimize(schedule, weights) → (schedule, OptimizeReport)` — the G2 pass loop, with **N=1** (`LoadRebalanceStage`) as the ratified stage list; Candidate 2 deferred; OQ2 resolved as one-move-per-invocation. The N=1-only assumption in the reject-branch labelling is flagged in code, not hidden | design `76906c4`/`adda4d0`, ratified `3dcff85`, impl `961f453`, N=1 gap recorded `5de1721`, `d0fc968` |
+| Card G — **T3.4** | D-H invariant property suite + inversion + A6 cross-check + G2-5 partition. **D-H is `violations(out) ≤ violations(in)` — a non-worsening guarantee, not an improvement metric**; two findings surfaced (arm-3 / self-inversion) were pinned as characterization asserts with the root cause traced, then ruled on by the owner rather than silently fixed | `4114365`, `ffe400a`, `a8076e0`; owner ruling `eabea1e` (D7) |
+| Card G — **T3.7** | `OptimizerRunLogs` telemetry table + `OptimizerRunLogWriter` — one flat row per checkpoint per pass per `Optimize` call (G2-6's report contract). No FK, same rationale as the M8 telemetry tables | `e837830` |
+| Convergence (2026-08-07) | 4 docs-only commits closing the epic's DoD 7/7 — closing note with **independently re-measured** success metrics, the review documents it cites, and roadmap correction F1 (the roadmap had asserted a capability T3.3 never shipped) | `82155d9`, `6e35420`, `c0ec38a`, `881f498`, `8cf53da`, `c305a8d`, `8b58ec0`; **470 passed / 1 skipped / 471 total** |
+| Automated QA gate (2026-08-10) | Discriminating tests for T3.3 and T3.7 behind the manual gate — written to fail against the pre-change behaviour, not merely to pass | `10b5039`; 470 → **475 passed / 1 skipped / 476 total** |
+| Workload-balancer stale chart (2026-08-14) | **A defect found by the manual gate, fixed inside it.** `RenderedCapacityHours` now records the capacity the *displayed* schedule was built with, separately from the slider's `CapacityHours`; `IsScheduleStale` drives a badge when they diverge; `capacity.txt` clamped to the slider **ceiling**, not only its floor. Moving the slider without pressing the button can no longer read as a re-allocated schedule. Non-vacuity proved by mutation, then reverted and the tree confirmed clean | `dde5cc8`, `b084e40`, `545870d`; [design](plans/2026-08-10-workload-balancer-stale-chart-fix-design.md) · [plan](plans/2026-08-14-workload-balancer-stale-chart-fix-plan.md) · [report](reports/2026-08-14-workload-balancer-stale-chart-fix-report.md); suite → **486 passed / 1 skipped / 487 total** |
+| Manual QA gate — **CLOSED 2026-08-19** | **PASS WITH FINDINGS.** Every scenario passed; no scenario produced a defect. The three findings are non-defects: a UX enhancement candidate, a ratified limitation (D3, past-deadline placement — owner-accepted, Decision D7) observed in the running product, and a gap in *automated* coverage behind a manual check that passed. **E1–E4 close on an owner ruling, not a written observation**, and the closure says so rather than blurring the two. B2's pass is `OptimizerRunLogs` being **empty** — 0 rows *is* the expected result while the seam is unwired | [runbook](plans/2026-08-10-epic-3-manual-qa-runbook.md) · [closure](reports/2026-08-19-epic3-manual-gate-closure.md) · owner evidence records [2026-08-10](reports/2026-08-10-epic3-soe-manual-observation.md), [2026-08-19](reports/2026-08-19-epic3-manual-observation-updated.md); `33c0ffe` |
+| E6 coverage test (2026-08-20) | The closure's E6 follow-up, executed. Subject-delete-with-≥2-tasks beside a surviving sibling is now covered. **The pre-registered acceptance bar was not met** — of five mutants, none was killed by the new test while the pre-existing suite survived — so it is filed as **scenario-fidelity coverage, not regression protection**, in those words, invoking the plan's §7 fallback rather than reporting "test added, green". One mutant (`DetectChanges()` moved after the removal loop) **survived all 487 tests**; the call must not be deleted on the strength of that | `35e2f14`; [plan](plans/2026-08-19-e6-cascade-coverage-test.md) · [report](reports/2026-08-20-e6-cascade-coverage-test.md); **487 passed / 1 skipped / 488 total** |
+
+**Outcome:** suite 391 → **487**, green in Debug, Release and on CI. *(Chain, each figure taken from
+the report that measured it: 391 at stabilization close → **470** at Epic 3 code complete, on `dev`
+at `dd41685` → **475** after the automated gate's additions → **486 passed / 487 total** after the
+stale-chart fix → **487 passed / 488 total** after the E6 test. The intermediate 475 was first
+measured on a working tree carrying two uncommitted carry-forward test files; they were committed at
+`d1ab3a3` precisely so the gated number is the number CI computes.)* Epic acceptance criteria and DoD
+**7/7** met on the merged tree; gates G2 and G3 ratified; the manual gate CLOSED. **Known and
+deliberate — the optimizer is not in the product:** `ScheduleOptimizer`, `SoeWeights` and
+`IConstraintValidator` have no production call site and no `ServiceLocator` registration, so
+`BalanceWorkloadStage` and `WorkloadBalancerViewModel` still call `IWorkloadService.GenerateSchedule`
+directly. Success metric #4 (objective delta vs. baseline) is **unevaluated for 90% of the corpus**
+and disclosed as such (closing-note F3). Full detail: [Epic 3 closing
+note](reports/2026-08-07-epic3-closing-note.md) (DoD-7, independently re-measured) ·
+[closure verdict](review/2026-08-07-epic3-closure-verdict.md) ·
+[owner triage](review/2026-08-07-epic3-owner-triage.md). Durable lessons distilled into
+[`knowledge/qa-gates.md`](knowledge/qa-gates.md) and
+[`knowledge/review-methodology.md`](knowledge/review-methodology.md) —
+see the [distillation report](reports/2026-08-19-epic3-knowledge-distillation.md).
+
 ## 2026-07-27 → 2026-08-02 — Post-Epic 1 Engineering Stabilization (WP-1 → WP-6)
 
 | Package | Change | Verification |

@@ -4,6 +4,8 @@
 
 **Goal:** Stop the Workload Balancer chart from redrawing the *old* day-allocation against a *new* capacity line when the slider moves, and correct four strings that still describe the pre-T3.3 least-load rule.
 
+**Status: done** — all phases shipped and merged as PR #54 (2026-08-19). Verification, mutation matrix and decisions: [`docs/reports/2026-08-14-workload-balancer-stale-chart-fix-report.md`](../reports/2026-08-14-workload-balancer-stale-chart-fix-report.md); the manual checks it left open were run by the owner and closed in that report's §3.1.
+
 **Architecture:** Split the single `CapacityHours` property into two roles — `CapacityHours` (what the slider targets) and `RenderedCapacityHours` (what `Schedule` was actually built with). All chart/meter converter bindings move to `RenderedCapacityHours`; the slider and its 38pt readout stay live. A computed `IsScheduleStale` drives a warning badge above the chart that explains the divergence. A `GetCapacity` ceiling clamp stops the badge misfiring on page open.
 
 **Tech Stack:** .NET 10 (`net10.0-windows10.0.19041.0`), WPF, CommunityToolkit.Mvvm (`[ObservableProperty]`, `[RelayCommand]`, `[NotifyPropertyChangedFor]`), xUnit 2.9.3.

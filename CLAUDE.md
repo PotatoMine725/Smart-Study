@@ -40,7 +40,7 @@ Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **Smart-Study** (5166 symbols, 11794 relationships, 133 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **Smart-Study** (5303 symbols, 12153 relationships, 133 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

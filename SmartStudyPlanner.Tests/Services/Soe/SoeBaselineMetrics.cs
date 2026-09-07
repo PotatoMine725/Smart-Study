@@ -13,6 +13,7 @@ using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Services.Soe;
 using SmartStudyPlanner.Services.Strategies;
 using SmartStudyPlanner.Tests.TestDoubles;
+using SmartStudyPlanner.Services.ML;
 
 namespace SmartStudyPlanner.Tests.Services.Soe
 {
@@ -196,11 +197,8 @@ namespace SmartStudyPlanner.Tests.Services.Soe
         public int CalculateRawSuggestedMinutes(StudyTask task) => Minutes.GetValueOrDefault(task.TenTask, 0);
         public string SuggestStudyTime(StudyTask task) => string.Empty;
 
-        public int PredictStudyMinutes(StudyTask task, MonHoc monHoc, out bool isMlPrediction)
-        {
-            isMlPrediction = false;
-            return CalculateRawSuggestedMinutes(task);
-        }
+        public StudyTimePredictionResult PredictStudyMinutes(StudyTask task, MonHoc monHoc)
+            => new StudyTimePredictionResult(CalculateRawSuggestedMinutes(task), false, 0f);
 
         public Task<WeightConfigSuggestion?> SuggestWeightConfigAsync(CancellationToken ct = default)
             => Task.FromResult<WeightConfigSuggestion?>(null);
