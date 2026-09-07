@@ -117,6 +117,35 @@ namespace SmartStudyPlanner.Tests.Data
             Assert.Equal(1, TableCount(connectionString, "OptimizerRunLogs"));
         }
 
+        [Fact]
+        public void EnsureDatabaseReady_OnPreEpic2Db_TaoLaiBangSyncBaseSnapshots()
+        {
+            // Epic 2 / M2.1 (T1.4) — same gap this closes for OptimizerRunLogs above:
+            // SyncBaseSnapshotSchemaDualPathTests chốt chính SEAM
+            // (SyncBaseSnapshotSchema.EnsureTable vá đúng bảng). Nó KHÔNG chốt việc
+            // AppStartup.EnsureDatabaseReady thật sự GỌI seam đó — gỡ dòng gọi ở
+            // AppStartup.cs vẫn để test seam kia xanh, và DB người dùng thật sẽ thiếu bảng
+            // mà không có tín hiệu nào.
+            var dbPath = Path.Combine(_tempDir, "SmartStudyData.db");
+            var connectionString = $"Data Source={dbPath}";
+            var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connectionString).Options;
+
+            // DB "đời mới" rồi hạ cấp thành pre-T1.4 bằng cách bỏ đúng bảng của M2.1.
+            using (var seed = new AppDbContext(options))
+            {
+                seed.Database.EnsureCreated();
+                seed.Database.ExecuteSqlRaw("DROP TABLE SyncBaseSnapshots");
+            }
+            Assert.Equal(0, TableCount(connectionString, "SyncBaseSnapshots"));
+
+            using (var db = new AppDbContext(options))
+            {
+                AppStartup.EnsureDatabaseReady(db, dbPath);
+            }
+
+            Assert.Equal(1, TableCount(connectionString, "SyncBaseSnapshots"));
+        }
+
         private static int TableCount(string connectionString, string table)
         {
             using var conn = new SqliteConnection(connectionString);

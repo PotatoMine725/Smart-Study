@@ -40,6 +40,11 @@ namespace SmartStudyPlanner.Data
             // doc comment của TelemetrySchema.EnsureOptimizerRunLogTable).
             TelemetrySchema.EnsureOptimizerRunLogTable(db);
 
+            // Runtime schema migration: tạo bảng SyncBaseSnapshots nếu DB cũ chưa có (Epic 2,
+            // M2.1 T1.4 — per-peer last-synced base-snapshot store; cùng đường patch-seam như
+            // hai dòng trên, xem doc comment của SyncBaseSnapshotSchema.EnsureTable).
+            SyncBaseSnapshotSchema.EnsureTable(db);
+
             // Epic 1 / M1.2 (T1.8): patch the D-I sync-metadata columns onto an existing
             // (pre-Epic-1) DB. Back up the file first -- only when an upgrade is actually
             // about to run, so normal launches don't pile up backup files every time.
