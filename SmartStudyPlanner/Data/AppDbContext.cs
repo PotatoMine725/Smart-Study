@@ -44,6 +44,11 @@ namespace SmartStudyPlanner.Data
         // xem doc comment của method đó.
         public DbSet<OptimizerRunLogRow> OptimizerRunLogs => Set<OptimizerRunLogRow>();
 
+        // Epic 2 / M2.1 (T1.4) — per-peer last-synced base-snapshot store. Bookkeeping
+        // table, not a synced business entity (see SyncBaseSnapshotRow's own doc comment
+        // for why it must not implement ISyncMetadata).
+        public DbSet<Sync.SyncBaseSnapshotRow> SyncBaseSnapshots => Set<Sync.SyncBaseSnapshotRow>();
+
         // 2. CẤU HÌNH ĐƯỜNG DẪN LƯU FILE SQLITE
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -106,13 +111,19 @@ namespace SmartStudyPlanner.Data
             // T3.7 (Epic 3, Card G) — cùng shape "standalone, no FK" như ba bảng telemetry M8 ở
             // trên; xem OptimizerRunLogRow's doc comment cho lý do denormalize.
             modelBuilder.Entity<OptimizerRunLogRow>(b => b.HasKey(e => e.Id));
+
+            // Epic 2 / M2.1 (T1.4) — per-peer last-synced base-snapshot store, composite key.
+            modelBuilder.Entity<Sync.SyncBaseSnapshotRow>(b =>
+                b.HasKey(s => new { s.PeerDeviceId, s.EntityType, s.EntityId }));
         }
 
         // 4. SINGLE STAMPING SEAM (Epic 1 / D-I, M1.1 scope): every write across the 9
         // repositories + App.xaml.cs routes through DbSet Add/Update/Remove into one of these
         // two overloads (SaveChanges()/SaveChangesAsync() are non-virtual wrappers around them).
-        // No production entity implements ISyncMetadata yet (M1.2's T1.1), so this is currently
-        // a no-op pass-through for all real writes — see SyncMetadataStampingTests for coverage.
+        // All six synced entities (HocKy, MonHoc, StudyTask, StudyLog, TaskNote,
+        // TaskReferenceLink — shipped in M1.2/M1.3) implement ISyncMetadata and get stamped
+        // here; SyncBaseSnapshotRow deliberately does not (see its own doc comment) and is
+        // skipped — see SyncMetadataStampingTests for coverage.
         public override int SaveChanges(bool acceptAllChangesOnSuccess)
         {
             SyncStamper.Apply(ChangeTracker, Clock, DeviceIdProvider());
