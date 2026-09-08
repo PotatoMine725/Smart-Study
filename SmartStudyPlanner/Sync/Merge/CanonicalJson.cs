@@ -145,9 +145,9 @@ namespace SmartStudyPlanner.Sync.Merge
                 throw new SnapshotContractException(SnapshotContractReason.UnknownEntityType, "entityType is not a string.");
 
             var spec = MergeSurfaceRegistry.Get(typeEl.GetString()!);
-            var provenance = ReadProvenance(root.GetProperty("provenance"));
+            var provenance = ReadProvenance(RequireMember(root, "provenance"));
 
-            var fieldsEl = root.GetProperty("fields");
+            var fieldsEl = RequireMember(root, "fields");
             if (fieldsEl.ValueKind != JsonValueKind.Object)
                 throw new SnapshotContractException(SnapshotContractReason.TypeMismatch, "fields is not an object.");
 

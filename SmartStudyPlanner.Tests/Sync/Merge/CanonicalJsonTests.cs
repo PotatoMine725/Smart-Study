@@ -204,6 +204,18 @@ namespace SmartStudyPlanner.Tests.Sync.Merge
                 ReasonOf(TaskNoteCanonical.Replace(",\"Content\":\"" + EscapedContent + "\"", "")));
         }
 
+        [Fact] // a whole missing block must also come back as the typed contract failure
+        public void Read_MissingProvenanceOrFieldsBlock_FailsClosed()
+        {
+            Assert.Equal(SnapshotContractReason.MissingField,
+                ReasonOf(TaskNoteCanonical.Replace(
+                    "\"provenance\":{\"modifiedAtUtc\":\"2026-09-08T01:02:03.1234567Z\"," +
+                    "\"modifiedByDeviceId\":\"dev-1\",\"isDeleted\":false,\"deletedAtUtc\":null},", "")));
+
+            var withoutFields = TaskNoteCanonical.Substring(0, TaskNoteCanonical.IndexOf(",\"fields\"", StringComparison.Ordinal)) + "}";
+            Assert.Equal(SnapshotContractReason.MissingField, ReasonOf(withoutFields));
+        }
+
         [Fact]
         public void Read_ExtraField_FailsClosed()
         {
