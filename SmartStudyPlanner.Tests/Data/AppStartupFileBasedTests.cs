@@ -83,6 +83,11 @@ namespace SmartStudyPlanner.Tests.Data
             var backupFiles = Directory.GetFiles(_tempDir, "SmartStudyData.*.bak.db");
             Assert.Single(backupFiles);
 
+            // The same launch also repairs TaskNotes (PR-B). The F-e test below covers the
+            // already-upgraded file; this pins the drop on the fresh pre-Epic-1 file path too,
+            // which this test otherwise walks through without asserting anything about.
+            Assert.False(ColumnExists(connectionString, "TaskNotes", "UpdatedAtUtc"));
+
             using var verify = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connectionString).Options);
             var hocKy = verify.HocKys.Single();
             Assert.Equal("HK1", hocKy.Ten);
