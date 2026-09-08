@@ -61,10 +61,31 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
             await db.SaveChangesAsync(ct);
         }
 
+        /// <summary>
+        /// Applies an edit to an existing link. The caller hands us a *detached* POCO (the editor VM
+        /// builds one via <c>TaskReferenceLinkItemVm.ToModel()</c>) that carries only the editable
+        /// fields; its Id/MaTask/Rev/CreatedAtUtc/sync metadata are not authoritative. Loading the
+        /// tracked row and copying just the editable fields keeps identity (Id, MaTask), creation
+        /// provenance (CreatedAtUtc) and the Rev watermark intact, and lets SaveChanges stamp this as
+        /// the ordinary local modification it is.
+        /// </summary>
         public async Task UpdateLinkAsync(TaskReferenceLink link, CancellationToken ct = default)
         {
             using var db = _ctxFactory();
-            db.TaskReferenceLinks.Update(link);
+            // Raw DbSet + explicit !IsDeleted: there is no global query filter, and a tombstoned row
+            // is not an update target (resurrection is out of scope) — reject instead of no-op so the
+            // bug surfaces at the call site.
+            var tracked = await db.TaskReferenceLinks
+                .FirstOrDefaultAsync(l => l.Id == link.Id && !l.IsDeleted, ct);
+            if (tracked is null)
+                throw new InvalidOperationException(
+                    $"TaskReferenceLink {link.Id} không tồn tại (hoặc đã bị xoá) — không thể cập nhật.");
+
+            tracked.Title = link.Title;
+            tracked.Url = link.Url;
+            tracked.Category = link.Category;
+            tracked.SortOrder = link.SortOrder;
+
             await db.SaveChangesAsync(ct);
         }
 
