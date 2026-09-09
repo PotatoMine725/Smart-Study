@@ -36,9 +36,10 @@ namespace SmartStudyPlanner.Tests.Sync
 
             using (var db = factory())
             {
-                await SyncBaseSnapshotStore.SetAsync(
+                await SyncBaseSnapshotStore.UpsertAsync(
                     db, "peerA", SyncEntityTypes.HocKy, entityId, rev: 3,
                     snapshotJson: "{\"foo\":1}", syncedAtUtc: syncedAt);
+                await db.SaveChangesAsync();
             }
 
             using var verify = factory();
@@ -59,15 +60,17 @@ namespace SmartStudyPlanner.Tests.Sync
 
             using (var db = factory())
             {
-                await SyncBaseSnapshotStore.SetAsync(
+                await SyncBaseSnapshotStore.UpsertAsync(
                     db, "peerA", SyncEntityTypes.StudyTask, entityId, rev: 1,
                     snapshotJson: "first", syncedAtUtc: new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc));
+                await db.SaveChangesAsync();
             }
             using (var db = factory())
             {
-                await SyncBaseSnapshotStore.SetAsync(
+                await SyncBaseSnapshotStore.UpsertAsync(
                     db, "peerA", SyncEntityTypes.StudyTask, entityId, rev: 5,
                     snapshotJson: "second", syncedAtUtc: new DateTime(2026, 9, 2, 0, 0, 0, DateTimeKind.Utc));
+                await db.SaveChangesAsync();
             }
 
             using var verify = factory();
@@ -95,9 +98,10 @@ namespace SmartStudyPlanner.Tests.Sync
 
             using (var db = factory())
             {
-                await SyncBaseSnapshotStore.SetAsync(
+                await SyncBaseSnapshotStore.UpsertAsync(
                     db, "peerA", SyncEntityTypes.MonHoc, entityId, rev: 7,
                     snapshotJson: null, syncedAtUtc: DateTime.UtcNow);
+                await db.SaveChangesAsync();
             }
 
             using var verify = factory();
@@ -133,13 +137,15 @@ namespace SmartStudyPlanner.Tests.Sync
 
             using (var db = factory())
             {
-                await SyncBaseSnapshotStore.SetAsync(
+                await SyncBaseSnapshotStore.UpsertAsync(
                     db, "peerA", SyncEntityTypes.TaskNote, entityId, rev: 2,
                     snapshotJson: null, syncedAtUtc: DateTime.UtcNow);
+                await db.SaveChangesAsync();
             }
             using (var db = factory())
             {
-                await SyncBaseSnapshotStore.DeleteAsync(db, "peerA", SyncEntityTypes.TaskNote, entityId);
+                await SyncBaseSnapshotStore.RemoveAsync(db, "peerA", SyncEntityTypes.TaskNote, entityId);
+                await db.SaveChangesAsync();
             }
 
             using var verify = factory();
@@ -159,12 +165,13 @@ namespace SmartStudyPlanner.Tests.Sync
 
             using (var db = factory())
             {
-                await SyncBaseSnapshotStore.SetAsync(db, "peerA", SyncEntityTypes.TaskReferenceLink, idOne, 1, null, DateTime.UtcNow);
-                await SyncBaseSnapshotStore.SetAsync(db, "peerA", SyncEntityTypes.TaskReferenceLink, idTwo, 2, null, DateTime.UtcNow);
+                await SyncBaseSnapshotStore.UpsertAsync(db, "peerA", SyncEntityTypes.TaskReferenceLink, idOne, 1, null, DateTime.UtcNow);
+                await SyncBaseSnapshotStore.UpsertAsync(db, "peerA", SyncEntityTypes.TaskReferenceLink, idTwo, 2, null, DateTime.UtcNow);
                 // Second peer, same entity type — must be absent from peerA's result.
-                await SyncBaseSnapshotStore.SetAsync(db, "peerB", SyncEntityTypes.TaskReferenceLink, idOtherPeer, 9, null, DateTime.UtcNow);
+                await SyncBaseSnapshotStore.UpsertAsync(db, "peerB", SyncEntityTypes.TaskReferenceLink, idOtherPeer, 9, null, DateTime.UtcNow);
                 // Same peer, different entity type — must also be absent from peerA's TaskReferenceLink result.
-                await SyncBaseSnapshotStore.SetAsync(db, "peerA", SyncEntityTypes.TaskNote, idOtherType, 9, null, DateTime.UtcNow);
+                await SyncBaseSnapshotStore.UpsertAsync(db, "peerA", SyncEntityTypes.TaskNote, idOtherType, 9, null, DateTime.UtcNow);
+                await db.SaveChangesAsync();
             }
 
             using var verify = factory();
