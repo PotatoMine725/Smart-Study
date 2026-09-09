@@ -61,6 +61,11 @@ namespace SmartStudyPlanner.Sync
         /// That is also why there is no detached DbSet.Update(row) overload here: it would attach a
         /// second instance of the same key and mark every column modified.
         ///
+        /// Composable with <see cref="RemoveAsync"/> inside one unit of work in either order: an
+        /// upsert after a staged removal revives the row, and a removal after a staged add nets out
+        /// to no row. Last call for a key wins, which is what a caller batching several operations
+        /// before a single save expects.
+        ///
         /// <paramref name="rev"/> is supplied by the caller. This store neither computes nor infers
         /// baseline Rev (§11.1: Rev is a local-only counter owned by the apply layer).
         ///
@@ -90,6 +95,14 @@ namespace SmartStudyPlanner.Sync
                 existing.Rev = rev;
                 existing.SnapshotJson = snapshotJson;
                 existing.SyncedAtUtc = syncedAtUtc;
+
+                // A RemoveAsync staged earlier in this same unit of work leaves the row tracked as
+                // Deleted; FindAsync hands that instance back, and without this the caller's save
+                // would execute the delete and silently discard the upsert. Only reachable because
+                // neither method saves any more — while the store self-saved, every call settled
+                // the row in the database before the next one looked at it.
+                var entry = db.Entry(existing);
+                if (entry.State == EntityState.Deleted) entry.State = EntityState.Modified;
             }
         }
 

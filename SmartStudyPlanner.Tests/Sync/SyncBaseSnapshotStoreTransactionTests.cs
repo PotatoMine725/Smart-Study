@@ -412,6 +412,63 @@ namespace SmartStudyPlanner.Tests.Sync
             Assert.NotNull(await SyncBaseSnapshotStore.GetAsync(verify, "peerA", SyncEntityTypes.TaskNote, entityId));
         }
 
+        // Composability of the two stagers inside ONE unit of work. This is only reachable now that
+        // neither method saves: previously each call committed, so the second call always saw a
+        // settled database. Staging a removal and then re-upserting the same key must leave the
+        // upserted row, not the removal.
+        [Fact]
+        public async Task Remove_ThenUpsertSameKeyOnSameContext_LeavesTheUpsertedRow()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+            var entityId = Guid.NewGuid();
+
+            using (var db = factory())
+            {
+                await SyncBaseSnapshotStore.UpsertAsync(
+                    db, "peerA", SyncEntityTypes.MonHoc, entityId,
+                    rev: 1, snapshotJson: "{\"v\":1}", syncedAtUtc: DateTime.UtcNow);
+                await db.SaveChangesAsync();
+            }
+
+            using (var db = factory())
+            {
+                await SyncBaseSnapshotStore.RemoveAsync(db, "peerA", SyncEntityTypes.MonHoc, entityId);
+                await SyncBaseSnapshotStore.UpsertAsync(
+                    db, "peerA", SyncEntityTypes.MonHoc, entityId,
+                    rev: 2, snapshotJson: "{\"v\":2}", syncedAtUtc: DateTime.UtcNow);
+                await db.SaveChangesAsync();
+            }
+
+            using var verify = factory();
+            var row = await SyncBaseSnapshotStore.GetAsync(verify, "peerA", SyncEntityTypes.MonHoc, entityId);
+            Assert.NotNull(row);
+            Assert.Equal(2, row!.Rev);
+            Assert.Equal("{\"v\":2}", row.SnapshotJson);
+        }
+
+        // The mirror case: staging an add and then removing it within the same unit of work nets
+        // out to no row, and must not throw or leave a half-staged entry behind.
+        [Fact]
+        public async Task Upsert_ThenRemoveSameKeyOnSameContext_LeavesNoRow()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+            var entityId = Guid.NewGuid();
+
+            using (var db = factory())
+            {
+                await SyncBaseSnapshotStore.UpsertAsync(
+                    db, "peerA", SyncEntityTypes.MonHoc, entityId,
+                    rev: 1, snapshotJson: null, syncedAtUtc: DateTime.UtcNow);
+                await SyncBaseSnapshotStore.RemoveAsync(db, "peerA", SyncEntityTypes.MonHoc, entityId);
+                await db.SaveChangesAsync();
+            }
+
+            using var verify = factory();
+            Assert.Null(await SyncBaseSnapshotStore.GetAsync(verify, "peerA", SyncEntityTypes.MonHoc, entityId));
+        }
+
         [Fact]
         public async Task Delete_ThenCallerSave_RemovesTheRow()
         {
