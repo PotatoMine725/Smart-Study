@@ -45,6 +45,12 @@ namespace SmartStudyPlanner.Data
             // hai dòng trên, xem doc comment của SyncBaseSnapshotSchema.EnsureTable).
             SyncBaseSnapshotSchema.EnsureTable(db);
 
+            // Runtime schema migration: tạo bảng SyncConflictRecords + 2 index + 3 trigger (Epic 2,
+            // T2.4 PR-4 — ConflictRecord staging boundary). Chạy KHÔNG ĐIỀU KIỆN mỗi lần startup —
+            // khác EnsureColumns bên dưới — vì EnsureCreated() không bao giờ tạo trigger dù bảng mới
+            // hay cũ; xem doc comment của SyncConflictRecordSchema.EnsureTable.
+            SyncConflictRecordSchema.EnsureTable(db);
+
             // Epic 1 / M1.2 (T1.8): patch the D-I sync-metadata columns onto an existing
             // (pre-Epic-1) DB. Back up the file first -- only when an upgrade is actually
             // about to run, so normal launches don't pile up backup files every time.

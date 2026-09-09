@@ -77,6 +77,11 @@ namespace SmartStudyPlanner.Data
         // for why it must not implement ISyncMetadata).
         public DbSet<Sync.SyncBaseSnapshotRow> SyncBaseSnapshots => Set<Sync.SyncBaseSnapshotRow>();
 
+        // Epic 2 / T2.4 (PR-4) — persistent ConflictRecord staging boundary (D6/D7/D8, D9-T1..T6).
+        // Bookkeeping table, not a synced business entity (see SyncConflictRecordRow's own doc
+        // comment for why it must not implement ISyncMetadata).
+        public DbSet<Sync.SyncConflictRecordRow> SyncConflictRecords => Set<Sync.SyncConflictRecordRow>();
+
         // 2. CẤU HÌNH ĐƯỜNG DẪN LƯU FILE SQLITE
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -143,6 +148,24 @@ namespace SmartStudyPlanner.Data
             // Epic 2 / M2.1 (T1.4) — per-peer last-synced base-snapshot store, composite key.
             modelBuilder.Entity<Sync.SyncBaseSnapshotRow>(b =>
                 b.HasKey(s => new { s.PeerDeviceId, s.EntityType, s.EntityId }));
+
+            // Epic 2 / T2.4 (PR-4) — ConflictRecord staging boundary (DoR §8). The filtered unique
+            // index enforces D9-T6 ("at most one Unresolved record per logical scope") at the
+            // database level. EnsureCreated() builds the table + both indexes from this config on a
+            // fresh DB; Data/SyncConflictRecordSchema.EnsureTable patches the SAME table+indexes onto
+            // every other DB, plus the three triggers this config cannot express (EF has no trigger
+            // concept), and runs unconditionally at every startup because EnsureCreated() never
+            // creates triggers regardless of whether the table itself is new or pre-existing.
+            modelBuilder.Entity<Sync.SyncConflictRecordRow>(b =>
+            {
+                b.ToTable("SyncConflictRecords");
+                b.HasKey(r => r.ConflictId);
+                b.HasIndex(r => r.ConflictKey).IsUnique().HasDatabaseName("IX_SyncConflictRecords_ConflictKey");
+                b.HasIndex(r => r.ScopeKey).IsUnique()
+                    .HasFilter("Status = 0")
+                    .HasDatabaseName("IX_SyncConflictRecords_OneUnresolvedPerScope");
+                b.Property(r => r.LocalWithdrawal).HasDefaultValue(Sync.ConflictLocalWithdrawal.None);
+            });
         }
 
         // 4. SINGLE STAMPING SEAM (Epic 1 / D-I, M1.1 scope): every write across the 9
