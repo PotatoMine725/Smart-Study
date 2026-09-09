@@ -4,12 +4,24 @@ using SmartStudyPlanner.Models.Telemetry;
 using SmartStudyPlanner.Services.ML;
 using SmartStudyPlanner.Services.Soe;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace SmartStudyPlanner.Data
 {
+    /// <summary>
+    /// Epic 2 / T2.4 (PR-2, DoR §10.1). Per-entry intent handed to <see cref="SyncStamper"/> for
+    /// one SaveChanges. Only one member today: the entry already carries the winning remote/base
+    /// provenance and must keep it.
+    /// </summary>
+    public enum SyncApplyIntent
+    {
+        PreserveProvenance = 1
+    }
+
     // BẮT BUỘC phải kế thừa từ DbContext của Entity Framework
     public class AppDbContext : DbContext
     {
@@ -24,8 +36,24 @@ namespace SmartStudyPlanner.Data
         // bootstrap dựng AppDbContext trực tiếp không đụng vào %APPDATA%.
         public Func<string> DeviceIdProvider { get; set; } = () => DeviceHelper.GetId();
 
+        // Epic 2 / T2.4 (PR-2, DoR §10.1) — sync-apply intent for the *next* SaveChanges only.
+        // Reference equality, not entity equality: the intent belongs to the exact instance the
+        // apply session is saving, and two distinct instances of the same row (one loaded
+        // AsNoTracking for the merge, one tracked for the write) must not share it.
+        private readonly Dictionary<object, SyncApplyIntent> _syncApplyIntents =
+            new(ReferenceEqualityComparer.Instance);
+
         public AppDbContext() { }
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+        /// <summary>
+        /// Marks one tracked entity as sync-applied: <see cref="SyncStamper"/> will keep the
+        /// provenance already written on it and only bump the local Rev. Scoped to the next
+        /// SaveChanges/SaveChangesAsync on this context — the map is cleared in a finally, so a
+        /// failed save cannot leak sync intent into a later, unrelated save. There is no global
+        /// "sync mode": every entity the apply session wants preserved must be marked by instance.
+        /// </summary>
+        public void MarkSyncApplied(object entity) => _syncApplyIntents[entity] = SyncApplyIntent.PreserveProvenance;
 
         // 1. KHAI BÁO CÁC BẢNG TRONG DATABASE
         // Mỗi DbSet đại diện cho một Bảng (Table) trong CSDL SQLite
@@ -126,14 +154,22 @@ namespace SmartStudyPlanner.Data
         // skipped — see SyncMetadataStampingTests for coverage.
         public override int SaveChanges(bool acceptAllChangesOnSuccess)
         {
-            SyncStamper.Apply(ChangeTracker, Clock, DeviceIdProvider());
-            return base.SaveChanges(acceptAllChangesOnSuccess);
+            try
+            {
+                SyncStamper.Apply(ChangeTracker, Clock, DeviceIdProvider(), _syncApplyIntents);
+                return base.SaveChanges(acceptAllChangesOnSuccess);
+            }
+            finally { _syncApplyIntents.Clear(); }
         }
 
         public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
         {
-            SyncStamper.Apply(ChangeTracker, Clock, DeviceIdProvider());
-            return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+            try
+            {
+                SyncStamper.Apply(ChangeTracker, Clock, DeviceIdProvider(), _syncApplyIntents);
+                return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+            }
+            finally { _syncApplyIntents.Clear(); }
         }
     }
 }
