@@ -87,6 +87,41 @@ namespace SmartStudyPlanner.Tests.Data
             Assert.Equal(1, hocKy.Rev);
         }
 
+        /// <summary>
+        /// C-4 (Decision Record §29 / DoR §10.5) — characterization of TODAY's behaviour: an
+        /// ordinary SaveChanges overwrites provenance that was pre-set on the entity, so a
+        /// remote-provenanced row loses its sync provenance. Documents the measured problem PR-2
+        /// solves; must stay GREEN after PR-2 because the unmarked path is byte-identical.
+        /// </summary>
+        [Fact]
+        public async Task PresetRemoteProvenance_IsOverwrittenByOrdinarySave()
+        {
+            var remoteAt = new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+            var localAt = new DateTime(2026, 7, 3, 12, 0, 0, DateTimeKind.Utc);
+
+            Guid hocKyId;
+            using (var ctx = NewCtx())
+            {
+                var hocKy = new HocKy("HK", DateTime.Today);
+                ctx.HocKys.Add(hocKy);
+                await ctx.SaveChangesAsync();
+                hocKyId = hocKy.MaHocKy;
+            }
+
+            using var ctx2 = NewCtx();
+            ctx2.Clock = () => localAt;
+            ctx2.DeviceIdProvider = () => "LOCAL-DEVICE";
+
+            var tracked = await ctx2.HocKys.FirstAsync(h => h.MaHocKy == hocKyId);
+            tracked.ModifiedAtUtc = remoteAt;
+            tracked.ModifiedByDeviceId = "REMOTE-DEVICE";
+            await ctx2.SaveChangesAsync();
+
+            Assert.Equal(localAt, tracked.ModifiedAtUtc);
+            Assert.Equal("LOCAL-DEVICE", tracked.ModifiedByDeviceId);
+            Assert.Equal(2, tracked.Rev);
+        }
+
         [Fact]
         public async Task Delete_TombstonesInsteadOfHardDelete()
         {
