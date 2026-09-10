@@ -142,24 +142,21 @@ namespace SmartStudyPlanner.Tests.Sync.Apply
 
         /// <summary>
         /// M (create variant) — an incoming CREATE under a tombstoned D4 parent is not materialised at
-        /// all, so no live orphan is ever produced. It is rejected rather than staged: with neither a
-        /// Base nor a local row there is no competing local candidate, and both
-        /// <c>ConflictCandidate.Local</c> and the schema's <c>LocalSnapshotJson</c> are non-nullable, so
-        /// staging would mean recording evidence that never existed. Reported as a semantic blocker in
-        /// the PR notes; harmless in practice because the peer re-offers the row until its own cascade
-        /// turns it into a tombstone, which applies cleanly.
+        /// all, so no live orphan is ever produced, AND the conflict is staged with no local candidate
+        /// (D4/D9-T4 amendment, 2026-09-10: the local state holds no row for the logical child scope, so
+        /// <c>Local</c> is absent rather than fabricated).
+        /// <para>
+        /// The amendment's own prohibitions are what this asserts: the three local columns are absent
+        /// TOGETHER, the remote candidate is the actual remote row, and no placeholder stands in for the
+        /// absent side — checked by proving the remote's distinctive content is nowhere in the local
+        /// evidence, not merely that the local evidence is null.
+        /// </para>
         /// </summary>
         [Fact]
-        public async Task M_CreateUnderTombstonedStructuralParent_IsNotMaterialised()
+        public async Task M_CreateUnderTombstonedStructuralParent_StagesAStructuralConflictWithNoLocalCandidate()
         {
             var (hocKy, _, _) = await _fx.SeedTreeAsync();
-
-            using (var ctx = _fx.NewContext(DeletedLocallyAt, DeleterDevice))
-            {
-                var live = await ctx.HocKys.FirstAsync(h => h.MaHocKy == hocKy.MaHocKy);
-                ctx.HocKys.Remove(live);
-                await ctx.SaveChangesAsync();
-            }
+            await TombstoneHocKyAsync(hocKy.MaHocKy);
 
             var newMonHocId = Guid.NewGuid();
             var remote = new MonHoc { MaMonHoc = newMonHocId, MaHocKy = hocKy.MaHocKy, TenMonHoc = "orphan?", SoTinChi = 3 };
@@ -168,9 +165,89 @@ namespace SmartStudyPlanner.Tests.Sync.Apply
             var report = await _fx.Session().ApplyAsync(SyncApplyFixture.From(remote));
             var result = Assert.Single(report.Results);
 
-            Assert.Equal(SyncApplyOutcome.Rejected, result.Outcome);
-            Assert.Equal(SyncApplyReason.ParentTombstonedNoLocalRow, result.Reason);
+            Assert.Equal(SyncApplyOutcome.ConflictStaged, result.Outcome);
             Assert.Null(await _fx.ReadMonHocAsync(newMonHocId));      // the invariant that matters
+
+            var record = Assert.Single(await _fx.ReadConflictsAsync());
+            Assert.Equal(ConflictKind.StructuralConflict, record.Kind);
+            Assert.Equal(StructuralReason.ParentTombstoned, record.StructuralReason);
+            Assert.Equal(ConflictRecordStatus.Unresolved, record.Status);
+            Assert.Equal(SyncEntityTypes.MonHoc, record.EntityType);
+            Assert.Equal(newMonHocId, record.EntityId);
+
+            // Absent together, and nothing withdrawn — there was nothing to withdraw.
+            Assert.Null(record.LocalEntityId);
+            Assert.Null(record.LocalSnapshotJson);
+            Assert.Null(record.LocalFingerprint);
+            Assert.Null(record.LocalRowRev);
+            Assert.Equal(ConflictLocalWithdrawal.None, record.LocalWithdrawal);
+
+            // No Base either: a pure create has no baseline.
+            Assert.Null(record.BaseEntityId);
+            Assert.Null(record.BaseSnapshotJson);
+            Assert.Null(record.BaseFingerprint);
+
+            // The remote side is the real remote candidate, and it was NOT copied into the local slot.
+            Assert.Equal(newMonHocId, record.RemoteEntityId);
+            Assert.Contains("orphan?", record.RemoteSnapshotJson);
+            Assert.DoesNotContain("orphan?", record.LocalSnapshotJson ?? string.Empty);
+
+            // Nothing was applied, so nothing may claim to be in sync (DoR §11.2).
+            Assert.Null(await _fx.ReadBaselineAsync(SyncApplyFixture.PeerDevice, SyncEntityTypes.MonHoc, newMonHocId));
+        }
+
+        /// <summary>
+        /// M (create variant, replay) — re-offering the same create while the record is still Unresolved
+        /// is stopped by the D9-T6 scope lock, for both replay shapes. For an entity operation the lock
+        /// key IS the staged record's ScopeKey and it is checked before parent inspection, so this is
+        /// <c>ScopeHasUnresolvedConflict</c> rather than <c>ConflictAlreadyStaged</c> — stated here
+        /// because the distinction is observable and would otherwise look like a bug.
+        /// <para>
+        /// Both shapes are covered: an unchanged remote (same ConflictKey, so dedup COULD have caught it)
+        /// and an edited remote (a new ConflictKey in the same scope, where only the scope lock can).
+        /// The second is the one that proves D9-T6 still governs the amendment's new record.
+        /// </para>
+        /// </summary>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task M_CreateUnderTombstonedStructuralParent_ReplayStagesNoSecondRecord(bool editRemoteOnReplay)
+        {
+            var (hocKy, _, _) = await _fx.SeedTreeAsync();
+            await TombstoneHocKyAsync(hocKy.MaHocKy);
+
+            var newMonHocId = Guid.NewGuid();
+            var remote = new MonHoc { MaMonHoc = newMonHocId, MaHocKy = hocKy.MaHocKy, TenMonHoc = "orphan?", SoTinChi = 3 };
+            SyncApplyFixture.Stamp(remote, SyncApplyFixture.RemoteLater, SyncApplyFixture.PeerDevice);
+
+            var first = Assert.Single((await _fx.Session().ApplyAsync(SyncApplyFixture.From(remote))).Results);
+            Assert.Equal(SyncApplyOutcome.ConflictStaged, first.Outcome);
+            var stagedId = Assert.Single(await _fx.ReadConflictsAsync()).ConflictId;
+
+            if (editRemoteOnReplay)
+            {
+                remote.TenMonHoc = "orphan, renamed on the peer";
+                SyncApplyFixture.Stamp(remote, SyncApplyFixture.RemoteLater.AddMinutes(5), SyncApplyFixture.PeerDevice);
+            }
+
+            var replay = Assert.Single((await _fx.Session().ApplyAsync(SyncApplyFixture.From(remote))).Results);
+
+            Assert.Equal(SyncApplyOutcome.Rejected, replay.Outcome);
+            Assert.Equal(SyncApplyReason.ScopeHasUnresolvedConflict, replay.Reason);
+
+            // One record, the original one, and still no child row.
+            var record = Assert.Single(await _fx.ReadConflictsAsync());
+            Assert.Equal(stagedId, record.ConflictId);
+            Assert.Contains("orphan?", record.RemoteSnapshotJson);        // evidence is immutable (D7-F)
+            Assert.Null(await _fx.ReadMonHocAsync(newMonHocId));
+        }
+
+        private async Task TombstoneHocKyAsync(Guid maHocKy)
+        {
+            using var ctx = _fx.NewContext(DeletedLocallyAt, DeleterDevice);
+            var live = await ctx.HocKys.FirstAsync(h => h.MaHocKy == maHocKy);
+            ctx.HocKys.Remove(live);
+            await ctx.SaveChangesAsync();
         }
 
         // ------------------------------------------------------------------ N. FK-only child cascade

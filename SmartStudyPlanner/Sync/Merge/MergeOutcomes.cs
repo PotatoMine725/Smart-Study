@@ -35,7 +35,12 @@ namespace SmartStudyPlanner.Sync.Merge
         StructuralReason? Reason,
         EntitySnapshot? Base,            // may be null (D6-B)
         Guid? BaseEntityId,
-        EntitySnapshot Local, Guid LocalEntityId,
+        // Local may be absent, and ONLY for a StructuralConflict whose logical child scope holds no
+        // local row at all -- a remote pure create under a tombstoned structural parent (D4/D9-T4
+        // amendment, 2026-09-10). The two move together: snapshot and id are both present or both
+        // absent, enforced by ConflictKeys.ConflictKey. Absence is never a placeholder: the remote
+        // row must NOT be copied into this slot.
+        EntitySnapshot? Local, Guid? LocalEntityId,
         EntitySnapshot Remote, Guid RemoteEntityId,
         ResolutionKind? AutoResolution,  // AutoLww / AutoTombstone => Resolved directly (D9-T5); null => Unresolved
         EntitySnapshot? AutoResult);     // the deterministic outcome for the auto kinds

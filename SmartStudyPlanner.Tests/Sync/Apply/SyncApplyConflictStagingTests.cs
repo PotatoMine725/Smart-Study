@@ -597,5 +597,47 @@ namespace SmartStudyPlanner.Tests.Sync.Apply
             Assert.True(SyncBaseFingerprint.Matches(null, null));
             Assert.False(SyncBaseFingerprint.Matches(null, drifted));
         }
+
+        /// <summary>
+        /// M5 still fails closed now that <c>LocalEntityId</c> is nullable (D4/D9-T4 amendment). The
+        /// identity precondition is a lifted <c>Guid? != Guid</c> comparison, so "no local candidate"
+        /// compares unequal to every real id and the delete is refused. Asserted rather than assumed:
+        /// this is the one production site allowed to physically delete a synced row, and a precondition
+        /// that silently stopped discriminating would be invisible in every other test.
+        /// </summary>
+        [Fact]
+        public async Task M5HardDelete_WithNoLocalCandidateOnTheRecord_IsRefused()
+        {
+            using var db = _fx.NewContext();
+            await using var tx = await db.Database.BeginTransactionAsync();
+
+            // Everything the guard checks BEFORE identity is deliberately valid, so the identity check
+            // is the only thing that can reject this call.
+            var record = new SyncConflictRecordRow
+            {
+                ConflictId = Guid.NewGuid(),
+                ConflictKey = "ck-m5-absent",
+                ScopeKey = "scope-m5-absent",
+                Kind = ConflictKind.ConstraintConflict,
+                EntityType = SyncEntityTypes.TaskNote,
+                PeerDeviceId = SyncApplyFixture.PeerDevice,
+                Status = ConflictRecordStatus.Unresolved,
+                LocalWithdrawal = ConflictLocalWithdrawal.HardDeleted,
+                LocalEntityId = null,
+                LocalSnapshotJson = null,
+                LocalFingerprint = null,
+                LocalRowRev = null,
+                RemoteEntityId = Guid.NewGuid(),
+                RemoteSnapshotJson = "{}",
+                RemoteFingerprint = "r",
+                CreatedAtUtc = SyncApplyFixture.LocalNow,
+                CreatedByDeviceId = SyncApplyFixture.LocalDevice,
+            };
+
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                ConflictStaging.HardDeleteWithdrawnTaskNoteAsync(db, record, Guid.NewGuid()));
+
+            Assert.Contains("does not match the record's LocalEntityId", ex.Message);
+        }
     }
 }

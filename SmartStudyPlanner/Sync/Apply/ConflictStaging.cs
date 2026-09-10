@@ -60,9 +60,14 @@ namespace SmartStudyPlanner.Sync.Apply
                 BaseSnapshotJson = candidate.Base is null ? null : CanonicalJson.Write(candidate.Base),
                 BaseFingerprint = candidate.Base is null ? null : CanonicalJson.Fingerprint(candidate.Base),
 
+                // D4/D9-T4 amendment: absent together when a StructuralConflict has no competing local
+                // candidate. Same idiom as Base above, and deliberately NOT a fallback to the remote
+                // row -- the amendment forbids representing absence with a synthetic local snapshot.
+                // ConflictKeys.ConflictKey (called for ConflictKey above) is the single place that
+                // validates this, and it throws for any other kind, so no guard is duplicated here.
                 LocalEntityId = candidate.LocalEntityId,
-                LocalSnapshotJson = CanonicalJson.Write(candidate.Local),
-                LocalFingerprint = CanonicalJson.Fingerprint(candidate.Local),
+                LocalSnapshotJson = candidate.Local is null ? null : CanonicalJson.Write(candidate.Local),
+                LocalFingerprint = candidate.Local is null ? null : CanonicalJson.Fingerprint(candidate.Local),
                 LocalRowRev = localRowRev,
                 LocalWithdrawal = withdrawal,
 

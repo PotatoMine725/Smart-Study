@@ -380,15 +380,19 @@ namespace SmartStudyPlanner.Sync.Apply
         /// reason: hold the local row at Base and stage full evidence.
         /// </para>
         /// <para>
-        /// When there is NO local row (the incoming child is a pure create), the child is simply not
-        /// materialised — which is exactly what DoR §12.2 says the Base-null case means — and the
-        /// operation is rejected. No record is written, because the evidence model has no slot for
-        /// "there is no competing local candidate": <c>ConflictCandidate.Local</c> and the schema's
-        /// <c>LocalSnapshotJson</c> are both non-nullable, and filling them with the remote row would
-        /// record evidence that never existed. This is reported as a semantic blocker rather than
-        /// resolved locally. It loses nothing: the row stays on the peer and is re-offered every run,
-        /// and once the peer receives our parent tombstone its own cascade turns the child into a
-        /// tombstone that applies cleanly.
+        /// When there is NO local row (the incoming child is a pure create) the child is still never
+        /// materialised, and the conflict is staged with NO local candidate — the D4/D9-T4 amendment of
+        /// 2026-09-10 (<c>docs/specs/T2.3-T2.4-D4-D9-T4-Amendment-2026-09-10.md</c>), which made
+        /// "there is no competing local candidate" representable instead of requiring either a
+        /// fabricated placeholder or a rejection. See <see cref="StageAbsentLocalStructuralAsync"/>.
+        /// </para>
+        /// <para>
+        /// A local row that exists with NO Base is a third case the amendment does not cover: there IS a
+        /// competing local candidate, so absence cannot represent it, but "hold the local row at Base"
+        /// has no Base to hold it at and no audited withdrawal mechanism exists outside M5's TaskNote
+        /// scope. It fails closed with its own typed reason. Believed unreachable — phase-1 parent
+        /// tombstones cascade before phase-2 children are applied, so a local child under a tombstoned
+        /// parent is already a tombstone by the time this runs — and no test constructs it.
         /// </para>
         /// </summary>
         private static async Task<SyncApplyResult> StageParentTombstonedAsync(
@@ -396,8 +400,21 @@ namespace SmartStudyPlanner.Sync.Apply
             ISyncMetadata? localEntity, EntitySnapshot? baseSnapshot, EntitySnapshot remoteResult,
             CancellationToken ct)
         {
-            if (localEntity is null || baseSnapshot is null)
-                return SyncApplyResult.Rejected(op, SyncApplyReason.ParentTombstonedNoLocalRow);
+            if (localEntity is null)
+            {
+                // D4/D9-T4 amendment: absent local candidate. BaseEntityId tracks Base's presence so the
+                // record never claims a Base row it has no snapshot for.
+                return await StageAbsentLocalStructuralAsync(st, op, new ConflictCandidate(
+                    ConflictKind.StructuralConflict, entityType, entityId,
+                    StructuralFieldOf(entityType), null, StructuralReason.ParentTombstoned,
+                    baseSnapshot, baseSnapshot is null ? null : entityId,
+                    null, null,                       // no competing local candidate, and no placeholder
+                    remoteResult, entityId,
+                    null, null), ct);
+            }
+
+            if (baseSnapshot is null)
+                return SyncApplyResult.Rejected(op, SyncApplyReason.ParentTombstonedLocalRowWithoutBase);
 
             var candidate = new ConflictCandidate(
                 ConflictKind.StructuralConflict, entityType, entityId,
@@ -408,6 +425,46 @@ namespace SmartStudyPlanner.Sync.Apply
                 null, null);
 
             return await StageStructuralAsync(st, op, entityType, entityId, localEntity, baseSnapshot, candidate, ct);
+        }
+
+        /// <summary>
+        /// D4 / D9-T4 amendment (owner ruling 2026-09-10) — stages an <c>Unresolved</c>
+        /// StructuralConflict that has NO competing local candidate, and materialises nothing.
+        /// <para>
+        /// Deliberately NOT routed through <see cref="StageStructuralAsync"/>. That path is S1: it reads
+        /// <c>localEntity.Rev</c> and calls <see cref="WriteAsync"/> to rewrite the local row to Base.
+        /// Here there is no local row, so the first would throw and the second would CREATE the child —
+        /// a live child under a tombstoned parent, the exact state D9-T4 exists to prevent. The split is
+        /// the mechanism, not a stylistic preference.
+        /// </para>
+        /// <para>
+        /// One save, and no baseline upsert: nothing reaches <c>st.Written</c>, and a baseline records
+        /// what was APPLIED (DoR §11.2). Writing one here would tell
+        /// <c>SyncChangeEnumerator</c> that a row we never materialised is in sync.
+        /// </para>
+        /// <para>
+        /// Replay lands on the D9-T6 scope lock, not on <c>AlreadyStaged</c>: for an entity operation the
+        /// lock key IS this record's <c>ScopeKey</c>, and <see cref="ApplyEntityAsync"/> checks it before
+        /// parent inspection. The <c>AlreadyStaged</c> branch below is kept because this method must not
+        /// depend on the caller's check order to stay idempotent.
+        /// </para>
+        /// </summary>
+        private static async Task<SyncApplyResult> StageAbsentLocalStructuralAsync(
+            OperationState st, SyncOperation op, ConflictCandidate candidate, CancellationToken ct)
+        {
+            // localRowRev null and withdrawal None: nothing was withdrawn, because nothing was there.
+            var row = ConflictStaging.ToRow(candidate, st.PeerId, st.NowUtc, st.DeviceId,
+                                            localRowRev: null, ConflictLocalWithdrawal.None);
+
+            var staged = await SyncConflictRecordStore.StageAsync(st.Db, row, ct);
+            if (staged.Outcome == ConflictStagingOutcome.ScopeHasUnresolvedConflict)
+                return SyncApplyResult.Rejected(op, SyncApplyReason.ScopeHasUnresolvedConflict);
+            if (staged.Outcome == ConflictStagingOutcome.AlreadyStaged)
+                return new SyncApplyResult(op, SyncApplyOutcome.ConflictAlreadyStaged, ConflictId: staged.Record.ConflictId);
+
+            await st.Db.SaveChangesAsync(ct);
+
+            return new SyncApplyResult(op, SyncApplyOutcome.ConflictStaged, ConflictId: row.ConflictId);
         }
 
         /// <summary>

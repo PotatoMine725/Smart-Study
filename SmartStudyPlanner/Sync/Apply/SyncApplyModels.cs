@@ -74,10 +74,12 @@ namespace SmartStudyPlanner.Sync.Apply
         MissingParent,
 
         /// <summary>
-        /// D9-T4: the incoming child targets a tombstoned D4 parent and there is no local row to hold
-        /// at Base, so the child is not materialised. See <c>SyncApplySession</c>'s remarks.
+        /// D9-T4: the incoming child targets a tombstoned D4 parent and a local row exists with no Base,
+        /// so there is a competing local candidate but nothing to hold it at. The no-local-row case is
+        /// NOT this — since the D4/D9-T4 amendment (2026-09-10) it stages a StructuralConflict with an
+        /// absent local candidate. Believed unreachable; see <c>SyncApplySession</c>'s remarks.
         /// </summary>
-        ParentTombstonedNoLocalRow,
+        ParentTombstonedLocalRowWithoutBase,
 
         /// <summary>DoR §5.5 row 10: the stored baseline row exists but its SnapshotJson is unusable.</summary>
         BaselineUnreadable,

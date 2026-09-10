@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Models.Telemetry;
 using SmartStudyPlanner.Services.ML;
@@ -158,7 +158,17 @@ namespace SmartStudyPlanner.Data
             // creates triggers regardless of whether the table itself is new or pre-existing.
             modelBuilder.Entity<Sync.SyncConflictRecordRow>(b =>
             {
-                b.ToTable("SyncConflictRecords");
+                // D4/D9-T4 amendment (2026-09-10): the three local-candidate columns are nullable, so
+                // this CHECK carries what their NOT NULL constraints used to -- present-or-absent
+                // together, absence legal only for Kind = 1 (StructuralConflict). Declared here AND in
+                // SyncConflictRecordSchema.CreateTableSql under the same name, because the two creation
+                // paths must converge (SyncConflictRecordSchemaDualPathTests) and because that name is
+                // what the migration probes to decide whether a database still needs the rebuild.
+                b.ToTable("SyncConflictRecords", t => t.HasCheckConstraint(
+                    "CK_SyncConflictRecords_LocalCandidate",
+                    "(LocalEntityId IS NULL) = (LocalSnapshotJson IS NULL)" +
+                    " AND (LocalEntityId IS NULL) = (LocalFingerprint IS NULL)" +
+                    " AND (LocalEntityId IS NOT NULL OR Kind = 1)"));
                 b.HasKey(r => r.ConflictId);
                 b.HasIndex(r => r.ConflictKey).IsUnique().HasDatabaseName("IX_SyncConflictRecords_ConflictKey");
                 b.HasIndex(r => r.ScopeKey).IsUnique()
