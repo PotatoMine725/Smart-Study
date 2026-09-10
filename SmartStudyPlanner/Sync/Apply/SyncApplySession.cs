@@ -85,6 +85,13 @@ namespace SmartStudyPlanner.Sync.Apply
                 results.Add(result);
             }
 
+            // DoR §12.5 step 3. Today this pass only ever re-produces the same MissingParent
+            // rejection: the planner already orders parents before children by type, so a parent that
+            // is present in this change set at all has been committed before its child was first
+            // attempted. The success path is therefore structurally unreachable as things stand — it is
+            // here because §12.5 specifies it and because any future change to the planning order (or a
+            // change set whose parents arrive by another route) would need it. Do not read its absence
+            // from the test suite as missing coverage.
             foreach (var op in deferred)
                 results.Add(await ExecuteAsync(op, changes.PeerDeviceId, ct));
 

@@ -144,6 +144,61 @@ namespace SmartStudyPlanner.Tests.Sync.Apply
             Assert.Single(await _fx.ReadConflictsAsync());                   // no second record
         }
 
+        /// <summary>
+        /// J (the destructive direction) — the audited M5 delete must ENLIST in the apply session's
+        /// transaction, so that a rollback restores the row.
+        /// <para>
+        /// This is the one invariant in PR-5 that fails destructively rather than safely. Every other
+        /// guard fails closed; if the raw <c>DELETE</c> ran outside the ambient transaction, N1 would be
+        /// physically gone while the ConflictRecord holding its only recoverable copy rolled back — which
+        /// is precisely what the whole A1 approval assumes cannot happen.
+        /// </para>
+        /// <para>
+        /// Note what the sibling test above does NOT cover: it rejects at <c>StageAsync</c>, i.e. before
+        /// the delete is ever reached, so it proves "reject ⇒ no delete". DoR §17 T-5 is worded the same
+        /// way ("fail the record insert ⇒ N1 still present"). Satisfying that item literally is not the
+        /// same as proving this property, so it gets its own test.
+        /// </para>
+        /// <para>
+        /// Asserted at the mechanism level, on the same statement shape
+        /// <c>ConflictStaging.HardDeleteWithdrawnTaskNoteAsync</c> issues:
+        /// <c>ExecuteSqlInterpolatedAsync</c> against a context with an open transaction. The production
+        /// method is <c>internal</c> and is deliberately not widened to <c>public</c> just to be called
+        /// from here — an audited exception with enforced preconditions should not grow a test-only
+        /// entry point.
+        /// </para>
+        /// <para>
+        /// Not vacuous, and self-discriminating: the row is asserted GONE inside the transaction first,
+        /// which proves the delete actually executed (otherwise "present after rollback" would pass
+        /// because nothing ever happened), and the post-rollback assertion fails precisely in the case
+        /// this test exists to exclude — the delete auto-committing instead of enlisting.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public async Task J_TheAuditedHardDelete_EnlistsInTheTransaction_SoRollbackRestoresTheRow()
+        {
+            var (_, _, task) = await _fx.SeedTreeAsync();
+            var n1 = new TaskNote { Id = Guid.NewGuid(), MaTask = task.MaTask, Content = "must come back" };
+            await _fx.AddLocalAsync(n1);
+
+            using (var ctx = _fx.NewContext())
+            {
+                await using var tx = await ctx.Database.BeginTransactionAsync();
+
+                await ctx.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM TaskNotes WHERE Id = {n1.Id}");
+
+                // The delete really happened — without this the test could pass vacuously.
+                Assert.Equal(0, await ctx.TaskNotes.AsNoTracking().CountAsync(n => n.Id == n1.Id));
+
+                await tx.RollbackAsync();
+            }
+
+            var restored = await _fx.ReadNoteAsync(n1.Id);
+            Assert.NotNull(restored);
+            Assert.Equal("must come back", restored!.Content);
+            Assert.Equal(1, restored.Rev);                       // and restored intact, not re-created
+        }
+
         // ------------------------------------------------------------------ K. constraint staging, Base != null
 
         /// <summary>
