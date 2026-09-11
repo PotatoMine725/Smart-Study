@@ -86,9 +86,11 @@ namespace SmartStudyPlanner.Tests.Data
             var syncedAt = new DateTime(2026, 9, 7, 8, 0, 0, DateTimeKind.Utc);
             using (var write = TestDb.Create(conn))
             {
-                SyncBaseSnapshotStore.SetAsync(
+                SyncBaseSnapshotStore.UpsertAsync(
                     write, "peerA", SyncEntityTypes.HocKy, entityId, rev: 4,
                     snapshotJson: "{}", syncedAtUtc: syncedAt).GetAwaiter().GetResult();
+                // PR-3: the store only stages the row; this test owns the save.
+                write.SaveChanges();
             }
 
             using var verify = TestDb.Create(conn);

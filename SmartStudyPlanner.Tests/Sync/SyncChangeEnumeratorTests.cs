@@ -61,9 +61,10 @@ namespace SmartStudyPlanner.Tests.Sync
             using (var db = factory())
             {
                 var seeded = await db.StudyTasks.SingleAsync(t => t.MaTask == task.MaTask);
-                await SyncBaseSnapshotStore.SetAsync(
+                await SyncBaseSnapshotStore.UpsertAsync(
                     db, "peerA", SyncEntityTypes.StudyTask, task.MaTask,
                     rev: seeded.Rev, snapshotJson: null, syncedAtUtc: DateTime.UtcNow);
+                await db.SaveChangesAsync();
             }
 
             using (var db = factory())
@@ -99,9 +100,10 @@ namespace SmartStudyPlanner.Tests.Sync
                 // Derive the snapshot Rev from the row actually read back, not a literal —
                 // this is the exact boundary row.Rev > snapshot.Rev must reject.
                 var seeded = await db.StudyTasks.SingleAsync(t => t.MaTask == task.MaTask);
-                await SyncBaseSnapshotStore.SetAsync(
+                await SyncBaseSnapshotStore.UpsertAsync(
                     db, "peerA", SyncEntityTypes.StudyTask, task.MaTask,
                     rev: seeded.Rev, snapshotJson: null, syncedAtUtc: DateTime.UtcNow);
+                await db.SaveChangesAsync();
             }
 
             using var verify = factory();
@@ -127,9 +129,10 @@ namespace SmartStudyPlanner.Tests.Sync
             using (var db = factory())
             {
                 var seeded = await db.StudyTasks.SingleAsync(t => t.MaTask == task.MaTask);
-                await SyncBaseSnapshotStore.SetAsync(
+                await SyncBaseSnapshotStore.UpsertAsync(
                     db, "peerA", SyncEntityTypes.StudyTask, task.MaTask,
                     rev: seeded.Rev, snapshotJson: null, syncedAtUtc: DateTime.UtcNow);
+                await db.SaveChangesAsync();
             }
 
             using (var db = factory())
@@ -169,9 +172,10 @@ namespace SmartStudyPlanner.Tests.Sync
                 var toModify = await db.StudyTasks.SingleAsync(t => t.MaTask == task.MaTask);
                 toModify.TenTask = "Modified for A";
                 await db.SaveChangesAsync();
-                await SyncBaseSnapshotStore.SetAsync(
+                await SyncBaseSnapshotStore.UpsertAsync(
                     db, "peerA", SyncEntityTypes.StudyTask, task.MaTask,
                     rev: toModify.Rev, snapshotJson: null, syncedAtUtc: DateTime.UtcNow);
+                await db.SaveChangesAsync();
             }
 
             using var verify = factory();

@@ -12,6 +12,22 @@ namespace SmartStudyPlanner.Sync
     // AppDbContext db as first parameter, mirroring SyncStamper/SyncSchema/TelemetrySchema
     // (Data-layer sync infrastructure), NOT the Sqlite*Repository(factory) instance
     // convention used by domain ports.
+    //
+    // Epic 2 / T2.4 (PR-3) — transaction boundary. The write methods below stage their change
+    // into the caller's AppDbContext and deliberately do NOT call SaveChanges, do NOT begin or
+    // commit a transaction, and do NOT own the context's lifetime. D8-G ("one logical sync
+    // operation = one transaction boundary") requires the baseline update to sit inside the
+    // caller's transaction together with merge/apply and conflict staging, and DoR §11.2 puts
+    // two SaveChangesAsync calls (apply, then baseline upsert) inside that one transaction.
+    //
+    // A self-saving store defeats both. It also flushes every OTHER dirty entity tracked by the
+    // same context, and AppDbContext.SaveChanges runs SyncStamper over the whole ChangeTracker —
+    // so an unrelated in-flight edit would be persisted AND stamped with local provenance
+    // (Rev++/ModifiedAtUtc) by a call the caller only meant to record a baseline. Keeping the
+    // save out of here means SyncStamper only ever runs at a save boundary the caller chose.
+    //
+    // The caller owns: DbContext, transaction, SaveChanges, commit/rollback.
+    // This store owns: locating the baseline row, and setting its values.
     public static class SyncBaseSnapshotStore
     {
         public static Task<SyncBaseSnapshotRow?> GetAsync(
@@ -33,11 +49,30 @@ namespace SmartStudyPlanner.Sync
             return rows.ToDictionary(r => r.EntityId);
         }
 
-        // Upsert. Find existing row by composite key; if present, overwrite Rev/
-        // SnapshotJson/SyncedAtUtc in place; if absent, add new. Calls
-        // db.SaveChangesAsync() itself (self-contained per call, matching how
-        // Sqlite*Repository methods behave from a caller's perspective).
-        public static async Task SetAsync(
+        /// <summary>
+        /// Stages an upsert of one baseline row into <paramref name="db"/>. Finds the existing row
+        /// by composite key; if present, overwrites Rev/SnapshotJson/SyncedAtUtc on that instance;
+        /// if absent, adds a new one. Nothing is written to the database until the caller calls
+        /// SaveChanges/SaveChangesAsync itself.
+        ///
+        /// FindAsync resolves the tracked instance first, so a row already tracked (including one
+        /// still pending as Added from an earlier call in the same unit of work) is mutated in
+        /// place rather than re-added — repeated upserts of the same key stage exactly one row.
+        /// That is also why there is no detached DbSet.Update(row) overload here: it would attach a
+        /// second instance of the same key and mark every column modified.
+        ///
+        /// Composable with <see cref="RemoveAsync"/> inside one unit of work in either order: an
+        /// upsert after a staged removal revives the row, and a removal after a staged add nets out
+        /// to no row. Last call for a key wins, which is what a caller batching several operations
+        /// before a single save expects.
+        ///
+        /// <paramref name="rev"/> is supplied by the caller. This store neither computes nor infers
+        /// baseline Rev (§11.1: Rev is a local-only counter owned by the apply layer).
+        ///
+        /// On failure nothing is saved and no transaction is touched; the caller remains
+        /// responsible for rollback and for disposing/recreating the context.
+        /// </summary>
+        public static async Task UpsertAsync(
             AppDbContext db, string peerId, string entityType, Guid entityId,
             long rev, string? snapshotJson, DateTime syncedAtUtc,
             CancellationToken ct = default)
@@ -60,12 +95,27 @@ namespace SmartStudyPlanner.Sync
                 existing.Rev = rev;
                 existing.SnapshotJson = snapshotJson;
                 existing.SyncedAtUtc = syncedAtUtc;
-            }
 
-            await db.SaveChangesAsync(ct);
+                // A RemoveAsync staged earlier in this same unit of work leaves the row tracked as
+                // Deleted; FindAsync hands that instance back, and without this the caller's save
+                // would execute the delete and silently discard the upsert. Only reachable because
+                // neither method saves any more — while the store self-saved, every call settled
+                // the row in the database before the next one looked at it.
+                var entry = db.Entry(existing);
+                if (entry.State == EntityState.Deleted) entry.State = EntityState.Modified;
+            }
         }
 
-        public static async Task DeleteAsync(
+        /// <summary>
+        /// Stages removal of one baseline row. Same contract as <see cref="UpsertAsync"/>: the
+        /// removal is only tracked, and takes effect when the caller saves. A missing row is a
+        /// no-op.
+        ///
+        /// This is a real delete of a bookkeeping row, not a domain delete — SyncBaseSnapshotRow
+        /// does not implement ISyncMetadata (see its doc comment), so it is never tombstoned or
+        /// stamped and the Epic-1 no-hard-delete invariant does not apply to it.
+        /// </summary>
+        public static async Task RemoveAsync(
             AppDbContext db, string peerId, string entityType, Guid entityId,
             CancellationToken ct = default)
         {
@@ -73,7 +123,6 @@ namespace SmartStudyPlanner.Sync
             if (existing is null) return;
 
             db.SyncBaseSnapshots.Remove(existing);
-            await db.SaveChangesAsync(ct);
         }
     }
 }
