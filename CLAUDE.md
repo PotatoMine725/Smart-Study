@@ -1,3 +1,18 @@
+<!-- git-workflow-remote-baseline v1 -->
+## Git Workflow: origin/dev is Canonical — Local dev is NOT the Baseline
+
+**Local `dev` is the owner's working checkout. It can be stale or dirty at any time — never assume it reflects merged work.**
+
+- Treat `origin/dev` as the canonical baseline for all agent/worktree work, not local `dev`.
+- Agent sessions (via `claude agents` / EnterWorktree) always work in an isolated worktree + branch — never directly in the owner's local checkout.
+- Before starting agent work: `rtk git fetch`, identify the base branch on origin, then check divergence (`rtk git status` shows ahead/behind local vs `origin/<branch>`). Create/sync the agent's worktree **from the fetched remote branch**, not from local `dev`.
+- If local `dev` differs from `origin/dev`, **report it — do not overwrite it** to force a sync. That's the owner's call.
+- Never inspect other commits/branches from the owner's local (production) worktree — use a dedicated worktree instead.
+- A PR merge is the only integration boundary. It updates `origin/dev` only — local `dev` does **not** update automatically; the owner must pull.
+- After every PR merge, flag the owner to compare local-vs-remote before dispatching the next agent, and offer to sync local `dev` — the owner doesn't always read the files an agent's worktree touched.
+
+<!-- /git-workflow-remote-baseline -->
+
 <!-- code-review-graph MCP tools -->
 ## MCP Tools: code-review-graph
 
