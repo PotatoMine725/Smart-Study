@@ -7,8 +7,10 @@ using Microsoft.EntityFrameworkCore;
 using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Sync;
+using SmartStudyPlanner.Sync.Apply;
 using SmartStudyPlanner.Sync.Merge;
 using SmartStudyPlanner.Tests.Fixtures;
+using SmartStudyPlanner.Tests.Sync.Merge;
 using Xunit;
 
 namespace SmartStudyPlanner.Tests.Sync
@@ -415,6 +417,113 @@ namespace SmartStudyPlanner.Tests.Sync
 
             using var verify = factory();
             Assert.Equal(1, await verify.SyncConflictRecords.CountAsync());
+        }
+
+        // ---------------------------------------------------------------------------------------
+        // L2 — D4/D9-T4 replay coverage via the ConflictKey/AlreadyStaged mechanism specifically,
+        // independent of the D9-T6 ScopeKey lock (test L above proves AlreadyStaged generically with
+        // an arbitrary string key; this proves it for a REAL replayed candidate through the actual
+        // deterministic hash and the actual production row-builder).
+        //
+        // Why this needs its own seam: SyncApplyParentHandlingTests.
+        // M_CreateUnderTombstonedStructuralParent_ReplayStagesNoSecondRecord is the existing
+        // end-to-end replay test for this exact D4/D9-T4 shape (a pure create under a tombstoned
+        // structural parent), but its own doc comment records that for an entity-scoped
+        // StructuralConflict the apply session's ScopeKey pre-check is checked BEFORE parent
+        // inspection and intercepts every replay first -- so that test observes
+        // ScopeHasUnresolvedConflict, never AlreadyStaged, and cannot exercise ConflictKey dedup on
+        // its own. StageAsync's own body checks ConflictKey BEFORE ScopeKey (see above), so calling
+        // it directly -- the narrowest legitimate seam, bypassing only the apply session's ordering,
+        // not any production invariant -- is what isolates mechanism #2. No production code changes.
+        // ---------------------------------------------------------------------------------------
+        [Fact]
+        public async Task L2_ReplayedD4D9T4Candidate_IsRecognizedByConflictKey_IndependentlyOfScopeKey()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+
+            var remoteId = Guid.NewGuid();
+
+            // Two INDEPENDENTLY built candidates for the exact D4/D9-T4 shape (same as
+            // SyncApplyParentHandlingTests.M_CreateUnderTombstonedStructuralParent_...): a pure create
+            // under a tombstoned MonHoc parent, so Local is legally absent (StructuralConflict only).
+            // Same logical content, separate object graphs -- this is what "replay recomputes the
+            // candidate fresh from the re-received payload" actually looks like, not the same object
+            // reused twice.
+            var remote1 = MergeTestData.Snap(SyncEntityTypes.MonHoc, MergeTestData.Live(500, "peer-device"));
+            var remote2 = MergeTestData.Snap(SyncEntityTypes.MonHoc, MergeTestData.Live(500, "peer-device"));
+            Assert.NotSame(remote1, remote2);
+
+            static ConflictCandidate Candidate(Guid remoteId, EntitySnapshot remote) => new(
+                ConflictKind.StructuralConflict, SyncEntityTypes.MonHoc, remoteId, "MaHocKy", null,
+                StructuralReason.ParentTombstoned,
+                null, null,   // Base, BaseEntityId -- a pure create has no baseline
+                null, null,   // Local, LocalEntityId -- legally absent for a StructuralConflict
+                remote, remoteId,
+                null, null);  // not an auto-resolved kind
+
+            var candidate1 = Candidate(remoteId, remote1);
+            var candidate2 = Candidate(remoteId, remote2);
+
+            var key1 = ConflictKeys.ConflictKey(candidate1);
+            var key2 = ConflictKeys.ConflictKey(candidate2);
+            Assert.Equal(key1, key2);   // determinism: same logical state -> same hash, independent objects
+
+            // Same production row-builder the apply session itself uses (ConflictStaging.ToRow).
+            var row1 = ConflictStaging.ToRow(candidate1, "peerA", T0, "peerA",
+                                              localRowRev: null, withdrawal: ConflictLocalWithdrawal.None);
+            var row2 = ConflictStaging.ToRow(candidate2, "peerA", T0.AddMinutes(5), "peerA",
+                                              localRowRev: null, withdrawal: ConflictLocalWithdrawal.None);
+            Assert.Equal(row1.ConflictKey, row2.ConflictKey);
+            Assert.NotEqual(row1.ConflictId, row2.ConflictId);   // each ToRow call mints a fresh id (D7-A)
+
+            using (var db = factory())
+            {
+                var staged = await SyncConflictRecordStore.StageAsync(db, row1);
+                Assert.Equal(ConflictStagingOutcome.Staged, staged.Outcome);
+                await db.SaveChangesAsync();
+            }
+
+            var originalRemoteSnapshotJson = row1.RemoteSnapshotJson;
+
+            // 1. an existing Unresolved StructuralConflictRecord exists.
+            using (var check = factory())
+            {
+                var persisted = await SyncConflictRecordStore.GetAsync(check, row1.ConflictId);
+                Assert.NotNull(persisted);
+                Assert.Equal(ConflictKind.StructuralConflict, persisted!.Kind);
+                Assert.Equal(ConflictRecordStatus.Unresolved, persisted.Status);
+            }
+
+            // 2/3. the replay reaches StageAsync directly and is recognized through ConflictKey.
+            using var db2 = factory();
+            var replayed = await SyncConflictRecordStore.StageAsync(db2, row2);
+
+            Assert.Equal(ConflictStagingOutcome.AlreadyStaged, replayed.Outcome);
+            Assert.Equal(row1.ConflictId, replayed.Record.ConflictId);     // the ORIGINAL record, not row2's
+            Assert.Equal(row1.ConflictKey, replayed.Record.ConflictKey);
+
+            // 4. no second record was added to the tracker, or ever persisted.
+            Assert.Empty(db2.ChangeTracker.Entries<SyncConflictRecordRow>());
+            using (var verify = factory())
+                Assert.Equal(1, await verify.SyncConflictRecords.CountAsync());
+
+            // 5/6. existing evidence and status are untouched by the replay.
+            using (var verify = factory())
+            {
+                var persisted = await SyncConflictRecordStore.GetAsync(verify, row1.ConflictId);
+                Assert.Equal(originalRemoteSnapshotJson, persisted!.RemoteSnapshotJson);
+                Assert.Equal(ConflictRecordStatus.Unresolved, persisted.Status);
+            }
+
+            // 7. no child/live structural row was ever materialized. This test deliberately never
+            // touches a domain table -- that is what makes it a store-level COMPLEMENT to (not a
+            // replacement for) SyncApplyParentHandlingTests.M_CreateUnderTombstonedStructuralParent_
+            // ReplayStagesNoSecondRecord, which proves the same "no child materializes" property
+            // through the real apply path, where the ScopeKey lock -- not ConflictKey dedup -- is what
+            // actually intercepts that end-to-end replay.
+            using (var verify = factory())
+                Assert.Equal(0, await verify.MonHocs.CountAsync());
         }
 
         // ---------------------------------------------------------------------------------------
