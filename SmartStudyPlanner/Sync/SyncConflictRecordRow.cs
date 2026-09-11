@@ -61,9 +61,15 @@ namespace SmartStudyPlanner.Sync
         public string? BaseSnapshotJson { get; set; }     // D6-B: Base may be null.
         public string? BaseFingerprint { get; set; }      // null <=> "no live row in scope" (fp(null) = "null" in PR-1)
 
-        public Guid LocalEntityId { get; set; }
-        public string LocalSnapshotJson { get; set; } = string.Empty;
-        public string LocalFingerprint { get; set; } = string.Empty;
+        // D4/D9-T4 amendment (2026-09-10): all three are ABSENT together when a StructuralConflict has
+        // no local competing candidate -- a remote pure create under a tombstoned structural parent,
+        // where the logical child scope holds no local row. Enforced at the database layer by
+        // CK_SyncConflictRecords_LocalCandidate: present-or-absent together, and absence legal only
+        // for Kind = StructuralConflict. A non-Structural kind with a null local candidate still fails
+        // closed exactly as it did under the original NOT NULL columns.
+        public Guid? LocalEntityId { get; set; }
+        public string? LocalSnapshotJson { get; set; }
+        public string? LocalFingerprint { get; set; }
         public long? LocalRowRev { get; set; }             // D9-T1/M5: local candidate's Rev at staging time,
                                                               // needed to restore Rev continuity on KeepLocal.
         public ConflictLocalWithdrawal LocalWithdrawal { get; set; } = ConflictLocalWithdrawal.None;

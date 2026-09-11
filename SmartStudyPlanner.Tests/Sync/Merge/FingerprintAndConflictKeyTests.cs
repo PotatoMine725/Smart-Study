@@ -156,5 +156,72 @@ namespace SmartStudyPlanner.Tests.Sync.Merge
             Assert.Equal(CanonicalJson.Fingerprint(s) + "@" + N1.ToString("D"),
                          ConflictKeys.CandidateFingerprint(s, N1));
         }
+
+        // ---- D4/D9-T4 amendment (2026-09-10): a StructuralConflict may have NO local candidate ----
+
+        private static ConflictCandidate Structural(EntitySnapshot? local, Guid? localId,
+                                                    EntitySnapshot remote, Guid remoteId,
+                                                    ConflictKind kind = ConflictKind.StructuralConflict) =>
+            new(kind, SyncEntityTypes.MonHoc, remoteId, "MaHocKy",
+                kind == ConflictKind.ConstraintConflict
+                    ? new ConstraintScope(SyncEntityTypes.TaskNote, "MaTask", Task.ToString("D"))
+                    : null,
+                StructuralReason.ParentTombstoned, null, null, local, localId, remote, remoteId, null, null);
+
+        private static EntitySnapshot MonHoc(string device) =>
+            MergeTestData.Snap(SyncEntityTypes.MonHoc, MergeTestData.Live(500, device));
+
+        [Fact]
+        public void CandidateFingerprint_OfAnAbsentCandidate_IsASentinelThatCannotCollide()
+        {
+            Assert.Equal(ConflictKeys.AbsentCandidate, ConflictKeys.CandidateFingerprint(null, null));
+
+            // The reason a sentinel is used instead of fp(null)@<Guid.Empty>: that shape is
+            // indistinguishable from a real candidate whose Id happens to be all zeroes.
+            Assert.NotEqual(CanonicalJson.Fingerprint(null) + "@" + Guid.Empty.ToString("D"),
+                            ConflictKeys.CandidateFingerprint(null, null));
+
+            // A present candidate is always 64 hex + '@' + a D-format GUID, so no present candidate
+            // can ever produce the sentinel.
+            Assert.NotEqual(ConflictKeys.AbsentCandidate,
+                            ConflictKeys.CandidateFingerprint(MonHoc("d1"), Guid.Empty));
+        }
+
+        [Fact]
+        public void ConflictKey_WithNoLocalCandidate_IsDeterministicAndDistinctFromAPresentOne()
+        {
+            var remote = MonHoc("d2");
+            var absent = Structural(null, null, remote, N2);
+
+            var first = ConflictKeys.ConflictKey(absent);
+            for (var i = 0; i < 5; i++) Assert.Equal(first, ConflictKeys.ConflictKey(absent));
+            Assert.Equal(64, first.Length);
+
+            // "no local candidate" must not hash to the same key as "a local candidate that happens to
+            // equal the remote row" — otherwise a later real conflict in the same scope would be
+            // swallowed as AlreadyStaged against evidence that says something different.
+            Assert.NotEqual(first, ConflictKeys.ConflictKey(Structural(remote, N1, remote, N2)));
+        }
+
+        [Fact]
+        public void ConflictKey_RejectsAnAbsentLocalCandidateForAnyKindButStructural()
+        {
+            var ex = Assert.Throws<MergeContractViolationException>(() =>
+                ConflictKeys.ConflictKey(Structural(null, null, MonHoc("d2"), N2, ConflictKind.ConstraintConflict)));
+
+            Assert.Contains("only a StructuralConflict may have none", ex.Message);
+        }
+
+        [Fact]
+        public void ConflictKey_RejectsHalfAbsentLocalEvidence()
+        {
+            // Half-absent is the "fabricated placeholder" shape in disguise: an id with no snapshot
+            // claims a local row exists, and a snapshot with no id cannot be traced back to one.
+            Assert.Throws<MergeContractViolationException>(() =>
+                ConflictKeys.ConflictKey(Structural(null, N1, MonHoc("d2"), N2)));
+
+            Assert.Throws<MergeContractViolationException>(() =>
+                ConflictKeys.ConflictKey(Structural(MonHoc("d1"), null, MonHoc("d2"), N2)));
+        }
     }
 }

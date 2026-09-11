@@ -419,7 +419,13 @@ namespace SmartStudyPlanner.Tests.Sync
 
         // ---------------------------------------------------------------------------------------
         // M — invalid / contract violations fail closed: a required evidence field left null is
-        // rejected by the database (NOT NULL), never silently coerced to something else.
+        // rejected by the database, never silently coerced to something else.
+        //
+        // The D4/D9-T4 amendment (2026-09-10) made the three local-candidate columns nullable, so the
+        // enforcement moved from three NOT NULL constraints to the strictly narrower
+        // CK_SyncConflictRecords_LocalCandidate. M keeps asserting the SAME property it always did —
+        // a ConstraintConflict missing its local evidence cannot reach the table — and M2/M3 below pin
+        // the two halves of the narrower rule the amendment introduced.
         // ---------------------------------------------------------------------------------------
         [Fact]
         public async Task M_MissingRequiredLocalSnapshot_FailsClosed()
@@ -427,12 +433,78 @@ namespace SmartStudyPlanner.Tests.Sync
             var (conn, factory) = NewDb();
             using var _ = conn;
             var row = MinimalRow("ck-M", "scope-M");
-            row.LocalSnapshotJson = null!; // contract violation forced past NRT
+
+            // All three absent, which is the direct analogue of the pre-amendment "NOT NULL" property:
+            // absence is legal ONLY for a StructuralConflict, and this is a ConstraintConflict. Nulling
+            // just one column instead would be caught by the present-or-absent-together clause (M3's
+            // job) and would leave this test unable to fail when the kind restriction is removed.
+            row.LocalEntityId = null;
+            row.LocalSnapshotJson = null;
+            row.LocalFingerprint = null;
 
             using var db = factory();
             db.SyncConflictRecords.Add(row);
             var ex = await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
-            Assert.Contains("NOT NULL constraint failed", ex.InnerException?.Message ?? ex.Message);
+            Assert.Contains("CHECK constraint failed", ex.InnerException?.Message ?? ex.Message);
+        }
+
+        // ---------------------------------------------------------------------------------------
+        // M2 — D4/D9-T4 amendment: a StructuralConflict with NO local candidate is legal, and round
+        // trips with all three columns absent. This is the case PR-5 could not represent before.
+        // ---------------------------------------------------------------------------------------
+        [Fact]
+        public async Task M2_StructuralConflictWithNoLocalCandidate_RoundTrips()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+            var row = MinimalRow("ck-M2", "scope-M2");
+            row.Kind = ConflictKind.StructuralConflict;
+            row.EntityType = SyncEntityTypes.MonHoc;
+            row.EntityId = Guid.NewGuid();
+            row.FieldName = "MaHocKy";
+            row.ConstraintKey = null;
+            row.ConstraintValue = null;
+            row.StructuralReason = StructuralReason.ParentTombstoned;
+            row.LocalEntityId = null;
+            row.LocalSnapshotJson = null;
+            row.LocalFingerprint = null;
+
+            using (var db = factory())
+            {
+                db.SyncConflictRecords.Add(row);
+                await db.SaveChangesAsync();
+            }
+
+            using var verify = factory();
+            var persisted = await SyncConflictRecordStore.GetAsync(verify, row.ConflictId);
+            Assert.NotNull(persisted);
+            Assert.Null(persisted!.LocalEntityId);
+            Assert.Null(persisted.LocalSnapshotJson);
+            Assert.Null(persisted.LocalFingerprint);
+            Assert.Equal("{\"remote\":true}", persisted.RemoteSnapshotJson);
+        }
+
+        // ---------------------------------------------------------------------------------------
+        // M3 — the amendment's "present or absent TOGETHER" half. Half-absent local evidence is the
+        // fabricated-placeholder shape in disguise (an id claiming a row whose snapshot is missing),
+        // so it must fail closed even for a StructuralConflict, where absence itself is legal.
+        // ---------------------------------------------------------------------------------------
+        [Fact]
+        public async Task M3_HalfAbsentLocalCandidate_FailsClosedEvenForAStructuralConflict()
+        {
+            var (conn, factory) = NewDb();
+            using var _ = conn;
+            var row = MinimalRow("ck-M3", "scope-M3");
+            row.Kind = ConflictKind.StructuralConflict;
+            row.StructuralReason = StructuralReason.ParentTombstoned;
+            row.LocalEntityId = Guid.NewGuid();   // an id with no snapshot behind it
+            row.LocalSnapshotJson = null;
+            row.LocalFingerprint = null;
+
+            using var db = factory();
+            db.SyncConflictRecords.Add(row);
+            var ex = await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
+            Assert.Contains("CHECK constraint failed", ex.InnerException?.Message ?? ex.Message);
         }
 
         // ---------------------------------------------------------------------------------------
