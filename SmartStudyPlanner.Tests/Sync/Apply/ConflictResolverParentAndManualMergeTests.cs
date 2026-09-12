@@ -467,6 +467,95 @@ namespace SmartStudyPlanner.Tests.Sync.Apply
             Assert.Equal(1, fresh!.Rev);
         }
 
+        // ================================================================= E-1 replay identity (ManualMerge)
+
+        /// <summary>
+        /// Z-R4 — the <c>ResultFingerprint</c> leg of the replay identity (DoR §7.2 step 3, E-1).
+        /// <para>
+        /// KeepLocal/KeepRemote/KeepBase derive their content deterministically from the record's own
+        /// immutable evidence columns, so for them <c>Kind</c> + <c>ResultEntityId</c> already implies
+        /// the content and the fingerprint leg is redundant. <b>ManualMerge is the only kind whose
+        /// content is caller-supplied</b>, and therefore the only one that can present the same
+        /// <c>Kind</c> and the same <c>ResultEntityId</c> carrying <i>different</i> content. Without the
+        /// fingerprint leg that replay returns <c>NoOpReplay</c> and silently discards a second,
+        /// different human decision instead of rejecting it as <c>MismatchedReplay</c>.
+        /// </para>
+        /// <para>
+        /// Both legs are asserted in one test on purpose: a test that only checked the edited replay
+        /// would still pass against an implementation that rejected <i>every</i> ManualMerge replay, so
+        /// the identical-content leg is what makes the edited leg mean something.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public async Task ZR4_ManualMergeReplay_IdenticalContentIsNoOp_EditedContentIsMismatched()
+        {
+            var (conflictId, taskId, _, monHocBId, _) = await StageConcurrentReparentAsync();
+
+            var decisionA = ManualStudyTask(monHocBId, "human decision A");
+            Assert.Equal(ResolutionOutcomeKind.Applied,
+                         (await Resolver().ResolveAsync(conflictId, ManualMerge(decisionA, taskId))).Kind);
+
+            var afterFirst = await _fx.ReadTaskAsync(taskId);
+            var recordAfterFirst = Assert.Single(await _fx.ReadConflictsAsync());
+
+            // Same Kind, same ResultEntityId, byte-identical content: a legitimate replay. This also
+            // pins E-1's "pre-stamp" rule -- the stored fingerprint is the manual snapshot as supplied,
+            // not the live row, which by now carries RESOLVER-DEVICE provenance instead of the
+            // request's MANUAL-MERGE-INPUT.
+            var replay = await Resolver().ResolveAsync(
+                conflictId, ManualMerge(ManualStudyTask(monHocBId, "human decision A"), taskId));
+            Assert.Equal(ResolutionOutcomeKind.NoOpReplay, replay.Kind);
+
+            // Same Kind, same ResultEntityId, DIFFERENT content: only the fingerprint leg separates
+            // this from the replay above.
+            var mismatched = await Resolver().ResolveAsync(
+                conflictId, ManualMerge(ManualStudyTask(monHocBId, "human decision B"), taskId));
+            Assert.Equal(ResolutionOutcomeKind.Rejected, mismatched.Kind);
+            Assert.Equal(ResolutionRejectReason.MismatchedReplay, mismatched.Reason);
+
+            // Neither replay wrote anything; decision A still stands, in the row and in the record.
+            var afterReplays = await _fx.ReadTaskAsync(taskId);
+            Assert.Equal(afterFirst!.Rev, afterReplays!.Rev);
+            Assert.Equal("human decision A", afterReplays.TenTask);
+
+            var recordAfterReplays = Assert.Single(await _fx.ReadConflictsAsync());
+            Assert.Equal(recordAfterFirst.ResolvedAtUtc, recordAfterReplays.ResolvedAtUtc);
+            Assert.Equal(recordAfterFirst.ResultSnapshotJson, recordAfterReplays.ResultSnapshotJson);
+        }
+
+        /// <summary>
+        /// Z-R5 — the <c>ResultEntityId</c> leg of the same identity. A snapshot fingerprint covers the
+        /// entity's <i>fields</i>, not its primary key (the key travels separately, as
+        /// <c>ManualResultEntityId</c>), so two different ids carrying identical content produce the
+        /// same fingerprint. Only the id leg separates them. A Constraint scope is used because it is
+        /// the one scope where a fresh Guid is a legitimate result (E-3); on a Structural record the
+        /// E-3 restriction would reject the second request before replay classification.
+        /// <para>
+        /// Consequence if the leg were dropped: asking to resolve to a <i>different</i> note carrying
+        /// the same text would answer "already resolved" instead of rejecting the request.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public async Task ZR5_ManualMergeReplay_SameContentDifferentEntityId_IsMismatched()
+        {
+            var (conflictId, taskId, _, _) = await StageNullBaseConstraintAsync();
+
+            var firstId = Guid.NewGuid();
+            Assert.Equal(ResolutionOutcomeKind.Applied,
+                         (await Resolver().ResolveAsync(conflictId, ManualMerge(ManualTaskNote(taskId, "same text"), firstId))).Kind);
+
+            var secondId = Guid.NewGuid();
+            var mismatched = await Resolver().ResolveAsync(
+                conflictId, ManualMerge(ManualTaskNote(taskId, "same text"), secondId));
+
+            Assert.Equal(ResolutionOutcomeKind.Rejected, mismatched.Kind);
+            Assert.Equal(ResolutionRejectReason.MismatchedReplay, mismatched.Reason);
+
+            Assert.Null(await _fx.ReadNoteAsync(secondId));           // the second id was never created
+            Assert.NotNull(await _fx.ReadNoteAsync(firstId));
+            Assert.Equal(1, await _fx.CountNotesInScopeAsync(taskId));
+        }
+
         // ================================================================= E-8: scope occupancy
 
         /// <summary>
