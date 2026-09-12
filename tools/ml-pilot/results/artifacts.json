@@ -1,0 +1,134 @@
+{
+  "arm_a": {
+    "repo": "onnx-community/embeddinggemma-300m-ONNX",
+    "upstream": "google/embeddinggemma-300m",
+    "revision": "5090578d9565bb06545b4552f76e6bc2c93e4a66",
+    "licence": "Gemma Terms of Use (Google). The upstream google/ repo is gated:manual; this ONNX mirror is not gated, but the Gemma Terms still govern the weights. OWNER QUESTION -- see ARTIFACTS.md.",
+    "label": "Arm A - EmbeddingGemma-300M",
+    "files": [
+      {
+        "path": "onnx/model.onnx",
+        "bytes": 479932,
+        "sha256": "ea91fd315a7c152d427d231746f0f811a1ac93beaba656abfdf2b24e091265e4",
+        "status": "downloaded"
+      },
+      {
+        "path": "onnx/model.onnx_data",
+        "bytes": 1234521088,
+        "sha256": "ef835ae565d8695236652475903078e8ed794c7c35faf1164d78ec3238e8a88d",
+        "status": "downloaded"
+      },
+      {
+        "path": "onnx/model_quantized.onnx",
+        "bytes": 567874,
+        "sha256": "172efde319fe1542dc41f31be6154910b05b78f7a861c265c4600eec906bd6d8",
+        "status": "downloaded"
+      },
+      {
+        "path": "onnx/model_quantized.onnx_data",
+        "bytes": 308890624,
+        "sha256": "705626e28e4c23c82ade34566b4197d97f534c12275fa406dfb71e9937d388c0",
+        "status": "downloaded"
+      },
+      {
+        "path": "tokenizer.json",
+        "bytes": 20323312,
+        "sha256": "4dda02faaf32bc91031dc8c88457ac272b00c1016cc679757d1c441b248b9c47",
+        "status": "downloaded"
+      },
+      {
+        "path": "tokenizer_config.json",
+        "bytes": 1156830,
+        "sha256": "3ca953eea6c3c9fcda9cf3df22949ff18b216f7c74bd6459230f3f1013953f3a",
+        "status": "downloaded"
+      },
+      {
+        "path": "special_tokens_map.json",
+        "bytes": 662,
+        "sha256": "2f7b0adf4fb469770bb1490e3e35df87b1dc578246c5e7e6fc76ecf33213a397",
+        "status": "downloaded"
+      },
+      {
+        "path": "added_tokens.json",
+        "bytes": 35,
+        "sha256": "50b2f405ba56a26d4913fd772089992252d7f942123cc0a034d96424221ba946",
+        "status": "downloaded"
+      },
+      {
+        "path": "config.json",
+        "bytes": 1765,
+        "sha256": "6e1f06404b7163e0325ed2ea3e6781cde50f4a50b31780a95ad0d30e8404d77b",
+        "status": "downloaded"
+      }
+    ]
+  },
+  "arm_b": {
+    "repo": "intfloat/multilingual-e5-small",
+    "upstream": "intfloat/multilingual-e5-small",
+    "revision": "614241f622f53c4eeff9890bdc4f31cfecc418b3",
+    "licence": "MIT. Not gated.",
+    "label": "Arm B - multilingual-e5-small",
+    "files": [
+      {
+        "path": "onnx/model.onnx",
+        "bytes": 470268510,
+        "sha256": "ca456c06b3a9505ddfd9131408916dd79290368331e7d76bb621f1cba6bc8665",
+        "status": "downloaded"
+      },
+      {
+        "path": "onnx/model_qint8_avx512_vnni.onnx",
+        "bytes": 118346824,
+        "sha256": "dd476dd0c2514e9b9be83aeb3853fac0763e0bdf4a71645407587d77c48a2d88",
+        "status": "downloaded"
+      },
+      {
+        "path": "onnx/tokenizer.json",
+        "bytes": 17082730,
+        "sha256": "0b44a9d7b51c3c62626640cda0e2c2f70fdacdc25bbbd68038369d14ebdf4c39",
+        "status": "downloaded"
+      },
+      {
+        "path": "onnx/tokenizer_config.json",
+        "bytes": 443,
+        "sha256": "a1d6bc8734a6f635dc158508bef000f8e2e5a759c7d92f984b2c86e5ff53425b",
+        "status": "downloaded"
+      },
+      {
+        "path": "onnx/special_tokens_map.json",
+        "bytes": 167,
+        "sha256": "d05497f1da52c5e09554c0cd874037a083e1dc1b9cfd48034d1c717f1afc07a7",
+        "status": "downloaded"
+      },
+      {
+        "path": "onnx/sentencepiece.bpe.model",
+        "bytes": 5069051,
+        "sha256": "cfc8146abe2a0488e9e2a0c56de7952f7c11ab059eca145a0a727afce0db2865",
+        "status": "downloaded"
+      },
+      {
+        "path": "onnx/config.json",
+        "bytes": 653,
+        "sha256": "bbb7c1333fc4b3e27fbc9cd5d2070aabcc1d4dfb99917c3633e772f97545a6b6",
+        "status": "downloaded"
+      },
+      {
+        "path": "1_Pooling/config.json",
+        "bytes": 200,
+        "sha256": "987f7a67a38fa564c849bb5d277c52ab9088a84368fc0be31a354125aebb12a0",
+        "status": "downloaded"
+      },
+      {
+        "path": "sentence_bert_config.json",
+        "bytes": 57,
+        "sha256": "948201d8329907aae938fa62f9ceeed53f5694dacc2b87b9f3b78b37ee986529",
+        "status": "downloaded"
+      },
+      {
+        "path": "config.json",
+        "bytes": 655,
+        "sha256": "69137736cab8b8903a07fe8afaafdda25aac55415a12a55d1bffa9f581abf959",
+        "status": "downloaded"
+      }
+    ]
+  }
+}

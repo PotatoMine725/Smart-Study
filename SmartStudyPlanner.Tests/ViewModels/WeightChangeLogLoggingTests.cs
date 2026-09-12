@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Xunit;
+using SmartStudyPlanner.Services.ML;
 
 namespace SmartStudyPlanner.Tests.ViewModels
 {
@@ -33,7 +34,7 @@ namespace SmartStudyPlanner.Tests.ViewModels
             public double CalculatePriority(StudyTask t, MonHoc m) => 0;
             public int CalculateRawSuggestedMinutes(StudyTask t) => 0;
             public string SuggestStudyTime(StudyTask t) => string.Empty;
-            public int PredictStudyMinutes(StudyTask t, MonHoc m, out bool isMl) { isMl = false; return 0; }
+            public StudyTimePredictionResult PredictStudyMinutes(StudyTask t, MonHoc m) => new StudyTimePredictionResult(0, false, 0f);
         }
 
         private sealed class StubPolicy : IMlConfidencePolicy

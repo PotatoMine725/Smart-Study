@@ -56,6 +56,47 @@ jobs:
           }
           Write-Host "No profile writes detected."
 
+      # AST-05 / AC-21 — no encoder binary may enter git at any commit of the
+      # neural-encoder initiative. The check asserts over `git ls-files`, NOT over
+      # the working tree: the point is to catch a *committed* binary, and an
+      # untracked local model download is expected and fine. Asserting over the
+      # working tree would fire on every developer's local pilot artifacts and
+      # would be weakened within a week.
+      # Largest tracked file at the time of writing is 0.16 MB, so a 1 MB ceiling
+      # has ~6x headroom over anything legitimate in this repo.
+      - name: Assert no model binary is tracked
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bannedExt = @('.onnx', '.onnx_data', '.safetensors', '.gguf', '.tflite', '.pt', '.pth')
+          $maxBytes  = 1MB
+          $tracked   = git ls-files
+          $offences  = @()
+          foreach ($f in $tracked) {
+            if ([string]::IsNullOrWhiteSpace($f)) { continue }
+            $ext = [System.IO.Path]::GetExtension($f).ToLowerInvariant()
+            if ($bannedExt -contains $ext) {
+              $offences += "banned extension '$ext': $f"
+              continue
+            }
+            if ((Split-Path $f -Leaf) -eq 'tokenizer.model') {
+              $offences += "SentencePiece vocabulary: $f"
+              continue
+            }
+            if (Test-Path -LiteralPath $f) {
+              $len = (Get-Item -LiteralPath $f).Length
+              if ($len -gt $maxBytes) {
+                $offences += ("oversized tracked file ({0:N2} MB > 1 MB): {1}" -f ($len / 1MB), $f)
+              }
+            }
+          }
+          if ($offences.Count -gt 0) {
+            Write-Host "::error::AST-05 violation - model binaries or oversized files are tracked in git:"
+            $offences | ForEach-Object { Write-Host "::error::  $_" }
+            exit 1
+          }
+          Write-Host "No tracked model binaries. $($tracked.Count) tracked files checked."
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4

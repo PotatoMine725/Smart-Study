@@ -1,9 +1,11 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using SmartStudyPlanner.Data;
+using SmartStudyPlanner.Models;
 using Xunit;
 
 namespace SmartStudyPlanner.Tests.Data
@@ -81,6 +83,11 @@ namespace SmartStudyPlanner.Tests.Data
             var backupFiles = Directory.GetFiles(_tempDir, "SmartStudyData.*.bak.db");
             Assert.Single(backupFiles);
 
+            // The same launch also repairs TaskNotes (PR-B). The F-e test below covers the
+            // already-upgraded file; this pins the drop on the fresh pre-Epic-1 file path too,
+            // which this test otherwise walks through without asserting anything about.
+            Assert.False(ColumnExists(connectionString, "TaskNotes", "UpdatedAtUtc"));
+
             using var verify = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connectionString).Options);
             var hocKy = verify.HocKys.Single();
             Assert.Equal("HK1", hocKy.Ten);
@@ -115,6 +122,124 @@ namespace SmartStudyPlanner.Tests.Data
             }
 
             Assert.Equal(1, TableCount(connectionString, "OptimizerRunLogs"));
+        }
+
+        [Fact]
+        public void EnsureDatabaseReady_OnPreEpic2Db_TaoLaiBangSyncBaseSnapshots()
+        {
+            // Epic 2 / M2.1 (T1.4) — same gap this closes for OptimizerRunLogs above:
+            // SyncBaseSnapshotSchemaDualPathTests chốt chính SEAM
+            // (SyncBaseSnapshotSchema.EnsureTable vá đúng bảng). Nó KHÔNG chốt việc
+            // AppStartup.EnsureDatabaseReady thật sự GỌI seam đó — gỡ dòng gọi ở
+            // AppStartup.cs vẫn để test seam kia xanh, và DB người dùng thật sẽ thiếu bảng
+            // mà không có tín hiệu nào.
+            var dbPath = Path.Combine(_tempDir, "SmartStudyData.db");
+            var connectionString = $"Data Source={dbPath}";
+            var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connectionString).Options;
+
+            // DB "đời mới" rồi hạ cấp thành pre-T1.4 bằng cách bỏ đúng bảng của M2.1.
+            using (var seed = new AppDbContext(options))
+            {
+                seed.Database.EnsureCreated();
+                seed.Database.ExecuteSqlRaw("DROP TABLE SyncBaseSnapshots");
+            }
+            Assert.Equal(0, TableCount(connectionString, "SyncBaseSnapshots"));
+
+            using (var db = new AppDbContext(options))
+            {
+                AppStartup.EnsureDatabaseReady(db, dbPath);
+            }
+
+            Assert.Equal(1, TableCount(connectionString, "SyncBaseSnapshots"));
+        }
+
+        /// <summary>
+        /// PR-B (DoR F-e/§14.2) at the startup level, on a real DB FILE. The seam tests in
+        /// <see cref="SyncSchemaDualPathTests"/> prove EnsureColumns repairs the shape; they do
+        /// NOT prove EnsureDatabaseReady still *reaches* it once the D-I columns are present --
+        /// that is exactly the gate that was closed (NeedsUpgrade returned false), which is why
+        /// every already-upgraded DB stayed broken. Also asserts the destructive DROP COLUMN runs
+        /// under the existing DbBackup gate, and only once.
+        /// </summary>
+        [Fact]
+        public async Task EnsureDatabaseReady_OnUpgradedDbStillCarryingLegacyNoteColumn_RepairsUnderBackupGate()
+        {
+            var dbPath = Path.Combine(_tempDir, "SmartStudyData.db");
+            var connectionString = $"Data Source={dbPath}";
+            var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connectionString).Options;
+
+            // Current-shape DB, then downgrade ONLY TaskNotes back to the state a previously
+            // upgraded DB is really in: D-I columns present, legacy UpdatedAtUtc NOT NULL still there.
+            Guid maTask;
+            using (var seed = new AppDbContext(options))
+            {
+                seed.Database.EnsureCreated();
+                var hocKy = new HocKy("HK1", DateTime.Today);
+                var monHoc = new MonHoc("MH1", 3) { MaHocKy = hocKy.MaHocKy };
+                var task = new StudyTask("Task A", DateTime.Today.AddDays(3), LoaiCongViec.BaiTapVeNha, 2)
+                {
+                    MaMonHoc = monHoc.MaMonHoc,
+                    MucDoCanhBao = "An toàn",
+                };
+                monHoc.DanhSachTask.Add(task);
+                hocKy.DanhSachMonHoc.Add(monHoc);
+                seed.HocKys.Add(hocKy);
+                await seed.SaveChangesAsync();
+                maTask = task.MaTask;
+
+                seed.Database.ExecuteSqlRaw("DROP TABLE TaskNotes");
+                seed.Database.ExecuteSqlRaw(@"CREATE TABLE TaskNotes (
+                    Id TEXT NOT NULL PRIMARY KEY, MaTask TEXT NOT NULL, Content TEXT NULL,
+                    UpdatedAtUtc TEXT NOT NULL,
+                    Rev INTEGER NOT NULL DEFAULT 0, ModifiedAtUtc TEXT NULL,
+                    ModifiedByDeviceId TEXT NULL, IsDeleted INTEGER NOT NULL DEFAULT 0,
+                    DeletedAtUtc TEXT NULL,
+                    FOREIGN KEY (MaTask) REFERENCES StudyTasks (MaTask) ON DELETE CASCADE)");
+                seed.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IX_TaskNotes_MaTask ON TaskNotes (MaTask)");
+            }
+            SqliteConnection.ClearAllPools(); // close the file the way a real launch would find it
+
+            using (var db = new AppDbContext(options))
+            {
+                db.Clock = () => new DateTime(2026, 9, 8, 12, 0, 0, DateTimeKind.Utc);
+                AppStartup.EnsureDatabaseReady(db, dbPath);
+            }
+
+            Assert.Single(Directory.GetFiles(_tempDir, "SmartStudyData.*.bak.db")); // destructive step is backed up
+            Assert.False(ColumnExists(connectionString, "TaskNotes", "UpdatedAtUtc"));
+
+            // The whole point: an EF insert now works on a DB that rejected every one before.
+            using (var write = new AppDbContext(options))
+            {
+                write.TaskNotes.Add(new TaskNote { MaTask = maTask, Content = "ghi chú" });
+                await write.SaveChangesAsync();
+            }
+
+            // Second "launch": repaired DB must not re-enter the upgrade path or pile up backups.
+            using (var db2 = new AppDbContext(options))
+            {
+                db2.Clock = () => new DateTime(2026, 9, 8, 12, 0, 0, DateTimeKind.Utc);
+                AppStartup.EnsureDatabaseReady(db2, dbPath);
+            }
+            Assert.Single(Directory.GetFiles(_tempDir, "SmartStudyData.*.bak.db"));
+
+            using var verify = new AppDbContext(options);
+            Assert.Equal("ghi chú", (await verify.TaskNotes.SingleAsync()).Content);
+        }
+
+        private static bool ColumnExists(string connectionString, string table, string column)
+        {
+            using var conn = new SqliteConnection(connectionString);
+            conn.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = $"PRAGMA table_info({table})";
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                if (string.Equals(reader.GetString(reader.GetOrdinal("name")), column, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
         }
 
         private static int TableCount(string connectionString, string table)

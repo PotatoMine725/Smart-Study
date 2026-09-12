@@ -53,10 +53,34 @@ WorkloadServiceImpl.GenerateSchedule(hocKy, capacityHours)
   │         ├── RawMinutesCalculator
   │         ├── StudyTimeSuggestionEngine
   │         └── IStudyTimePredictor (optional ML augmentation)
-  └── packs into ScheduleDay / ScheduledTask (least-loaded day — deadline-blind; Epic 3 fixes)
+  └── packs into ScheduleDay / ScheduledTask (earliest-feasible day — T3.3, Epic 3)
 ```
 
 The decision engine is the priority source; the workload service is the distribution layer.
+
+**Placement is earliest-feasible since T3.3 (2026-08-06)**, not least-loaded: the earliest day with
+capacity that does not pass the task's `HanChot`, falling back to the earliest day with capacity if
+none qualifies. The deadline tier is **provably output-inert today** — see
+[`../plans/2026-08-06-deadline-tier-provably-inert.md`](../plans/2026-08-06-deadline-tier-provably-inert.md).
+
+### 4b. The SOE seam is built but not connected
+
+```text
+Services/Soe/  ──  IScheduleOptimizer.Optimize(schedule, weights) → (schedule, OptimizeReport)
+                     ├── IOptimizerStage  → LoadRebalanceStage (the only stage, N=1)
+                     ├── IConstraintValidator (hard filter: deadline / capacity / calendar)
+                     ├── IObjectiveEvaluator (quality-only objective over SoeWeights w1…w5)
+                     └── OptimizerRunLogWriter → OptimizerRunLogs table (T3.7 telemetry)
+
+                     ▲
+                     └── no caller.  Nothing in the scheduling chain above enters this box.
+```
+
+`WorkloadBalancerViewModel` (UC-08) and `BalanceWorkloadStage` (§5) both call
+`IWorkloadService.GenerateSchedule` directly, and no SOE type is registered in `ServiceLocator`.
+Wiring the seam is unscheduled integration work outside every Epic 3 task card — roadmap §A.3.
+This is why `OptimizerRunLogs` is **expected to be empty** at runtime (manual gate scenario B2:
+0 rows *is* the pass).
 
 ## 5. Pipeline (`PipelineOrchestrator`)
 

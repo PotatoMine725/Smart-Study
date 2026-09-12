@@ -1,0 +1,156 @@
+{
+  "event": "S-2 reader package revision - Vietnamese",
+  "status": "Package PREPARED. The section-10 reproducibility test is NOT performed, no reader is recruited, nothing was annotated, adjudicated or scored, and no figure exists. Both blockers are RULED and discharged: the owner read the rendering through and ratified it as pass on 2026-09-05. Reader recruitment is the only remaining prerequisite.",
+  "authority": [
+    "owner authorisation 2026-09-05 (revise the reader package)",
+    "owner instruction 2026-09-05 (translate the package to Vietnamese)",
+    "S-2.2",
+    "S-2.12",
+    "D-6 (unresolved scoring NOT authorised, 2026-09-05)",
+    "D-7 (16-row secondary reading, pre-registered 2026-09-05)",
+    "D-8 (rendering normative for both passes, 2026-09-05)",
+    "D-9 (catalogue provenance stripped from the rendering, 2026-09-05)"
+  ],
+  "numbering_correction": "An earlier revision of this file cited 'D-5' for the unresolved-scoring constraint. The globally-cited owner-decision series (S-1 limited taxonomy review, section 6, which v1 section 10 cites for D-2 and section 13 for D-4) already uses D-5 for 'the sealed residual'. The constraint is renumbered D-6 and the series continues at D-7.",
+  "never_hand_to_a_reader": true,
+  "holds_no_label": "This file carries no label value, no Gold answer, no historical pass label, no stratum and no D-2 class. The reconciliation map is unchanged and stays where it is: datasheets/reservations/2026-09-05-s2-scoring-key.json",
+  "blocking_finding": {
+    "what": "Four reserved rows are template-identical to entries in the frozen v1 section-6 catalogue, differing only in the course name. Those catalogue entries carry rulings, so a reader who reads the guideline first - as the instructions direct - can answer those rows by pattern match instead of by applying the rules.",
+    "items": [
+      "R-01",
+      "R-09",
+      "R-14",
+      "R-16"
+    ],
+    "v1_lines": [
+      332,
+      265,
+      396,
+      256
+    ],
+    "similarity": [
+      0.86,
+      0.83,
+      0.75,
+      0.83
+    ],
+    "why_it_matters": "Those rows are scored the same as any other against the pre-registered TaskType threshold, so agreement on them is not evidence that the guideline reproduces a label.",
+    "no_label_recorded_here": "The derived labels are deliberately NOT written down - not here, not in the plan doc, not in the report. The claim is the template match, nothing more.",
+    "not_fixable_by_this_script": "v1 is frozen under S-2.14 and the batch is sealed under S-0. Both sides are owner decisions.",
+    "status": "RULED by the owner 2026-09-05. Remedy is D-7: the pre-registered 20-row gate is unchanged, and the 16 rows that are NOT template twins are reported as the primary evidence. See also D-9, which removes the catalogue's label and locator metadata from the reader-facing rendering.",
+    "v1_own_invariant_that_fails": "Section 6 states: 'The reserved 60 rows are absent from this catalogue by construction - an example drawn from the scored batch would train a reader on a row they are later measured against.' The exclusion was implemented at ROW granularity while the corpus is template generated, so template siblings passed through. The letter holds - zero verbatim matches - and the spirit does not."
+  },
+  "d7_secondary_reading": {
+    "ruled": "owner, 2026-09-05, BEFORE any annotation - so this is pre-registration, not a post-hoc adjustment. The window closes the moment the reader starts.",
+    "gate_unchanged": "TaskType >= 17/20 and Difficulty >= 18/20, full-batch, exact match. S-2.7's invariant is untouched: no threshold was changed.",
+    "secondary_reading": "The 16 rows that are not template twins are additionally scored and reported as the PRIMARY evidence, at >= 14/16 TaskType and >= 15/16 Difficulty.",
+    "excluded_from_the_secondary_reading": [
+      "R-01",
+      "R-09",
+      "R-14",
+      "R-16"
+    ],
+    "both_figures_travel_together": true
+  },
+  "d8_rendering": {
+    "ruled": "owner, 2026-09-05",
+    "normative_for_this_test": "the Vietnamese rendering",
+    "both_passes_use_it": "The owner's Gold pass and the reader's blind pass run on the SAME text, so translation cannot become an uncontrolled variable between them.",
+    "scope_that_travels_with_every_figure": "reproducibility of v1 AS RENDERED IN VIETNAMESE",
+    "discharged": "owner read the rendering through and ratified it as pass, 2026-09-05; anchor recorded in the v1 freeze record"
+  },
+  "d9_provenance_strip": {
+    "ruled": "owner, 2026-09-05",
+    "what_is_removed": "per catalogue entry: the row sha256, the source file:line locators, and the historical pass-label / Difficulty line",
+    "what_is_kept": "every example row verbatim, and every word of commentary",
+    "why": "Those three are provenance metadata, not decision support. v1 section 6 itself says no entry may be cited as its row's label, so removing them takes nothing the reader is meant to reason from - while removing 19 label progressions and 57 locators from in front of an annotator instructed not to look anything up.",
+    "counts_removed_from_the_rendering": {
+      "label_progressions": 19,
+      "difficulty_values": 19,
+      "row_sha256": 19,
+      "source_locators": 57
+    },
+    "divergence_from_v1": "metadata-only; frozen v1 still ships byte-exact alongside",
+    "enforced_by": "validator check C18"
+  },
+  "instrument_provenance": {
+    "source": "b9691ae131ad4b71d6e69a4b197d3a2de02757ec:docs/specs/2026-09-05-s2-blind-reader-sheet.md",
+    "source_blob_sha256": "151d3f803328f42044adc29283b432abe6b5473145c9631243b10b20909d09c1",
+    "source_unmoved_and_unmodified": true,
+    "selection": "NOT re-selected. NOT re-rendered. The corpus and the sealed S-0 snapshot were not read by this revision at all.",
+    "body_bytes_preserved": 4287,
+    "body_sha256": "3047b47e38aded00e769dfdb0ab3d5c77053939105ce6076ac237a8f39a2f209",
+    "body_identity": "the 20 item blocks - text, order, ids and answer fields - are byte-identical to the source; asserted before writing",
+    "row_text_translated": false,
+    "prose_replaced": "header and footer only, from s2_reader_prose_vi/; these are the script's own prose and were never part of the instrument",
+    "source_prose_disclosures_removed": [
+      "the title named the batch and its reserved status",
+      "the text named the other annotator, disclosing that a second pass exists",
+      "a `role` row printed `gold` / `probe`, disclosing that a reference pass exists"
+    ]
+  },
+  "translation": {
+    "rendering": "docs/s2-reader-package/01b-huong-dan-tieng-viet.md",
+    "derived_from": "dd4fc2736d83c18c373161fc371070a967e082bbbf7987a142a434103684a433",
+    "frozen_v1_modified": false,
+    "authority": "v1 governs. The rendering is a reading aid and is stated as such in its own header and in 00-READ-ME-FIRST.md.",
+    "ratified": true,
+    "ratified_by": "owner, 2026-09-05, by read-through",
+    "ratification_anchor": "docs/plans/2026-09-04-s2-v1-freeze-record.md, section 'Vietnamese rendering - ratified 2026-09-05'",
+    "ratified_sha256": "3b1dbd249f3dce248b4ae0a73d5ea5ae45bada33b614d233e01c8ec6a07ca61c",
+    "sections_mirrored": 14,
+    "section_6": "Rendered in full - 19 entries, every example row verbatim, all commentary translated - with the provenance lines removed under D-9. The rendering states that removal in place.",
+    "fidelity_rule": "No rule added, no example added, no ambiguity resolved. v1's known soft spots - B-2 in particular - are rendered exactly as unclear as they are in the source.",
+    "trigger_terms_locked": [
+      "giữa kỳ",
+      "cuối kỳ",
+      "kiểm tra",
+      "đồ án",
+      "bài tập lớn",
+      "nhóm"
+    ],
+    "trigger_term_rule": "The strings B-2/B-4 decide on appear in the rendering only inside code spans, so the translation cannot move a lexical boundary. The Vietnamese prose uses longer, non-matching wordings instead."
+  },
+  "reader_package": {
+    "directory": "docs/s2-reader-package/",
+    "language": "Vietnamese, except the byte-exact frozen v1 copy",
+    "files": [
+      {
+        "path": "docs/s2-reader-package/00-READ-ME-FIRST.md",
+        "sha256": "05adbad528d49a70ce5acc8d87ce0a25aaf549b06f984f99f39daeb2444da38f"
+      },
+      {
+        "path": "docs/s2-reader-package/01-annotation-guideline-v1.md",
+        "sha256": "dd4fc2736d83c18c373161fc371070a967e082bbbf7987a142a434103684a433",
+        "is": "byte-exact frozen v1, da98e73ff64565729e7fe9f2f8afca6c4bdbf306:docs/specs/annotation-guideline.md"
+      },
+      {
+        "path": "docs/s2-reader-package/01b-huong-dan-tieng-viet.md",
+        "sha256": "3b1dbd249f3dce248b4ae0a73d5ea5ae45bada33b614d233e01c8ec6a07ca61c",
+        "is": "Vietnamese rendering of v1; unratified reading aid"
+      },
+      {
+        "path": "docs/s2-reader-package/02-annotation-sheet.md",
+        "sha256": "a3c328142349470637548cb4974791ce96e8da1f6c82a83dd2ceccbdaad96b5e"
+      }
+    ],
+    "line_endings": "LF, as committed. .gitattributes marks these paths -text so a clone cannot CRLF-translate them and break the v1 hash check."
+  },
+  "guideline": {
+    "path": "docs/specs/annotation-guideline.md",
+    "version": "v1",
+    "commit": "da98e73ff64565729e7fe9f2f8afca6c4bdbf306",
+    "sha256": "dd4fc2736d83c18c373161fc371070a967e082bbbf7987a142a434103684a433",
+    "modified": false
+  },
+  "reconciliation": {
+    "scoring_key": "datasheets/reservations/2026-09-05-s2-scoring-key.json",
+    "how": "reader answers carry item ids R-01..R-20; the key maps each id to its sha256 and occurrences. Item ids are unchanged by this revision.",
+    "not_copied_here": true
+  },
+  "d6": "The owner has not authorised a scoring treatment for `unresolved`. The reader can still mark it; neither the sheet nor the instructions nor the rendering state how it scores, and no scoring semantics were added to v1.",
+  "seal": {
+    "algorithm": "sha256 over this document with the seal field absent",
+    "value": "8d63d732c83e111fe5518450e38bb5364815d9f073018a3de1487a0e22e416e7"
+  }
+}

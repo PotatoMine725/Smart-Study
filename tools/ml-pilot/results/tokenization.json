@@ -1,0 +1,127 @@
+{
+  "arm_a": {
+    "label": "EmbeddingGemma-300M",
+    "route_a_vocabulary": "tokenizer.model",
+    "route_b_in_graph_tokenization": false,
+    "id_offset_applied": 0,
+    "fixtures_total": 39,
+    "fixtures_matching_reference": 39,
+    "fixtures_diverging": 0,
+    "verified": true,
+    "by_category": {
+      "abbrev": {
+        "ok": 8,
+        "bad": 0
+      },
+      "diacritics": {
+        "ok": 8,
+        "bad": 0
+      },
+      "empty": {
+        "ok": 6,
+        "bad": 0
+      },
+      "pathological": {
+        "ok": 3,
+        "bad": 0
+      },
+      "runtogether": {
+        "ok": 6,
+        "bad": 0
+      },
+      "stripped": {
+        "ok": 8,
+        "bad": 0
+      }
+    },
+    "first_divergences": []
+  },
+  "arm_b": {
+    "label": "multilingual-e5-small",
+    "route_a_vocabulary": "sentencepiece.bpe.model",
+    "route_b_in_graph_tokenization": false,
+    "id_offset_applied": 1,
+    "fixtures_total": 39,
+    "fixtures_matching_reference": 33,
+    "fixtures_diverging": 6,
+    "verified": false,
+    "by_category": {
+      "abbrev": {
+        "ok": 8,
+        "bad": 0
+      },
+      "diacritics": {
+        "ok": 8,
+        "bad": 0
+      },
+      "empty": {
+        "ok": 0,
+        "bad": 6
+      },
+      "pathological": {
+        "ok": 3,
+        "bad": 0
+      },
+      "runtogether": {
+        "ok": 6,
+        "bad": 0
+      },
+      "stripped": {
+        "ok": 8,
+        "bad": 0
+      }
+    },
+    "first_divergences": [
+      {
+        "fixture": "F031",
+        "category": "empty",
+        "input": "",
+        "first_divergence_index": 4,
+        "expected_len": 6,
+        "actual_len": 5,
+        "expected_head": "[0,41,1294,12,6,2]",
+        "actual_head": "[0,41,1294,12,2]"
+      },
+      {
+        "fixture": "F032",
+        "category": "empty",
+        "input": " ",
+        "first_divergence_index": 4,
+        "expected_len": 6,
+        "actual_len": 5,
+        "expected_head": "[0,41,1294,12,6,2]",
+        "actual_head": "[0,41,1294,12,2]"
+      },
+      {
+        "fixture": "F033",
+        "category": "empty",
+        "input": "   ",
+        "first_divergence_index": 4,
+        "expected_len": 6,
+        "actual_len": 5,
+        "expected_head": "[0,41,1294,12,6,2]",
+        "actual_head": "[0,41,1294,12,2]"
+      },
+      {
+        "fixture": "F034",
+        "category": "empty",
+        "input": "\\t \\t",
+        "first_divergence_index": 4,
+        "expected_len": 6,
+        "actual_len": 5,
+        "expected_head": "[0,41,1294,12,6,2]",
+        "actual_head": "[0,41,1294,12,2]"
+      },
+      {
+        "fixture": "F035",
+        "category": "empty",
+        "input": "\\n",
+        "first_divergence_index": 4,
+        "expected_len": 6,
+        "actual_len": 5,
+        "expected_head": "[0,41,1294,12,6,2]",
+        "actual_head": "[0,41,1294,12,2]"
+      }
+    ]
+  }
+}

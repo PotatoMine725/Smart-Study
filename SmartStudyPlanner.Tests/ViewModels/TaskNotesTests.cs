@@ -267,7 +267,7 @@ namespace SmartStudyPlanner.Tests.ViewModels
         public double CalculatePriority(StudyTask task, MonHoc monHoc) => 0;
         public int CalculateRawSuggestedMinutes(StudyTask task) => 0;
         public string SuggestStudyTime(StudyTask task) => "0 phút";
-        public int PredictStudyMinutes(StudyTask task, MonHoc monHoc, out bool isMlPrediction) { isMlPrediction = false; return 0; }
+        public SmartStudyPlanner.Services.ML.StudyTimePredictionResult PredictStudyMinutes(StudyTask task, MonHoc monHoc) => new SmartStudyPlanner.Services.ML.StudyTimePredictionResult(0, false, 0f);
         public System.Threading.Tasks.Task<SmartStudyPlanner.Core.ML.Contracts.WeightConfigSuggestion?> SuggestWeightConfigAsync(System.Threading.CancellationToken ct = default)
             => System.Threading.Tasks.Task.FromResult<SmartStudyPlanner.Core.ML.Contracts.WeightConfigSuggestion?>(null);
     }
