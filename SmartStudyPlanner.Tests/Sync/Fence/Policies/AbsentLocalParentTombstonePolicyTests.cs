@@ -106,15 +106,32 @@ namespace SmartStudyPlanner.Tests.Sync.Fence.Policies
         [Fact] // impact names only E's tombstoned parent P -- Passed, not a resurrection inference
         public void ImpactNamesOnlyTombstonedParentP_IsPassed_FrameUnchanged()
         {
+            // E is a StudyTask via MaMonHoc, so P (its held parent) is a MonHoc -- the row's
+            // EntityType must match the actual parent type for the guard to accept it.
             var impact = Impact(rows: new[]
             {
-                new ImpactRow(SyncEntityTypes.StudyTask, P, RowEffect.FieldsChanged, WasLive: false, CausedByEntityId: P),
+                new ImpactRow(SyncEntityTypes.MonHoc, P, RowEffect.FieldsChanged, WasLive: false, CausedByEntityId: P),
             });
 
             var result = Policy.Evaluate(Contract(), impact);
 
             Assert.Equal(FenceOutcome.Passed, result.Outcome);
             Assert.Equal("ALPT.FrameUnchanged", result.RuleId);
+        }
+
+        [Fact] // B.2 (2026-09-14 owner ruling): row shares P's Guid but is NOT a MonHoc row --
+        // must not trigger the parent-frame branch; falls through to NotApplicable.
+        public void RowSharesHeldParentIdButWrongEntityType_DoesNotTriggerFrameUnchanged()
+        {
+            var impact = Impact(rows: new[]
+            {
+                new ImpactRow(SyncEntityTypes.TaskReferenceLink, P, RowEffect.FieldsChanged, WasLive: true, CausedByEntityId: P),
+            });
+
+            var result = Policy.Evaluate(Contract(), impact);
+
+            Assert.Equal(FenceOutcome.NotApplicable, result.Outcome);
+            Assert.Equal("ALPT.NotApplicable", result.RuleId);
         }
 
         [Fact]

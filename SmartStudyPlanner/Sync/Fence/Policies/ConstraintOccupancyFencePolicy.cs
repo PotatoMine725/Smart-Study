@@ -61,12 +61,10 @@ namespace SmartStudyPlanner.Sync.Fence.Policies
             }
 
             var tombstoned = false;
-            var otherwiseReached = false;
             foreach (var row in impact.Rows)
             {
-                if (row.EntityId != k.ScopeValue) continue;
+                if (row.EntityType != SyncEntityTypes.StudyTask || row.EntityId != k.ScopeValue) continue;
                 if (row.Effect is RowEffect.Tombstoned or RowEffect.CascadeTombstoned) tombstoned = true;
-                else otherwiseReached = true;
             }
 
             if (tombstoned)
@@ -74,13 +72,6 @@ namespace SmartStudyPlanner.Sync.Fence.Policies
                 return new PolicyResult(contract.ConflictId, contract.ScopeKey, Shape, contract.Subject,
                     FenceOutcome.Passed, RoutingStage.ConstraintScope, "CONS.EmptyScopeParentTombstoned",
                     $"owning task {k.ScopeValue} tombstoned; scope {k.ScopeKey} occupancy unchanged");
-            }
-
-            if (otherwiseReached)
-            {
-                return new PolicyResult(contract.ConflictId, contract.ScopeKey, Shape, contract.Subject,
-                    FenceOutcome.Passed, RoutingStage.ConstraintScope, "CONS.RelationUnchanged",
-                    $"owning task {k.ScopeValue} affected; scope {k.ScopeKey} occupancy unchanged");
             }
 
             return new PolicyResult(contract.ConflictId, contract.ScopeKey, Shape, contract.Subject,
