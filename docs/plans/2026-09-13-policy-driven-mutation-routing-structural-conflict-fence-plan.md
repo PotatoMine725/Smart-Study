@@ -979,7 +979,7 @@ local `dev` vs `origin/dev` (CLAUDE.md).
 | Slice | Deliverable | Depends on | Gate | Exit criteria |
 |---|---|---|---|---|
 | **0** Measure | `FileBackedSqliteFixture`, `SqliteTransactionLockProbeTests` (P0-b), `LocalSaveCharacterizationTests` (P0-a, P0-c), suite baseline (P0-d). Test-only | — | — | probes green with recorded observations in the PR body; labelled characterization; zero production diff |
-| **1** Pure fence | §15.1 Slice-1 files + classifier/registry/policy tests over constructed `ImpactSet`s | — | SB-1 before merge | all P-* rows at policy-unit level; each listed mutant RED then reverted |
+| **1** Pure fence | §15.1 Slice-1 files + classifier/registry/policy tests over constructed `ImpactSet`s | — | none (SB-1 closed 2026-09-14) | all P-* rows at policy-unit level; each listed mutant RED then reverted |
 | **2** Router | registry, impact resolver, selector, router, exception, `FenceScenarioFixture`, `SaveCountingDbContext`, X-1..X-9, X-14 selector leg, X-17 | 1 | — | router-level matrix green on real SQLite with staged records; read-only proofs green |
 | **3** Extract | planner + writer + executor (no fence), `LuuHocKyAsync` delegates; `SemesterReconcilePlannerTests`; `SemesterSaveRegressionSnapshotTests` (committed first against the unrefactored code, then kept unchanged) | P0-a, P0-d | — | zero test count loss; all `RepositoriesTests` green unchanged; `gitnexus_detect_changes` ⊆ {LuuHocKyAsync, new symbols} |
 | **4** Wire local save | fence in `LocalSemesterSaveExecutor`; P-CR/P-PT/P-AL/P-K rows reachable via `LuuHocKyAsync`; X-10..X-13, X-15, X-16, X-20; P0-c flipped to Blocked | 2, 3, P0-b | OD-2, OD-7 | executor-level matrix green; mutants RED |
