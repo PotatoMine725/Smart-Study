@@ -55,9 +55,10 @@ namespace SmartStudyPlanner.Sync.Fence.Policies
             var parentId = contract.Edge?.HeldParentId;
             if (parentId is { } p)
             {
+                var expectedParentType = ExpectedParentType(contract.Edge!.ChildType, contract.Edge!.Field);
                 foreach (var row in impact.Rows)
                 {
-                    if (row.EntityId != p) continue;
+                    if (row.EntityType != expectedParentType || row.EntityId != p) continue;
 
                     return new PolicyResult(contract.ConflictId, contract.ScopeKey, Shape, contract.Subject,
                         FenceOutcome.Passed, RoutingStage.CascadeReached, "ALPT.FrameUnchanged",
@@ -73,5 +74,15 @@ namespace SmartStudyPlanner.Sync.Fence.Policies
                 new(contract.ConflictId, contract.ScopeKey, Shape, contract.Subject,
                     FenceOutcome.Blocked, RoutingStage.DirectSubject, ruleId, evidence);
         }
+
+        // Same two structural fields ConflictShapeClassifier.IsKnownStructuralField recognizes --
+        // AL-PT is only ever derived from one of these, so the pair is always known by the time
+        // Evaluate runs.
+        private static string ExpectedParentType(string childType, string field) => (childType, field) switch
+        {
+            (var t, "MaMonHoc") when t == SyncEntityTypes.StudyTask => SyncEntityTypes.MonHoc,
+            (var t, "MaHocKy") when t == SyncEntityTypes.MonHoc => SyncEntityTypes.HocKy,
+            _ => throw new InvalidOperationException($"Unhandled structural field {childType}.{field}."),
+        };
     }
 }

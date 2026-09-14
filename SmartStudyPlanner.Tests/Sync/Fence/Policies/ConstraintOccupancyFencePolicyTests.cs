@@ -152,7 +152,7 @@ namespace SmartStudyPlanner.Tests.Sync.Fence.Policies
             Assert.Equal("CONS.ScopeAcquired", resultK2.RuleId);
         }
 
-        [Fact] // P-K-7: S2 on K(T); unrelated S3 on K(T2); delete T2's link -- fence passes for K(T)
+        [Fact] // P-K-7: S2 on K(T); unrelated S3 on K(T2); delete T2's link -- fence is NotApplicable for K(T)
         public void UnrelatedTaskLinkDeleted_IsNotApplicable_ForK()
         {
             var contract = ContractS2();
@@ -171,6 +171,39 @@ namespace SmartStudyPlanner.Tests.Sync.Fence.Policies
         {
             Assert.Equal(ConstraintForm.BasePresent, ContractS2().Form);
             Assert.Equal(ConstraintForm.BaseNull, ContractS3(T).Form);
+        }
+
+        [Fact] // B.1 (2026-09-14 owner ruling): CONS.RelationUnchanged is not ratified -- a row that
+        // affects the owning task's Guid without a matching scope change or tombstone falls through
+        // to NotApplicable, never Passed.
+        public void OwningTaskRowWithNonTombstoneEffect_S2_IsNotApplicable_NotRelationUnchanged()
+        {
+            var contract = ContractS2();
+            var impact = Impact(rows: new[]
+            {
+                new ImpactRow(SyncEntityTypes.StudyTask, T, RowEffect.FieldsChanged, WasLive: true, CausedByEntityId: T),
+            });
+
+            var result = Policy.Evaluate(contract, impact);
+
+            Assert.Equal(FenceOutcome.NotApplicable, result.Outcome);
+            Assert.Equal("CONS.NotApplicable", result.RuleId);
+        }
+
+        [Fact] // B.2 (2026-09-14 owner ruling): a non-StudyTask row sharing T's Guid must not trigger
+        // the owning-task Passed branch, even when tombstoned.
+        public void NonStudyTaskRowSharesOwningTaskGuid_EvenTombstoned_DoesNotTriggerEmptyScopeParentTombstoned()
+        {
+            var contract = ContractS3(T);
+            var impact = Impact(rows: new[]
+            {
+                new ImpactRow(SyncEntityTypes.TaskNote, T, RowEffect.Tombstoned, WasLive: true, CausedByEntityId: T),
+            });
+
+            var result = Policy.Evaluate(contract, impact);
+
+            Assert.Equal(FenceOutcome.NotApplicable, result.Outcome);
+            Assert.Equal("CONS.NotApplicable", result.RuleId);
         }
     }
 }
