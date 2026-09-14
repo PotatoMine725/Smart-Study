@@ -11,6 +11,7 @@
 | **Goal** | Every mutation that can reach an unresolved StructuralConflict/ConstraintConflict gets an explicit impact set. That impact is routed to one case-specific, read-only policy per protected contract. Persistence happens only after the fence passes **and** the remaining business/persistence/transaction gates pass. The first delivery covers the only live mutation origin today, local UI saves. Sync-apply follows later behind an owner gate |
 | **Spec** | `docs/specs/2026-09-13-policy-driven-mutation-routing-structural-conflict-fence-spec-complete.md`: owner-authored. It was untracked when this plan was written and is committed as-is alongside this plan (2026-09-14). SB-1 is closed (§20) |
 | **Frozen authority** | `docs/specs/T2.3-T2.4-D1-D9-Decision-Record-updated.md` §23A (D9-T1..T6), D4, D8-G, D8-H · `docs/specs/T2.4-PR6-ConflictResolver-Rulings-2026-09-11.md` (B-1..B-4, E-3) · `docs/specs/T2.3-T2.4-D4-D9-T4-Amendment-2026-09-10.md` |
+| **Owner rulings** | `docs/specs/2026-09-14-policy-driven-mutation-routing-owner-rulings.md`: SB-3/OD-3 (Block), OD-4 (Pass), OD-2 (L1), OD-7 (reject + restore in-memory graph consistency + no automatic retry). All **CLOSED 2026-09-14**. SB-2/OD-1 stays open (§20) |
 | **Engineering inputs** | `docs/review/2026-09-11-t2.4-pr6-conflict-resolver-dor.md` · `docs/review/2026-09-13-w2-f2-semantic-analysis.md` · `docs/review/2026-09-12-t2.5-recon.md` |
 | **Baseline observed** | `git fetch` then local `dev` = `origin/dev` = `4c7c840` (ahead/behind `0 0`). The working tree is **dirty** (owner files: `.claude/*`, `AGENTS.md`, `CLAUDE.md`, untracked spec + stale Decision-Record copy). Not touched, not synced |
 | **Tech** | .NET 10 WPF, EF Core 10.0.5 SQLite, xunit 2.9.3. No new packages |
@@ -90,7 +91,9 @@ infrastructure proven by real-SQLite tests with staged records.
 ### 2.2 Non-goals (verbatim scope control plus what the code investigation adds)
 
 - No generic resurrection, no Restore, no `LifecycleFacade`/`LifecycleRouter` (spec §10; direction L).
-- No UI/XAML change. VM changes are limited to what OD-7 authorises, and none are planned by default.
+- No UI/XAML change. VM changes are limited to the minimum OD-7 (ruled 2026-09-14) requires at the existing
+  local save call site(s): restore in-memory graph consistency after a rejection and surface it. The mechanism
+  is Slice-4 engineering. No new UI/UX framework, no unrelated VM architecture change.
 - No schema change. FACT: record columns `Kind`, `EntityType`, `EntityId`, `FieldName`, `ConstraintKey`,
   `ConstraintValue`, `StructuralReason`, `LocalEntityId`, `BaseEntityId` plus the filtered unique index on
   `ScopeKey WHERE Status = 0` already support classification and indexed selection
@@ -115,9 +118,12 @@ infrastructure proven by real-SQLite tests with staged records.
 
 1. Frozen record D1–D9 / D9-T1..T6 (spec §2.2: "where this specification and a frozen rule appear to
    conflict, the frozen record wins").
-2. The fence spec (owner-approved direction A–L restated in the task brief).
-3. PR-6 rulings B-1..B-4, E-3 (resolution only).
-4. PR-6 DoR, W-2/F-2 analysis, T2.5 recon: facts and measurements, never rulings.
+2. Owner rulings 2026-09-14 (SB-3/OD-3, OD-4, OD-2, OD-7;
+   `docs/specs/2026-09-14-policy-driven-mutation-routing-owner-rulings.md`). Where SB-3 narrows a spec cell,
+   it does so through spec §2.2 (frozen wins). The narrowed cells are listed in that record's §4.
+3. The fence spec (owner-approved direction A–L restated in the task brief).
+4. PR-6 rulings B-1..B-4, E-3 (resolution only).
+5. PR-6 DoR, W-2/F-2 analysis, T2.5 recon: facts and measurements, never rulings.
 
 ### 3.2 Invariants every slice must preserve (each has a test in §16)
 
@@ -504,35 +510,33 @@ public sealed record PolicyResult(Guid ConflictId, string ScopeKey, ConflictShap
 completeness. `Unsupported` never reaches a policy; the router emits `FenceOutcome.Unsupported` itself.
 
 Per the task brief §3. The rules below are the implementation contract. Cells marked **SB-3** or **OD-4**
-return their outcome through `FencePendingDecisions` (§10.0), with tests labelled as characterization, **not** as a ruling.
+carry owner rulings (2026-09-14, §10.0). Their tests are ruling tests, not characterization.
 
-### 10.0 Pending owner decisions live in one place
+### 10.0 Owner-ruled cells (formerly pending decisions)
 
-```csharp
-// Sync/Fence/FencePendingDecisions.cs
-internal static class FencePendingDecisions
-{
-    // SB-3 / OD-3: spec §6 row 1 reading. Spec §2.2 ("frozen wins") + shipped whole-row D9-T1 point to Blocked.
-    public const FenceOutcome NonStructuralEditOnHeldRow = FenceOutcome.Passed;
+**CLOSED 2026-09-14** (`docs/specs/2026-09-14-policy-driven-mutation-routing-owner-rulings.md`). The
+`FencePendingDecisions` switch this section used to define is **dropped**. It existed only because SB-3 and
+OD-4 were unruled and is no longer the authority for either. Each policy returns the ruled outcome directly.
 
-    // OD-4: literal spec §6 reading (S3 empty scope, owning task tombstoned; occupancy not reached).
-    public const FenceOutcome EmptyScopeParentTombstone = FenceOutcome.Passed;
-}
-```
+| Ruling | Rule ids | Outcome | Tests (ruling, not characterization) |
+|---|---|---|---|
+| SB-3/OD-3: a mutation to a row held at Base (S1-CR `E`, S1-PT `E`, S2 `N0`) is blocked even when it is non-structural | `S1CR.NonStructuralFields`, `S1PT.NonStructuralFields`, `CONS.OccupantContent` | `Blocked` | P-CR-6, P-PT-6, P-K-4 |
+| OD-4: an owning-task tombstone over an empty S3 scope does not alter that scope's protected occupancy | `CONS.EmptyScopeParentTombstoned` | `Passed`, this policy's contribution only. Every other applicable policy still evaluates the same intent (INV-4) | P-K-5 |
 
-- Rules `S1CR.NonStructuralFields`, `S1PT.NonStructuralFields` and `CONS.OccupantContent` return
-  `NonStructuralEditOnHeldRow`.
-- Rule `CONS.EmptyScopeParentTombstoned` returns `EmptyScopeParentTombstone`.
+**Behavioural proof per cell.** Mutate each rule to the opposite outcome: `Passed` for each of the three
+SB-3 rules, `Blocked` for the OD-4 rule. The listed test must turn RED. Each cell is its own mutant, so a
+policy that ignores the ruling on one shape is caught independently.
 
-**Behavioural proof that every cell uses the switch.** Mutate `NonStructuralEditOnHeldRow` to `Blocked` and
-P-CR-6, P-PT-6 and P-K-4 must all turn RED. Mutate `EmptyScopeParentTombstone` and P-K-5 must turn RED. A
-policy that hard-codes `Passed` survives the mutant and is caught.
+**Scope limits (rulings record §2–§3).**
+- SB-3 locks the held row only. Child-edge changes that name `E` as a parent endpoint stay `Passed`
+  `*.ChildEdgeOnly`. Siblings, descendants, and ancestors are not locked.
+- SB-3 does not make D9-T1 field-scoped. It does not touch `ConflictResolver`, E-4 fingerprints, or D8-H.
+- OD-4 is not a descendant exemption. An occupied scope released by the cascade stays `Blocked` (P-K-2,
+  P-K-3), and S1 records on the task or its ancestors still block.
 
-**This is authored behaviour, not status quo.** No fence exists today, so no prior rule is being pinned.
-The permissive reading is shipped because it adds no rejection path and no user-visible change. For the
-record, spec §2.2 with the whole-row D9-T1 reading argues for `Blocked`. Cells the plan resolves toward
-`Blocked` (e.g. §10.2 "deleting E always crosses") need no owner decision, because fail-closed is §17's
-default. Resolving toward `Passed` does, hence SB-3/OD-4.
+**Spec relationship.** The spec's plain §6 row 1 / §4.1 text reads Pass for the SB-3 cells. The ruling
+applies spec §2.2: frozen D9-T1, read whole-row as shipped by PR-5 (test L). The rulings record §4 lists the
+narrowed cells. The spec file is not edited.
 
 ### 10.1 `ConcurrentReparentFencePolicy` (S1-CR)
 
@@ -541,8 +545,8 @@ default. Resolving toward `Passed` does, hence SB-3/OD-4.
 | Protected subject/scope | `EntitySubject(E)` (MonHoc or StudyTask); ScopeKey `E|id|field` |
 | Protected relation/state | `ProtectedEdge(E, field, HeldParentId = Base parent)`; predicates `SubjectPresent` (E live), `EdgeUnchanged` |
 | Relevant impact | any row/edge/lifecycle naming E |
-| **Blocked** (RuleId) | `Reparent(E)` ⇒ `S1CR.EdgeReplaced`; `Tombstone(E)` or E in `CascadeTombstoned` rows ⇒ `S1CR.SubjectRemoved` (the latter at stage `CascadeReached`); `Create` of E's identity while E exists ⇒ `S1CR.SubjectReplaced` (defensive) |
-| **Passed** | impact names E only as a parent endpoint of a child edge (child create/delete under E) ⇒ `S1CR.ChildEdgeOnly`; `UpdateFields(E)` with no edge change ⇒ `S1CR.NonStructuralFields` (**SB-3**) |
+| **Blocked** (RuleId) | `Reparent(E)` ⇒ `S1CR.EdgeReplaced`; `Tombstone(E)` or E in `CascadeTombstoned` rows ⇒ `S1CR.SubjectRemoved` (the latter at stage `CascadeReached`); `Create` of E's identity while E exists ⇒ `S1CR.SubjectReplaced` (defensive); `UpdateFields(E)` with no edge change ⇒ `S1CR.NonStructuralFields` (**SB-3 ruling: Block**, §10.0) |
+| **Passed** | impact names E only as a parent endpoint of a child edge (child create/delete under E) ⇒ `S1CR.ChildEdgeOnly` |
 | **NotApplicable** | impact never names E |
 | Evidence | intent/impact element string, e.g. `Reparent StudyTask {id} MaMonHoc {A}->{B}` |
 | Tests | §16 rows P-CR-1..6 |
@@ -553,8 +557,8 @@ default. Resolving toward `Passed` does, hence SB-3/OD-4.
 |---|---|
 | Protected subject/scope | `EntitySubject(E)` in the frame of its required structural parent |
 | Protected relation/state | `ProtectedEdge(E, field, HeldParentId = Base parent)`; predicates `SubjectPresent`, `EdgeUnchanged` (the staged candidate remains subject to E live; no generic path may bypass the tombstoned-parent contract). [D] Deleting E always crosses the contract: spec §3.2 names "E live" as part of the frame. The spec's "when it crosses" therefore evaluates true for any removal of E |
-| Blocked | `Reparent(E)` ⇒ `S1PT.ParentFrameChanged`; `Tombstone(E)` / cascade-reached E ⇒ `S1PT.SubjectRemoved`; `Create` of E's identity ⇒ `S1PT.SubjectReplaced` |
-| Passed | child-edge-only ⇒ `S1PT.ChildEdgeOnly`; `UpdateFields(E)` ⇒ `S1PT.NonStructuralFields` (**SB-3**) |
+| Blocked | `Reparent(E)` ⇒ `S1PT.ParentFrameChanged`; `Tombstone(E)` / cascade-reached E ⇒ `S1PT.SubjectRemoved`; `Create` of E's identity ⇒ `S1PT.SubjectReplaced`; `UpdateFields(E)` ⇒ `S1PT.NonStructuralFields` (**SB-3 ruling: Block**, §10.0) |
+| Passed | child-edge-only ⇒ `S1PT.ChildEdgeOnly` |
 | NotApplicable | impact never names E. Explicitly **not** protected: E's siblings, E's parent's other children, E's descendants (spec §4) |
 | Tests | P-PT-1..6 |
 
@@ -576,8 +580,8 @@ default. Resolving toward `Passed` does, hence SB-3/OD-4.
 |---|---|
 | Protected subject/scope | `ConstraintScopeSubject(TaskNote|MaTask=t)`; `CandidateIds` = {Base, Local, Remote} ids; `Form` S2/S3 |
 | Protected state | S2: occupant `N0` stays the occupant; S3: scope has no row (D9-T1 null Base) |
-| Blocked | `ImpactScope(K, Acquired)` ⇒ `CONS.ScopeAcquired` (S3 note create, the local `UpsertNoteAsync` path); `ImpactScope(K, Released)` ⇒ `CONS.ScopeReleased` (S2 note tombstone, or cascade from its task); a TaskNote reassignment touching K as old **or** new scope ⇒ `CONS.RelationChanged` |
-| Passed | `OccupantContentChanged(K)` on S2 ⇒ `CONS.OccupantContent` (**SB-3**); owning task `Tombstone` with S3 empty scope ⇒ `CONS.EmptyScopeParentTombstoned` (**OD-4**: literal spec reading, since occupancy is not reached) |
+| Blocked | `ImpactScope(K, Acquired)` ⇒ `CONS.ScopeAcquired` (S3 note create, the local `UpsertNoteAsync` path); `ImpactScope(K, Released)` ⇒ `CONS.ScopeReleased` (S2 note tombstone, or cascade from its task); a TaskNote reassignment touching K as old **or** new scope ⇒ `CONS.RelationChanged`; `OccupantContentChanged(K)` on S2 (edit of the held occupant `N0`) ⇒ `CONS.OccupantContent` (**SB-3 ruling: Block**, §10.0) |
+| Passed | owning task `Tombstone` with S3 empty scope ⇒ `CONS.EmptyScopeParentTombstoned` (**OD-4 ruling: Pass**; occupancy is not reached. This policy's contribution only: other applicable policies on the task or its ancestors still evaluate) |
 | NotApplicable | impact names neither K nor any candidate id; any other scope |
 | Tests | P-K-1..7 |
 
@@ -620,10 +624,10 @@ origin-agnostic, so this is a valid proof. Executor level covers it only after S
 | delete A (HocKy) — cascade T, N, N's note | Blocked `S1PT.SubjectRemoved` @CascadeReached | Blocked `S1CR.SubjectRemoved` @CascadeReached | Blocked `CONS.ScopeReleased` @ConstraintScope | **Blocked**, 3 results, all reported |
 | delete T (MonHoc) — cascade N, note | Blocked `SubjectRemoved` @Direct | Blocked @CascadeReached | Blocked @ConstraintScope | **Blocked**, 3 results |
 | delete N (StudyTask) — cascade note, links | NotApplicable (T appears only as a removed edge's parent endpoint ⇒ `Passed ChildEdgeOnly`; see note) | Blocked `SubjectRemoved` @Direct | Blocked `ScopeReleased` | **Blocked** |
-| edit N non-structural fields | NA | Passed `NonStructuralFields` (**SB-3**) | NA | FencePassed → remaining gates |
+| edit N non-structural fields | NA | Blocked `NonStructuralFields` (**SB-3 ruling**) | NA | **Blocked** |
 | reparent N (T → T2) | Passed `ChildEdgeOnly` (T is the old endpoint) | Blocked `EdgeReplaced` | NA | **Blocked** |
 | create note in K(N) (S3 form) | NA | Passed `ChildEdgeOnly` | Blocked `ScopeAcquired` | **Blocked** |
-| edit N's note content (S2 form) | NA | NA | Passed `OccupantContent` (**SB-3**) | FencePassed |
+| edit N's note content (S2 form) | NA | NA | Blocked `OccupantContent` (**SB-3 ruling**) | **Blocked** |
 | delete sibling N2 under T (no records on N2) | Passed `ChildEdgeOnly` | NA | NA | FencePassed (INV-1) |
 | reassign note K1 → K2 (router-level; no local writer assigns `TaskNote.MaTask`, FACT) | — | — | Blocked for K1 and for K2, independently | **Blocked**, 2 results |
 
@@ -663,7 +667,7 @@ ThemTask    → DeleteLinkAsync(dead.Id) for links removed in the editor
 (unused)    IStudyTaskRepository.DeleteAsync
 ```
 
-### 12.2 Integration (recommended option **L1**, OD-2)
+### 12.2 Integration (option **L1**, OD-2 ruled 2026-09-14)
 
 `SqliteHocKyRepository.LuuHocKyAsync(hocKy, ct)` becomes
 `new LocalSemesterSaveExecutor(_ctxFactory).ExecuteAsync(hocKy, ct)`. The VM-facing port is unchanged.
@@ -683,18 +687,22 @@ Reconcile logic moves out of the repository class. Each requirement below maps t
 - The port keeps the misleading name "repository" although it now fronts an executor. Recorded as a
   follow-up.
 - The **compound-save** consequence: one blocked intent rejects the whole semester save, including
-  unrelated edits made in the same save. The VM's in-memory graph still lacks the deleted row, so the
-  **next** save re-derives the same blocked intent, and a later sibling-only edit is refused too (sticky
-  rejection). Saying "the same request contains a violating intent" is the weaker reading. Seen from the
-  entry point, a sibling edit is refused because of T's conflict. **OD-7's reload-on-reject is therefore
-  not UX polish. It is the mechanism that makes spec §13.5 (unrelated sibling not rejected) true on the
-  local path** (X-20, §22 item 5).
+  unrelated edits made in the same save. Under SB-3 (Block) that includes an ordinary field edit on a held
+  row. If the VM's in-memory graph still lacked the deleted row, the **next** save would re-derive the same
+  blocked intent, and a later sibling-only edit would be refused too (sticky rejection). Seen from the
+  entry point, a sibling edit would be refused because of T's conflict. **OD-7 (ruled 2026-09-14) requires
+  that after a rejection nothing is committed, the in-memory graph is brought back into consistency with
+  persisted state, the rejection is surfaced with the relevant conflict/rule information, and nothing is
+  retried automatically. That restoration is what
+  makes spec §13.5 (unrelated sibling not rejected) true on the local path** (X-20, §22 item 5). Edits
+  bundled into the rejected save are not persisted and not re-applied automatically (rulings record §2.4).
+  The restoration mechanism is Slice-4 engineering, not ruled.
 
-**Alternative L2**: new application service with explicit `DeleteTask`/`DeleteSubject`/`Reparent` use cases;
-VMs call it instead of `LuuHocKyAsync`. It matches the spec's literal shape and gives per-intent
-granularity. Price: 7 call sites in 4 VMs, VM constructors, VM test doubles (`FakeHocKyRepository` in
-`TestDoubles/FakeRepositories.cs` plus local fakes), and `LuuHocKyAsync` would still need the fence for its
-residual add/update path. Not recommended for this scope; the owner decides.
+**Alternative L2 (not adopted; OD-2 ruled L1)**: new application service with explicit
+`DeleteTask`/`DeleteSubject`/`Reparent` use cases; VMs call it instead of `LuuHocKyAsync`. It matches the
+spec's literal shape and gives per-intent granularity. Price: 7 call sites in 4 VMs, VM constructors, VM test
+doubles (`FakeHocKyRepository` in `TestDoubles/FakeRepositories.cs` plus local fakes), and `LuuHocKyAsync`
+would still need the fence for its residual add/update path. Recorded for context only.
 
 ---
 
@@ -737,8 +745,9 @@ revalidation step that could itself be skipped.
   unique indexes (D9-T6), triggers (D7-D/F), and the resolver's D8-H drift gate. The executor must **not**
   catch and swallow `SqliteException`/`DbUpdateException`; failure ⇒ rollback ⇒ rethrow.
 - Human-scale staleness (a VM graph loaded before staging) is handled by construction: the fence reads the
-  DB at save time. Stale structural changes are blocked. Stale content edits pass under SB-3 status quo.
-  A resolver-then-stale-save revert is D-4 (reported, not addressed).
+  DB at save time. Stale structural changes are blocked. Stale field edits on a row held at Base are
+  blocked too (SB-3 ruled Block), and OD-7 then restores the graph. A resolver-then-stale-save revert is
+  D-4 (reported, not addressed).
 
 ---
 
@@ -755,7 +764,6 @@ revalidation step that could itself be skipped.
 | `SmartStudyPlanner/Sync/Fence/ConflictShapeClassifier.cs` | 1 | §9 table |
 | `SmartStudyPlanner/Sync/Fence/IConflictFencePolicy.cs` | 1 | interface |
 | `SmartStudyPlanner/Sync/Fence/FencePolicyRegistry.cs` | 1 | one policy per shape, completeness assert |
-| `SmartStudyPlanner/Sync/Fence/FencePendingDecisions.cs` | 1 | the single home of outcomes awaiting owner decisions (SB-3, OD-4); see §10.0 |
 | `SmartStudyPlanner/Sync/Fence/Policies/ConcurrentReparentFencePolicy.cs` | 1 | §10.1 |
 | `SmartStudyPlanner/Sync/Fence/Policies/ParentTombstoneFencePolicy.cs` | 1 | §10.2 |
 | `SmartStudyPlanner/Sync/Fence/Policies/AbsentLocalParentTombstonePolicy.cs` | 1 | §10.3 |
@@ -781,7 +789,9 @@ revalidation step that could itself be skipped.
 | `Sync/Apply/SyncApplyModels.cs` | **6, gated** | `SyncApplyReason.StructuralFenceBlocked`, `.FenceUnsupported` | typed rejection |
 
 `SqliteStudyTaskRepository.cs` changes only if OD-5 ≠ "guard test". `ServiceLocator.cs` is unchanged under L1:
-executors are constructed by the repositories from the same factory.
+executors are constructed by the repositories from the same factory. Slice 4 also changes the existing local
+save call site(s), but only as far as OD-7 requires: restore graph consistency after a rejection and surface
+it. The mechanism and exact sites are Slice-4 engineering. No XAML change.
 
 ### 15.3 Files explicitly NOT to modify
 
@@ -789,7 +799,8 @@ executors are constructed by the repositories from the same factory.
 `Sync/Apply/ConflictResolver.cs` · `Sync/Apply/ConflictStaging.cs` · `Sync/Apply/EntitySnapshotMapper.cs` ·
 `Sync/SyncConflictRecordStore.cs` · `Sync/SyncBaseSnapshotStore.cs` · `Sync/SyncConflictRecordRow.cs` ·
 `Data/AppDbContext.cs` · `Data/SyncStamper.cs` · `Data/SyncConflictRecordSchema.cs` · `Services/ServiceLocator.cs`
-(under L1) · all `Views/*`, XAML, and VMs (unless OD-7 authorises the reload) · `Sync/Apply/SyncApplySession.cs`
+(under L1) · all `Views/*` and XAML; VMs beyond the minimal OD-7 restoration/surfacing at existing save call
+sites (Slice 4) · `Sync/Apply/SyncApplySession.cs`
 and `SyncApplyModels.cs` until OD-1 · frozen docs: Decision Record (both copies), D4/D9-T4 amendment, PR-5
 amendment, PR-6 rulings, engineering DoR, PR-6 DoR, W-2/F-2 analysis, T2.5 recon · the owner's dirty
 working-tree files · T2.5 test files (`Sync/Convergence/*`), if they have landed.
@@ -831,7 +842,9 @@ working-tree files · T2.5 test files (`Sync/Convergence/*`), if they have lande
 - every new assertion is paired with a stated mutant that must turn it RED, using the recon §9.5 loop
   (backup, mutate, grep for the marker, test, restore, `git status --porcelain` empty);
 - characterization tests carry `// CHARACTERIZATION — pins status quo pending OD-n; not evidence of a ruling`
-  and a `Trait("Kind","Characterization")`.
+  and a `Trait("Kind","Characterization")`;
+- the SB-3/OD-4 rows (P-CR-6, P-PT-6, P-K-4, P-K-5) are **ruling** tests since 2026-09-14 and carry no
+  characterization label.
 
 ### 16.1 Shape × mutation matrix (executor level unless marked R = router level)
 
@@ -842,13 +855,13 @@ working-tree files · T2.5 test files (`Sync/Convergence/*`), if they have lande
 | P-CR-3 | S1-CR on T | H→M→{T,T2} | delete M | Blocked @CascadeReached | T2 also still live (atomic) | ImpactResolver skips cascade recursion |
 | P-CR-4 | S1-CR on T | H→M→{T,T2} | delete T2 | FencePassed, persisted | T2 tombstoned; record Unresolved, evidence unchanged | selector "any unresolved under same MonHoc" |
 | P-CR-5 | S1-CR on T | T + link | add link under T (editor) | Passed `ChildEdgeOnly` (relevant, not violated) | result list contains the Passed entry | policy returns NotApplicable (fails the R12 assertion) |
-| P-CR-6 | S1-CR on T | H→M→T | edit `T.TenTask` | Passed `NonStructuralFields` via `FencePendingDecisions` — **CHARACTERIZATION SB-3** | persisted; `Matches(BaseFp, live)` now false (documents W-1) | set `NonStructuralEditOnHeldRow = Blocked` |
+| P-CR-6 | S1-CR on T | H→M→T | edit `T.TenTask` | Blocked `S1CR.NonStructuralFields` (**SB-3 ruling**) | exception carries 1 Blocked result; tables byte-identical; record Unresolved; `Matches(BaseFp, live)` still true (W-1 drift prevented) | policy returns Passed for `UpdateFields(E)` on the held row |
 | P-PT-1 | S1-PT on T (live Base parent M; remote parent tombstoned) | H→M→T | reparent T to M2 | Blocked `S1PT.ParentFrameChanged` | 1 Blocked result; tables byte-identical | policy returns Passed for Reparent; classifier maps PT→CR (rule-id assertion RED) |
 | P-PT-2 | S1-PT on T (live Base parent) | H→M→T | delete T | Blocked `S1PT.SubjectRemoved` @DirectSubject | T live, `MaMonHoc` unchanged, note/links live | policy ignores Tombstone |
 | P-PT-3 | S1-PT on T (live Base parent) | H→M→{T,T2} | delete M | Blocked `S1PT.SubjectRemoved` @CascadeReached | T2 also still live (atomic) | ImpactResolver skips cascade recursion |
 | P-PT-4 | S1-PT on T (live Base parent) | H→M→{T,T2} | delete T2 | FencePassed, persisted | T2 tombstoned; record Unresolved, evidence unchanged | selector "any unresolved under same MonHoc" |
 | P-PT-5 | S1-PT on T (live Base parent) | T + link | add link under T (editor) | Passed `S1PT.ChildEdgeOnly` | Passed entry present in result list | policy returns NotApplicable |
-| P-PT-6 | S1-PT on T (test-M recipe: Base parent already tombstoned, `SyncApplyParentHandlingTests.cs:112-141`) | H→M(dead)→T | edit `T.TenTask` | Passed `S1PT.NonStructuralFields` via `FencePendingDecisions` — **CHARACTERIZATION SB-3** | persisted | set `NonStructuralEditOnHeldRow = Blocked` |
+| P-PT-6 | S1-PT on T (test-M recipe: Base parent already tombstoned, `SyncApplyParentHandlingTests.cs:112-141`) | H→M(dead)→T | edit `T.TenTask` | Blocked `S1PT.NonStructuralFields` (**SB-3 ruling**) | tables byte-identical; record Unresolved | policy returns Passed for `UpdateFields(E)` on the held row |
 | P-AL-1 | AL-PT on E under dead P | H→M(dead) | local save graph containing new StudyTask with `MaTask = E` under live M2 | Blocked `ALPT.SameIdentityMaterialization` | no StudyTask row E | policy only blocks when parent is P |
 | P-AL-2 | AL-PT on E | | same create under dead P | Blocked | no row | — |
 | P-AL-3 | AL-PT on E | | delete sibling under live M2 | FencePassed | persisted | selector identity predicate over-broad |
@@ -856,8 +869,8 @@ working-tree files · T2.5 test files (`Sync/Convergence/*`), if they have lande
 | P-K-1 | S3 on K(T) | T, no note | `UpsertNoteAsync(T, "x")` | Blocked `CONS.ScopeAcquired` | `CountNotesInScopeAsync(T) == 0` | ImpactResolver omits `Acquired` |
 | P-K-2 | S2 (constructed) on K(T) | T, N0 | delete T | Blocked `ScopeReleased` @ConstraintScope | N0 live | cascade expansion skips TaskNote edge |
 | P-K-3 | S2 | T, N0 | delete M (grandchild note) | Blocked | N0, T live | recursion depth limited to 1 |
-| P-K-4 | S2 | T, N0 | edit N0 content | Passed — **CHARACTERIZATION SB-3** | persisted | — |
-| P-K-5 | S3 | T, no note | delete T | Passed `EmptyScopeParentTombstoned` — **CHARACTERIZATION OD-4** | T tombstoned | — |
+| P-K-4 | S2 | T, N0 | edit N0 content | Blocked `CONS.OccupantContent` (**SB-3 ruling**) | N0 content unchanged | policy returns Passed for `OccupantContentChanged(K)` on S2 |
+| P-K-5 | S3 | T, no note, no other record on T or its ancestors | delete T | Passed `CONS.EmptyScopeParentTombstoned` (**OD-4 ruling**) | T tombstoned | policy returns Blocked for an owning-task tombstone over an empty S3 scope |
 | P-K-6 (R) | S3 at K1 and K2 | | constructed reassign K1→K2 | Blocked ×2 | both results present | router dedups by shape |
 | P-K-7 | S2 on K(T), unrelated S3 on K(T2) | | delete T2's link | FencePassed | persisted | selector matches all TaskNote-scope records |
 
@@ -884,7 +897,7 @@ working-tree files · T2.5 test files (`Sync/Convergence/*`), if they have lande
 | X-17 registry guard | EF model FKs + `OnDelete(Cascade)` == registry cascade edges; field classes == `MergeSurfaceRegistry` | — | remove a registry edge |
 | X-18 no-conflict regression | the whole existing `RepositoriesTests`, `TaskNotesTests`, VM tests unchanged and green | count equals baseline + new | — |
 | X-19 write-path fence | synced-DbSet mutation calls and FK assignments only in allowlisted files | self-check | add `db.StudyTasks.Remove(x)` in a VM |
-| X-20 sticky sibling (same VM session) | S1-CR on T. VM-equivalent flow on **one** in-memory graph: remove T ⇒ save ⇒ rejected; then edit sibling T2 in the same graph ⇒ save | **OD-7 decision point.** With reload-on-reject: the second save persists T2's edit and T stays live. Without reload: the second save is rejected again (planner re-derives `Tombstone(T)`); the test pins that as characterization, and §22 item 5 is recorded as **not met** on the local path | remove the reload step from the VM handler |
+| X-20 sticky sibling (same VM session) | S1-CR on T. VM-equivalent flow on **one** in-memory graph: remove T ⇒ save ⇒ rejected; then edit sibling T2 in the same graph ⇒ save | **OD-7 ruling (2026-09-14).** After the rejection the in-memory graph matches persisted state (T present again) and the rejection was surfaced. The second save persists T2's edit, T stays live, and no `Tombstone(T)` intent is resubmitted | remove the graph-restoration step (the second save is rejected again) |
 
 ### 16.3 Slice-0 measurements (test-only, labelled)
 
@@ -910,7 +923,7 @@ working-tree files · T2.5 test files (`Sync/Convergence/*`), if they have lande
 | N-7 | Record resolved between selection and write (concurrent) | cannot occur inside the single immediate/serialised tx (P0-b); if the mode is deferred, the write upgrade fails ⇒ rollback |
 | N-8 | Duplicate selection of the same record via both predicates | deduplicated by `ConflictId` before routing; X-1 counts results exactly |
 | N-9 | Empty request (no-change save) | no intents ⇒ empty impact ⇒ FencePassed ⇒ writer no-op; Rev stability test still green |
-| N-10 | `MutationRejectedException` swallowed anywhere in production | source-scan: no `catch (MutationRejectedException` outside the OD-7-authorised VM handler |
+| N-10 | `MutationRejectedException` swallowed anywhere in production | source-scan: no `catch (MutationRejectedException` outside the OD-7 restoration/surfacing site(s). A catch there must restore the graph and surface the rejection, never swallow or retry |
 
 ---
 
@@ -942,8 +955,8 @@ working-tree files · T2.5 test files (`Sync/Convergence/*`), if they have lande
 |---|---|---|---|
 | R-1 | `LuuHocKyAsync` extraction regresses reconcile (clones, reparent-before-remove ordering `:136-151`, FK heal) | High | Slice 3 is behaviour-only and gated on the full existing suite + X-16 oracle; writer keeps statement order verbatim |
 | R-2 | Impact model diverges from one of the two cascade implementations | High | registry guard X-17 + oracle X-16 (local); Slice 6 adds the sync oracle |
-| R-3 | Compound save ⇒ sticky rejection of later unrelated edits (VM graph keeps the deleted row absent) | Medium (dormant until records exist in production) | OD-7 |
-| R-4 | SB-3 status quo keeps W-1: content edits on held-at-Base rows make records permanently unresolvable | High (M2.2 liveness; already known) | owner OD-3; tests are labelled characterization |
+| R-3 | Compound save ⇒ sticky rejection of later unrelated edits (VM graph keeps the deleted row absent) | Medium (dormant until records exist in production) | OD-7 ruled 2026-09-14: restore in-memory graph consistency after rejection, no automatic retry; proven by X-20 |
+| R-4 | W-1: content edits on held-at-Base rows make records permanently unresolvable. **Local-path leg closed 2026-09-14:** SB-3 ruled Block, so once Slices 4–5 wire the fence these edits are rejected before they drift the record. W-1 through other paths (W-2 sync cascade, OD-1; D-4) is unchanged. Residual E-2 in the rulings record (a Derived-only save stamping provenance on a held row) is unmeasured | High (M2.2 liveness) for the remaining paths | SB-3 ruling; P-CR-6/P-PT-6/P-K-4 assert Blocked; measure E-2 in Slice 0/4 |
 | R-5 | TOCTOU guarantee rests on SQLite lock semantics not yet measured in this repo | Medium | P0-b before Slice 4; X-12 |
 | R-6 | Load-time dedup's implicit reparent of a conflicted task ⇒ every save of that semester blocked until resolved | Low likelihood / high impact | OD-8 |
 | R-7 | Identity-predicate fail-closed net over-selects a record ⇒ spurious `Unsupported` | Low | only fires for unclassifiable records, which are unreachable by construction today |
@@ -960,12 +973,12 @@ working-tree files · T2.5 test files (`Sync/Convergence/*`), if they have lande
 |---|---|---|---|---|
 | **SB-1** ☑ **CLOSED 2026-09-14** | *Original question:* commit the spec to `origin/dev` under a stable name. The task brief cites `…-spec.md`; the tree has an untracked `…-spec-complete.md`. Also confirm that its authority line ("referenced conversation") suffices, or add a dated rulings record. *Owner answer (verbatim):* "it is added by myself, not commited yet, commit new docs". *Closure:* the spec is committed byte-for-byte as-is under `…-spec-complete.md`, which is now the stable name (no separate `…-spec.md` exists). Its authority is the owner's authorship statement recorded here. No separate ratification note was written, because authoring one is not an agent's call; the owner may still add one | Governance precedent: every ratified direction so far lives in a dated tracked `docs/specs/` file | nothing (was: merge of Slice 1) | n/a |
 | **SB-2 / OD-1** | Direction F and spec §9.1 say the fence applies to *all* origins. For `SyncApplySession` that means rejecting a remote ancestor tombstone whose actual cascade reaches a protected contract. That is **W-2 option C1**, and it flips MEASURED shipped behaviour (crossing leg `Applied` ⇒ `Rejected`). Spec O-4 and W-2 §8 say a change to the crossing behaviour needs a dated amendment. **Does direction F constitute the W-2 Q-1 ruling for sync-originated ancestor tombstones?** Sub-question: is the peer enumerator's natural re-offer of a rejected tombstone (W-2 §3.3 C1, INFERENCE) compatible with spec §9.2 "no automatic retry"? | Two ratified sources disagree on whether this is already decided; code must not pick | Slice 6 only | none; both readings are coherent. Sync is unwired, so waiting costs nothing user-visible |
-| **SB-3 / OD-3** | Spec §6 row 1 and §4.1 make an ordinary non-structural edit on a row held at Base (S1-CR/S1-PT `E`, S2 `N0`) fence-**Pass**. Frozen D9-T1 says "live domain state must equal Base while Unresolved", read *whole-row* by shipped/tested PR-5 (test L; W-2 §3.4 D-a). Passing makes the record permanently unresolvable (W-1). **Pass (spec), Block (D9-T1 whole-row reading, a contract-specific edit lock on E only), or a field-scoped D9-T1 (W-2 Q-2)?** | Spec-vs-frozen tension. Spec §2.2 says frozen wins, yet the spec explicitly anticipated drift (§4.1) | nothing, but see the note. The plan **authors** a rule here: no fence exists today, so there is no prior behaviour to pin. It ships the spec's **Pass** via `FencePendingDecisions.NonStructuralEditOnHeldRow` (§10.0), because Pass adds no rejection path and no user-visible change. **Spec §2.2 together with the shipped whole-row D9-T1 reading points the other way (Block).** A Block ruling is a one-constant change plus flipping P-CR-6/P-PT-6/P-K-4 | none. The plan's default is a surfaced choice, not a recommendation |
-| **OD-2** | Integration shape: **L1** executor behind the unchanged port, vs **L2** new application service with VM call-site changes (§12.2) | Architecture/UX scope trade-off | Slice 4 | L1 |
-| **OD-4** | S3 (empty scope) owning task tombstoned: literal spec (occupancy not reached ⇒ Pass) vs treat "candidate relation made unmaterialisable" as crossing (Block). After tombstone only `KeepBase(null)` can resolve (B-2 / ZPT2) | Contract interpretation | nothing (characterization) | literal spec reading |
+| **SB-3 / OD-3** ☑ **CLOSED 2026-09-14 — Block** | *Original question:* spec §6 row 1 and §4.1 make an ordinary non-structural edit on a row held at Base (S1-CR/S1-PT `E`, S2 `N0`) fence-**Pass**. Frozen D9-T1 ("live domain state must equal Base while Unresolved"), read *whole-row* by shipped/tested PR-5 (test L; W-2 §3.4 D-a), points to Block. Passing makes the record permanently unresolvable (W-1). Pass, Block, or a field-scoped D9-T1 (W-2 Q-2)? *Owner ruling:* **Block**. No field-scoped D9-T1, and not solved through PR-6 fingerprint semantics. *Record:* `docs/specs/2026-09-14-policy-driven-mutation-routing-owner-rulings.md` §2.1. The spec cells it narrows through spec §2.2 are listed in that record's §4; the spec is not edited. The `FencePendingDecisions` switch is dropped (§10.0) | Spec-vs-frozen tension | nothing | n/a |
+| **OD-2** ☑ **CLOSED 2026-09-14 — L1** | *Original question:* integration shape **L1** (executor behind the unchanged port) vs **L2** (new application service with VM call-site changes, §12.2). *Owner ruling:* **L1**. Keep the existing port; no new application-service/use-case layer; the fence must not become a repository-side hidden policy; no unrelated application-layer refactor. *Record:* §2.3 | Architecture/UX scope trade-off | nothing (was: Slice 4) | n/a |
+| **OD-4** ☑ **CLOSED 2026-09-14 — Pass** | *Original question:* S3 (empty scope) owning task tombstoned: literal spec (occupancy not reached ⇒ Pass) vs treat "candidate relation made unmaterialisable" as crossing (Block). *Owner ruling:* **Pass**, subject to normal evaluation of every other protected contract the mutation actually affects. Not a subtree lock, not a descendant exemption. After the tombstone only `KeepBase(null)` can resolve (B-2 / ZPT2; unchanged). *Record:* §2.2 | Contract interpretation | nothing | n/a |
 | **OD-5** | `IStudyTaskRepository.AddAsync/UpdateAsync/DeleteAsync` have zero production callers but are unfenced public mutation paths (`UpdateAsync` can reparent) | API surface policy | Slice 5 | guard test forbidding production callers; no route, no removal |
 | **OD-6** | Route `ConflictResolver` result writes through the fence (excluding the record being resolved)? | Touches frozen PR-6 behaviour | nothing | do not route (§10.6) |
-| **OD-7** | How a rejected local save surfaces, and whether VMs reload their `HocKy` graph after rejection (prevents sticky rejection R-3; **required for spec §13.5 to hold on the local path**, X-20). Today the exception reaches `App.DispatcherUnhandledException` ⇒ generic "may not have been saved" box | UX; touches VMs | Slice 4 merge | minimal: catch `MutationRejectedException` in the four VM save commands, reload the graph from the repository, show the rule ids; no XAML |
+| **OD-7** ☑ **CLOSED 2026-09-14 — reject + restore graph consistency + no automatic retry** | *Original question:* how a rejected local save surfaces, and whether VMs reload their `HocKy` graph after rejection (prevents sticky rejection R-3; required for spec §13.5 on the local path, X-20). Today the exception reaches `App.DispatcherUnhandledException` ⇒ generic "may not have been saved" box. *Owner ruling:* fence rejects ⇒ no part of the rejected save committed ⇒ in-memory graph brought back into consistency with persisted state ⇒ rejection surfaced to the caller/UI path with the relevant conflict/rule information ⇒ no automatic retry (reject ≠ retry; restore/reload ≠ automatic retry). No new UI/UX framework, no XAML. *Record:* §2.4. **Still engineering, not ruled:** the restoration mechanism, its call sites, and the surfacing channel, all chosen in Slice 4 | UX; touches VMs | nothing (was: Slice 4 merge) | candidate mechanism, not a ruling: catch `MutationRejectedException` at the existing save commands, reload the graph from the repository, show the rule ids; no XAML |
 | **OD-8** | Accept R-6 (dedup implicit reparent of a conflicted task blocks every save of that semester) or schedule a mitigation | Product liveness | nothing | accept for now; revisit with M2.2 |
 | — | Pre-existing D-1..D-4 (§19 R-9) | Separate tickets | nothing | report only |
 
@@ -982,7 +995,7 @@ local `dev` vs `origin/dev` (CLAUDE.md).
 | **1** Pure fence | §15.1 Slice-1 files + classifier/registry/policy tests over constructed `ImpactSet`s | — | none (SB-1 closed 2026-09-14) | all P-* rows at policy-unit level; each listed mutant RED then reverted |
 | **2** Router | registry, impact resolver, selector, router, exception, `FenceScenarioFixture`, `SaveCountingDbContext`, X-1..X-9, X-14 selector leg, X-17 | 1 | — | router-level matrix green on real SQLite with staged records; read-only proofs green |
 | **3** Extract | planner + writer + executor (no fence), `LuuHocKyAsync` delegates; `SemesterReconcilePlannerTests`; `SemesterSaveRegressionSnapshotTests` (committed first against the unrefactored code, then kept unchanged) | P0-a, P0-d | — | zero test count loss; all `RepositoriesTests` green unchanged; `gitnexus_detect_changes` ⊆ {LuuHocKyAsync, new symbols} |
-| **4** Wire local save | fence in `LocalSemesterSaveExecutor`; P-CR/P-PT/P-AL/P-K rows reachable via `LuuHocKyAsync`; X-10..X-13, X-15, X-16, X-20; P0-c flipped to Blocked | 2, 3, P0-b | OD-2, OD-7 | executor-level matrix green; mutants RED |
+| **4** Wire local save | fence in `LocalSemesterSaveExecutor`; P-CR/P-PT/P-AL/P-K rows reachable via `LuuHocKyAsync`; X-10..X-13, X-15, X-16, X-20; P0-c flipped to Blocked; OD-7 graph restoration + surfacing at the existing save call site(s) | 2, 3, P0-b | none (OD-2, OD-7 closed 2026-09-14) | executor-level matrix green; X-20 green with restoration (spec §13.5 on the local path); mutants RED |
 | **5** Wire task editor + write-path fence | `TaskEditorWriter`, `LocalTaskEditorExecutor`, P-K-1, P-CR-5, X-19, OD-5 guard | 4 | OD-5 | as above |
 | **6** Wire sync (GATED) | fence step in `ApplyEntityAsync`; `SyncApplyFenceTests` incl. the W-2 crossing leg flipping to `Rejected/StructuralFenceBlocked` with control and direct legs unchanged; sync-origin impact oracle | 2 | **OD-1 ruling recorded in `docs/specs/`** | W-2 probe legs as specified by the ruling; T2.5 P10 updated in the same PR |
 
@@ -1009,7 +1022,7 @@ Maps spec §13 items 1–13 to proofs:
 | 2 impact set with before/after edges, lifecycle, scopes | `ImpactResolverTests` + X-16 |
 | 3 parent deletes include descendants, grandchildren, TaskNote constraints | P-CR-3, P-K-3, X-1, X-16 |
 | 4 overlapping: every relevant record evaluated | X-1, X-2, X-3 |
-| 5 unrelated sibling not rejected | Different-request case: P-CR-4, P-AL-3, P-K-7. Same-VM-session case (block T, then edit sibling T2 and save): X-20. **Proven on the local path only once OD-7's reload is implemented.** Without it, X-20 pins sticky rejection and item 5 is recorded as **not met** locally |
+| 5 unrelated sibling not rejected | Different-request case: P-CR-4, P-AL-3, P-K-7. Same-VM-session case (block T, then edit sibling T2 and save): X-20, required under OD-7 (ruled 2026-09-14: restore graph consistency after rejection, no automatic retry). Slice 4 does not merge without it |
 | 6 local ancestor delete ≡ non-local for the same envelope | X-5 (router) now; executor-level sync equivalence after Slice 6 |
 | 7 pass followed by authorization/validation/persistence/concurrency | X-10, X-11, X-12 |
 | 8 no side effects; blocked ⇒ no partial/deferred | X-8, X-9, P-CR-2/3 table identity, N-6 |
@@ -1021,7 +1034,7 @@ Maps spec §13 items 1–13 to proofs:
 
 Plus:
 - existing suite green with no deleted or rewritten tests (X-18);
-- characterization tests labelled for SB-3/OD-4;
+- SB-3/OD-4 rows asserted as owner rulings (P-CR-6, P-PT-6, P-K-4 Blocked; P-K-5 Passed), not as characterization;
 - SB-1 closed (☑ 2026-09-14);
 - Slice 6 not merged without OD-1;
 - `docs/CHANGELOG.md` entry per shipped slice;
@@ -1067,7 +1080,7 @@ Plus:
   `Sync/Fence` type: its regression oracle is a bare snapshot diff, and the impact oracle X-16 belongs to
   Slice 4.
 - **Wave B:** Slice 2, after Slice 1 merges (it consumes Slice 1 types).
-- **Wave C:** Slice 4, after 2 and 3 merge, P0-b is known, and OD-2/OD-7 are answered.
+- **Wave C:** Slice 4, after 2 and 3 merge and P0-b is known (OD-2/OD-7 closed 2026-09-14).
 - **Wave D:** Slice 5, after 4 (reuses the executor pattern and the exception).
 - **Wave E:** Slice 6 only after OD-1 is recorded.
 - No two agents share a worktree. No agent edits `docs/CHANGELOG.md` except the slice's own PR, merged
@@ -1081,7 +1094,7 @@ Plus:
 | **A1 Pure fence** | §15.1 Slice-1 files + unit tests | `.claude/worktrees/fence-s1`, `feat/epic2-fence-s1-policies` | `SmartStudyPlanner/Sync/Fence/**` (Slice-1 files only), `Tests/Sync/Fence/{ConflictShapeClassifier,FencePolicyRegistry}Tests.cs`, `Tests/Sync/Fence/Policies/**` | `superpowers:test-driven-development`, `superpowers:verification-before-completion` | `rtk dotnet build/test`, `gitnexus_detect_changes` | PR; mutant log | a policy needs DB or origin; a cell not in §10 appears; a frozen-semantics question arises (report as new OD) |
 | **A3 Extract** | Behaviour-preserving split of `LuuHocKyAsync` | `.claude/worktrees/fence-s3`, `refactor/epic2-fence-s3-reconcile-extract` | `SqliteHocKyRepository.cs`, `Infrastructure/Persistence/SQLite/Mutations/{SemesterReconcilePlanner,SemesterGraphWriter,LocalSemesterSaveExecutor}.cs`, `Tests/Infrastructure/Persistence/SQLite/Mutations/{SemesterReconcilePlanner,SemesterSaveRegressionSnapshot}Tests.cs` | `gitnexus-refactoring`, `gitnexus-impact-analysis`, `superpowers:verification-before-completion` | `gitnexus_impact` (HIGH, priced R-1), `rtk dotnet test` | PR, zero behaviour change | any existing test must change to pass; statement order in the writer must change |
 | **A2 Router** | Registry, impact, selector, router, fixture, X-tests | `.claude/worktrees/fence-s2`, `feat/epic2-fence-s2-router` (from `origin/dev` after A1 merge) | `Sync/Fence/**` (Slice-2 files), `Tests/Fixtures/FenceScenarioFixture.cs`, `Tests/TestDoubles/SaveCountingDbContext.cs`, `Tests/Sync/Fence/**` | TDD, verification | `rtk`, gitnexus | PR | selector needs a schema/index change; staging a shape requires editing existing tests |
-| **A4 Wire local** | Fence in executor; executor-level matrix | `.claude/worktrees/fence-s4`, `feat/epic2-fence-s4-local-save` | `Mutations/LocalSemesterSaveExecutor.cs`, `Tests/.../LocalSemesterSave{Fence,GateOrder}Tests.cs`, flip P0-c; VM handler **only if OD-7 authorises** | TDD, `gitnexus-impact-analysis`, verification, `superpowers:requesting-code-review` | `gitnexus_impact` on `LuuHocKyAsync` | PR | OD-2/OD-7 unanswered; X-12 cannot be made red |
+| **A4 Wire local** | Fence in executor; executor-level matrix | `.claude/worktrees/fence-s4`, `feat/epic2-fence-s4-local-save` | `Mutations/LocalSemesterSaveExecutor.cs`, `Tests/.../LocalSemesterSave{Fence,GateOrder}Tests.cs`, flip P0-c; the existing local save call site(s) **only as far as OD-7 requires** (graph restoration + surfacing; no XAML) | TDD, `gitnexus-impact-analysis`, verification, `superpowers:requesting-code-review` | `gitnexus_impact` on `LuuHocKyAsync` and on each touched save call site | PR | restoration needs XAML, a new UI/UX framework, or an unrelated VM architecture change; OD-7 cannot be met without a new semantic contract; X-12 cannot be made red |
 | **A5 Wire editor** | Task-editor executor + write-path fence | `.claude/worktrees/fence-s5`, `feat/epic2-fence-s5-task-editor` | `SqliteTaskEditorRepository.cs`, `Mutations/{TaskEditorWriter,LocalTaskEditorExecutor}.cs`, `Tests/.../LocalTaskEditorFenceTests.cs`, `Tests/Infrastructure/Persistence/SyncedEntityWritePathFenceTests.cs` | TDD, verification | `rtk`, gitnexus | PR | D-1 UNIQUE defect blocks a test (use a live-note scenario; report D-1) |
 | **A6 Wire sync** | **Do not dispatch before OD-1** | — | `SyncApplySession.cs`, `SyncApplyModels.cs`, `Tests/Sync/Apply/SyncApplyFenceTests.cs`, T2.5 P10 | — | — | — | no dated OD-1 record in `docs/specs/` |
 
@@ -1096,7 +1109,7 @@ Plus:
 | Policies take neither `AppDbContext` nor origin | Read-only and no-bypass invariants are cheaper to guarantee by signature than by review | INV-6, INV-8 by construction, plus a source-scan backstop | `SyncStamper` per-entry intent over batch flags; `SyncApplyAuditFenceTests` |
 | Classify by column tuple; select by ScopeKey ∪ identity | Names drift; unknown future scopes must fail closed, not be missed | INV-5 with the existing filtered unique index | E-11 precedent ("key on the predicate") |
 | Evaluate the fence inside the executor's write transaction once | A separate pre-check plus revalidation is two code paths that can diverge | TOCTOU closed structurally; A-3 verified by P0-b, not assumed | "signal must be able to go red": shared-connection fixture cannot observe concurrency |
-| Ship the spec's permissive reading for SB-3/OD-4 through one `FencePendingDecisions` switch | Either outcome is a semantic choice. Pass adds no rejection path, but spec §2.2 plus whole-row D9-T1 argue for Block, so the choice is surfaced rather than hidden | A ruling becomes a one-constant flip; the undecided status is visible in code and proven by mutant | W-2 §7.2: characterization must not be cited as a ruling |
+| ~~Ship the spec's permissive reading for SB-3/OD-4 through one `FencePendingDecisions` switch~~ **Superseded 2026-09-14** by owner rulings (SB-3 Block, OD-4 Pass); the switch is dropped (§10.0) | Either outcome is a semantic choice. Pass adds no rejection path, but spec §2.2 plus whole-row D9-T1 argue for Block, so the choice is surfaced rather than hidden | A ruling becomes a one-constant flip; the undecided status is visible in code and proven by mutant | W-2 §7.2: characterization must not be cited as a ruling |
 | Move the impact oracle X-16 out of Slice 3 | X-16 consumes `ImpactResolver` (Slice 2) while Slice 3 runs in Wave A | Slice 3 keeps "zero behaviour change" with a fence-free snapshot oracle | dependency order must match wave order |
 | Behaviour-preserving extraction as its own slice | `LuuHocKyAsync` is HIGH blast radius with subtle ordering (`:136-151`) | Separate "moved code" review from "new semantics" review | E-7 precedent; separate commits per concern (project memory) |
 | Do not route `ConflictResolver` | No reachable cross-record violation, and routing changes frozen PR-6 behaviour | Scope discipline | PR-6 DoR §14 fence |
@@ -1112,7 +1125,7 @@ is not routed (OD-6). No schema, UI/XAML, Restore, or frozen-semantics change.
 **Proposed production files** (§15.1–15.2):
 - New, `SmartStudyPlanner/Sync/Fence/`:
   - `MutationRequest.cs`, `ImpactSet.cs`, `ProtectedContract.cs`, `FenceResults.cs`
-  - `ConflictShapeClassifier.cs`, `IConflictFencePolicy.cs`, `FencePolicyRegistry.cs`, `FencePendingDecisions.cs`
+  - `ConflictShapeClassifier.cs`, `IConflictFencePolicy.cs`, `FencePolicyRegistry.cs`
   - `StructuralDependencyRegistry.cs`, `ImpactResolver.cs`, `ConflictDependencySelector.cs`, `FenceRouter.cs`, `MutationRejectedException.cs`
   - `Policies/{ConcurrentReparentFencePolicy, ParentTombstoneFencePolicy, AbsentLocalParentTombstonePolicy, ConstraintOccupancyFencePolicy}.cs`
 - New, `SmartStudyPlanner/Infrastructure/Persistence/SQLite/Mutations/`:
@@ -1121,7 +1134,7 @@ is not routed (OD-6). No schema, UI/XAML, Restore, or frozen-semantics change.
   - `SqliteHocKyRepository.cs` (Slices 3–4)
   - `SqliteTaskEditorRepository.cs` (Slice 5)
   - **gated:** `Sync/Apply/SyncApplySession.cs`, `Sync/Apply/SyncApplyModels.cs` (Slice 6)
-  - VM save commands only if OD-7 authorises the reload
+  - the existing local save call site(s), only as far as OD-7 requires (Slice 4; the mechanism is engineering)
 
 **Proposed test files** (§15.4):
 - `Fixtures/{FileBackedSqliteFixture, FenceScenarioFixture}.cs`
@@ -1137,12 +1150,13 @@ is not routed (OD-6). No schema, UI/XAML, Restore, or frozen-semantics change.
 
 **Blockers:**
 - ~~**SB-1:** spec untracked; blocks Slice 1 merge.~~ Closed 2026-09-14: owner-authored spec committed with this plan.
-- **SB-2/OD-1:** sync-origin crossing = W-2 C1; blocks Slice 6.
-- **SB-3/OD-3:** non-structural edit on a row held at Base vs D9-T1; ships the spec's reading behind one
-  switch, with the asymmetry stated.
+- **SB-2/OD-1:** sync-origin crossing = W-2 C1; blocks Slice 6. **Still OPEN.**
+- ~~**SB-3/OD-3:** non-structural edit on a row held at Base vs D9-T1; ships the spec's reading behind one
+  switch, with the asymmetry stated.~~ Closed 2026-09-14: owner ruled **Block**.
 
-**Open owner decisions:** OD-2 (L1/L2), OD-4, OD-5, OD-6, OD-7 (required for spec §13.5 on the local path),
-OD-8. Details in §20.
+**Open owner decisions:** OD-1 (= SB-2), OD-5, OD-6, OD-8. **Closed 2026-09-14:** OD-2 (L1), OD-4 (Pass),
+OD-7 (reject + restore in-memory graph consistency + no automatic retry). Details in §20 and
+`docs/specs/2026-09-14-policy-driven-mutation-routing-owner-rulings.md`.
 
 **Recommended PR / agent decomposition:** seven PRs, one per slice.
 - Wave A: S0, S1, S3 in parallel.
