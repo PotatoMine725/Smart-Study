@@ -5,6 +5,8 @@ using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Infrastructure.Persistence.SQLite;
 using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Sync;
+using SmartStudyPlanner.Sync.Fence;
+using SmartStudyPlanner.Sync.Merge;
 using SmartStudyPlanner.Tests.Fixtures;
 using Xunit;
 
@@ -170,6 +172,96 @@ namespace SmartStudyPlanner.Tests.Sync.Fence
             var after = await ReadNoteStateAsync(note.Id);
             Assert.True(after.IsDeleted, "the sync cascade must reach a LIVE note in scope");
             Assert.True(after.Rev > before.Rev);
+        }
+
+        // ------------------------------------------------------------------ what the choice costs
+
+        /// <summary>
+        /// P0-a consequence, MEASURED at router level — this is the outcome the owner's M-3/A-1 ruling
+        /// actually decides, so it is observed here rather than reasoned about.
+        /// <para>
+        /// Two S2 ConstraintOccupancy records at <c>K(T)</c>, identical except that one scope's Base
+        /// occupant is LIVE and the other's is ALREADY TOMBSTONED. Both notes occupy their unfiltered
+        /// <c>UNIQUE(MaTask)</c> scope (D9-T1). Tombstoning the owning task gives:
+        /// </para>
+        /// <list type="bullet">
+        /// <item>live occupant   =&gt; <c>Released(K)</c> in the impact =&gt; <c>Blocked CONS.ScopeReleased</c>;</item>
+        /// <item>dead occupant   =&gt; nothing in the impact =&gt; the OD-4 branch,
+        ///       <c>Passed CONS.EmptyScopeParentTombstoned</c>.</item>
+        /// </list>
+        /// <para>
+        /// The second row is what would flip to <c>Blocked</c> under an unfiltered cascade predicate.
+        /// This test pins CURRENT behaviour; it does not assert that either answer is correct.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public async Task P0a_Consequence_S2WithADeadOccupant_CurrentlyPasses_WhereALiveOccupantBlocks()
+        {
+            async Task<PolicyResult> EvaluateAsync(bool occupantAlreadyDead)
+            {
+                var (_, _, task) = await _fx.SeedTreeAsync();
+                var note = new TaskNote { Id = Guid.NewGuid(), MaTask = task.MaTask, Content = "occupant" };
+                await _fx.AddLocalAsync(note);
+
+                if (occupantAlreadyDead)
+                {
+                    using var kill = _fx.NewContext(SyncApplyFixture.LocalNow, "DELETER-DEVICE");
+                    var live = await kill.TaskNotes.FirstAsync(n => n.Id == note.Id);
+                    kill.TaskNotes.Remove(live);
+                    await kill.SaveChangesAsync();
+                }
+
+                var scope = new ConstraintScope(SyncEntityTypes.TaskNote, "MaTask", task.MaTask.ToString("D"));
+                var row = new SyncConflictRecordRow
+                {
+                    ConflictId = Guid.NewGuid(),
+                    ConflictKey = "p0a-" + Guid.NewGuid().ToString("N"),
+                    ScopeKey = ConflictKeys.ScopeKey(ConflictKind.ConstraintConflict, SyncEntityTypes.TaskNote, null, null, scope),
+                    Kind = ConflictKind.ConstraintConflict,
+                    EntityType = SyncEntityTypes.TaskNote,
+                    ConstraintKey = "MaTask",
+                    ConstraintValue = task.MaTask.ToString("D"),
+                    PeerDeviceId = SyncApplyFixture.PeerDevice,
+                    BaseEntityId = note.Id,
+                    BaseSnapshotJson = "{}",
+                    BaseFingerprint = "p0a-base-fp",
+                    LocalEntityId = note.Id,
+                    LocalSnapshotJson = "{}",
+                    LocalFingerprint = "p0a-base-fp",
+                    LocalRowRev = 1,
+                    RemoteEntityId = Guid.NewGuid(),
+                    RemoteSnapshotJson = "{}",
+                    RemoteFingerprint = "p0a-remote-fp",
+                    Status = ConflictRecordStatus.Unresolved,
+                    CreatedAtUtc = SyncApplyFixture.LocalNow,
+                    CreatedByDeviceId = SyncApplyFixture.LocalDevice,
+                };
+
+                using (var seed = _fx.NewContext())
+                {
+                    seed.SyncConflictRecords.Add(row);
+                    await seed.SaveChangesAsync();
+                }
+
+                using var ctx = _fx.NewContext();
+                var decision = await FenceRouter.EvaluateAsync(ctx, new MutationRequest(
+                    MutationOrigin.LocalApplication,
+                    new[]
+                    {
+                        new MutationIntent(MutationOperation.Tombstone, SyncEntityTypes.StudyTask, task.MaTask,
+                            Array.Empty<RelationChange>(), Array.Empty<string>()),
+                    }));
+
+                return Assert.Single(decision.Results, r => r.ConflictId == row.ConflictId);
+            }
+
+            var liveOccupant = await EvaluateAsync(occupantAlreadyDead: false);
+            Assert.Equal(FenceOutcome.Blocked, liveOccupant.Outcome);
+            Assert.Equal("CONS.ScopeReleased", liveOccupant.RuleId);
+
+            var deadOccupant = await EvaluateAsync(occupantAlreadyDead: true);
+            Assert.Equal(FenceOutcome.Passed, deadOccupant.Outcome);
+            Assert.Equal("CONS.EmptyScopeParentTombstoned", deadOccupant.RuleId);
         }
     }
 }
