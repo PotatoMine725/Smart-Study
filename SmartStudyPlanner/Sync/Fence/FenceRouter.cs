@@ -118,10 +118,19 @@ namespace SmartStudyPlanner.Sync.Fence
 
         /// <summary>
         /// Spec §6 / plan §6: every intent's <c>EntityType</c> must be a known structural
-        /// parent/child, and every <see cref="RelationChange.Field"/> it names must classify as
-        /// <see cref="FieldClass.Structural"/> or <see cref="FieldClass.ConstraintScope"/> on that
-        /// type. Vacuously true for an empty request (N-9). Otherwise <c>false</c> fails closed
-        /// (N-2/X-7) before any DB read.
+        /// parent/child, and every <see cref="RelationChange.Field"/> it names must be a registered
+        /// structural child edge on that type. Vacuously true for an empty request (N-9). Otherwise
+        /// <c>false</c> fails closed (N-2/X-7) before any DB read.
+        /// <para>
+        /// <b>H-1/A-2, owner ruling 2026-09-16 (Option B).</b> Routability is asked of
+        /// <see cref="StructuralDependencyRegistry.IsRegisteredStructuralRoute"/> ONLY.
+        /// <see cref="MergeSurfaceRegistry"/> is the authority for merge-field semantics and is
+        /// deliberately not consulted here -- the two are separate concerns. Consulting it used to
+        /// reject <c>Create(TaskReferenceLink, MaTask: null -&gt; task)</c>, a relation this fence's own
+        /// registry declares, because that field is <c>CopyOnCreate</c> for merge purposes. The fix
+        /// belongs on this side; changing the field's merge classification to satisfy the router is
+        /// explicitly forbidden.
+        /// </para>
         /// </summary>
         private static bool RouteKnown(MutationRequest request)
         {
@@ -131,18 +140,12 @@ namespace SmartStudyPlanner.Sync.Fence
 
                 foreach (var relation in intent.Relations)
                 {
-                    if (!IsStructuralOrConstraintScopeField(intent.EntityType, relation.Field)) return false;
+                    if (!StructuralDependencyRegistry.IsRegisteredStructuralRoute(intent.EntityType, relation.Field))
+                        return false;
                 }
             }
 
             return true;
-        }
-
-        private static bool IsStructuralOrConstraintScopeField(string entityType, string field)
-        {
-            if (!MergeSurfaceRegistry.TryGet(entityType, out var spec)) return false;
-            var match = spec.Fields.FirstOrDefault(f => f.Name == field);
-            return match is not null && match.Class is FieldClass.Structural or FieldClass.ConstraintScope;
         }
     }
 }

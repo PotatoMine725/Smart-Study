@@ -16,11 +16,29 @@ namespace SmartStudyPlanner.Sync.Fence
     /// mutates the tracker or persistent state (INV-8).
     /// <para>
     /// <b>Actual cascade, not invented closure (INV-2).</b> Only a <see cref="MutationOperation.Tombstone"/>
-    /// intent expands through <see cref="StructuralDependencyRegistry"/> cascade edges, and only through
-    /// LIVE children -- a row already tombstoned before this request is a pre-existing, out-of-scope
-    /// condition (plan §7.4/D-2), not part of this mutation's actual write set. A
+    /// intent expands through <see cref="StructuralDependencyRegistry"/> cascade edges. A
     /// <see cref="MutationOperation.Reparent"/>/<see cref="MutationOperation.UpdateFields"/>/
     /// <see cref="MutationOperation.Create"/> intent never adds descendants.
+    /// </para>
+    /// <para>
+    /// <b>Request-level, not per-intent (H-3).</b> The whole <see cref="MutationRequest"/> is one logical
+    /// operation (D8-G), so the impact set must be self-consistent with the combined request rather than
+    /// the concatenation of independently resolved intents. See <c>EffectiveParents</c> and
+    /// <c>CascadeChildIdsAsync</c>.
+    /// </para>
+    /// <para>
+    /// <b>OPEN — the cascade predicate (M-3/A-1).</b> <see cref="LiveChildIdsAsync"/> visits LIVE
+    /// children only, and that is UNCHANGED pending an owner ruling. P0-a
+    /// (<c>CascadePredicateProbeTests</c>) measured that the two production cascade implementations
+    /// genuinely disagree: the sync path (<c>SyncApplySession.CascadeTombstoneAsync</c>) is live-only,
+    /// while the local path (<c>TaskCascadeHelper</c>, reached from <c>LuuHocKyAsync</c> and
+    /// <c>SqliteStudyTaskRepository.DeleteAsync</c>) has no <c>IsDeleted</c> filter and re-stamps an
+    /// already-tombstoned child. Plan §7.3's "the same predicate the executing path uses" therefore has
+    /// no single answer here, and the choice is observable: an already-dead TaskNote still occupies its
+    /// unfiltered <c>UNIQUE(MaTask)</c> scope (D9-T1), so under the unfiltered predicate a StudyTask
+    /// tombstone would emit <c>Released(K)</c> and block an S2 record at that scope, where live-only
+    /// emits nothing and the OD-4 empty-scope branch passes it. Do not change this predicate without
+    /// that ruling.
     /// </para>
     /// </summary>
     internal static class ImpactResolver
@@ -34,16 +52,19 @@ namespace SmartStudyPlanner.Sync.Fence
             var edges = new List<ImpactEdge>();
             var scopes = new List<ImpactScope>();
             var lifecycle = new List<ImpactLifecycle>();
-            var visitedForCascade = new HashSet<(string Type, Guid Id)>();
+            var expanded = new HashSet<(string Type, Guid Id)>();
+
+            // H-3: the request is resolved AS A UNIT. Every Reparent intent is collected up front, so a
+            // cascade expanded later in the same request sees each row's post-request parent rather than
+            // its stale DB FK.
+            var effectiveParent = EffectiveParents(request);
 
             void AddRow(ImpactRow row)
             {
                 var key = (row.EntityType, row.EntityId);
-                if (rows.TryGetValue(key, out var existing) && Rank(existing.Effect) >= Rank(row.Effect)) return;
+                if (rows.TryGetValue(key, out var existing) && Precedence(existing.Effect) >= Precedence(row.Effect)) return;
                 rows[key] = row;
             }
-
-            static int Rank(RowEffect effect) => effect == RowEffect.CascadeTombstoned ? 0 : 1;
 
             foreach (var intent in request.Intents)
             {
@@ -99,7 +120,7 @@ namespace SmartStudyPlanner.Sync.Fence
 
                     case MutationOperation.Tombstone:
                         await ExpandTombstoneAsync(db, intent.EntityType, intent.EntityId, causedBy: intent.EntityId,
-                            isDirect: true, AddRow, edges, scopes, lifecycle, visitedForCascade, ct);
+                            isDirect: true, AddRow, edges, scopes, lifecycle, expanded, effectiveParent, ct);
                         break;
 
                     default:
@@ -107,25 +128,114 @@ namespace SmartStudyPlanner.Sync.Fence
                 }
             }
 
+            // Every list is deduplicated and TOTALLY ordered (M-1): sorting on a partial key leaves ties
+            // broken by insertion order, which would make two equivalent permutations of the same
+            // request produce unequal -- but semantically identical -- ImpactSets.
             return new ImpactSet(
-                rows.Values.OrderBy(r => r.EntityType, StringComparer.Ordinal).ThenBy(r => r.EntityId).ToArray(),
-                edges.OrderBy(e => e.ChildType, StringComparer.Ordinal).ThenBy(e => e.ChildId).ToArray(),
-                scopes.OrderBy(s => s.ScopeKey, StringComparer.Ordinal).ThenBy(s => s.OccupantId).ToArray(),
-                lifecycle.OrderBy(l => l.EntityType, StringComparer.Ordinal).ThenBy(l => l.EntityId).ToArray());
+                rows.Values
+                    .OrderBy(r => r.EntityType, StringComparer.Ordinal).ThenBy(r => r.EntityId).ToArray(),
+                edges.Distinct()
+                    .OrderBy(e => e.ChildType, StringComparer.Ordinal).ThenBy(e => e.ChildId)
+                    .ThenBy(e => e.Field, StringComparer.Ordinal).ThenBy(e => e.ParentId).ThenBy(e => e.Change).ToArray(),
+                scopes.Distinct()
+                    .OrderBy(s => s.ScopeKey, StringComparer.Ordinal).ThenBy(s => s.OccupantId)
+                    .ThenBy(s => s.ScopeValue).ThenBy(s => s.Change).ToArray(),
+                lifecycle.Distinct()
+                    .OrderBy(l => l.EntityType, StringComparer.Ordinal).ThenBy(l => l.EntityId)
+                    .ThenBy(l => l.Effect).ToArray());
+        }
+
+        /// <summary>
+        /// <b>RowEffect precedence (review finding M-1). Keep this next to <c>AddRow</c>.</b>
+        /// <para>
+        /// A row can be named by more than one intent in the same request, and by a cascade as well as
+        /// directly. The effect kept for that row is the MAXIMUM of this total order, never the
+        /// first-seen one -- so the result does not depend on the order intents happen to appear in the
+        /// request, nor on dictionary/hash iteration order.
+        /// </para>
+        /// <para>
+        /// The order is severity/terminality: an explicit <see cref="RowEffect.Tombstoned"/> outranks a
+        /// <see cref="RowEffect.CascadeTombstoned"/> reached through an ancestor, so a DIRECT intent is
+        /// never silently downgraded to a cascade effect merely because the cascade was expanded first.
+        /// Both tombstone kinds outrank the non-terminal effects, because a row the request removes is
+        /// removed however else the request also touches it.
+        /// </para>
+        /// <para>
+        /// This ranking is observable: <c>RoutingStage.DirectSubject</c> vs
+        /// <c>RoutingStage.CascadeReached</c> in every S1 policy's result is driven by it, and Stage is
+        /// the first key of the router's deterministic aggregation.
+        /// </para>
+        /// </summary>
+        private static int Precedence(RowEffect effect) => effect switch
+        {
+            RowEffect.Tombstoned => 5,
+            RowEffect.CascadeTombstoned => 4,
+            RowEffect.Reparented => 3,
+            RowEffect.Created => 2,
+            RowEffect.FieldsChanged => 1,
+            _ => throw new InvalidOperationException($"Unranked RowEffect {effect}."),
+        };
+
+        /// <summary>
+        /// The post-request parent of every row a <see cref="MutationOperation.Reparent"/> intent moves,
+        /// keyed by (type, id) — review finding H-3.
+        /// <para>
+        /// Resolving each intent independently against live DB state lets one request report
+        /// contradictory effects: <c>Reparent(T, M1 -&gt; M2)</c> + <c>Tombstone(M1)</c> would read T's
+        /// stale <c>MaMonHoc = M1</c> and report T as both successfully moved out AND cascade-tombstoned
+        /// under M1, together with T's own descendants and constraint scopes. The combined mutation does
+        /// no such thing.
+        /// </para>
+        /// <para>
+        /// One uniform rule replaces that, applied in <c>CascadeChildIdsAsync</c>: a row's parent for
+        /// cascade purposes is its <see cref="RelationChange.After"/> when this request reparents it,
+        /// and its DB FK otherwise. That excludes rows moved OUT of a tombstoned subtree and includes
+        /// rows moved IN -- it is not a guard against one example. <c>After</c> is authoritative;
+        /// <c>Before</c> is never consulted, since it is caller-supplied and may be stale.
+        /// </para>
+        /// <para>
+        /// <see cref="MutationOperation.Create"/> is deliberately NOT part of this map. A created row is
+        /// not in the database, so no cascade query can reach it; adding it would be inventing closure
+        /// rather than modelling the actual cascade (INV-2).
+        /// </para>
+        /// </summary>
+        private static IReadOnlyDictionary<(string Type, Guid Id), Guid?> EffectiveParents(MutationRequest request)
+        {
+            var map = new Dictionary<(string Type, Guid Id), Guid?>();
+
+            foreach (var intent in request.Intents)
+            {
+                if (intent.Operation != MutationOperation.Reparent) continue;
+
+                foreach (var rel in intent.Relations)
+                {
+                    if (StructuralDependencyRegistry.ParentTypeOf(intent.EntityType, rel.Field) is null) continue;
+                    map[(intent.EntityType, intent.EntityId)] = rel.After;
+                }
+            }
+
+            return map;
         }
 
         private static async Task ExpandTombstoneAsync(
             AppDbContext db, string entityType, Guid entityId, Guid causedBy, bool isDirect,
             Action<ImpactRow> addRow, List<ImpactEdge> edges, List<ImpactScope> scopes,
-            List<ImpactLifecycle> lifecycle, HashSet<(string, Guid)> visited, CancellationToken ct)
+            List<ImpactLifecycle> lifecycle, HashSet<(string, Guid)> expanded,
+            IReadOnlyDictionary<(string Type, Guid Id), Guid?> effectiveParent, CancellationToken ct)
         {
-            if (!visited.Add((entityType, entityId))) return;
-
             var current = await ReadCurrentAsync(db, entityType, entityId, ct);
             var wasLive = current?.WasLive ?? true;
 
+            // The row effect is recorded on EVERY visit and resolved by Precedence (M-1). Gating the
+            // effect on "not yet visited" is what let a cascade seen first suppress a later direct
+            // intent on the same row.
             addRow(new ImpactRow(entityType, entityId,
                 isDirect ? RowEffect.Tombstoned : RowEffect.CascadeTombstoned, wasLive, causedBy));
+
+            // Everything below is emitted once per row, so a revisit updates the effect and adds no
+            // duplicate edge/scope/lifecycle entry and re-walks no descendants.
+            if (!expanded.Add((entityType, entityId))) return;
+
             lifecycle.Add(new ImpactLifecycle(entityType, entityId, LifecycleEffect.Tombstone));
 
             var parentEdge = StructuralDependencyRegistry.All.FirstOrDefault(e => e.ChildType == entityType);
@@ -141,13 +251,53 @@ namespace SmartStudyPlanner.Sync.Fence
 
             foreach (var cascadeEdge in StructuralDependencyRegistry.CascadeChildrenOf(entityType))
             {
-                var liveChildren = await LiveChildIdsAsync(db, cascadeEdge.ChildType, entityId, ct);
-                foreach (var childId in liveChildren)
+                var children = await CascadeChildIdsAsync(db, cascadeEdge.ChildType, entityId, effectiveParent, ct);
+                foreach (var childId in children)
                 {
                     await ExpandTombstoneAsync(db, cascadeEdge.ChildType, childId, causedBy: entityId, isDirect: false,
-                        addRow, edges, scopes, lifecycle, visited, ct);
+                        addRow, edges, scopes, lifecycle, expanded, effectiveParent, ct);
                 }
             }
+        }
+
+        /// <summary>
+        /// The children of <paramref name="parentId"/> that THIS request's cascade actually reaches
+        /// (H-3): the rows whose post-request parent is <paramref name="parentId"/>.
+        /// <para>
+        /// Starts from <see cref="LiveChildIdsAsync"/> — the unchanged DB predicate, whose live-only
+        /// vs unfiltered semantics is the separate open question M-3/A-1 — then applies the request's
+        /// own reparent intents: a row this request moves elsewhere is dropped, and a row it moves here
+        /// is added. The "moved in" row is subjected to the SAME liveness predicate as the DB query, so
+        /// both legs move together when M-3 is ruled.
+        /// </para>
+        /// <para>Result is sorted, so traversal order (and thus cascade causedBy attribution) does not
+        /// depend on the database's row order or on dictionary iteration order.</para>
+        /// </summary>
+        private static async Task<IReadOnlyList<Guid>> CascadeChildIdsAsync(
+            AppDbContext db, string childType, Guid parentId,
+            IReadOnlyDictionary<(string Type, Guid Id), Guid?> effectiveParent, CancellationToken ct)
+        {
+            var children = new HashSet<Guid>();
+
+            foreach (var id in await LiveChildIdsAsync(db, childType, parentId, ct))
+            {
+                // Moved out of this subtree by this same request => the combined mutation does not
+                // cascade it, so reporting it as cascade-tombstoned would be a contradiction.
+                if (effectiveParent.TryGetValue((childType, id), out var after) && after != parentId) continue;
+                children.Add(id);
+            }
+
+            foreach (var moved in effectiveParent)
+            {
+                if (moved.Key.Type != childType || moved.Value != parentId) continue;
+                if (children.Contains(moved.Key.Id)) continue;
+
+                var current = await ReadCurrentAsync(db, childType, moved.Key.Id, ct);
+                if (current is null || !current.WasLive) continue;
+                children.Add(moved.Key.Id);
+            }
+
+            return children.OrderBy(id => id).ToArray();
         }
 
         private static bool IsConstraintScopeField(string entityType, string field) =>

@@ -95,5 +95,43 @@ namespace SmartStudyPlanner.Sync.Fence
         /// is tombstoned (fence spec §5.1-§5.3: the actual cascade, not an invented closure).</summary>
         public static IReadOnlyList<StructuralEdge> CascadeChildrenOf(string parentType) =>
             Edges.Where(e => e.ParentType == parentType && e.CascadesOnTombstone).ToArray();
+
+        // ------------------------------------------------------------------ fence-route authority
+        //
+        // Owner ruling 2026-09-16 (review finding H-1/A-2), OPTION B: merge-field classification and
+        // fence-route classification are SEPARATE concerns, and neither registry silently becomes the
+        // authority for the other's.
+        //
+        //   MergeSurfaceRegistry        -> authority for merge-field semantics / 3-way merge treatment
+        //                                  (Structural, ConstraintScope, CopyOnCreate, Merge, ...).
+        //   StructuralDependencyRegistry-> authority for whether a mutation relation is a known
+        //                                  structural fence route.
+        //
+        // A field may legitimately be both, and the two answers need not agree. The load-bearing
+        // example: TaskReferenceLink.MaTask is CopyOnCreate for merge (D9-T3) AND a registered
+        // StudyTask -> TaskReferenceLink structural child edge, so it IS a known fence route.
+        // Conversely, a field MergeSurfaceRegistry recognises never becomes route-known just because
+        // it is classified there -- it must be registered as an edge below.
+        //
+        // The correct way to change either answer is to edit that registry, never the other one.
+
+        /// <summary>
+        /// True when <paramref name="childField"/> on <paramref name="childType"/> is registered here
+        /// as a structural child edge -- i.e. some edge's (<c>ChildType</c>, <c>ChildField</c>) tuple
+        /// names it. This is the sole authority for fence routability (owner ruling 2026-09-16);
+        /// <see cref="Merge.MergeSurfaceRegistry"/> is deliberately NOT consulted. Fails closed for
+        /// anything unregistered.
+        /// </summary>
+        public static bool IsRegisteredStructuralRoute(string childType, string childField) =>
+            !string.IsNullOrEmpty(childType) && !string.IsNullOrEmpty(childField) &&
+            Edges.Any(e => e.ChildType == childType && e.ChildField == childField);
+
+        /// <summary>
+        /// The registered parent type at the other end of the <paramref name="childType"/>/
+        /// <paramref name="childField"/> edge, or null when the tuple is not a registered route. The
+        /// (ChildType, ChildField) pair is unique across the registry, so the answer is unambiguous.
+        /// </summary>
+        public static string? ParentTypeOf(string childType, string childField) =>
+            Edges.FirstOrDefault(e => e.ChildType == childType && e.ChildField == childField)?.ParentType;
     }
 }
