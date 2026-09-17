@@ -115,11 +115,13 @@ namespace SmartStudyPlanner.Tests.Sync.Fence
         }
 
         /// <summary>Reads the note straight from SQLite, bypassing the fence entirely — the independent
-        /// channel that proves D9-T1 occupancy rather than inferring it from fence output.</summary>
+        /// channel that proves D9-T1 occupancy rather than inferring it from fence output. No
+        /// <c>IgnoreQueryFilters</c> is needed: <see cref="AppDbContext"/> declares no global
+        /// soft-delete filter, so a tombstoned row is returned by an ordinary query.</summary>
         private async Task<TaskNote> ReadNoteDirectAsync(Guid noteId)
         {
             using var ctx = _fx.Fx.NewContext();
-            return await ctx.TaskNotes.AsNoTracking().IgnoreQueryFilters().FirstAsync(n => n.Id == noteId);
+            return await ctx.TaskNotes.AsNoTracking().FirstAsync(n => n.Id == noteId);
         }
 
         // ==================================================================
