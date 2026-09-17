@@ -27,18 +27,30 @@ namespace SmartStudyPlanner.Sync.Fence
     /// <c>CascadeChildIdsAsync</c>.
     /// </para>
     /// <para>
-    /// <b>OPEN — the cascade predicate (M-3/A-1).</b> <see cref="LiveChildIdsAsync"/> visits LIVE
-    /// children only, and that is UNCHANGED pending an owner ruling. P0-a
+    /// <b>CLOSED — the cascade predicate is LIVE-ONLY (M-3/A-1, owner ruling 2026-09-17).</b> The
+    /// effective cascade predicate is <c>child.IsDeleted == false</c>, implemented by
+    /// <see cref="LiveChildIdsAsync"/> and by the matching liveness check on the "moved in" leg of
+    /// <c>CascadeChildIdsAsync</c>.
+    /// <para>
+    /// The ruling's principle: the ImpactSet models the SEMANTIC DOMAIN EFFECTS of the requested
+    /// mutation, never implementation-only re-stamping/provenance writes. P0-a
     /// (<c>CascadePredicateProbeTests</c>) measured that the two production cascade implementations
-    /// genuinely disagree: the sync path (<c>SyncApplySession.CascadeTombstoneAsync</c>) is live-only,
-    /// while the local path (<c>TaskCascadeHelper</c>, reached from <c>LuuHocKyAsync</c> and
+    /// differ — the sync path (<c>SyncApplySession.CascadeTombstoneAsync</c>) is live-only, while the
+    /// local path (<c>TaskCascadeHelper</c>, reached from <c>LuuHocKyAsync</c> and
     /// <c>SqliteStudyTaskRepository.DeleteAsync</c>) has no <c>IsDeleted</c> filter and re-stamps an
-    /// already-tombstoned child. Plan §7.3's "the same predicate the executing path uses" therefore has
-    /// no single answer here, and the choice is observable: an already-dead TaskNote still occupies its
-    /// unfiltered <c>UNIQUE(MaTask)</c> scope (D9-T1), so under the unfiltered predicate a StudyTask
-    /// tombstone would emit <c>Released(K)</c> and block an S2 record at that scope, where live-only
-    /// emits nothing and the OD-4 empty-scope branch passes it. Do not change this predicate without
-    /// that ruling.
+    /// already-tombstoned child. That re-stamp is an implementation-level <c>Rev</c>/provenance write,
+    /// NOT a semantic lifecycle transition, so it does not belong in the impact set. An
+    /// already-tombstoned child therefore produces no new <see cref="LifecycleEffect.Tombstone"/>, no
+    /// <see cref="RowEffect.CascadeTombstoned"/> row, and no constraint-scope release.
+    /// </para>
+    /// <para>
+    /// <b>D9-T1 is untouched by this.</b> The <c>UNIQUE(MaTask)</c> index on TaskNote stays unfiltered,
+    /// so a tombstoned note still OCCUPIES its scope — the ruling says only that this mutation does not
+    /// RELEASE it. Live occupant + <c>Tombstone(T)</c> =&gt; cascade reaches it =&gt; <c>Released(K)</c>
+    /// =&gt; <c>CONS.ScopeReleased</c> may block. Already-dead occupant + <c>Tombstone(T)</c> =&gt; not an
+    /// effective cascade target =&gt; no <c>Released(K)</c> =&gt; the OD-4 branch returns
+    /// <c>CONS.EmptyScopeParentTombstoned</c>. "Scope remains occupied" and "scope does not exist" are
+    /// different states and must not be conflated. Both legs are pinned by <c>ImpactCascadeLivenessTests</c>.
     /// </para>
     /// </summary>
     internal static class ImpactResolver
@@ -264,11 +276,11 @@ namespace SmartStudyPlanner.Sync.Fence
         /// The children of <paramref name="parentId"/> that THIS request's cascade actually reaches
         /// (H-3): the rows whose post-request parent is <paramref name="parentId"/>.
         /// <para>
-        /// Starts from <see cref="LiveChildIdsAsync"/> — the unchanged DB predicate, whose live-only
-        /// vs unfiltered semantics is the separate open question M-3/A-1 — then applies the request's
-        /// own reparent intents: a row this request moves elsewhere is dropped, and a row it moves here
-        /// is added. The "moved in" row is subjected to the SAME liveness predicate as the DB query, so
-        /// both legs move together when M-3 is ruled.
+        /// Starts from <see cref="LiveChildIdsAsync"/> — the live-only DB predicate ratified by M-3/A-1
+        /// — then applies the request's own reparent intents: a row this request moves elsewhere is
+        /// dropped, and a row it moves here is added. The "moved in" row is subjected to the SAME
+        /// liveness predicate as the DB query (<c>!current.WasLive</c> below), so the two legs cannot
+        /// drift apart.
         /// </para>
         /// <para>Result is sorted, so traversal order (and thus cascade causedBy attribution) does not
         /// depend on the database's row order or on dictionary iteration order.</para>
@@ -351,6 +363,13 @@ namespace SmartStudyPlanner.Sync.Fence
             }
         }
 
+        /// <summary>
+        /// The EFFECTIVE cascade children of <paramref name="parentId"/>: <c>child.IsDeleted == false</c>
+        /// (M-3/A-1, owner-ratified 2026-09-17). An already-tombstoned child is not a new lifecycle
+        /// target, so the <c>!IsDeleted</c> clause in every arm below is load-bearing semantics, not an
+        /// optimisation — removing it would model an implementation-level re-stamp as a domain effect
+        /// and emit a false constraint-scope release (see <c>ImpactCascadeLivenessTests</c>).
+        /// </summary>
         private static async Task<IReadOnlyList<Guid>> LiveChildIdsAsync(
             AppDbContext db, string childType, Guid parentId, CancellationToken ct)
         {

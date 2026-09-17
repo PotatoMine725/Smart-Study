@@ -16,12 +16,11 @@ namespace SmartStudyPlanner.Tests.Sync.Fence
 {
     /// <summary>
     /// Epic 2 / T2.4 Slice 2 — independent-review findings H-1/A-2, H-2, H-3, M-1, M-2 and M-4,
-    /// closed under the owner decisions of 2026-09-16.
+    /// closed under the owner decisions of 2026-09-16 and the H-1/A-2 clarification of 2026-09-17.
     /// <para>
-    /// M-3/A-1 (the cascade predicate) is deliberately NOT addressed here: P0-a
-    /// (<see cref="CascadePredicateProbeTests"/>) measured that the two executing paths disagree, so
-    /// the semantic is unruled. Every fixture below therefore keeps its cascade children LIVE, so no
-    /// test in this file depends on the unresolved live-only-vs-unfiltered choice.
+    /// M-3/A-1 (the cascade predicate) is covered by <see cref="ImpactCascadeLivenessTests"/>, not
+    /// here. Every fixture below keeps its cascade children LIVE, so no test in this file depends on
+    /// the liveness predicate.
     /// </para>
     /// </summary>
     public class FenceReviewFindingsTests : IDisposable
@@ -149,14 +148,17 @@ namespace SmartStudyPlanner.Tests.Sync.Fence
         }
 
         /// <summary>
-        /// H1-B. Merge classification alone never implies routability. Exhaustive over every field
-        /// <see cref="MergeSurfaceRegistry"/> knows: a (type, field) pair is route-known iff
-        /// <see cref="StructuralDependencyRegistry"/> registers exactly that child-edge tuple.
+        /// H1-B (CASE C). Merge classification alone never implies routability. Exhaustive over every
+        /// field <see cref="MergeSurfaceRegistry"/> knows: a (type, field) pair is route-known iff
+        /// <see cref="StructuralDependencyRegistry"/> registers exactly that child-edge tuple AS
+        /// FENCE-ROUTABLE. Bare structural membership is not enough either (owner ruling 2026-09-17),
+        /// which is why the expected set filters on <c>FenceRoutable</c>.
         /// </summary>
         [Fact]
         public void H1B_MergeClassificationAlone_DoesNotImplyRouteKnown()
         {
             var registered = StructuralDependencyRegistry.All
+                .Where(e => e.FenceRoutable)
                 .Select(e => (e.ChildType, e.ChildField))
                 .ToHashSet();
 
@@ -190,7 +192,8 @@ namespace SmartStudyPlanner.Tests.Sync.Fence
         /// <summary>
         /// H1-C. The converse direction of the ruling: registering a structural route must NOT change
         /// the field's merge classification. This is the guard against "fix the fence by editing
-        /// MergeSurfaceRegistry", which the owner ruling forbids outright.
+        /// MergeSurfaceRegistry", which the owner ruling forbids outright. Deliberately asserts
+        /// NOTHING about routability — that is a separate concern, tested separately below.
         /// </summary>
         [Fact]
         public void H1C_StructuralRouteRegistration_DoesNotAlterMergeClassification()
@@ -200,15 +203,153 @@ namespace SmartStudyPlanner.Tests.Sync.Fence
             Assert.Equal(FieldClass.CopyOnCreate,
                 MergeSurfaceRegistry.Get(SyncEntityTypes.StudyLog).Fields.Single(f => f.Name == "MaTask").Class);
 
-            // ...while both are nevertheless registered fence routes.
-            Assert.True(StructuralDependencyRegistry.IsRegisteredStructuralRoute(SyncEntityTypes.TaskReferenceLink, "MaTask"));
-            Assert.True(StructuralDependencyRegistry.IsRegisteredStructuralRoute(SyncEntityTypes.StudyLog, "MaTask"));
-
             // The ConstraintScope/Structural fields keep their own classification too.
             Assert.Equal(FieldClass.ConstraintScope,
                 MergeSurfaceRegistry.Get(SyncEntityTypes.TaskNote).Fields.Single(f => f.Name == "MaTask").Class);
             Assert.Equal(FieldClass.Structural,
                 MergeSurfaceRegistry.Get(SyncEntityTypes.StudyTask).Fields.Single(f => f.Name == "MaMonHoc").Class);
+        }
+
+        // ------------------------------------------------------------------
+        // H-1/A-2 clarification (owner ruling 2026-09-17): merge classification, structural dependency
+        // topology and fence-route eligibility are THREE separate concerns. Neither of the first two is
+        // a fallback for the third.
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// H1-E (CASE A). <c>TaskReferenceLink.MaTask</c> must satisfy all three concerns at once, and
+        /// the merge leg is asserted in the SAME test as the routing leg on purpose: a future "fix"
+        /// that made routing work by reclassifying the field away from <see cref="FieldClass.CopyOnCreate"/>
+        /// must fail here rather than quietly pass.
+        /// </summary>
+        [Fact]
+        public void H1E_TaskReferenceLink_IsCopyOnCreate_AndExplicitlyFenceRoutable()
+        {
+            // 1. merge classification — unchanged, and NOT what makes it routable.
+            Assert.Equal(FieldClass.CopyOnCreate,
+                MergeSurfaceRegistry.Get(SyncEntityTypes.TaskReferenceLink).Fields.Single(f => f.Name == "MaTask").Class);
+
+            // 2. structural dependency — StudyTask -> TaskReferenceLink is known topology.
+            var edge = Assert.Single(StructuralDependencyRegistry.All,
+                e => e.ChildType == SyncEntityTypes.TaskReferenceLink && e.ChildField == "MaTask");
+            Assert.Equal(SyncEntityTypes.StudyTask, edge.ParentType);
+            Assert.True(StructuralDependencyRegistry.IsKnownStructuralDependency(SyncEntityTypes.TaskReferenceLink, "MaTask"));
+
+            // 3. fence-route eligibility — explicitly registered.
+            Assert.True(edge.FenceRoutable);
+            Assert.True(StructuralDependencyRegistry.IsRegisteredStructuralRoute(SyncEntityTypes.TaskReferenceLink, "MaTask"));
+        }
+
+        /// <summary>
+        /// H1-E, routed end to end: <c>Create(TaskReferenceLink, MaTask: null -&gt; T)</c> reaches the
+        /// fence. This is the concrete mutation CASE A names.
+        /// </summary>
+        [Fact]
+        public async Task H1E_CreateTaskReferenceLink_IsRouteKnown()
+        {
+            var (_, _, task) = await _fx.Fx.SeedTreeAsync();
+
+            using var ctx = _fx.Fx.NewContext();
+            var decision = await FenceRouter.EvaluateAsync(
+                ctx, Req(Create(SyncEntityTypes.TaskReferenceLink, Guid.NewGuid(), "MaTask", task.MaTask)));
+
+            Assert.True(decision.RouteKnown);
+        }
+
+        /// <summary>
+        /// H1-F (CASE B). <c>StudyLog</c> stays in the structural dependency graph — the topology is
+        /// still modelled — but is deliberately outside the Slice-2 fence-routing surface. Both halves
+        /// are asserted so neither can drift: deleting the edge would break the first, and making
+        /// structural membership imply routability would break the second.
+        /// </summary>
+        [Fact]
+        public async Task H1F_StudyLog_IsStructurallyKnown_ButNotFenceRoutable()
+        {
+            // Structural dependency: KNOWN.
+            var edge = Assert.Single(StructuralDependencyRegistry.All, e => e.ChildType == SyncEntityTypes.StudyLog);
+            Assert.Equal(SyncEntityTypes.StudyTask, edge.ParentType);
+            Assert.Equal("MaTask", edge.ChildField);
+            Assert.True(StructuralDependencyRegistry.IsKnownStructuralDependency(SyncEntityTypes.StudyLog, "MaTask"));
+            Assert.True(StructuralDependencyRegistry.IsKnownEntityType(SyncEntityTypes.StudyLog));
+
+            // Fence route: NOT eligible.
+            Assert.False(edge.FenceRoutable);
+            Assert.False(StructuralDependencyRegistry.IsRegisteredStructuralRoute(SyncEntityTypes.StudyLog, "MaTask"));
+            Assert.False(StructuralDependencyRegistry.IsFenceRoutableEntityType(SyncEntityTypes.StudyLog));
+
+            // ...and the router agrees, for a relation-bearing intent AND a bare one.
+            var (_, _, task) = await _fx.Fx.SeedTreeAsync();
+            using var ctx = _fx.Fx.NewContext();
+
+            var withRelation = await FenceRouter.EvaluateAsync(
+                ctx, Req(Create(SyncEntityTypes.StudyLog, Guid.NewGuid(), "MaTask", task.MaTask)));
+            Assert.False(withRelation.RouteKnown);
+            Assert.False(withRelation.FencePassed);
+
+            var bare = await FenceRouter.EvaluateAsync(ctx, Req(Tombstone(SyncEntityTypes.StudyLog, Guid.NewGuid())));
+            Assert.False(bare.RouteKnown);
+        }
+
+        /// <summary>
+        /// H1-G (CASE C, the architectural invariant). <see cref="MergeSurfaceRegistry"/> membership is
+        /// NOT a fallback routing mechanism. Proven over every merge-known field that is not an
+        /// explicitly fence-routable edge — a set far larger than StudyLog alone, so the invariant does
+        /// not rest on one relation.
+        /// </summary>
+        [Fact]
+        public void H1G_MergeKnownButNotExplicitlyRouted_IsRouteUnknown()
+        {
+            var routable = StructuralDependencyRegistry.All
+                .Where(e => e.FenceRoutable)
+                .Select(e => (e.ChildType, e.ChildField))
+                .ToHashSet();
+
+            var mergeKnownNonRoutes = new List<string>();
+            foreach (var spec in MergeSurfaceRegistry.All)
+            {
+                foreach (var field in spec.Fields)
+                {
+                    if (routable.Contains((spec.EntityType, field.Name))) continue;
+
+                    mergeKnownNonRoutes.Add($"{spec.EntityType}.{field.Name}");
+                    Assert.False(
+                        StructuralDependencyRegistry.IsRegisteredStructuralRoute(spec.EntityType, field.Name),
+                        $"{spec.EntityType}.{field.Name} ({field.Class}) is merge-known but not an explicitly " +
+                        "fence-routable edge, so it must be RouteUnknown");
+                }
+            }
+
+            // Vacuity guard: the sweep above must actually have examined something, and specifically
+            // the CopyOnCreate relation the ruling names (StudyLog.MaTask).
+            Assert.NotEmpty(mergeKnownNonRoutes);
+            Assert.Contains($"{SyncEntityTypes.StudyLog}.MaTask", mergeKnownNonRoutes);
+        }
+
+        /// <summary>
+        /// H1-H (CASE D). Explicit fence-route registration is what grants routability, independently of
+        /// the merge classification the field happens to carry. Demonstrated across three DIFFERENT
+        /// merge classes that are all routable, so routability is visibly not a function of merge class.
+        /// </summary>
+        [Fact]
+        public void H1H_ExplicitRouteRegistration_GrantsRouteKnown_WhateverTheMergeClass()
+        {
+            var cases = new[]
+            {
+                (Type: SyncEntityTypes.TaskReferenceLink, Field: "MaTask", Class: FieldClass.CopyOnCreate),
+                (Type: SyncEntityTypes.TaskNote, Field: "MaTask", Class: FieldClass.ConstraintScope),
+                (Type: SyncEntityTypes.StudyTask, Field: "MaMonHoc", Class: FieldClass.Structural),
+            };
+
+            foreach (var (type, field, cls) in cases)
+            {
+                Assert.Equal(cls, MergeSurfaceRegistry.Get(type).Fields.Single(f => f.Name == field).Class);
+                Assert.True(StructuralDependencyRegistry.IsRegisteredStructuralRoute(type, field),
+                    $"{type}.{field} is an explicitly registered fence route");
+                Assert.True(StructuralDependencyRegistry.IsFenceRoutableEntityType(type));
+            }
+
+            // Three distinct merge classifications, all routable => routability is not derived from it.
+            Assert.Equal(3, cases.Select(c => c.Class).Distinct().Count());
         }
 
         /// <summary>

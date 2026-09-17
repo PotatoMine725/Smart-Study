@@ -18,22 +18,46 @@ namespace SmartStudyPlanner.Sync.Fence
     /// </summary>
     public static class StructuralDependencyRegistry
     {
-        /// <summary>One structural or cascade-only parent/child edge.</summary>
+        /// <summary>
+        /// One structural or cascade-only parent/child edge.
+        /// <para>
+        /// The concerns below are DELIBERATELY independent (owner ruling 2026-09-17, review finding
+        /// H-1/A-2). None is derived from another, and none may be computed from another:
+        /// </para>
+        /// <list type="bullet">
+        /// <item><b>Merge classification</b> is not here at all -- it lives in
+        ///       <see cref="Merge.MergeSurfaceRegistry"/> and answers "how does 3-way merge treat this
+        ///       field" (CopyOnCreate, ChildField, ConstraintScope, ...).</item>
+        /// <item><b>Structural dependency</b> is membership in <see cref="All"/> -- it answers "is this
+        ///       parent/child relation part of the known topology". Every edge below is one.</item>
+        /// <item><b><see cref="FenceRoutable"/></b> answers "may a mutation through this relation enter
+        ///       the Slice-2 fence". Structural membership does NOT imply it, and merge classification
+        ///       never implies it.</item>
+        /// </list>
+        /// <see cref="CascadesOnTombstone"/> is a fourth, separate question ("does tombstoning the
+        /// parent tombstone this child"). It happens to agree with <see cref="FenceRoutable"/> on
+        /// today's five edges, which is a coincidence of the current domain rather than a rule -- the
+        /// two are stored as independent columns and neither accessor reads the other's flag.
+        /// </summary>
         public sealed record StructuralEdge(
-            string ParentType, string ChildType, string ChildField, bool CascadesOnTombstone);
+            string ParentType, string ChildType, string ChildField, bool CascadesOnTombstone, bool FenceRoutable);
 
         // Known dependency graph (fence spec §5.1):
         //   HocKy -> MonHoc -> StudyTask -> { TaskNote, TaskReferenceLink }
-        // StudyLog is registered for completeness (plan §7.2 table) but does NOT cascade: it has no FK
-        // at all (CopyOnCreate, MergeSurfaceRegistry.cs) and Epic-1's cascade never reached it (FACT,
-        // SyncApplyParentHandlingTests.N_StudyLogUnderTombstonedTask_AppliesLiveWithNoEvidence).
+        // StudyLog is registered for completeness (plan §7.2 table) so the topology is complete, but it
+        // neither cascades nor routes:
+        //   - no cascade: it has no FK at all (CopyOnCreate, MergeSurfaceRegistry.cs) and Epic-1's
+        //     cascade never reached it (FACT,
+        //     SyncApplyParentHandlingTests.N_StudyLogUnderTombstonedTask_AppliesLiveWithNoEvidence);
+        //   - no fence route: owner ruling 2026-09-17 (H-1/A-2 CASE B) keeps StudyLog writes outside the
+        //     Slice-2 fence-routing surface, preserving the plan's existing decision.
         private static readonly IReadOnlyList<StructuralEdge> Edges = new[]
         {
-            new StructuralEdge(SyncEntityTypes.HocKy, SyncEntityTypes.MonHoc, "MaHocKy", CascadesOnTombstone: true),
-            new StructuralEdge(SyncEntityTypes.MonHoc, SyncEntityTypes.StudyTask, "MaMonHoc", CascadesOnTombstone: true),
-            new StructuralEdge(SyncEntityTypes.StudyTask, SyncEntityTypes.TaskNote, "MaTask", CascadesOnTombstone: true),
-            new StructuralEdge(SyncEntityTypes.StudyTask, SyncEntityTypes.TaskReferenceLink, "MaTask", CascadesOnTombstone: true),
-            new StructuralEdge(SyncEntityTypes.StudyTask, SyncEntityTypes.StudyLog, "MaTask", CascadesOnTombstone: false),
+            new StructuralEdge(SyncEntityTypes.HocKy, SyncEntityTypes.MonHoc, "MaHocKy", CascadesOnTombstone: true, FenceRoutable: true),
+            new StructuralEdge(SyncEntityTypes.MonHoc, SyncEntityTypes.StudyTask, "MaMonHoc", CascadesOnTombstone: true, FenceRoutable: true),
+            new StructuralEdge(SyncEntityTypes.StudyTask, SyncEntityTypes.TaskNote, "MaTask", CascadesOnTombstone: true, FenceRoutable: true),
+            new StructuralEdge(SyncEntityTypes.StudyTask, SyncEntityTypes.TaskReferenceLink, "MaTask", CascadesOnTombstone: true, FenceRoutable: true),
+            new StructuralEdge(SyncEntityTypes.StudyTask, SyncEntityTypes.StudyLog, "MaTask", CascadesOnTombstone: false, FenceRoutable: false),
         };
 
         private static readonly IReadOnlySet<string> KnownEntityTypes;
@@ -98,33 +122,60 @@ namespace SmartStudyPlanner.Sync.Fence
 
         // ------------------------------------------------------------------ fence-route authority
         //
-        // Owner ruling 2026-09-16 (review finding H-1/A-2), OPTION B: merge-field classification and
-        // fence-route classification are SEPARATE concerns, and neither registry silently becomes the
-        // authority for the other's.
+        // Owner ruling 2026-09-17 (review finding H-1/A-2 clarification). THREE separate concerns; no
+        // one of them is a fallback for any other:
         //
-        //   MergeSurfaceRegistry        -> authority for merge-field semantics / 3-way merge treatment
-        //                                  (Structural, ConstraintScope, CopyOnCreate, Merge, ...).
-        //   StructuralDependencyRegistry-> authority for whether a mutation relation is a known
-        //                                  structural fence route.
+        //   1. MergeSurfaceRegistry          -> merge-field semantics (CopyOnCreate, ChildField,
+        //                                       ConstraintScope, Structural, ...). Never consulted here.
+        //   2. StructuralDependencyRegistry  -> structural dependency TOPOLOGY. Membership in `Edges`
+        //      (IsKnownStructuralDependency)     means the relation is structurally KNOWN. It does NOT
+        //                                       mean it is fence-routable.
+        //   3. FenceRoutable on an edge      -> fence-route ELIGIBILITY, declared explicitly per edge.
+        //      (IsRegisteredStructuralRoute)     This, and only this, answers RouteKnown.
         //
-        // A field may legitimately be both, and the two answers need not agree. The load-bearing
-        // example: TaskReferenceLink.MaTask is CopyOnCreate for merge (D9-T3) AND a registered
-        // StudyTask -> TaskReferenceLink structural child edge, so it IS a known fence route.
-        // Conversely, a field MergeSurfaceRegistry recognises never becomes route-known just because
-        // it is classified there -- it must be registered as an edge below.
+        // Therefore:  structural dependency != automatically fence-routable
+        //             merge-known           != automatically fence-routable
         //
-        // The correct way to change either answer is to edit that registry, never the other one.
+        // The load-bearing cases (owner ruling CASE A / CASE B):
+        //   - TaskReferenceLink.MaTask is CopyOnCreate for merge (D9-T3), IS a known structural
+        //     dependency, AND is explicitly fence-routable => RouteKnown. Its merge classification must
+        //     NOT be changed to make routing work.
+        //   - StudyLog.MaTask is CopyOnCreate for merge and IS a known structural dependency, but is
+        //     explicitly NOT fence-routable => RouteUnknown.
+        //
+        // The correct way to change any one answer is to edit that one authority, never another.
 
         /// <summary>
-        /// True when <paramref name="childField"/> on <paramref name="childType"/> is registered here
-        /// as a structural child edge -- i.e. some edge's (<c>ChildType</c>, <c>ChildField</c>) tuple
-        /// names it. This is the sole authority for fence routability (owner ruling 2026-09-16);
-        /// <see cref="Merge.MergeSurfaceRegistry"/> is deliberately NOT consulted. Fails closed for
-        /// anything unregistered.
+        /// True when the (<paramref name="childType"/>, <paramref name="childField"/>) tuple is part of
+        /// the known structural dependency TOPOLOGY -- concern 2 above. This is deliberately NOT the
+        /// routability answer: a relation can be structurally known and still not fence-routable
+        /// (<c>StudyLog.MaTask</c>). Use <see cref="IsRegisteredStructuralRoute"/> for routing.
+        /// </summary>
+        public static bool IsKnownStructuralDependency(string childType, string childField) =>
+            !string.IsNullOrEmpty(childType) && !string.IsNullOrEmpty(childField) &&
+            Edges.Any(e => e.ChildType == childType && e.ChildField == childField);
+
+        /// <summary>
+        /// True when <paramref name="childField"/> on <paramref name="childType"/> is EXPLICITLY
+        /// registered as a fence-routable mutation relation -- concern 3 above, the sole authority for
+        /// <c>RouteKnown</c>. Neither <see cref="Merge.MergeSurfaceRegistry"/> membership nor bare
+        /// structural-topology membership is a fallback: the edge must carry
+        /// <see cref="StructuralEdge.FenceRoutable"/>. Fails closed for anything else.
         /// </summary>
         public static bool IsRegisteredStructuralRoute(string childType, string childField) =>
             !string.IsNullOrEmpty(childType) && !string.IsNullOrEmpty(childField) &&
-            Edges.Any(e => e.ChildType == childType && e.ChildField == childField);
+            Edges.Any(e => e.FenceRoutable && e.ChildType == childType && e.ChildField == childField);
+
+        /// <summary>
+        /// True when <paramref name="entityType"/> takes part in at least one EXPLICITLY fence-routable
+        /// edge, as either endpoint -- the type-level half of <c>RouteKnown</c>. Distinct from
+        /// <see cref="IsKnownEntityType"/>, which answers the topology question and stays true for
+        /// <c>StudyLog</c>: StudyLog appears only on a non-routable edge, so every StudyLog intent is
+        /// route-unknown even when it names no relation at all (owner ruling CASE B).
+        /// </summary>
+        public static bool IsFenceRoutableEntityType(string entityType) =>
+            !string.IsNullOrEmpty(entityType) &&
+            Edges.Any(e => e.FenceRoutable && (e.ParentType == entityType || e.ChildType == entityType));
 
         /// <summary>
         /// The registered parent type at the other end of the <paramref name="childType"/>/
