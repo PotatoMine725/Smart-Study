@@ -1,0 +1,178 @@
+{
+  "arm_a": {
+    "label": "EmbeddingGemma-300M",
+    "route_a_vocabulary": "tokenizer.model",
+    "route_b_in_graph_tokenization": false,
+    "id_offset_applied": 0,
+    "fixtures_total": 39,
+    "fixtures_matching_reference": 34,
+    "fixtures_diverging": 5,
+    "verified": false,
+    "by_category": {
+      "abbrev": {
+        "ok": 8,
+        "bad": 0
+      },
+      "diacritics": {
+        "ok": 8,
+        "bad": 0
+      },
+      "empty": {
+        "ok": 1,
+        "bad": 5
+      },
+      "pathological": {
+        "ok": 3,
+        "bad": 0
+      },
+      "runtogether": {
+        "ok": 6,
+        "bad": 0
+      },
+      "stripped": {
+        "ok": 8,
+        "bad": 0
+      }
+    },
+    "first_divergences": [
+      {
+        "fixture": "F032",
+        "category": "empty",
+        "input": " ",
+        "first_divergence_index": 7,
+        "expected_len": 9,
+        "actual_len": 9,
+        "expected_head": "[2,8071,236787,15241,1109,7609,236787,138,1]",
+        "actual_head": "[2,8071,236787,15241,1109,7609,236787,236743,1]"
+      },
+      {
+        "fixture": "F033",
+        "category": "empty",
+        "input": "   ",
+        "first_divergence_index": 7,
+        "expected_len": 9,
+        "actual_len": 9,
+        "expected_head": "[2,8071,236787,15241,1109,7609,236787,140,1]",
+        "actual_head": "[2,8071,236787,15241,1109,7609,236787,236743,1]"
+      },
+      {
+        "fixture": "F034",
+        "category": "empty",
+        "input": "\\t \\t",
+        "first_divergence_index": 8,
+        "expected_len": 12,
+        "actual_len": 9,
+        "expected_head": "[2,8071,236787,15241,1109,7609,236787,236743,255968,236743,255968,1]",
+        "actual_head": "[2,8071,236787,15241,1109,7609,236787,236743,1]"
+      },
+      {
+        "fixture": "F035",
+        "category": "empty",
+        "input": "\\n",
+        "first_divergence_index": 8,
+        "expected_len": 10,
+        "actual_len": 9,
+        "expected_head": "[2,8071,236787,15241,1109,7609,236787,236743,107,1]",
+        "actual_head": "[2,8071,236787,15241,1109,7609,236787,236743,1]"
+      },
+      {
+        "fixture": "F036",
+        "category": "empty",
+        "input": "  \\r\\n  ",
+        "first_divergence_index": 7,
+        "expected_len": 12,
+        "actual_len": 9,
+        "expected_head": "[2,8071,236787,15241,1109,7609,236787,139,251,107,138,1]",
+        "actual_head": "[2,8071,236787,15241,1109,7609,236787,236743,1]"
+      }
+    ]
+  },
+  "arm_b": {
+    "label": "multilingual-e5-small",
+    "route_a_vocabulary": "sentencepiece.bpe.model",
+    "route_b_in_graph_tokenization": false,
+    "id_offset_applied": 0,
+    "fixtures_total": 39,
+    "fixtures_matching_reference": 0,
+    "fixtures_diverging": 39,
+    "verified": false,
+    "by_category": {
+      "abbrev": {
+        "ok": 0,
+        "bad": 8
+      },
+      "diacritics": {
+        "ok": 0,
+        "bad": 8
+      },
+      "empty": {
+        "ok": 0,
+        "bad": 6
+      },
+      "pathological": {
+        "ok": 0,
+        "bad": 3
+      },
+      "runtogether": {
+        "ok": 0,
+        "bad": 6
+      },
+      "stripped": {
+        "ok": 0,
+        "bad": 8
+      }
+    },
+    "first_divergences": [
+      {
+        "fixture": "F001",
+        "category": "diacritics",
+        "input": "thi gi\u1EEFa k\u1EF3 gi\u1EA3i t\u00EDch tu\u1EA7n sau",
+        "first_divergence_index": 1,
+        "expected_len": 12,
+        "actual_len": 12,
+        "expected_head": "[0,41,1294,12,6117,19865,13850,8652,14346,39550,858,2]",
+        "actual_head": "[0,40,1293,11,6116,19864,13849,8651,14345,39549,857,2]"
+      },
+      {
+        "fixture": "F002",
+        "category": "stripped",
+        "input": "thi giua ky giai tich tuan sau",
+        "first_divergence_index": 1,
+        "expected_len": 14,
+        "actual_len": 14,
+        "expected_head": "[0,41,1294,12,6117,3016,3116,5512,66856,1053,206,84273]",
+        "actual_head": "[0,40,1293,11,6116,3015,3115,5511,66855,1052,205,84272]"
+      },
+      {
+        "fixture": "F003",
+        "category": "diacritics",
+        "input": "tu\u1EA7n sau thi gi\u1EEFa k\u00EC ktvm, ch\u1EBFt t r",
+        "first_divergence_index": 1,
+        "expected_len": 17,
+        "actual_len": 17,
+        "expected_head": "[0,41,1294,12,39550,858,6117,19865,84416,472,8283,39]",
+        "actual_head": "[0,40,1293,11,39549,857,6116,19864,84415,471,8282,38]"
+      },
+      {
+        "fixture": "F004",
+        "category": "stripped",
+        "input": "tuan sau thi giua ki ktvm, chet t r",
+        "first_divergence_index": 1,
+        "expected_len": 19,
+        "actual_len": 19,
+        "expected_head": "[0,41,1294,12,84273,858,6117,3016,3116,200,472,8283]",
+        "actual_head": "[0,40,1293,11,84272,857,6116,3015,3115,199,471,8282]"
+      },
+      {
+        "fixture": "F005",
+        "category": "diacritics",
+        "input": "mai n\u1ED9p b\u00E0i t\u1EADp v\u1EC1 nh\u00E0 m\u00F4n c\u1EA5u tr\u00FAc d\u1EEF li\u1EC7u",
+        "first_divergence_index": 1,
+        "expected_len": 16,
+        "actual_len": 16,
+        "expected_head": "[0,41,1294,12,409,113592,9031,9400,1893,2455,37496,65871]",
+        "actual_head": "[0,40,1293,11,408,113591,9030,9399,1892,2454,37495,65870]"
+      }
+    ]
+  }
+}

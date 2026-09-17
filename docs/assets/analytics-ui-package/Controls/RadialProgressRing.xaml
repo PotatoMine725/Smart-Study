@@ -1,0 +1,7 @@
+<UserControl x:Class="SmartStudyPlanner.Controls.RadialProgressRing"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Ring only — caller overlays its own centered percent/label text on top (see
+         AnalyticsPage.xaml Section 1 completion panel for the pairing pattern). -->
+    <Canvas x:Name="RingCanvas" Width="160" Height="160"/>
+</UserControl>

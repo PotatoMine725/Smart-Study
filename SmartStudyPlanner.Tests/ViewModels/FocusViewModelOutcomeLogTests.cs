@@ -17,7 +17,9 @@ namespace SmartStudyPlanner.Tests.ViewModels
         private static (FocusViewModel vm, SpyStudyTimeOutcomeLogRepository spy) BuildVm(
             StudyTask? task = null,
             MonHoc? monHoc = null,
-            bool isMLPrediction = false)
+            bool isMLPrediction = false,
+            int? predictedMinutes = null,
+            float? confidence = null)
         {
             var monHocGoc = monHoc ?? new MonHoc("MH Test", 3) { MaHocKy = Guid.NewGuid() };
             var studyTask = task ?? new StudyTask("T1", DateTime.Today.AddDays(5), LoaiCongViec.BaiTapVeNha, 2)
@@ -34,6 +36,8 @@ namespace SmartStudyPlanner.Tests.ViewModels
                 TaskGoc = studyTask,
                 MonHocGoc = monHocGoc,
                 IsMLPrediction = isMLPrediction,
+                PredictedMinutes = predictedMinutes,
+                Confidence = confidence,
             };
 
             var spy = new SpyStudyTimeOutcomeLogRepository();
@@ -64,7 +68,8 @@ namespace SmartStudyPlanner.Tests.ViewModels
                 MucDoCanhBao = "An toàn",
                 ThoiGianDaHoc = 20,
             };
-            var (vm, spy) = BuildVm(task: task, monHoc: monHoc, isMLPrediction: true);
+            var (vm, spy) = BuildVm(task: task, monHoc: monHoc, isMLPrediction: true,
+                                    predictedMinutes: 45, confidence: 0.82f);
             vm.SimulateStudySeconds(180); // 3 minutes
 
             vm.HoanThanhCommand.Execute(null);
@@ -77,8 +82,32 @@ namespace SmartStudyPlanner.Tests.ViewModels
             Assert.Equal(20f, row.StudiedMinutesSoFar); // pre-increment (T1)
             Assert.Equal(3f, row.ActualMinutes);         // 180s / 60
             Assert.True(row.WasMlPrediction);
-            Assert.Null(row.PredictedMinutes);
-            Assert.Null(row.Confidence);
+            // DFD-9a: these two asserted Assert.Null until 2026-08-26. The null was deliberate --
+            // the value was dropped upstream and the write site had nothing to log -- so the suite
+            // was green *because* the telemetry could not evaluate its own model. Asserting the
+            // populated values is the regression signal: this test must fail on a tree where the
+            // dashboard->focus path stops carrying the prediction.
+            Assert.Equal(45f, row.PredictedMinutes);
+            Assert.Equal(0.82f, row.Confidence);
+        }
+
+        [Fact]
+        public async Task OutcomeRow_NhanhBiTuChoi_VanGhiConfidence()
+        {
+            // DFD-9a: when the predictor's confidence falls under the 0.6 switch it returns the
+            // formula estimate with IsMLPrediction = false. The confidence is still meaningful --
+            // and that population is the one a future calibration study needs most -- so a row on
+            // this branch must carry it rather than falling back to null.
+            var (vm, spy) = BuildVm(isMLPrediction: false, predictedMinutes: 30, confidence: 0.41f);
+            vm.SimulateStudySeconds(120);
+
+            vm.HoanThanhCommand.Execute(null);
+            await Task.Yield();
+
+            var row = Assert.Single(spy.Entries);
+            Assert.False(row.WasMlPrediction);
+            Assert.Equal(30f, row.PredictedMinutes);
+            Assert.Equal(0.41f, row.Confidence);
         }
 
         [Fact]

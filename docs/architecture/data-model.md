@@ -29,7 +29,7 @@
 
 ### Sync metadata contract (M1.1)
 
-`Models/ISyncMetadata.cs` — `Rev`, `ModifiedAtUtc`, `ModifiedByDeviceId`, `IsDeleted`, `DeletedAtUtc`. Declared and enforced by `SyncStamper` (`Rev++` + stamps on every `Added`/`Modified` entry), but **no production entity implements it at HEAD** — M1.2 (in-flight) implements it on all six entities.
+`Models/ISyncMetadata.cs` — `Rev`, `ModifiedAtUtc`, `ModifiedByDeviceId`, `IsDeleted`, `DeletedAtUtc`. Declared and enforced by `SyncStamper` (`Rev++` + stamps on every `Added`/`Modified` entry). **All six synced entities implement it** since M1.2 shipped (`e2f8268`, 2026-07-10): `HocKy`, `MonHoc`, `StudyTask`, `StudyLog`, `TaskNote`, `TaskReferenceLink`. *(Corrected 2026-08-20 — this paragraph still described M1.2 as in-flight.)*
 
 ### Telemetry / ground-truth entities (M8) — `Models/Telemetry/`
 
@@ -40,6 +40,13 @@ Standalone tables, **no FK** to domain tables (`MaTask` is a nullable reference 
 | `DifficultyLabelLog` | `QuanLyTaskViewModel` on task save | suggested vs. final `DoKho` (+ `WasOverride`) — ground truth for difficulty heuristics |
 | `StudyTimeOutcomeLog` | `FocusViewModel.LuuThoiGianThucTe` | features at study time (`TaskType`, `Difficulty`, `Credits`, `DaysLeft`, `StudiedMinutesSoFar`) + `ActualMinutes` label — **the predictor's real training data** |
 | `WeightChangeLog` | `WeightOptimizerViewModel.ApplySuggestion` | before/after weights, confidence, rationale, baseline `UserStatsSnapshot` fields, open-task cohort (JSON); outcome columns (`OutcomeMissRate`, …) filled by `OutcomeMaturationService` after the 14-day window |
+| `OptimizerRunLogRow` → **`OptimizerRunLogs`** *(T3.7, Epic 3)* | `OptimizerRunLogWriter`, from `IScheduleOptimizer.Optimize` | one flat row per **checkpoint** of one **pass** of one `Optimize` call. `RunId` groups every row of a single call (`Id` is the PK); `Termination`/`PassCount` are call-level and deliberately denormalized onto every row so a tuning reader needs no join. Per-checkpoint: `PassIndex`, `KStar`, `CheckpointIndex` (0 = C₀, the state on entry), `ViolationCount`, `OverdueMinutes`, `Score`, and a nullable `Reason` (`null` **is correct** for C₀). Entity lives in `Services/Soe/`, not `Models/Telemetry/`; DbSet at `Data/AppDbContext.cs:45` |
+
+> **`OptimizerRunLogs` is expected to be empty in a running install, and 0 rows *is* the pass.**
+> Nothing calls `Optimize` in production (see [`dependency-flows.md`](dependency-flows.md) §4b), so
+> the writer never fires. This was verified deliberately as manual-gate scenario B2 — see the
+> [gate closure](../reports/2026-08-19-epic3-manual-gate-closure.md). A non-empty table would mean
+> the seam had been wired; the table exists ahead of its caller on purpose.
 
 ### Pipeline / display structures
 
@@ -140,7 +147,7 @@ SQLite
 User edit → ViewModel command → `IHocKyRepository.LuuHocKyAsync` (transaction: Guid-diff reconcile of the semester graph — update-in-place / add / remove-by-absence → commit; rollback on failure) → dashboard reload reflects new state. Every `SaveChanges` passes through the stamping seam, which tombstones removed rows instead of hard-deleting them.
 
 ### Scheduler path
-`WorkloadServiceImpl.GenerateSchedule(hocKy, capacityHours)` filters unfinished tasks → asks `IDecisionEngine.CalculatePriority` per task → packs into `ScheduleDay` while respecting capacity (least-loaded-day placement — deadline-blind; the known SOE violation source, fixed in Epic 3).
+`WorkloadServiceImpl.GenerateSchedule(hocKy, capacityHours)` filters unfinished tasks → asks `IDecisionEngine.CalculatePriority` per task → packs into `ScheduleDay` while respecting capacity. **Placement is earliest-feasible since T3.3** (`5197784`, 2026-08-06): the earliest day with room that does not pass the task's `HanChot`, falling back to the earliest day with room at all — the allocator chooses *which* day by deadline, never *whether* to schedule. The deadline tier is **provably output-inert today** ([proof](../plans/2026-08-06-deadline-tier-provably-inert.md)). The Epic 3 `Optimize` seam does **not** run on this path — [`dependency-flows.md`](dependency-flows.md) §4b.
 
 ### Analytics path
 Logs + task history → `StudyAnalyticsService` (`ComputeWeeklyMinutes` + `ComputeSubjectInsights` + `ComputeProductivityScore`) → bound onto `AnalyticsViewModel.WeeklyChartSeries` / `SubjectChartSeries` / `SubjectInsights` / `ProductivityValue`+`ProductivityLabel` + `HeatmapCells`.

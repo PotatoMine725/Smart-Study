@@ -251,11 +251,20 @@ no-purge until G4 sets retention ≥ max offline window).
 
 ## Epic 4 — ML Maturation *(executes last; telemetry accrues from M1.1)*
 
+> **Amended 2026-08-24** — reconciled with [`../specs/2026-08-24-neural-encoder-smart-parser.md`](../specs/2026-08-24-neural-encoder-smart-parser.md),
+> which **governs where this section and it disagree** (owner direction, 2026-08-24). Four clauses
+> below were *narrowed, not rewritten*: the deep-learning exclusion now defers to
+> [`../specs/ML_Heuristic_design.md`](../specs/ML_Heuristic_design.md) §9.1; the model-count budget
+> names its unit (§10); the ≥0.60 figures are marked as today's value; and M8-A's 96.2% carries its
+> provenance. **Epic 4's scope, ordering, dependencies and execution position are unchanged.**
+
 **Goal.** Replace synthetic training data with real telemetry (M8-C) and close the two D-D per-field
-gaps (difficulty model, M9 NL deadline parsing) — within roadmap §9's 1–2-model budget.
+gaps (difficulty model, M9 NL deadline parsing) — within roadmap §9's 1–2-model budget, counted by
+**deployed model artifact** (`ML_Heuristic_design.md` §10).
 
 **Architecture Impact.** Confined to `Services/ML/*` + parser pipeline; per-field confidence gating
-already in place (`IntentClassifierAdapter`, ≥0.60). No engine/scheduling coupling (§13).
+already in place (`IntentClassifierAdapter`, ≥0.60 **today** — re-derived under the encoder spec §8
+if the neural featurizer ships). No engine/scheduling coupling (§13).
 
 **Dependencies.** M8-C needs enough real Focus-session telemetry — the A6 fix (M1.1) starts the
 clock, which is another reason M1.1 goes first. Training work is independent of Epics 2–3 and
@@ -267,16 +276,22 @@ classifier wired per-field with heuristic fallback; M9 deadline parser; cross-se
 **Acceptance Criteria.**
 - Retrained predictor evaluated against the synthetic-seed model on held-out real telemetry;
   formula fallback intact when the model is absent (guardrail A.5-5).
-- Difficulty/deadline predictions obey the per-field ≥0.60 gate; below it, heuristic wins.
+- Difficulty/deadline predictions obey the per-field confidence gate (≥0.60 today; re-derived under
+  the encoder spec §8 if the neural featurizer ships); below it, heuristic wins.
 - Parser isolation preserved: the parser never schedules or allocates (§9.1).
 
 **Success Metrics.**
 - **Ship gate:** retrained predictor MAE on held-out real telemetry ≤ the synthetic-seed model's —
   otherwise it does not ship (no regression by novelty).
 - Difficulty model held-out score threshold set at training time (M8-A's 96.2% is the precedent,
-  not the promise); 100% of parses succeed with all models absent.
+  not the promise — and that figure was measured *after* the real rows were merged into training, so
+  it is not a synthetic→real generalization number); 100% of parses succeed with all models absent.
 
-**Out of Scope.** Deep learning; a third+ ML model; ML-driven schedule generation; cloud model storage.
+**Out of Scope.** Deep learning — **except** the narrow frozen-encoder exception of
+[`../specs/ML_Heuristic_design.md`](../specs/ML_Heuristic_design.md) §9.1, on its eight guardrails;
+a third+ **deployed model artifact** (§10 defines the unit — heads sharing one encoder do not each
+count, and each capability still needs its own owner approval); ML-driven schedule generation; cloud
+model storage.
 
 **Risks.** Insufficient telemetry volume (fallback: extend the accrual window; Epic 4 is last for
 this reason); model regressions vs heuristic baseline (ship gate above).

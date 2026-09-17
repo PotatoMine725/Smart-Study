@@ -76,5 +76,41 @@ namespace SmartStudyPlanner.Data
                     OutcomeCompletedInWindow INTEGER NULL
                 )");
         }
+
+        /// <summary>
+        /// T3.7 (Epic 3, Card G) — bảng telemetry <c>OptimizerRunLogs</c> cho
+        /// <c>IScheduleOptimizer.Optimize</c> (G2-6, <c>docs/plans/2026-08-04-g2-optimization-pass-semantics.md</c>).
+        /// TÁCH RIÊNG khỏi <see cref="EnsureTables"/> (M8) có chủ đích — execution plan Card G nêu rõ:
+        /// "not merged into EnsureTables, so Epic 3's addition doesn't blend into the M8 tables on
+        /// review/audit". Idempotent (<c>CREATE TABLE IF NOT EXISTS</c>), an toàn gọi mỗi lần startup.
+        /// <para>
+        /// <b>DoR check 6 (backup/rollback story):</b> <c>OptimizerRunLogs</c> là bảng HOÀN TOÀN MỚI,
+        /// RỖNG trên MỌI DB hiện có — không có cột nào được thêm vào một bảng đã mang dữ liệu người
+        /// dùng (khác hẳn <c>SyncSchema.EnsureColumns</c>, thứ ALTER bảng <c>HocKys</c> đã có dữ liệu
+        /// và vì vậy bắt buộc <c>DbBackup.CreateBackup</c> chạy trước ở <see cref="AppStartup"/>).
+        /// Vì không có dữ liệu người dùng nào bị đụng tới, method này KHÔNG gọi
+        /// <c>DbBackup.CreateBackup</c> — không có gì để mất nếu nó thất bại giữa chừng (SQLite DDL
+        /// đơn câu lệnh, và <c>CREATE TABLE IF NOT EXISTS</c> tái chạy an toàn). Rollback nếu cần:
+        /// <c>DROP TABLE OptimizerRunLogs</c> — không bảng nào khác bị đụng tới.
+        /// </para>
+        /// </summary>
+        public static void EnsureOptimizerRunLogTable(AppDbContext db)
+        {
+            db.Database.ExecuteSqlRaw(@"
+                CREATE TABLE IF NOT EXISTS OptimizerRunLogs (
+                    Id TEXT NOT NULL PRIMARY KEY,
+                    RunId TEXT NOT NULL,
+                    CreatedUtc TEXT NOT NULL,
+                    Termination INTEGER NOT NULL,
+                    PassCount INTEGER NOT NULL,
+                    PassIndex INTEGER NOT NULL,
+                    KStar INTEGER NOT NULL,
+                    CheckpointIndex INTEGER NOT NULL,
+                    ViolationCount INTEGER NOT NULL,
+                    OverdueMinutes INTEGER NOT NULL,
+                    Score REAL NOT NULL,
+                    Reason INTEGER NULL
+                )");
+        }
     }
 }

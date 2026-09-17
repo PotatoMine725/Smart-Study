@@ -1,0 +1,5 @@
+# The reader package is verified by sha256: `01-annotation-guideline-v1.md` must
+# hash to dd4fc273...684a433, the frozen `GuidelineVersion: v1` blob. Checkout-time
+# CRLF translation would change those bytes and break the check on any machine
+# that clones the repo, so these paths are checked out exactly as committed.
+docs/s2-reader-package/** -text

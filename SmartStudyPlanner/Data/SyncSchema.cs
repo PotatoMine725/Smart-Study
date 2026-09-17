@@ -12,7 +12,9 @@ namespace SmartStudyPlanner.Data
     /// of the six synced tables idempotently (SQLite's ADD COLUMN has no IF NOT EXISTS, so each
     /// column is checked via PRAGMA table_info first). Existing rows are backfilled with a
     /// ModifiedAtUtc/ModifiedByDeviceId stamp so the non-nullable ISyncMetadata fields are never
-    /// read back as NULL. TaskNotes' pre-Epic-1 UpdatedAtUtc is reconciled into ModifiedAtUtc.
+    /// read back as NULL. TaskNotes' pre-Epic-1 UpdatedAtUtc is reconciled into ModifiedAtUtc and
+    /// then dropped -- the EF model no longer has that property, so leaving the NOT NULL column in
+    /// place made every TaskNote insert fail on an upgraded DB (PR-B).
     /// </summary>
     // table/column/sqlType interpolated into ExecuteSqlRaw below are always drawn from the
     // hardcoded SyncTables/call-site literals in this file, never from external input --
@@ -27,8 +29,12 @@ namespace SmartStudyPlanner.Data
 
         /// <summary>Cheap pre-check so callers (App startup) only back up the DB file when a
         /// real upgrade is about to happen -- all six tables migrate together, so checking one
-        /// representative column on one table is sufficient.</summary>
-        public static bool NeedsUpgrade(AppDbContext db) => !ColumnExists(db, "HocKys", "Rev");
+        /// representative column on one table is sufficient for the ADD-COLUMN half.
+        /// The leftover legacy TaskNotes.UpdatedAtUtc is checked separately because it survives
+        /// on databases whose ADD-COLUMN half already ran: those DBs pass the HocKys.Rev check
+        /// and would otherwise never re-enter the repair path (nor the DbBackup gate).</summary>
+        public static bool NeedsUpgrade(AppDbContext db) =>
+            !ColumnExists(db, "HocKys", "Rev") || ColumnExists(db, "TaskNotes", "UpdatedAtUtc");
 
         public static void EnsureColumns(AppDbContext db)
         {
@@ -42,9 +48,16 @@ namespace SmartStudyPlanner.Data
             }
 
             // TaskNotes reconciled UpdatedAtUtc -> ModifiedAtUtc (same meaning, one name).
+            // WHERE ModifiedAtUtc IS NULL is not a new rule: while NeedsUpgrade only probed
+            // HocKys.Rev this method was reachable only with ModifiedAtUtc freshly added and NULL
+            // on every row, so guarded and unguarded were the same statement. NeedsUpgrade now
+            // also fires on already-upgraded DBs, where an unguarded UPDATE would revert a note
+            // edited after that upgrade to its frozen legacy stamp -- and ModifiedAtUtc is the
+            // LWW key, so that would be silent data loss, not a cosmetic regression.
             if (ColumnExists(db, "TaskNotes", "UpdatedAtUtc"))
             {
-                db.Database.ExecuteSqlRaw("UPDATE TaskNotes SET ModifiedAtUtc = UpdatedAtUtc");
+                db.Database.ExecuteSqlRaw(
+                    "UPDATE TaskNotes SET ModifiedAtUtc = UpdatedAtUtc WHERE ModifiedAtUtc IS NULL");
             }
 
             // Backfill any row left without a stamp (freshly added column, or TaskNotes rows
@@ -65,6 +78,20 @@ namespace SmartStudyPlanner.Data
                     $"UPDATE {table} SET ModifiedAtUtc = {{0}} WHERE ModifiedAtUtc IS NULL", now);
                 db.Database.ExecuteSqlRaw(
                     $"UPDATE {table} SET ModifiedByDeviceId = {{0}} WHERE ModifiedByDeviceId IS NULL", deviceId);
+            }
+
+            // Only now, once every row has been reconciled and stamped, is the legacy column dead
+            // and safe to remove. It has to go: the EF model dropped UpdatedAtUtc in M1.2, so EF
+            // omits it from every INSERT while SQLite still declares it TEXT NOT NULL with no
+            // default -- every TaskNote insert on an upgraded DB fails with
+            // "NOT NULL constraint failed: TaskNotes.UpdatedAtUtc". DROP COLUMN needs SQLite
+            // >= 3.35.0 and the bundled engine is 3.49.1; UpdatedAtUtc backs no index, constraint,
+            // trigger or view, so the drop is metadata-only and leaves every row intact. The
+            // caller (AppStartup) has already taken a DbBackup, because NeedsUpgrade above reports
+            // true for exactly this state.
+            if (ColumnExists(db, "TaskNotes", "UpdatedAtUtc"))
+            {
+                db.Database.ExecuteSqlRaw("ALTER TABLE TaskNotes DROP COLUMN UpdatedAtUtc");
             }
         }
 

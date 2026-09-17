@@ -4,7 +4,7 @@ using SmartStudyPlanner.Models;
 namespace SmartStudyPlanner.Services
 {
     /// <summary>
-    /// Contract cho Workload Balancer — tạo lịch học 7 ngày và quản lý capacity.
+    /// Contract cho Workload Balancer — xếp lịch học theo ngày và quản lý capacity.
     /// Inject interface này thay vì gọi static WorkloadService trực tiếp.
     /// </summary>
     public interface IWorkloadService
@@ -15,7 +15,7 @@ namespace SmartStudyPlanner.Services
         /// <summary>Lưu số giờ/ngày.</summary>
         void SaveCapacity(double capacity);
 
-        /// <summary>Chạy thuật toán Greedy Least-Load, trả về lịch 7 ngày.</summary>
+        /// <summary>Xếp lịch theo ngày sớm nhất còn chỗ (T3.3), trả về các ngày có bài.</summary>
         List<ScheduleDay> GenerateSchedule(HocKy hocKy, double capacityHours);
     }
 }

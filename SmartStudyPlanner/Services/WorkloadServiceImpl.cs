@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using SmartStudyPlanner.Models;
+using SmartStudyPlanner.Services.Soe;
 using SmartStudyPlanner.Services.Strategies;
 
 namespace SmartStudyPlanner.Services
@@ -30,6 +31,21 @@ namespace SmartStudyPlanner.Services
         private const double MinCapacityHours = 1.0;
 
         private const int MinCapacityMinutes = (int)(MinCapacityHours * 60);
+
+        /// <summary>
+        /// Trần sức học. Lấy đúng theo Maximum của slider ở WorkloadBalancerPage.xaml:68 — đối
+        /// xứng với <see cref="MinCapacityHours"/>. Lý do kẹp sàn áp dụng y nguyên cho đầu trên:
+        /// WorkloadBalancerViewModel đọc GetCapacity() rồi dựng lịch ngay trong constructor,
+        /// TRƯỚC khi slider kịp kẹp giá trị. Không kẹp thì lịch dựng ở mức ngoài dải, slider
+        /// coerce Value về 8 rồi ghi ngược qua TwoWay binding — RenderedCapacityHours lệch
+        /// CapacityHours ngay lúc mở trang và badge "lịch cũ" báo động giả.
+        ///
+        /// Lưu ý phạm vi: GetCapacity còn hai caller nữa (DashboardViewModel.cs:114 nạp vào
+        /// PipelineUserSettings, và BalanceWorkloadStage.cs:40 làm fallback), nên trần này áp
+        /// cho cả pipeline chứ không riêng trang Workload. Đó là chủ ý: sàn vốn đã áp cho cả ba,
+        /// tách bound ra hai tầng mới là thứ làm hai màn hình nói hai con số khác nhau.
+        /// </summary>
+        private const double MaxCapacityHours = 8.0;
 
         private readonly IDecisionEngine _decisionEngine;
         private readonly IClock _clock;
@@ -69,7 +85,7 @@ namespace SmartStudyPlanner.Services
             // remainingMinutes TĂNG mỗi vòng lặp. Không hữu hạn thì coi như rác.
             if (!double.IsFinite(val)) return DefaultCapacityHours;
 
-            return Math.Max(val, MinCapacityHours);
+            return Math.Clamp(val, MinCapacityHours, MaxCapacityHours);
         }
 
         public void SaveCapacity(double capacity)
@@ -100,11 +116,41 @@ namespace SmartStudyPlanner.Services
         }
 
         public List<ScheduleDay> GenerateSchedule(HocKy hocKy, double capacityHours)
+            => GenerateScheduleWithIdentity(hocKy, capacityHours).Days;
+
+        /// <summary>
+        /// T3.8 (Epic 3, Card C) — cùng thuật toán với <see cref="GenerateSchedule"/> (không đổi
+        /// hành vi phân bổ so với <see cref="GenerateSchedule"/>: sort ưu tiên, earliest-feasible
+        /// placement (T3.3, CP-3 2026-08-05), mở ngày tràn — characterization suite
+        /// <c>WorkloadServiceScheduleTests</c> chốt việc này), nhưng còn trả về danh sách
+        /// <see cref="ScheduledItem"/> — mang <c>MaTask</c> + <c>HanChot</c> mà
+        /// <c>List&lt;ScheduleDay&gt;</c> không có chỗ chứa.
+        ///
+        /// <c>internal</c> (InternalsVisibleTo SmartStudyPlanner.Tests, AssemblyInfo.cs:4) vì đây
+        /// chưa phải seam công khai — <c>IWorkloadService</c> giữ nguyên chỉ một member
+        /// <c>GenerateSchedule</c>. Đây là chỗ Card D (<c>IConstraintValidator</c>) / Card E
+        /// (<c>IObjectiveEvaluator</c>) sẽ nối vào tiếp, thay vì đọc ngược từ
+        /// <c>List&lt;ScheduleDay&gt;</c> đã mất identity.
+        /// </summary>
+        internal (List<ScheduleDay> Days, List<ScheduledItem> Items) GenerateScheduleWithIdentity(
+            HocKy hocKy, double capacityHours)
         {
             int capacityMinutes = ClampCapacityMinutes(capacityHours);
             var tatCaTask = new List<StudyTask>();
             var dictMonHoc = new Dictionary<StudyTask, MonHoc>();
 
+            // CP-2 AMENDED (2026-08-06, docs/plans/2026-08-06-cp2-amended-diemuutien-writethrough-restored.md):
+            // T3.3 round 1 tried moving điểm ưu tiên vào một Dictionary cục bộ, để bỏ tác dụng
+            // phụ lên model của caller. Bị REVERT: _decisionEngine.CalculateRawSuggestedMinutes
+            // (gọi bên dưới, cùng method) đi qua RawMinutesCalculator.Calculate, đọc thẳng
+            // task.DiemUuTien TRÊN MODEL (không nhận tham số) --
+            // Core/Scheduling/Engines/RawMinutesCalculator.cs:11: "task.DiemUuTien <= 0 return 0".
+            // StudyTask.DiemUuTien không có initializer (mặc định 0.0), và
+            // WorkloadBalancerViewModel gọi GenerateSchedule thẳng trong constructor, không có
+            // bước chấm điểm nào chạy trước. Bỏ ghi-đè làm MỌI task chưa được chấm điểm ở nơi
+            // khác (Dashboard pipeline / QuanLyTaskViewModel.TinhDiemVaSapXep) âm thầm rớt khỏi
+            // lịch (0 phút cần xếp) -- một regression đúng nghĩa, không phải impurity thừa. Ghi
+            // thẳng vào task.DiemUuTien lại là ĐÚNG, dù có tác dụng phụ lên model của caller.
             foreach (var mon in hocKy.DanhSachMonHoc)
             {
                 foreach (var task in mon.DanhSachTask.Where(t => t.TrangThai != StudyTaskStatus.HoanThanh))
@@ -117,6 +163,7 @@ namespace SmartStudyPlanner.Services
 
             var sortedTasks = tatCaTask.OrderByDescending(t => t.DiemUuTien).ToList();
             var days = new List<ScheduleDay>();
+            var scheduledItems = new List<ScheduledItem>();
 
             DateTime today = _clock.Now.Date;
             for (int i = 0; i < 7; i++)
@@ -136,8 +183,31 @@ namespace SmartStudyPlanner.Services
 
                 while (remainingMinutes > 0)
                 {
-                    var targetDay = days.Where(d => d.TotalMinutes < capacityMinutes)
-                                       .OrderBy(d => d.TotalMinutes)
+                    // T3.3 (Epic 3, Card F, CP-3 2026-08-05): earliest-feasible thay least-loaded
+                    // (OrderBy(d => d.TotalMinutes)). Ưu tiên ngày SỚM NHẤT còn chỗ mà không vượt
+                    // HanChot của task; nếu không ngày nào trong hạn còn chỗ, rơi về ngày sớm nhất
+                    // còn chỗ bất kể hạn chót (KHÔNG từ chối xếp -- đó là việc của
+                    // IConstraintValidator ở một bước validate sau, không phải allocator này).
+                    // Deadline chỉ chi phối CHỌN NGÀY, chưa bao giờ chi phối có xếp hay không.
+                    //
+                    // Tier-1 (lọc theo HanChot) và tier-2 (bỏ qua hạn, fallback) LUÔN ra cùng một
+                    // ngày, với BẤT KỲ input nào -- đã CHỨNG MINH BẰNG ĐẠI SỐ + xác nhận thực
+                    // nghiệm (kể cả deadline xen kẽ ưu tiên, deadline quá khứ). Đây là bất biến về
+                    // OUTPUT, không phải "nhánh tier-1 không chạy" -- tier-1 chạy bình thường mỗi
+                    // chunk, chỉ là kết quả luôn khớp tier-2. Không có mutation nào của điều kiện
+                    // lọc HanChot làm đổi output trên bất kỳ input nào hôm nay -- nên KHÔNG viết
+                    // discriminating test cho riêng nhánh này (sẽ vô nghĩa/vacuous). Chứng minh đầy
+                    // đủ + lý do giữ nhánh này (sẽ sống khi T3.9/Optimize() hoặc
+                    // IConstraintValidator làm ngày "mất chỗ" không đơn điệu): xem
+                    // docs/plans/2026-08-06-deadline-tier-provably-inert.md (nguồn canonical duy
+                    // nhất -- đừng chép lại chứng minh đầy đủ ra đây nữa, sẽ trôi khỏi bản gốc).
+                    DateTime hanChotDate = task.HanChot.Date;
+
+                    var targetDay = days.Where(d => d.TotalMinutes < capacityMinutes && d.Date <= hanChotDate)
+                                       .OrderBy(d => d.Date)
+                                       .FirstOrDefault()
+                                   ?? days.Where(d => d.TotalMinutes < capacityMinutes)
+                                       .OrderBy(d => d.Date)
                                        .FirstOrDefault();
 
                     if (targetDay == null)
@@ -155,11 +225,32 @@ namespace SmartStudyPlanner.Services
                     int spaceLeft = capacityMinutes - targetDay.TotalMinutes;
                     int chunk = Math.Min(remainingMinutes, spaceLeft);
 
+                    string tenHienThi = (minutesNeeded > spaceLeft || part > 1)
+                        ? $"{task.TenTask} (Phần {part})"
+                        : task.TenTask;
+
+                    // Xây ScheduledItem (mang identity) TRƯỚC, rồi chiếu sang ScheduledTask —
+                    // đúng thứ tự "build internal representation, then project" của T3.8, chỉ làm
+                    // theo từng chunk thay vì một lượt riêng sau khi vòng lặp kết thúc: vòng lặp
+                    // đóng ngày mới dựa trên trạng thái TotalMinutes tích luỹ (greedy, có thứ tự),
+                    // nên tách "quyết định xếp vào đâu" ra khỏi "ghi lại đã xếp gì" thành hai lượt
+                    // độc lập sẽ phải mô phỏng lại đúng thuật toán này — rủi ro lệch hành vi không
+                    // cần thiết cho một seam chỉ cần tồn tại, chưa cần được tiêu thụ ở card này.
+                    var item = new ScheduledItem(
+                        MaTask: task.MaTask,
+                        HanChot: task.HanChot,
+                        TenTaskGoc: task.TenTask,
+                        TenHienThi: tenHienThi,
+                        TenMon: dictMonHoc[task].TenMonHoc,
+                        Date: targetDay.Date,
+                        SoPhut: chunk);
+                    scheduledItems.Add(item);
+
                     targetDay.Tasks.Add(new ScheduledTask
                     {
-                        TenTask = (minutesNeeded > spaceLeft || part > 1) ? $"{task.TenTask} (Phần {part})" : task.TenTask,
-                        TenMon = dictMonHoc[task].TenMonHoc,
-                        SoPhut = chunk
+                        TenTask = item.TenHienThi,
+                        TenMon = item.TenMon,
+                        SoPhut = item.SoPhut
                     });
                     targetDay.TotalMinutes += chunk;
                     remainingMinutes -= chunk;
@@ -167,7 +258,7 @@ namespace SmartStudyPlanner.Services
                 }
             }
 
-            return days;
+            return (days, scheduledItems);
         }
     }
 }

@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    S0 pilot harness. THROWAWAY. Deliberately NOT added to SmartStudyPlanner.slnx,
+    so it never enters the product build or CI (EVA-01).
+
+    TargetFramework mirrors the product exactly. TOK-03 requires the tokenization
+    route to be verified on `net10.0-windows10.0.19041.0`; verifying it on plain
+    net10.0 would clear a constraint it never tested.
+
+    Microsoft.ML is PINNED to 3.0.1, the version the product pins, on purpose.
+    This project is also the TOK-07 experiment: if adding Microsoft.ML.Tokenizers
+    forced Microsoft.ML off 3.0.1, restore would say so here, before any
+    dependency change was proposed for the product.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.ML" Version="3.0.1" />
+    <PackageReference Include="Microsoft.ML.Tokenizers" Version="2.0.0" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.29.0" />
+  </ItemGroup>
+
+</Project>

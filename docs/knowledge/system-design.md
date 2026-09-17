@@ -53,6 +53,33 @@ Adding "task paused" became a 1-class + 1-line change instead of editing the cor
 - Errors collect into `context.Errors` instead of crashing the pipeline.
 - Adding `AdaptStage` was a new class + 1 line in the registration — no surgery on existing stages.
 
+### What the view was rendered against is a second variable, not the same one the user is editing
+The Workload Balancer's `CapacityHours` served two roles at once: the value the slider targets, *and*
+the yardstick the chart is drawn against. With no change handler, dragging the slider never rebuilt
+the schedule — it only re-ran the `[TotalMinutes, CapacityHours]` converters, so the screen showed
+the **old allocation measured against the new ceiling**. That state is internally consistent,
+visually plausible, and describes a schedule the algorithm never produced, which is what makes this
+class of bug expensive: it is not detectable by looking at it, and every manual observation taken
+through the screen inherits the fault ([`qa-gates.md`](qa-gates.md)).
+
+The fix was to name the second role — `RenderedCapacityHours`, assigned unconditionally inside
+`BuildSchedule`, with every measurement binding repointed at it and a badge shown while the two
+diverge. Two things generalise:
+- **State the invariant that bounds the divergence.** Because `BuildSchedule` *unconditionally*
+  re-syncs rendered to target, the divergence is always clearable and no user can be trapped in a
+  permanently stale view. That single invariant is what later downgraded a residual finding (the
+  slider only stops on whole hours, so a `4.5` read from disk cannot be dialled back in) from defect
+  to enhancement candidate. Splitting one variable into two is only safe once you can say what
+  bounds their disagreement.
+- **Prefer making staleness legible over recomputing behind a gesture.** Rebuilding on every slider
+  change was the better UX and was rejected: it would have put a disk write and a database
+  write-through behind a drag, on a path with no test coverage. A mutation probe now pins the
+  rejection, so a future "helpful" change cannot quietly reintroduce it.
+
+Same principle, different domain: *never let one scalar answer two questions* — see the `Rev`
+counter in [`sync-data-model.md`](sync-data-model.md), where one number tried to be both a local
+change count and a cross-device ordering.
+
 ## Dependency injection
 
 ### Composition root pattern (`ServiceLocator`)
@@ -146,7 +173,8 @@ After Slice 2, `RawMinutesCalculatorTests` (4) + `StudyTimeSuggestionEngineTests
 
 ## Documentation as a load-bearing artifact
 
+- **Canonical convention: [`docs/README.md`](../README.md) §Artifact types** — which artifact type answers which question, where it lives, and the two cross-cutting rules (claim → evidence → scope → uncertainty; amend rather than rewrite). Written 2026-08-19; the bullets below are the older, narrower lifecycle summary and defer to it.
 - Every milestone gets a row in `docs/CHANGELOG.md`; in-flight work lives in `docs/active/`; current state in `docs/architecture/`.
 - Active plans link to specs and file maps. Once shipped, the active doc is condensed into a `CHANGELOG.md` row and deleted.
-- The change log is the source of truth for "is M6.1 done?" — not commit messages.
+- The change log is the source of truth for "is M6.1 done?" — *when it is current*, which is not automatic: as of 2026-08-19 it ended at 2026-08-02 and carried no record of Epic 3, which had closed. Check its last entry against `git log` before trusting a "not done" reading; a milestone missing from it may simply never have been written down.
 - `gitnexus_query({query: "concept"})` finds execution flows faster than `grep`; use it before reading docs.

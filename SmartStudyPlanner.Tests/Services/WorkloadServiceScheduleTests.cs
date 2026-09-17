@@ -8,6 +8,7 @@ using SmartStudyPlanner.Models;
 using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Tests.TestDoubles;
 using Xunit;
+using SmartStudyPlanner.Services.ML;
 
 namespace SmartStudyPlanner.Tests.Services
 {
@@ -16,12 +17,22 @@ namespace SmartStudyPlanner.Tests.Services
     ///
     /// Đây KHÔNG phải test tính đúng đắn. Chúng ghi lại hành vi hiện tại để một thay đổi
     /// sau này phải là chủ ý chứ không phải vô tình. Nếu một test ở đây đỏ, hãy đọc
-    /// WorkloadServiceImpl.cs:40-109 trước — implementation là spec, và câu hỏi đầu tiên
-    /// luôn là "hành vi có đổi không", không phải "sửa production cho test xanh".
+    /// WorkloadServiceImpl.cs trước — implementation là spec, và câu hỏi đầu tiên luôn là
+    /// "hành vi có đổi không", không phải "sửa production cho test xanh".
     ///
-    /// Cố ý KHÔNG assert thứ tự theo deadline: HanChot không xuất hiện ở đâu trong
-    /// allocator (CSA 2026-07-27, Key Finding 3). Deadline-awareness là Epic 3 / SOE
-    /// sau gate G2, không phải thiếu sót cần vá ở đây.
+    /// T3.3 (Epic 3, Card F, CP-3 2026-08-05): allocator giờ ĐỌC <c>HanChot</c> để chọn ngày —
+    /// "earliest-feasible": ngày sớm nhất còn chỗ, trong số các ngày không vượt hạn chót, thay
+    /// cho "ngày ít tải nhất" (least-loaded, quy tắc cũ). Thứ tự ưu tiên
+    /// (<c>OrderByDescending(t => DiemUuTien)</c>) không đổi — deadline chỉ chi phối CHỌN
+    /// NGÀY, không chi phối thứ tự xếp task. Xem
+    /// GenerateSchedule_ChonNgaySomNhatConCho_ChuKhongPhaiNgayItTaiNhat cho test pin quy tắc mới.
+    ///
+    /// <b>Đọc, nhưng provably KHÔNG BAO GIỜ đổi ngày được chọn, với BẤT KỲ input nào</b> — bất
+    /// biến về OUTPUT (nhánh lọc theo hạn vẫn CHẠY bình thường mỗi chunk, chỉ là kết quả luôn
+    /// khớp nhánh bỏ-qua-hạn), không phải "nhánh này không thực thi". Đừng đọc dòng trên là
+    /// "deadline chi phối vị trí xếp": nó chi phối về MẶT CODE, nhưng inert về mặt OUTPUT với
+    /// thuật toán hiện tại. Chứng minh đầy đủ (canonical, đừng chép lại):
+    /// docs/plans/2026-08-06-deadline-tier-provably-inert.md.
     /// </summary>
     public class WorkloadServiceScheduleTests
     {
@@ -53,8 +64,9 @@ namespace SmartStudyPlanner.Tests.Services
 
             var days = Sut(engine).GenerateSchedule(hocKy, capacityHours: 1.0);
 
-            // Ngày mở thêm lấy offset từ days.Count đang lớn dần (WorkloadServiceImpl.cs:83-84).
-            // Một off-by-one ở đó sẽ tạo lỗ hổng hoặc ngày trùng mà không assert nào khác bắt được.
+            // Ngày mở thêm lấy offset từ days.Count đang lớn dần (WorkloadServiceImpl.cs, nhánh
+            // "if (targetDay == null)" trong vòng phân bổ). Một off-by-one ở đó sẽ tạo lỗ hổng
+            // hoặc ngày trùng mà không assert nào khác bắt được.
             Assert.Equal(
                 Enumerable.Range(0, days.Count).Select(i => Today.AddDays(i)).ToList(),
                 days.Select(d => d.Date).ToList());
@@ -74,8 +86,18 @@ namespace SmartStudyPlanner.Tests.Services
         [Fact]
         public void GenerateSchedule_GhiDeDiemUuTien_ChiTrenTaskChuaHoanThanh()
         {
+            // CP-2 AMENDED (2026-08-06, docs/plans/2026-08-06-cp2-amended-diemuutien-writethrough-restored.md):
+            // test này bị Card F round 1 xoá (5197784) khi ghi-đè DiemUuTien tưởng như là một
+            // impurity thừa, rồi được PHỤC HỒI khi review phát hiện RawMinutesCalculator.Calculate
+            // (gọi từ CalculateRawSuggestedMinutes ngay trong GenerateScheduleWithIdentity) đọc
+            // thẳng task.DiemUuTien TRÊN MODEL, không qua tham số nào -- bỏ ghi-đè làm task chưa
+            // được chấm điểm ở nơi khác âm thầm rớt khỏi lịch (0 phút cần xếp). Đây không phải
+            // impurity tuỳ tiện: nó là điều kiện tiên quyết bắt buộc cho bước tính phút bên dưới.
+            //
             // GenerateSchedule KHÔNG thuần: nó ghi thẳng DiemUuTien vào model của caller
-            // (WorkloadServiceImpl.cs:50), và chỉ cho những task lọt qua bộ lọc ở :48.
+            // (WorkloadServiceImpl.cs, dòng "task.DiemUuTien = ..." trong vòng lặp populate
+            // tatCaTask), và chỉ cho những task lọt qua bộ lọc TrangThai != HoanThanh ngay trên
+            // dòng đó.
             var (hocKy, engine) = BuildFixture(("Chưa làm", 42.5, 0), ("Đã xong", 99, 0));
             var tasks = hocKy.DanhSachMonHoc[0].DanhSachTask;
             tasks[1].TrangThai = StudyTaskStatus.HoanThanh;
@@ -136,14 +158,18 @@ namespace SmartStudyPlanner.Tests.Services
         [Fact]
         public void GenerateSchedule_ViecVuaDuMotNgay_KhongBiDanhSoPhan()
         {
-            // Ranh giới đặt tên ở WorkloadServiceImpl.cs:98: chỉ gắn "(Phần n)" khi thực sự
-            // phải cắt. Vừa khít sức học vẫn là tên trần.
+            // Ranh giới đặt tên: chỉ gắn "(Phần n)" khi thực sự phải cắt. Vừa khít sức học
+            // vẫn là tên trần. Decouple khỏi days[0] (T3.3): assertion chỉ cần "ngày nào có
+            // task thì đúng nội dung", không cần đúng VỊ TRÍ trong list — vị trí là chi tiết
+            // của quy tắc chọn ngày (least-loaded cũ / earliest-feasible mới), không phải bất
+            // biến mà test này nhắm tới.
             var (hocKy, engine) = BuildFixture(("Vừa đủ", 90, 60));
 
             var days = Sut(engine).GenerateSchedule(hocKy, capacityHours: 1.0);
+            var ngayCoTask = days.First(d => d.Tasks.Count > 0);
 
-            Assert.Equal("Vừa đủ", Assert.Single(days[0].Tasks).TenTask);
-            Assert.Equal(60, days[0].TotalMinutes);
+            Assert.Equal("Vừa đủ", Assert.Single(ngayCoTask.Tasks).TenTask);
+            Assert.Equal(60, ngayCoTask.TotalMinutes);
         }
 
         [Fact]
@@ -170,20 +196,32 @@ namespace SmartStudyPlanner.Tests.Services
         }
 
         [Fact]
-        public void GenerateSchedule_ChonNgayITAINHAT_ChuKhongPhaiNgaySomNhatConCho()
+        public void GenerateSchedule_ChonNgaySomNhatConCho_ChuKhongPhaiNgayItTaiNhat()
         {
-            // "Cao" chiếm trọn ngày 0 và 30 phút của ngày 1, để ngày 1 còn trống 30 phút —
-            // vừa đủ chứa "Thấp". Nhưng allocator sắp theo TotalMinutes tăng dần
-            // (WorkloadServiceImpl.cs:77-79), nên nó chọn ngày 2 đang rỗng. Công việc bị
-            // TRẢI RA chứ không dồn vào các ngày sớm.
+            // T3.3 (CP-3 2026-08-05): earliest-feasible thay least-loaded. "Cao" (90p, cắt
+            // theo capacity 60p/ngày) chiếm trọn ngày 0 (60p) rồi 30p đầu ngày 1, để ngày 1
+            // còn trống đúng 30 phút. "Thấp" (30p, xếp sau vì ưu tiên thấp hơn) giờ phải rơi
+            // vào ngày SỚM NHẤT còn chỗ — ngày 1 — chứ không phải ngày 2 đang rỗng (đó là kết
+            // quả của quy tắc least-loaded CŨ, đã bị thay thế).
+            //
+            // Cả hai task cùng HanChot (NewTask: FixedNow.AddDays(5)), xa hơn nhiều so với
+            // ngày 0/1/2 dùng ở đây — nên "trong hạn chót" không loại bất kỳ ngày nào trong
+            // phạm vi test này; điều phân biệt hai quy tắc thuần tuý là "sớm nhất" so với "ít
+            // tải nhất" giữa các ngày còn chỗ.
             var (hocKy, engine) = BuildFixture(("Cao", 90, 90), ("Thấp", 10, 30));
 
             var days = Sut(engine).GenerateSchedule(hocKy, capacityHours: 1.0);
 
             Assert.Equal(60, days[0].TotalMinutes);
-            Assert.Equal(30, days[1].TotalMinutes);
-            Assert.Equal(30, days[2].TotalMinutes);
-            Assert.Equal("Thấp", Assert.Single(days[2].Tasks).TenTask);
+            Assert.Equal(60, days[1].TotalMinutes);
+            Assert.Equal(0, days[2].TotalMinutes);
+            // Pin TOÀN BỘ nội dung ngày 1, không chỉ sự có mặt của "Thấp" -- assertion trước
+            // (Assert.Single(days[1].Tasks, t => t.TenTask == "Thấp")) tự lọc theo tên rồi assert
+            // lại đúng cái tên đó, nên KHÔNG BAO GIỜ có thể đỏ (tautology). Thứ tự đúng: "Cao
+            // (Phần 2)" chèn trước (Cao ưu tiên cao hơn, xử lý trước) rồi mới "Thấp".
+            Assert.Equal(
+                new[] { "Cao (Phần 2)", "Thấp" },
+                days[1].Tasks.Select(t => t.TenTask).ToArray());
         }
 
         [Fact]
@@ -255,7 +293,8 @@ namespace SmartStudyPlanner.Tests.Services
 
             Assert.Equal(180, days.Sum(d => d.TotalMinutes));
             Assert.Single(days.Where(d => d.Tasks.Count > 0));
-            Assert.Equal(180, days[0].TotalMinutes);
+            // Decouple khỏi days[0] (T3.3): chỉ ngày DUY NHẤT có task mới cần đúng tổng phút.
+            Assert.Equal(180, days.First(d => d.Tasks.Count > 0).TotalMinutes);
         }
 
         [Fact]
@@ -270,6 +309,86 @@ namespace SmartStudyPlanner.Tests.Services
 
             Assert.Single(days.Where(d => d.Tasks.Count > 0));
             Assert.Equal(120, days.First(d => d.Tasks.Count > 0).TotalMinutes);
+        }
+
+        [Fact]
+        public void GenerateSchedule_TaskChuaTungDuocChamDiem_VanDuocXepLich()
+        {
+            // GUARD Ý ĐỊNH cho CP-2 AMENDED (2026-08-06,
+            // docs/plans/2026-08-06-cp2-amended-diemuutien-writethrough-restored.md).
+            //
+            // GenerateSchedule_GhiDeDiemUuTien_ChiTrenTaskChuaHoanThanh ở trên chốt CƠ CHẾ
+            // (ghi-đè có xảy ra không). Test này chốt LÝ DO cơ chế đó phải tồn tại — thứ mà một
+            // refactor "làm cho thuần" (đúng thứ Card F round 1 đã làm ở 5197784) sẽ xoá cùng
+            // lúc với chính test cơ chế kia, vì cả hai đọc như "test cái impurity".
+            //
+            // Coupling thật: RawMinutesCalculator.Calculate (Core/Scheduling/Engines, dòng 11)
+            // đọc THẲNG task.DiemUuTien trên model — "task.DiemUuTien <= 0 return 0" — và
+            // StudyTask.DiemUuTien mặc định 0.0. StubDecisionEngine ở cuối file tra bảng theo
+            // TÊN task nên KHÔNG tái hiện coupling đó; double dưới đây tái hiện đúng nó.
+            //
+            // Hậu quả nếu ghi-đè bị bỏ: MỌI task chưa được chấm điểm ở nơi khác (Dashboard
+            // pipeline / QuanLyTaskViewModel.TinhDiemVaSapXep) im lặng rớt khỏi lịch — lịch rỗng,
+            // không exception, không cảnh báo. WorkloadBalancerViewModel gọi GenerateSchedule
+            // thẳng trong constructor, không có bước chấm điểm nào chạy trước.
+            var hocKy = new HocKy("HK Sched", Today);
+            var monHoc = new MonHoc("Toán", 3) { MaHocKy = hocKy.MaHocKy };
+            monHoc.DanhSachTask.Add(NewTask("Chưa chấm điểm"));
+            hocKy.DanhSachMonHoc.Add(monHoc);
+
+            var engine = new PriorityCoupledDecisionEngine();
+            engine.Priorities["Chưa chấm điểm"] = 60;
+            engine.Minutes["Chưa chấm điểm"] = 90;
+
+            // Tiền đề của test: task đi vào với DiemUuTien mặc định — chưa từng được chấm.
+            Assert.Equal(0.0, monHoc.DanhSachTask[0].DiemUuTien);
+
+            var days = Sut(engine).GenerateSchedule(hocKy, capacityHours: 3.0);
+
+            Assert.Equal(90, days.Sum(d => d.TotalMinutes));
+        }
+
+        [Theory]
+        [InlineData(1.0)]
+        [InlineData(2.0)]
+        [InlineData(3.0)]
+        public void GenerateSchedule_DonVeNgaySomNhat_NgayDungLaTienToLienTuc_ChiNgayCuoiConCho(
+            double capacityHours)
+        {
+            // T3.3 (CP-3 2026-08-05) earliest-feasible, dạng BẤT BIẾN thay vì một ví dụ 3 ngày.
+            // GenerateSchedule_ChonNgaySomNhatConCho_ChuKhongPhaiNgayItTaiNhat chốt quy tắc trên
+            // MỘT bố cục cụ thể; test này chốt hệ quả cấu trúc của nó trên nhiều mức sức học —
+            // đây chính là thứ người dùng NHÌN THẤY trên màn hình Workload Balancer (các thẻ ngày
+            // đặc, liên tục từ hôm nay, thay vì tải rải mỏng khắp 7 ngày như quy tắc least-loaded
+            // CŨ).
+            //
+            // Vì mỗi chunk luôn vào ngày SỚM NHẤT còn chỗ và chunk được cắt vừa đúng chỗ trống
+            // (chunk = min(remaining, spaceLeft)), một ngày chỉ còn chỗ khi KHÔNG còn việc nào
+            // sau nó — nên các ngày có việc là một tiền tố liên tục, và mọi ngày trừ ngày cuối
+            // phải đầy đúng capacity. Quy tắc least-loaded CŨ làm cả hai assert này đỏ.
+            var (hocKy, engine) = BuildFixture(
+                ("A", 90, 130), ("B", 70, 45), ("C", 50, 200), ("D", 30, 25));
+
+            var days = Sut(engine).GenerateSchedule(hocKy, capacityHours);
+
+            int capacityMinutes = (int)(capacityHours * 60);
+            var used = days.Select((d, i) => (Day: d, Index: i))
+                           .Where(x => x.Day.Tasks.Count > 0)
+                           .ToList();
+
+            Assert.NotEmpty(used);
+
+            // (1) Các ngày có việc là tiền tố liên tục bắt đầu từ hôm nay — không có ngày trống
+            //     xen giữa hai ngày có việc.
+            Assert.Equal(
+                Enumerable.Range(0, used.Count).ToList(),
+                used.Select(x => x.Index).ToList());
+
+            // (2) Mọi ngày dùng TRỪ ngày cuối đầy đúng capacity (đặc, không rải mỏng).
+            Assert.All(used.Take(used.Count - 1), x => Assert.Equal(capacityMinutes, x.Day.TotalMinutes));
+
+            // (3) Không phút nào bị mất hay nhân đôi khi dồn.
+            Assert.Equal(130 + 45 + 200 + 25, days.Sum(d => d.TotalMinutes));
         }
 
         // ---- fixture ----
@@ -296,7 +415,7 @@ namespace SmartStudyPlanner.Tests.Services
             return (hocKy, engine);
         }
 
-        private static WorkloadServiceImpl Sut(StubDecisionEngine engine)
+        private static WorkloadServiceImpl Sut(IDecisionEngine engine)
             => new WorkloadServiceImpl(engine, new FakeClock(FixedNow));
 
         // ---- test double ----
@@ -321,11 +440,38 @@ namespace SmartStudyPlanner.Tests.Services
 
             public string SuggestStudyTime(StudyTask task) => string.Empty;
 
-            public int PredictStudyMinutes(StudyTask task, MonHoc monHoc, out bool isMlPrediction)
-            {
-                isMlPrediction = false;
-                return CalculateRawSuggestedMinutes(task);
-            }
+            public StudyTimePredictionResult PredictStudyMinutes(StudyTask task, MonHoc monHoc)
+                => new StudyTimePredictionResult(CalculateRawSuggestedMinutes(task), false, 0f);
+
+            public Task<WeightConfigSuggestion?> SuggestWeightConfigAsync(CancellationToken ct = default)
+                => Task.FromResult<WeightConfigSuggestion?>(null);
+        }
+
+        /// <summary>
+        /// Như <see cref="StubDecisionEngine"/>, NHƯNG tái hiện đúng một coupling của
+        /// production mà bảng-tra-theo-tên cố tình bỏ qua: <c>RawMinutesCalculator.Calculate</c>
+        /// đọc <c>task.DiemUuTien</c> TRÊN MODEL và trả 0 khi điểm &lt;= 0. Chỉ dùng cho
+        /// <see cref="GenerateSchedule_TaskChuaTungDuocChamDiem_VanDuocXepLich"/> — các test khác
+        /// giữ stub thuần bảng tra để không phụ thuộc vào công thức thật.
+        /// </summary>
+        private sealed class PriorityCoupledDecisionEngine : IDecisionEngine
+        {
+            public Dictionary<string, double> Priorities { get; } = new();
+            public Dictionary<string, int> Minutes { get; } = new();
+
+            public WeightConfig Config { get; } = new WeightConfig();
+
+            public double CalculatePriority(StudyTask task, MonHoc monHoc)
+                => Priorities.GetValueOrDefault(task.TenTask, 0);
+
+            // Cùng cổng "<= 0 thì 0 phút" như RawMinutesCalculator.Calculate.
+            public int CalculateRawSuggestedMinutes(StudyTask task)
+                => task.DiemUuTien <= 0 ? 0 : Minutes.GetValueOrDefault(task.TenTask, 0);
+
+            public string SuggestStudyTime(StudyTask task) => string.Empty;
+
+            public StudyTimePredictionResult PredictStudyMinutes(StudyTask task, MonHoc monHoc)
+                => new StudyTimePredictionResult(CalculateRawSuggestedMinutes(task), false, 0f);
 
             public Task<WeightConfigSuggestion?> SuggestWeightConfigAsync(CancellationToken ct = default)
                 => Task.FromResult<WeightConfigSuggestion?>(null);
