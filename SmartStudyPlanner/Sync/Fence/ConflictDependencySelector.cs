@@ -53,7 +53,25 @@ namespace SmartStudyPlanner.Sync.Fence
 
             foreach (var row in impact.Rows) AddStructuralSubject(row.EntityType, row.EntityId);
             foreach (var lc in impact.Lifecycle) AddStructuralSubject(lc.EntityType, lc.EntityId);
-            foreach (var edge in impact.Edges) AddStructuralSubject(edge.ChildType, edge.ChildId);
+
+            foreach (var edge in impact.Edges)
+            {
+                // H-2 (review finding, 2026-09-16): a structural edge has TWO endpoints, and a conflict
+                // can be reachable through either. The child endpoint was already covered; the parent
+                // endpoint was not, so an impact that names an entity ONLY as ImpactEdge.ParentId --
+                // e.g. Create(TaskReferenceLink L, MaTask: null -> T), where T is in no row, no
+                // lifecycle effect and no scope -- could never select a record whose protected subject
+                // is T. Both S1 policies have an explicit `edge.ParentId == E` branch, so such a record
+                // is inside the dependency model; it simply could not be reached.
+                //
+                // This adds exactly the registered parent of a registered edge -- not a universal
+                // parent scope, and not a tree lock: the parent is added on the same terms as any other
+                // structural subject (identity + its own D4 ScopeKey, if it has one).
+                AddStructuralSubject(edge.ChildType, edge.ChildId);
+
+                if (StructuralDependencyRegistry.ParentTypeOf(edge.ChildType, edge.Field) is { } parentType)
+                    AddStructuralSubject(parentType, edge.ParentId);
+            }
 
             foreach (var scope in impact.Scopes)
             {

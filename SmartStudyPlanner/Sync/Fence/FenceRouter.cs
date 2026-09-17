@@ -118,31 +118,43 @@ namespace SmartStudyPlanner.Sync.Fence
 
         /// <summary>
         /// Spec §6 / plan §6: every intent's <c>EntityType</c> must be a known structural
-        /// parent/child, and every <see cref="RelationChange.Field"/> it names must classify as
-        /// <see cref="FieldClass.Structural"/> or <see cref="FieldClass.ConstraintScope"/> on that
-        /// type. Vacuously true for an empty request (N-9). Otherwise <c>false</c> fails closed
-        /// (N-2/X-7) before any DB read.
+        /// parent/child, and every <see cref="RelationChange.Field"/> it names must be a registered
+        /// structural child edge on that type. Vacuously true for an empty request (N-9). Otherwise
+        /// <c>false</c> fails closed (N-2/X-7) before any DB read.
+        /// <para>
+        /// <b>H-1/A-2, owner ruling 2026-09-17.</b> Routability is EXPLICIT, and is asked of
+        /// <see cref="StructuralDependencyRegistry.IsFenceRoutableEntityType"/> /
+        /// <see cref="StructuralDependencyRegistry.IsRegisteredStructuralRoute"/> ONLY. Three concerns
+        /// stay separate here, and neither of the other two is a fallback for this one:
+        /// <list type="bullet">
+        /// <item><see cref="MergeSurfaceRegistry"/> is the authority for merge-field semantics and is
+        ///       deliberately not consulted. Consulting it used to reject
+        ///       <c>Create(TaskReferenceLink, MaTask: null -&gt; task)</c> — an explicitly fence-routable
+        ///       relation — merely because that field is <c>CopyOnCreate</c> for merge purposes (CASE A).
+        ///       Changing the field's merge classification to satisfy the router is forbidden.</item>
+        /// <item>Bare structural-topology membership is likewise not consulted:
+        ///       <c>StudyLog.MaTask</c> is a known structural dependency yet is deliberately outside the
+        ///       Slice-2 fence-routing surface, so it is route-UNKNOWN (CASE B).</item>
+        /// </list>
+        /// <para>
+        /// The type gate is checked even for an intent that names no relation, so a bare
+        /// <c>Tombstone(StudyLog, ...)</c> is route-unknown too, not merely a StudyLog FK write.
+        /// </para>
         /// </summary>
         private static bool RouteKnown(MutationRequest request)
         {
             foreach (var intent in request.Intents)
             {
-                if (!StructuralDependencyRegistry.IsKnownEntityType(intent.EntityType)) return false;
+                if (!StructuralDependencyRegistry.IsFenceRoutableEntityType(intent.EntityType)) return false;
 
                 foreach (var relation in intent.Relations)
                 {
-                    if (!IsStructuralOrConstraintScopeField(intent.EntityType, relation.Field)) return false;
+                    if (!StructuralDependencyRegistry.IsRegisteredStructuralRoute(intent.EntityType, relation.Field))
+                        return false;
                 }
             }
 
             return true;
-        }
-
-        private static bool IsStructuralOrConstraintScopeField(string entityType, string field)
-        {
-            if (!MergeSurfaceRegistry.TryGet(entityType, out var spec)) return false;
-            var match = spec.Fields.FirstOrDefault(f => f.Name == field);
-            return match is not null && match.Class is FieldClass.Structural or FieldClass.ConstraintScope;
         }
     }
 }
