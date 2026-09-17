@@ -72,6 +72,17 @@ The default `AppDbContext()` configures its own connection string. That's fine f
 ### Configure cascades explicitly via Fluent API
 M6.1 declared `TaskNote` 1-1 and `TaskReferenceLink` 1-N with explicit `OnDelete(DeleteBehavior.Cascade)` in `OnModelCreating`. Don't rely on convention — write it so the cascade story is greppable. See [`sync-data-model.md`](sync-data-model.md) for what happens to this config once deletes stop being real SQL deletes (it drives EF's in-memory fixup instead, and FK-only children need a hand-cascade helper).
 
+### A projecting query tracks nothing, so `AsNoTracking()` on it proves nothing
+A query that ends in `Select(...)` returning an anonymous type or a scalar leaves `ChangeTracker`
+empty whether or not `AsNoTracking()` is present — EF only tracks materialised entities. A read-only
+guard built on *"`ChangeTracker.Entries()` is empty"* therefore only discriminates for the queries
+that materialise entities; for the projecting ones it passes for a reason unrelated to the call it
+claims to protect. If the read-only property of a component actually rests on **projection shape**,
+say so where a future edit will read it, because changing one `Select` to return an entity is then a
+silent behaviour change that no guard catches. (Live example: `Sync/Fence/ImpactResolver.cs` — the
+class comment on `FenceReadOnlyTests` still generalises the guard to all three components; finding
+L-4 of the 2026-09-16 Slice-2 review, open.)
+
 ### Atomic file swap for any model artifact
 `MLModelManager.RetrainAsync` writes to `model.tmp`, then `File.Move(tmp, canonical, overwrite: true)`. A crash during training leaves the old good file untouched. Apply the same pattern any time you serialize a model / config / cache.
 

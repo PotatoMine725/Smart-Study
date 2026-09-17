@@ -191,6 +191,13 @@ authoritative source that lists all of Y's children (schema config, `OnModelCrea
 registry) and check the fix's coverage against that list explicitly — don't infer completeness
 from the fact that the one reported case now passes.
 
+**A cheap completeness signal: a fixture nobody calls.** In the Slice-2 review, the clearest single
+indicator of a coverage hole was a fixture method (`StageAlPtAsync`) that was written, compiled, and
+referenced by **no test** — the shape it stages was the one shape with zero router-level coverage.
+Grep the test project for fixture/helper members with no callers before signing off a suite: a helper
+written for a case that was then not written is a planned test that went missing, and it costs one
+search to find.
+
 ## A green check is evidence only after you've shown it can go red
 
 **Problem.** WP-4's acceptance criteria were *"`GenerateSchedule` has characterization tests"*
@@ -390,6 +397,13 @@ criterion is about what should be *there*. One further dividend: writing the gua
 edit turns it into a search — the copy guard written ahead of this fix found a fourth stale string
 the design had not listed.
 
+**Correlated expectation is a third kind of weak red.** A determinism test computed its expected
+ordering with *the same expression production uses*
+(`ids.OrderBy(EntityType, Ordinal).ThenBy(EntityId)`). It discriminates "no sort at all" and nothing
+else: any wrong-but-self-consistent ordering rule is copied into the expectation and the test stays
+green. When the expected value is derived rather than written down, ask what production change would
+move both sides together — and pin at least one case as a literal.
+
 ## Verify a claim before it sets someone else's severity
 
 **Problem.** WP-4's report handed two defects to WP-5.2. One of them — that
@@ -421,6 +435,102 @@ message, or a plan, ask which parts were *executed* and which were *reasoned*. R
 a handoff get a scratch probe. The existing discipline of *"reproduce before escalating"* covers
 suspected bugs you are raising; this is its counterpart for facts you are asserting.
 
+**The probe worktree.** The Slice-2 reviewer applied the same rule at review scale: four findings that
+would each set an implementer's severity were reproduced as throwaway probe tests in a **detached
+worktree at the PR head**, run, quoted verbatim, then deleted — with the owner's working tree verified
+byte-identical (same `git status`, same `HEAD`) before and after. Three of them were invisible from
+the PR description. Two properties make this worth the fifteen minutes it cost: *a probe that goes RED
+on first run is itself proof that the existing suite did not cover the case*, and the probe is the
+fix's first test, handed over for free.
+
+## A documented decision in a PR body is a disclosure, not an authorisation
+
+**Problem.** The Slice-2 PR description was unusually thorough and self-critical: it listed its own
+open questions, named the underdetermined choice it had made, and explained the reasoning. That makes
+a reviewer want to review the narrative. Three of the six findings that ultimately blocked the PR
+(H-1, H-3, M-1) are invisible from the description, and a fourth existed *only* because the
+description's stated justification could be checked against the tree — where it turned out to be
+falsified by a MEASURED result already committed in the repo.
+
+**Why it was hard.** A volunteered judgement call reads as handled. The document has named the risk,
+priced it, and moved on; disagreeing feels like re-litigating something already settled, and the
+author is usually the person who knows the code best.
+
+**How it was solved.** Review at the PR head, against the primary sources, and treat each volunteered
+judgement as a **claim with a premise**. Here the premise — *"a row protected by an unresolved conflict
+is live by construction"* — was contradicted by a measured crossing outcome the repository already
+held. The finding was then filed as what it was: a defect in the PR's recorded rationale, plus an
+undecided specification question for the owner.
+
+**Principle.** "The implementer documented it" is not "the implementer resolved it". A disclosure
+tells you where to look; it does not transfer authority to decide. When a PR body volunteers a
+judgement call, check the premise it rests on before accepting the call — and check it against the
+tree, which frequently already contains the measurement that settles it.
+
+**How to avoid it next time.** For every "chosen because X" in a PR description, ask whether X is
+measured, ratified, or asserted — and where it is asserted, spend the minutes to measure it. The
+thoroughness of a PR body correlates with the care of the author, not with the correctness of the
+specific call it discloses.
+
+## Defect or specification gap? The tell is whether the sources determine the answer
+
+**Problem.** Six findings in one review looked alike from inside the code — in each, the implementation
+did something the plan appeared to forbid. Filing them all as implementer errors would have been
+wrong twice over: in two of the six the implementer had followed the plan's literal text, and the
+plan contradicted *itself*.
+
+**How it was solved.** Each finding was tested against one question: *can a correct answer be derived
+from the authoritative sources?* Two findings had one — the plan's own text said the selector must
+see an edge's parent endpoint, and the invariant said the cascade must be actual rather than invented
+— so they were defects, fixed in the PR. Two did not: `RouteKnown`'s definition and the plan's own
+intent table could not both hold, and the cascade predicate pointed at two executing paths that
+disagree. Those were escalated as owner questions and left unresolved by the review.
+
+**The escalation was vindicated, in a way that is worth recording.** The review attached an engineering
+*recommendation* to one of them (treat any field registered as a child FK as routable). The owner
+ruled the **other way** — explicit registration only, no fallback from any other registry. Had the
+review "just fixed it" as a defect, the fence would have shipped routing for writes the plan excludes
+by name, and a rejected approach would have been buried in a merged PR instead of surfaced as a
+decision.
+
+**Principle.** An implementation defect and a specification gap are indistinguishable by inspection
+of the code. The discriminator is the *sources*, not the code: a defect is a deviation from an answer
+the sources determine; a gap is a place where they determine none, or determine two. Classifying them
+apart matters because they have different owners — see
+[`incident-investigation.md`](incident-investigation.md#classify-before-you-fix-every-finding-class-has-a-different-venue)
+for the general rule, and [`decision-governance.md`](decision-governance.md) for how the escalated ones
+are then recorded.
+
+**How to avoid it next time.** Before writing a finding as a defect, quote the source text that makes
+the correct behaviour derivable. If you cannot quote it — or you can quote two sources that disagree —
+you are holding a specification question, and a reviewer resolving it in code is a review silently
+becoming a ruling.
+
+## A mutant killed by luck is not killed
+
+**Problem.** Slice 2's mutation campaign included the mutant *"the router's final sort is omitted"*.
+The test written against it compared results across two fixtures with random ids — and would only
+catch the mutant about half the time, because the upstream selector's own `OrderBy(ConflictId)` still
+supplies partial determinism, so two same-stage records can land in the correct relative order by
+accident. The implementer found this during implementation, not in review.
+
+**How it was solved.** The test was rebuilt with **adversarial input**: conflict ids chosen so that the
+selector's raw order is the exact reverse of the correct `(Stage, ScopeKey, ConflictId)` order.
+Removing the sort now fails the test deterministically, with no dependence on which Guids the run
+happened to generate.
+
+**Principle.** A mutation campaign measures the suite's discriminating power, so the campaign's own
+results must not be probabilistic. If a mutant survives, that is information; if a mutant dies on a
+coin flip, you have learned nothing and you have recorded a kill. Construct the input that makes the
+correct behaviour and the mutated behaviour maximally far apart, rather than a random input that
+usually separates them.
+
+**How to avoid it next time.** For every claimed kill, ask *"would this still be RED with different
+random data?"* Where an upstream stage imposes partial order, neutralise it deliberately in the
+fixture. The positive form of this discipline — designing a mutation whose **asymmetric** result proves
+a separation (mutating a field's merge class turned the merge guards RED while every routing test
+stayed GREEN) — is in [`system-design.md`](system-design.md), *One authority per question*.
+
 ## See also
 
 - [`qa-gates.md`](qa-gates.md) — what a gate must establish before it may call itself passed, and
@@ -435,6 +545,9 @@ suspected bugs you are raising; this is its counterpart for facts you are assert
   **verifying the instrument before believing a null result**, where a broken embedder and a working
   one produce identical verdicts.
 
+- [`decision-governance.md`](decision-governance.md) — where an escalated finding goes: how a ruling
+  is recorded, and why a review that resolves a source conflict in code has become a ruling.
+
 ## Sources
 
 - [`docs/review/2026-07-11-epic1-m1.3-review.md`](../review/2026-07-11-epic1-m1.3-review.md) — RED-first reproduction, folded-fix scrutiny, Option A/B/C decision
@@ -448,3 +561,6 @@ suspected bugs you are raising; this is its counterpart for facts you are assert
 - [`docs/reports/2026-08-14-workload-balancer-stale-chart-fix-report.md`](../reports/2026-08-14-workload-balancer-stale-chart-fix-report.md) — §2.2/§2.3 (compile-error red, the five-mutation matrix with predictions) and D4 (absence → counted assertion)
 - [`docs/plans/2026-08-19-e6-cascade-coverage-test.md`](../plans/2026-08-19-e6-cascade-coverage-test.md) — §6's bar and §7's fallback, both written four days before the campaign ran; §6's prediction column is preserved beside the measurements
 - [`docs/reports/2026-08-20-e6-cascade-coverage-test.md`](../reports/2026-08-20-e6-cascade-coverage-test.md) — the campaign that missed the bar: §3.1 (both sets measured separately), §3.3 (the undetermined survivor), §3.4 (an inference labelled as one)
+- [`docs/review/2026-09-16-t2.4-slice2-fence-router-independent-review.md`](../review/2026-09-16-t2.4-slice2-fence-router-independent-review.md) — the probe worktree (§7), the defect-vs-gap split (§9 and *Decisions made*), the correlated-expectation and unused-fixture findings (L-5, M-2), and the deliberate non-reproduction (L-4)
+- [`docs/reports/2026-09-14-slice1-review-findings-a-b.md`](../reports/2026-09-14-slice1-review-findings-a-b.md) — a review that verified the plan's prose against the interface shapes and ended at "owner decision needed" rather than filing a bug
+- PR #93 / PR #95 descriptions (GitHub) — the adversarial-`ConflictId` correction to the sort mutant, and the asymmetric `MUT-H1-2` result

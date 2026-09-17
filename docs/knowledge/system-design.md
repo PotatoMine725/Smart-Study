@@ -80,6 +80,57 @@ Same principle, different domain: *never let one scalar answer two questions* �
 counter in [`sync-data-model.md`](sync-data-model.md), where one number tried to be both a local
 change count and a cross-device ordering.
 
+### Every layer defensible, the composition still loses information
+Slice 2 of the structural conflict fence shipped four components that each reviewed clean — an
+explicit dependency registry with a guard test, a resolver, a selector, a router with no early exit —
+and 942 green tests. An independent review then found three HIGH defects, all of them *between* the
+components, and every probe written for them went RED on the first run:
+
+- the selector fed only `edge.ChildType`/`edge.ChildId` into its predicates, so a conflict reachable
+  only as an edge's **parent** endpoint was never selected — which left a tested Slice-1 code path
+  dead in integration;
+- the resolver expanded each intent against live database state **in isolation**, so a request that
+  reparents a task *out of* a subtree and then tombstones the old parent invented a cascade over rows
+  the real write set never touches;
+- the row-effect merge had no defined "strongest effect", so the same logical request produced a
+  different reported stage depending on the order the intents arrived in.
+
+None of these is visible from inside the component that hosts it. Each one is a piece of information
+that one layer holds and the next layer never receives.
+
+**Principle.** A composition has its own contract, and a suite made of per-component tests does not
+test it. For every seam, name the information that has to cross it — here: *an edge has two
+endpoints*, *intents in one request modify each other's envelope*, *merging two effects requires an
+order* — and write the test at the composition level, with an input that only the seam can get wrong.
+A green per-component suite is fully consistent with a broken composition; that is the normal case,
+not the surprising one.
+
+### One authority per question — routability is not merge class
+`RouteKnown` (may the fence route this mutation at all?) was implemented by asking
+`MergeSurfaceRegistry` whether the relation field was `Structural`/`ConstraintScope`. That registry
+answers a different question — *how does this field merge?* — and the two answers disagree in both
+directions: a legitimate `AddLinkAsync` was rejected because its FK is `CopyOnCreate`, while
+`StudyLog` writes the plan explicitly excludes would have been routable for free.
+
+The ruling split the question three ways, one authority each, **with no fallback**: merge semantics
+(`MergeSurfaceRegistry`, never consulted by routing), structural topology
+(`StructuralDependencyRegistry.Edges` membership), and fence-route eligibility (an explicit
+`FenceRoutable` flag per edge). Membership in either of the first two grants nothing. A fourth
+column, `CascadesOnTombstone`, agrees with `FenceRoutable` on all five of today's edges — recorded in
+the ruling as *a coincidence of the current domain, not a rule*, which is what stops the next
+engineer from collapsing them.
+
+Two things generalise:
+- **Reusing a classification because it currently correlates is a borrowed invariant.** It fails at
+  the first row where the two questions diverge, and the failure reads as a mysterious rejection far
+  from the registry.
+- **Prove a separation by mutating one side.** Changing the field's *merge* class turned the merge
+  guards RED while every *routing* test stayed GREEN. That asymmetry is the separation, demonstrated
+  rather than asserted — see [`review-methodology.md`](review-methodology.md).
+
+Same principle, different domain: *never let one scalar answer two questions* — the `Rev` counter in
+[`sync-data-model.md`](sync-data-model.md).
+
 ## Dependency injection
 
 ### Composition root pattern (`ServiceLocator`)
