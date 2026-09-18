@@ -98,3 +98,44 @@ as rendered in Vietnamese** — not of the English text in isolation.
 
 **What ratification does not do.** It does not perform the test, does not recruit a reader, and does
 not lift DFD-2. **Every gate above stands exactly as it was.**
+
+---
+
+## Gates — status update, appended 2026-09-18
+
+**Appended after the §10 probe and the owner's ruling on it. Nothing above is changed** — the "Gates
+that remain shut" table above stands exactly as written on 2026-09-04; this section records what has
+happened since, without rewriting it.
+
+| Gate | State as of 2026-09-04 | State as of 2026-09-18 |
+|---|---|---|
+| **§10 reproducibility test** | NOT performed | **Performed.** Result: **PASS under Reading A**, per owner ruling `F-1` on `D-6` (recorded in [`2026-09-05-s2-owner-decisions.md`](2026-09-05-s2-owner-decisions.md)). Full figures and required companions: [`../reports/2026-09-18-epic4-s2-section10-result.md`](../reports/2026-09-18-epic4-s2-section10-result.md) |
+| **Independent reader** | NOT recruited | Owner-attested as recruited and having run an independent blind pass. No formal recruitment record exists in the repository — see the result report's §4 for exactly what is attested versus independently checked |
+| **`DFD-2`** — the labelled-data bar | NOT satisfied | **Satisfied, narrowly.** The condition this file itself states — "DFD-2 is satisfied only after the §10 test passes" — is now met. **This is a single-gate statement and nothing more.** |
+
+**What "`DFD-2` satisfied" does and does not authorize, stated explicitly so it is not inferred
+further than this:**
+
+The governing proposal
+([`2026-08-26-data-maturation-coverage-expansion.md`](2026-08-26-data-maturation-coverage-expansion.md)
+line 124) states plainly: *"Annotation spec precedes further labelled data | DFD-2 | S-2 gates S-4,
+S-5's labelling half, and all of S-7."* Read narrowly — `DFD-2` was the thing named as gating those
+stages, and `DFD-2` is now met — but **each of those stages carries its own separate, independently
+unmet prerequisites that this ruling does not touch:**
+
+- **`S-1`** (limited taxonomy review) is still recorded as *"agent-authored and awaiting owner
+  acceptance"* in the same proposal (line ~1272) — not itself closed by this ruling.
+- **`S-3`** (provenance / lineage) has its decisions closed but **implementation not started** — a
+  code/tooling gap, not a documentation one.
+- **`S-7.1`**'s per-source Gold-A eligibility ruling for `collected_v4` remains **unruled** (same
+  proposal, line ~121) — a separate, still-open owner decision, unrelated to `D-6`.
+- **`S-4`/`S-5`/`S-6`/`S-T`** all show as *"DECISIONS CLOSED, NOT PERFORMED"* in the reconstruction
+  report's lifecycle map — closed rulings are not completed implementation.
+
+**No repository document explicitly re-authorizes any of the above as a direct consequence of this
+`F-1` ruling.** If the owner intends to unlock any specific one of them now that `DFD-2` is met, that
+is a **separate, new owner decision** — not inferred here, and not taken by this edit.
+
+**Canonical Epic 4** (`T4.1`–`T4.3`, ML Maturation,
+[`../2026-07-03-master-plan.md`](../2026-07-03-master-plan.md)) is unaffected by any of the above and
+remains **not started**.
