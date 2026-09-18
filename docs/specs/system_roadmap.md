@@ -57,6 +57,8 @@
 | Stabilization | Post-Epic-1 engineering stabilization WP-1 → WP-6 (CI gate + branch protection, test-trust de-dating, persistence/sync identity leaks, scheduling characterization, runtime robustness, repo/doc hygiene) | closed 2026-08-02; suite 346 → **391**; all 12 "Epic 2 entry criteria" met |
 | Epic 3 | **Study Optimization Engine** — gates G2 (`cc8eba5`, 2026-08-05) and G3 (`1e18bb7`, 2026-08-07) ratified; Cards A–H shipped: T3.8 identity seam, T3.1 `IConstraintValidator`, T3.2 `IObjectiveEvaluator`, **T3.3 allocator placement least-loaded → earliest-feasible** (`5197784` — the only user-observable change), T3.9 `Optimize` pass loop (N=1), T3.4 D-H/inversion property suite, T3.7 `OptimizerRunLogs` telemetry | **code complete 2026-08-07**, DoD 7/7, 470 pass; [closing note](../reports/2026-08-07-epic3-closing-note.md) |
 | Epic 3 QA | Automated gate (discriminating tests for T3.3/T3.7, `10b5039`) → **manual gate CLOSED 2026-08-19, PASS WITH FINDINGS** (no defects; findings are a UX candidate, the owner-ratified D3 past-deadline limitation, and an *automated*-coverage gap behind a passing manual check). One real defect was found **by** the gate and fixed inside it: the workload-balancer stale chart (`b084e40`/`545870d`) | [closure](../reports/2026-08-19-epic3-manual-gate-closure.md); suite → **487** |
+| Epic 2 — T2.3/T2.4 core | LAN-sync epic started 2026-09-07: T1.4/T2.2 base-snapshot store + change enumeration; T2.3 3-way field-level merge core; T2.4 sync-apply seam, persistent `ConflictRecord` staging, apply/orchestration layer, `ConflictResolver` (PR-1..PR-6) | merged through PR #83 (2026-09-12); see `docs/CHANGELOG.md` 2026-09-12 |
+| Epic 2 — fence Slices 0–2 | Policy-driven mutation-routing / structural-conflict fence: canonical spec ratified, fence policies + router shipped for **local UI saves only** | merged through PR #95 (2026-09-17); Slices 3–6 not started, Slice 6 gated on open decision SB-2/OD-1; see `docs/CHANGELOG.md` 2026-09-17 |
 
 > **Epic 3 scope caveat, stated here because the ledger row cannot carry it:** `IScheduleOptimizer`,
 > `SoeWeights` and `IConstraintValidator` have **no production call site** and no `ServiceLocator`
@@ -67,10 +69,13 @@
 
 ## A.3 Next up
 
-> **State line (2026-08-20).** Items **1 and 2 below are shipped** and are kept here for their
-> decision history, not because they are pending — Epic 1 Released 2026-07-20, Epic 3 code complete
-> 2026-08-07 with its manual gate CLOSED 2026-08-19. **The first unstarted item is 3, the LAN-sync
-> epic (Epic 2)** — that is the master plan's order (E1 → E3 → E2 → E4), and its gate **G4 is
+> **State line (2026-09-18, corrected from 2026-08-20).** Items **1 and 2 below are shipped** and are
+> kept here for their decision history, not because they are pending — Epic 1 Released 2026-07-20,
+> Epic 3 code complete 2026-08-07 with its manual gate CLOSED 2026-08-19. **Item 3, the LAN-sync
+> epic (Epic 2), is now in progress** (started 2026-09-07; T2.3/T2.4 core and fence Slices 0–2 merged,
+> see the item-3 text below and `docs/CHANGELOG.md`) — the earlier "not started" wording here is
+> stale and is corrected by this line, per the same rule this document applies to every other
+> milestone. That is the master plan's order (E1 → E3 → E2 → E4), and its gate **G4 is
 > undecided**. Recording the order is not the same as starting the work: no Epic 2 task has been
 > planned or scheduled, and one piece of Epic 3 integration (**G3-1**, wiring `Optimize` into
 > production) remains unscheduled and could reasonably be sequenced ahead of it. That choice belongs
@@ -117,7 +122,8 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
    **Gates closed:** G2 (pass accept/commit semantics + non-worsening threshold) ratified 2026-08-05
    ([note](../plans/2026-08-04-g2-optimization-pass-semantics.md)); G3 (`w1…w5` weight-vector
    governance) ratified 2026-08-07 ([note](../plans/2026-08-07-g3-weight-vector-governance.md)).
-   **Implementation shipped** (execution plan `2026-08-04-epic-3-execution-plan.md`, Cards A–H):
+   **Implementation shipped** (execution plan `2026-08-04-epic-3-execution-plan.md`, archived
+   2026-09-18 → `legacy/Archived plans/`, local-only; recoverable from git history — Cards A–H):
    corpus + baseline (T3.6), `IConstraintValidator` (T3.1), `IObjectiveEvaluator` (T3.2), schedule
    identity seam (T3.8), allocator **placement** rework (T3.3: least-loaded → earliest-feasible; the
    deadline clause is present but **provably output-inert** today — it cannot change any placement
@@ -156,7 +162,7 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
    `2026-06-30-workload-optimizer-proposal.md` (archived 2026-07-07 → `legacy/Archived plans/`,
    local-only; recoverable from git history — note it carries a supersession banner, the frozen
    contract is D-G/D-H/D-J).
-3. **LAN sync epic** *(D-A)* — **the first unstarted epic (Epic 2 in the master plan's numbering; E1 → E3 → E2 → E4). Not started: no task planned, no branch, no code.** Multi-device, two-way merge over LAN (not cloud). Merge policy **decided (D-F):** field-level merge, LWW only on concurrent same-field edits.
+3. **LAN sync epic** *(D-A)* — **Epic 2 in the master plan's numbering (E1 → E3 → E2 → E4). In progress since 2026-09-07** — see the Epic 2 ledger row above and `docs/CHANGELOG.md` (2026-09-12, 2026-09-17). T2.3 merge core and the T2.4 sync-apply seam through `ConflictResolver` (PR-1..PR-6) are merged; the policy-driven mutation-routing / structural-conflict fence's Slices 0–2 are merged, **local UI saves only**; Slices 3–6 (including the sync-origin fence, gated on open owner decision **SB-2/OD-1**) have not started. T2.5 and beyond are recon-complete but not started. Multi-device, two-way merge over LAN (not cloud). Merge policy **decided (D-F):** field-level merge, LWW only on concurrent same-field edits.
    **Mechanics frozen 2026-07-02 ([D-I](../plans/2026-07-02-architecture-freeze-decisions.md)):** 3-way merge vs. last-synced base; tie-break `ModifiedAtUtc` → `DeviceId`; delete-vs-edit → tombstone wins,
    losing side kept in a conflict record; no HLC. *Cascade policy decided + implemented (G1, cascade-tombstone —
    Epic 1 / M1.2). Still open: tombstone retention/purge authority (master plan gate G4).*
@@ -190,12 +196,18 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
   (it belongs to the Data Maturation proposal). No threshold moved; F-1 below is untouched and remains
   deferred, though it is now *investigable* on real telemetry once rows accrue.
 
-- **Data foundation — decision phase closed 2026-08-26, execution not authorized.** The project now
-  formally holds **zero verified real user rows** (DFD-1); `collected_v4` is AI-generated and
-  AI-labelled. Nine policies are ratified (annotation spec before further labelled data, two-tier Gold,
-  dual-layer provenance, synthetic-for-Silver-only, owner as sole Gold authority). The staged proposal
-  — taxonomy review → annotation spec → provenance → Gold-A/Gold-R → evaluation → controlled expansion
-  — is written and **awaiting owner review**, not scheduled:
+- **Data foundation — decision phase closed 2026-08-26; S-0/S-1/S-2 since executed, execution beyond
+  S-2 not authorized.** The project still formally holds **zero verified real user rows** (DFD-1);
+  `collected_v4` is AI-generated and AI-labelled. Nine policies were ratified 2026-08-26 (annotation
+  spec before further labelled data, two-tier Gold, dual-layer provenance, synthetic-for-Silver-only,
+  owner as sole Gold authority). Since then: **S-0** reservation pre-registered, **S-1** limited
+  taxonomy review completed, **S-2**'s catalogue and `GuidelineVersion v1` were ratified and **frozen
+  2026-09-04** ([freeze record](../plans/2026-09-04-s2-v1-freeze-record.md)), and an independent
+  human reproducibility probe **PASSED** 2026-09-12 (TaskType 20/20, Difficulty 20/20 — see
+  `docs/CHANGELOG.md` and
+  [`../reports/2026-09-12-s2-reproducibility-probe.md`](../reports/2026-09-12-s2-reproducibility-probe.md)).
+  Stages beyond S-2 (provenance → Gold-A/Gold-R → evaluation → controlled expansion) remain
+  **not scheduled**:
   [`../plans/2026-08-26-data-maturation-coverage-expansion.md`](../plans/2026-08-26-data-maturation-coverage-expansion.md).
   Ruling: [`../plans/2026-08-26-data-foundation-owner-decision-handoff.md`](../plans/2026-08-26-data-foundation-owner-decision-handoff.md).
 
@@ -522,7 +534,8 @@ Constraints:
 > [G2 note](../plans/2026-08-04-g2-optimization-pass-semantics.md)); `w1…w5` governance resolved (G3,
 > ratified 2026-08-07 — see [G3 note](../plans/2026-08-07-g3-weight-vector-governance.md)).
 > **Implementation shipped** behind the `IScheduleOptimizer` strategy seam (execution plan
-> `2026-08-04-epic-3-execution-plan.md`, Cards A–H) — not yet wired into the production pipeline
+> `2026-08-04-epic-3-execution-plan.md`, archived 2026-09-18 → `legacy/Archived plans/`, local-only;
+> recoverable from git history — Cards A–H) — not yet wired into the production pipeline
 > (`BalanceWorkloadStage` still calls the pre-Epic-3 allocator path directly; that wiring is separate,
 > unscheduled work). See §A.3 item 2 and the [epic closing note](../reports/2026-08-07-epic3-closing-note.md).
 

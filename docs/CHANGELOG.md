@@ -4,6 +4,72 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
+## 2026-09-17 — Epic 2 / T2.4 structural-conflict fence: **Slices 0–2 shipped** — *policy-driven mutation routing, local-origin only*
+
+> Every local-UI mutation that can reach an unresolved StructuralConflict/ConstraintConflict now gets
+> an explicit impact set, routed through case-specific read-only policies before persistence.
+> Sync-apply routing (Slice 6) stays gated behind an open owner decision (SB-2/OD-1) and is **not**
+> part of this shipment.
+
+| Area | Change | Verification |
+|---|---|---|
+| Spec + owner rulings | Canonical fence spec ratified 2026-09-13 ([`specs/2026-09-13-policy-driven-mutation-routing-structural-conflict-fence-spec-complete.md`](specs/2026-09-13-policy-driven-mutation-routing-structural-conflict-fence-spec-complete.md)); owner closed SB-3/OD-3, OD-4, OD-2 (L1), OD-7 on 2026-09-14 ([rulings](specs/2026-09-14-policy-driven-mutation-routing-owner-rulings.md)); Slice-2 review findings M-3/A-1 and H-1/A-2 closed 2026-09-17 ([rulings](specs/2026-09-17-fence-slice2-owner-rulings-m3-h1.md)) | None amend the frozen D1–D9 decision record or PR-5/PR-6 semantics — each says so explicitly |
+| Slice 1 — fence policies | Constraint + always-legal-parent-transition fence policies shipped; review findings B.1/B.2 closed same-day | PR #91, fix PR #92 |
+| Slice 2 — fence router | Impact resolver, conflict-dependency selector, aggregation logic shipped; independent adversarial review (2026-09-16) found 3 HIGH/4 MED/6 LOW — all closed by the rulings above | PR #93, review PR #94, fix PR #95 — independent re-run at PR #93's head: **942 passed / 1 skipped / 943 total** |
+| Scope boundary | This shipment covers **local UI saves only** — the only live mutation origin today | [`plans/2026-09-13-policy-driven-mutation-routing-structural-conflict-fence-plan.md`](plans/2026-09-13-policy-driven-mutation-routing-structural-conflict-fence-plan.md) §20 |
+
+**Deliberately still open:** Slices 3–6 of the fence plan (repository refactor, executor wiring,
+sync-origin routing) have not started; **SB-2/OD-1** (sync-origin fence crossing) remains an open
+owner decision and gates Slice 6. `docs/specs/system_roadmap.md` §A.3 item 3 is corrected in this
+same pass — it previously read "not started," which stopped being true 2026-09-07.
+
+## 2026-09-12 — Epic 2 / LAN Sync: **T2.3 merge core + T2.4 sync-apply seam through ConflictResolver shipped** — *first Epic 2 code merged to `dev`*
+
+> The first production code for the LAN-sync epic (Epic 2 in the master-plan order E1 → E3 → E2 → E4)
+> is now on `dev`: 3-way field-level merge, a persistent conflict-record staging boundary, the
+> apply/orchestration layer, and the conflict resolver that turns staged conflicts into resolutions.
+> This is sync-engine plumbing — no UI surface, no multi-device sync loop wired end-to-end yet.
+
+| Area | Change | Verification |
+|---|---|---|
+| T1.4 + T2.2 | Per-peer last-synced base-snapshot store + change enumeration via the `Rev` watermark | PR #66 (2026-09-07) |
+| T2.3 — merge core | Pure 3-way field-level merge core (PR-1); missing provenance/fields routed through a typed failure | PR #72 (2026-09-08) |
+| T2.4 — PR-2..PR-4 | Per-entry sync-apply seam on `SyncStamper`/`AppDbContext`; baseline store joins the caller's transaction with composable Upsert/Remove; persistent `ConflictRecord` staging boundary | PR #73, #74, #75 (2026-09-09) |
+| T2.4 — PR-5 | Sync apply/orchestration layer (`SyncApplySession`), apply-session integration tests A–W, D4/D9-T4 amendment implemented (a `StructuralConflict` may have no local candidate) | PR #76, #77 (2026-09-11); [amendment](specs/T2.3-T2.4-D4-D9-T4-Amendment-2026-09-10.md), [context-lifetime ruling](specs/T2.4-PR5-ContextLifetime-Amendment-2026-09-11.md) |
+| T2.4 — PR-6 | `ConflictResolver` implemented per the engineering DoR and owner rulings B-1..B-4/E-3; independent senior review; H-1 replay-identity discrimination test | PR #80, #81, #82, #83 (2026-09-11/12); [rulings](specs/T2.4-PR6-ConflictResolver-Rulings-2026-09-11.md) |
+| Governing decision record | [`specs/T2.3-T2.4-D1-D9-Decision-Record-updated.md`](specs/T2.3-T2.4-D1-D9-Decision-Record-updated.md) (D1–D9, D9-T1..T6 ratified) — frozen, unchanged by any of the above; each PR's rulings are dated amendments alongside it, none edit the root record | — |
+
+**Deliberately still open:** T2.5 and beyond (recon complete, [`review/2026-09-12-t2.5-recon.md`](review/2026-09-12-t2.5-recon.md), READY WITH EXPLICIT PRECONDITIONS — governance, not code); no multi-device sync loop is wired to a UI surface yet; the structural-conflict fence work that routes mutations through this machinery shipped separately (see the entry above).
+
+## 2026-09-12 — Epic 4 / Data Maturation: **GuidelineVersion v1 frozen; independent human reproducibility probe PASS** — *annotation guideline validated on one independent reader, no product/model change*
+
+> **Nothing shipped to the product.** `GuidelineVersion v1` (the S-2 annotation taxonomy/guideline) was
+> frozen 2026-09-04 ([freeze record](plans/2026-09-04-s2-v1-freeze-record.md)). A reproducibility probe
+> was then run: the same sealed 20-row scored batch was independently annotated by the owner
+> (Gold/reference pass) and by one independent human reader, given only the frozen guideline and the
+> blind annotation sheet — no row-level guidance. **This entry records an owner-reported ruling, not a
+> document committed to the repository**: the filled sheets
+> (`s2-reader-package/02-annotation-sheet.md`, `s2-reader-package/02-annotation-sheet-gold.md`) are, as
+> of this pass, held **uncommitted / untracked** in the owner's working tree — see Follow-up, and see
+> [`reports/2026-09-12-s2-reproducibility-probe.md`](reports/2026-09-12-s2-reproducibility-probe.md).
+
+| Area | Result | Threshold | Verdict |
+|---|---|---|---|
+| TaskType classification | 20/20 exact match (owner Gold pass vs. independent reader) | ≥ 17/20 | **PASS** |
+| Difficulty classification | 20/20 exact match | ≥ 18/20 | **PASS** |
+| Ambiguous rows | R-12 and R-20 independently marked `unresolved: true` by both passes | — | Concordant |
+
+**Scope, stated precisely:** this is a reproducibility result for **one independent reader on one
+20-row sealed batch** — it says the frozen guideline can be applied consistently by someone who did
+not write it. It is **not** a corpus-wide accuracy figure, not an ML-model accuracy figure, not
+general inter-annotator agreement, and not a validation of the dataset itself (the project still
+holds zero verified real user rows outside this probe, DFD-1). `GuidelineVersion` was **not** bumped;
+no v2 was created; no knowledge distillation was performed as part of this pass.
+
+**Follow-up (owner action, not done by this pass):** commit the two annotation-sheet files above so
+this result is independently re-derivable from the repository rather than resting on a reported
+ruling.
+
 ## 2026-08-27 — DFD-9a **end-to-end gate CLOSED** — *no code change; the last check was run by hand*
 
 > **Nothing shipped.** The fix shipped 2026-08-26; what changed today is that it is now *known to work
