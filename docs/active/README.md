@@ -15,7 +15,12 @@ and the [closing note](../reports/2026-08-07-epic3-closing-note.md).
 **The edge-AI encoder adoption is CLOSED (2026-08-25)** — S0 ran, the **EVA-16 kill criterion fired**,
 and the owner accepted the stop. **No production code was written and none will be.** See the
 [pilot report](../reports/2026-08-25-encoder-pilot.md) and the CP1 ruling at its end.
-**Nothing is in progress right now** — the rows below are queued/proposed/raised, not being worked.
+
+**Epic 2 (LAN Sync) is now in progress (started 2026-09-07)** — see the table below. T2.3 merge core
+and the T2.4 sync-apply seam through `ConflictResolver` (PR-1..PR-6) are merged, and the
+policy-driven mutation-routing / structural-conflict fence's Slices 0–2 are merged for **local UI
+saves only**. See `docs/CHANGELOG.md` (2026-09-12, 2026-09-17) and
+[`../specs/system_roadmap.md`](../specs/system_roadmap.md) §A.3 item 3.
 
 **DFD-9a's last gate closed 2026-08-27** — the end-to-end check no automated test could perform was
 run by the owner at a keyboard and ruled **PASS**. The shipped application demonstrably logs what it
@@ -31,25 +36,39 @@ completed correction pass — see the table below and
 **The proposal's own review closed 2026-08-27** — the owner ruled on **Q-1 … Q-5**, the five questions
 the proposal had declined to answer with invented figures
 ([`../plans/2026-08-27-data-maturation-owner-decision-outcomes.md`](../plans/2026-08-27-data-maturation-owner-decision-outcomes.md)).
-**Four of the five rulings are instructions not to invent the number yet.** The proposal is now at
-**revision 2** and waits on *authorization*, not decisions. Its immediate next step, **S-1**, needs no
-tooling and no data — only four owner rulings.
+**Four of the five rulings are instructions not to invent the number yet.** The proposal reached
+**revision 2** on that basis.
+
+**S-1 and S-2 have since executed (2026-09-04/05).** S-0 was pre-registered, S-1's limited taxonomy
+review completed, and S-2's catalogue was ratified — `GuidelineVersion v1` **froze 2026-09-04**
+([freeze record](../plans/2026-09-04-s2-v1-freeze-record.md)). The independent human §10
+reproducibility probe on the frozen guideline was **performed 2026-09-12**; the owner's Gold pass and
+the independent reader agree cell-for-cell on all 20 rows, with `R-12`/`R-20` `unresolved=true` in
+both. The result is **PASS under owner ruling `F-1`/`D-6` (Reading A)**, recorded 2026-09-18 — figures
+and required companions in
+[`../reports/2026-09-18-epic4-s2-section10-result.md`](../reports/2026-09-18-epic4-s2-section10-result.md).
+It is scoped to one independent reader on one sealed 20-row batch — not corpus-wide, ML or dataset
+accuracy. The two filled annotation sheets remain uncommitted; their evidence location (`F-4`) is an
+open owner decision. The PASS satisfies `DFD-2`'s single condition and **authorizes nothing further**:
+stages beyond S-2 (provenance → Gold-A/Gold-R → evaluation → controlled expansion) remain **not
+authorized, not scheduled**, and this is Data Maturation, not canonical Epic 4 (`T4.1`–`T4.3`), which
+has **not started**.
 
 *Superseded 2026-08-19 (kept for history):* the previous banner said *"Epic 3 (SOE) is next"*, which
 was true when written on 2026-08-02. The order it cited still holds — the
-[master plan](../plans/2026-07-03-master-plan.md) sequences **E1 → E3 → E2 → E4**, and *"Epic 2 entry
-criteria"* remains the stabilization plan's name for a set of gates, **not** an execution order.
-With E1 and E3 both closed, the next epic in that sequence is the **LAN-sync epic (Epic 2)**, which
-**has not been started**. Naming the order is not the same as choosing it: **G3-1** — wiring the
-Epic 3 optimizer into production, still unscheduled — could reasonably come first. That call is the
-owner's and has not been made.
+[master plan](../plans/2026-07-03-master-plan.md) sequences **E1 → E3 → E2 → E4**. With E1 and E3
+both closed, the next epic in that sequence, the **LAN-sync epic (Epic 2), started 2026-09-07** (see
+above) — this line itself is now superseded and kept only for history, same as the line above it.
+**G3-1** — wiring the Epic 3 optimizer into production — remains unscheduled regardless of Epic 2's
+start; that was never an either/or.
 
-## Current (2026-08-26)
+## Current (2026-09-18)
 
 | Work | Plan | State |
 |---|---|---|
+| **Epic 2 — LAN Sync (T2.3/T2.4 core + structural-conflict fence)** | [`../plans/2026-09-13-policy-driven-mutation-routing-structural-conflict-fence-plan.md`](../plans/2026-09-13-policy-driven-mutation-routing-structural-conflict-fence-plan.md) | **In progress since 2026-09-07.** T2.3 merge core + T2.4 sync-apply seam through `ConflictResolver` merged (PR-1..PR-6, through PR #83, 2026-09-12). Fence Slices 0–2 merged for **local UI saves only** (through PR #95, 2026-09-17); Slices 3–6 not started, Slice 6 gated on open owner decision **SB-2/OD-1**. T2.5 recon-complete, not started. See `docs/CHANGELOG.md` 2026-09-12/2026-09-17 |
 | **Prediction instrumentation defect (DFD-9a)** | [`../plans/2026-08-26-prediction-instrumentation-defect.md`](../plans/2026-08-26-prediction-instrumentation-defect.md) | **FIXED 2026-08-26**, suite 487 → 492. Seam returns the prediction record, `TaskDashboardItem` carries it, the write site logs both columns on both branches. **CLOSED 2026-08-27 — the last gate is shut.** The owner ran the end-to-end check at a keyboard against the real Debug database: four new rows through the production DI wiring, both command paths, all with `PredictedMinutes` and `Confidence` non-null, while the two pre-fix rows still read `NULL` in the same output. Ruled **PASS** on all four pre-registered criteria, twice. The second pass (non-overdue tasks) logged `WasMlPrediction = 1` with `Confidence` 0.90 and 0.7333, both reproducing exactly from each task's own `DiemUuTien` — so the ML branch demonstrably ran. Evidence: [`../reports/2026-08-27-dfd9a-instrumentation-observation.md`](../reports/2026-08-27-dfd9a-instrumentation-observation.md). Runbook: [`../plans/2026-08-26-dfd9a-instrumentation-runbook.md`](../plans/2026-08-26-dfd9a-instrumentation-runbook.md). **Still true:** pre-2026-08-26 rows remain unusable (no backfill is possible), `Confidence = 0` stays ambiguous under DFD-5, and nothing here says the predicted numbers are *good* |
-| **Data Maturation & Coverage Expansion** | [`../plans/2026-08-26-data-maturation-coverage-expansion.md`](../plans/2026-08-26-data-maturation-coverage-expansion.md) | **Rev 2 (2026-08-27) — DRAFT, awaiting *authorization*.** Reviewed; Q-1…Q-5 ruled. Staged S-1…S-8 plus the **S-T** telemetry strand; maturity is now a `T-0…T-3` tier ladder with three binary invariants, **all three false today**. Not authorized, not scheduled. **Next: S-1**, the limited taxonomy review — four owner rulings, no tooling. Then S-2, then the Q-1 measurement |
+| **Data Maturation & Coverage Expansion** | [`../plans/2026-08-26-data-maturation-coverage-expansion.md`](../plans/2026-08-26-data-maturation-coverage-expansion.md) | **S-0/S-1/S-2 executed; `GuidelineVersion v1` frozen 2026-09-04; independent §10 reproducibility probe performed 2026-09-12; PASS under owner ruling `F-1`/`D-6` (Reading A), recorded 2026-09-18** (see [`../reports/2026-09-18-epic4-s2-section10-result.md`](../reports/2026-09-18-epic4-s2-section10-result.md) for the figures and required companions; source sheets still uncommitted, `F-4` open). Upstream of, and distinct from, canonical Epic 4 (`T4.1`–`T4.3`, not started). Maturity is a `T-0…T-3` tier ladder with three binary invariants; **I-1/I-2/I-3 status as of S-2 needs a fresh read against the current plan revision, not restated here to avoid drifting out of sync with it.** Stages beyond S-2 (provenance → Gold-A/Gold-R → evaluation → controlled expansion) remain **not authorized, not scheduled** |
 | **Owner decision outcomes (Q-1…Q-5)** | [`../plans/2026-08-27-data-maturation-owner-decision-outcomes.md`](../plans/2026-08-27-data-maturation-owner-decision-outcomes.md) | **RATIFIED 2026-08-27**, implementation still not authorized. Owner has a bounded participant network (Q-2); collection runs outside the app (Q-3); hybrid sampling, no forced quotas (Q-4); tiered maturity (Q-5); adjudication effort is measured, not estimated (Q-1). **Where its wording differs from the 2026-08-26 handoff, this one governs** — one such difference is material, see its §A.2 |
 | **Analytics two-section redesign** | [`../plans/2026-07-20-analytics-two-section-redesign.md`](../plans/2026-07-20-analytics-two-section-redesign.md) | QUEUED — design brief, **plus a delivered implementation package** (2026-08-02) now under version control at [`../assets/analytics-ui-package/`](../assets/analytics-ui-package/). **Not integrated**; no code merged. Phase 3 unlocked, not started. *Known gap: the package README cites an interactive mockup `Analytics Redesign Proposal.dc.html` that is not in the repository.* |
 | **UI fidelity + mobile-ready polish** | [`../plans/2026-07-05-ui-mobile-ready-polish.md`](../plans/2026-07-05-ui-mobile-ready-polish.md) | PROPOSED, on `dev` — `ui_rf` was adopted as the tested trunk and merged (PR #49, 2026-07-26), so the plan is no longer branch-scoped; it remains unimplemented |

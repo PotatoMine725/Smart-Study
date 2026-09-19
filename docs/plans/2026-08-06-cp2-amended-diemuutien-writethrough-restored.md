@@ -4,7 +4,8 @@
 **Amends:** CP-2 (`4f49153`, 2026-08-05) — "`DiemUuTien` write-through is dropped when T3.3 lands."
 
 **Reads with:** [`2026-08-04-m3.0-allocator-baseline-vs-invariant.md`](2026-08-04-m3.0-allocator-baseline-vs-invariant.md)
-§2 bucket ④; [`2026-08-04-epic-3-execution-plan.md`](2026-08-04-epic-3-execution-plan.md) §3.10 CP-2 row.
+§2 bucket ④; `2026-08-04-epic-3-execution-plan.md` (archived 2026-09-18 → `legacy/Archived plans/`,
+local-only; recoverable from git history) §3.10 CP-2 row.
 
 ## What was found
 
