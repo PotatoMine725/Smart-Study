@@ -4,6 +4,20 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
+## 2026-09-18 — S-2 §10 reproducibility probe: owner ruling `F-1`/`D-6` recorded, result **PASS** (Reading A) — *no code change; documentation + owner ruling only*
+
+> **Data Maturation / S-2 prerequisite milestone — not the canonical Epic 4.** Canonical Epic 4
+> (`T4.1`–`T4.3`, ML Maturation) has **not started**. This is the annotation-governance ladder
+> upstream of it. **Not** a corpus-wide agreement claim, **not** an ML accuracy result, **not** a
+> dataset validation result.
+
+| Area | Change | Verification |
+|---|---|---|
+| Owner ruling | `D-6` (unresolved-response scoring, left deliberately unauthorised 2026-09-05) ruled post-hoc as **`F-1` — Reading A**: a shared `unresolved=true` between the Owner Gold pass and the independent reader counts as exact agreement | [`plans/2026-09-05-s2-owner-decisions.md`](plans/2026-09-05-s2-owner-decisions.md) §`F-1` |
+| §10 result | **PASS** under Reading A — 20-row: TaskType 20/20, Difficulty 20/20; primary 16-row: TaskType 16/16, Difficulty 16/16, against `D-7`'s ≥17/20, ≥18/20, ≥14/16, ≥15/16 thresholds. Full `G2`/`G4`/`C4`/`D-2` companions recorded, not quoted alone | [`reports/2026-09-18-epic4-s2-section10-result.md`](reports/2026-09-18-epic4-s2-section10-result.md) |
+| `DFD-2` | The single, narrowly-scoped condition this project's own freeze record set — "satisfied only after the §10 test passes" — is now met. **Does not** by itself authorize `S-3` implementation, labelled-data collection/import/generation, or data promotion; those remain separately gated | [`plans/2026-09-04-s2-v1-freeze-record.md`](plans/2026-09-04-s2-v1-freeze-record.md) §"Gates — status update, appended 2026-09-18" |
+| Evidence | Both annotation sheets (Owner Gold, independent reader) verified byte-unchanged since the probe; `R-12`/`R-20` remain `unresolved=true`, unedited, in both. Reader-package validator: 18/18 PASS on the committed package; the working-tree copy still fails 3/18 purely because the probe artifacts sit inside the instrument directory — **left untouched**, pending a separate owner decision on evidence location (`F-4`) | Hashes and validator run re-verified independently this session |
+
 ## 2026-08-27 — DFD-9a **end-to-end gate CLOSED** — *no code change; the last check was run by hand*
 
 > **Nothing shipped.** The fix shipped 2026-08-26; what changed today is that it is now *known to work
