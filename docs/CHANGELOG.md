@@ -55,34 +55,35 @@ same pass — it previously read "not started," which stopped being true 2026-09
 
 **Deliberately still open:** T2.5 and beyond (recon complete, [`review/2026-09-12-t2.5-recon.md`](review/2026-09-12-t2.5-recon.md), READY WITH EXPLICIT PRECONDITIONS — governance, not code); no multi-device sync loop is wired to a UI surface yet; the structural-conflict fence work that routes mutations through this machinery shipped separately (see the entry above).
 
-## 2026-09-12 — Epic 4 / Data Maturation: **GuidelineVersion v1 frozen; independent human reproducibility probe PASS** — *annotation guideline validated on one independent reader, no product/model change*
+## 2026-09-12 — Data Maturation / S-2: **GuidelineVersion v1 frozen; independent human §10 reproducibility probe performed** — *no product/model change; result formally recorded 2026-09-18, see the 2026-09-18 entry*
 
-> **Nothing shipped to the product.** `GuidelineVersion v1` (the S-2 annotation taxonomy/guideline) was
-> frozen 2026-09-04 ([freeze record](plans/2026-09-04-s2-v1-freeze-record.md)). A reproducibility probe
-> was then run: the same sealed 20-row scored batch was independently annotated by the owner
-> (Gold/reference pass) and by one independent human reader, given only the frozen guideline and the
-> blind annotation sheet — no row-level guidance. **This entry records an owner-reported ruling, not a
-> document committed to the repository**: the filled sheets
-> (`s2-reader-package/02-annotation-sheet.md`, `s2-reader-package/02-annotation-sheet-gold.md`) are, as
-> of this pass, held **uncommitted / untracked** in the owner's working tree — see Follow-up, and see
+> **Nothing shipped to the product, and this is not the canonical Epic 4.** Data Maturation
+> (`S-0`…`S-8`, `S-T`) is the annotation-governance ladder upstream of canonical Epic 4 (`T4.1`–`T4.3`,
+> ML Maturation), which has **not started**. `GuidelineVersion v1` (the S-2 annotation
+> taxonomy/guideline) was frozen 2026-09-04 ([freeze record](plans/2026-09-04-s2-v1-freeze-record.md)).
+> The §10 reproducibility probe was then performed: the sealed 20-row scored batch was annotated
+> independently by the owner (Gold pass) and by one independent human reader, given only frozen `v1`
+> as rendered in Vietnamese and the blind annotation sheet — no row-level guidance. See
 > [`reports/2026-09-12-s2-reproducibility-probe.md`](reports/2026-09-12-s2-reproducibility-probe.md).
 
-| Area | Result | Threshold | Verdict |
-|---|---|---|---|
-| TaskType classification | 20/20 exact match (owner Gold pass vs. independent reader) | ≥ 17/20 | **PASS** |
-| Difficulty classification | 20/20 exact match | ≥ 18/20 | **PASS** |
-| Ambiguous rows | R-12 and R-20 independently marked `unresolved: true` by both passes | — | Concordant |
+| Area | State | Where |
+|---|---|---|
+| Probe outcome | Owner Gold and independent reader agree **cell-for-cell on all four recorded fields across all 20 rows**; `R-12` and `R-20` are `unresolved=true` in both | [`reports/2026-09-18-epic4-s2-state-reconstruction.md`](reports/2026-09-18-epic4-s2-state-reconstruction.md) |
+| Verdict at the time | **Not yet scorable** — `D-6` (how an `unresolved` response scores) had been deliberately left unauthorised, and under one reading the primary 16-row Difficulty figure fails | same report, §0/§2 (superseded by its §12) |
+| Verdict now | **PASS under owner ruling `F-1`/`D-6` (Reading A)**, recorded 2026-09-18 — figures and required `G2`/`G4`/`C4`/`D-2` companions in the 2026-09-18 entry; the 20-row figures are never quoted without the primary 16-row figures | [`reports/2026-09-18-epic4-s2-section10-result.md`](reports/2026-09-18-epic4-s2-section10-result.md) |
 
-**Scope, stated precisely:** this is a reproducibility result for **one independent reader on one
-20-row sealed batch** — it says the frozen guideline can be applied consistently by someone who did
-not write it. It is **not** a corpus-wide accuracy figure, not an ML-model accuracy figure, not
-general inter-annotator agreement, and not a validation of the dataset itself (the project still
-holds zero verified real user rows outside this probe, DFD-1). `GuidelineVersion` was **not** bumped;
-no v2 was created; no knowledge distillation was performed as part of this pass.
+**Scope, stated precisely:** reproducibility of `v1` as rendered in Vietnamese, for **one independent
+reader on one sealed 20-row batch**. It is **not** a corpus-wide accuracy figure, not an ML-model
+accuracy figure, not general future-annotator behaviour, and not a validation of the dataset itself
+(the project still holds zero verified real user rows, DFD-1). `GuidelineVersion` was **not** bumped;
+no v2 was created.
 
-**Follow-up (owner action, not done by this pass):** commit the two annotation-sheet files above so
-this result is independently re-derivable from the repository rather than resting on a reported
-ruling.
+**Evidence custody (still limited):** the two filled sheets
+(`s2-reader-package/02-annotation-sheet.md` as modified, `s2-reader-package/02-annotation-sheet-gold.md`)
+remain **uncommitted / untracked** in the owner's working tree; the committed
+`02-annotation-sheet.md` is the blank instrument, not the returned sheet. Where and whether to commit
+them is open owner decision **`F-4`**. Committing them so the result is re-derivable from the
+repository is a **recommendation**, not done here.
 
 ## 2026-08-27 — DFD-9a **end-to-end gate CLOSED** — *no code change; the last check was run by hand*
 

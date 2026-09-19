@@ -139,10 +139,11 @@ execution plan, a decision/handoff record, and a report. When it ends, walk the 
 > PR #54; already flagged as an archive candidate a month earlier in
 > `docs/reports/2026-08-19-epic3-knowledge-distillation.md:132`, never actioned until now),
 > `2026-08-19-e6-cascade-coverage-test.md` (self-marked `EXECUTED 2026-08-20`). Their two
-> living-doc citations in `system_roadmap.md` and three in `docs/knowledge/` were converted to the
-> textual archived pointer used elsewhere in this file; dated citations in `CHANGELOG.md` and
-> `docs/reports/` were left untouched (2026-07-07 precedent: dated artifacts keep their historical
-> citations). **Retained in `plans/`, not archived:** the Epic 3 gate/seam decision records (G2, G3,
+> living-doc citations in `system_roadmap.md`, three in `docs/knowledge/` and the `Reads with` lines of
+> six retained Epic 3 decision records were converted to the textual archived pointer used elsewhere
+> in this file; dated citations in `CHANGELOG.md` and `docs/reports/` were left untouched, so some
+> dated CHANGELOG and report links now point at archived plans (per `docs/README.md` "Amendments, not rewrites":
+> dated artifacts are not edited into a cleaner story). **Retained in `plans/`, not archived:** the Epic 3 gate/seam decision records (G2, G3,
 > T3.1, T3.8, T3.2, the CP-2 amendment, both T3.3 scope amendments, the T3.9 design/DoR, the M3.0
 > allocator classification, the deadline-tier proof) — same class as the Epic 1 decision records kept
 > in the 2026-07-26/08-02 sweeps — and `2026-08-10-epic-3-manual-qa-runbook.md`, exempt by the

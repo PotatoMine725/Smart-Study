@@ -202,12 +202,16 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
   spec before further labelled data, two-tier Gold, dual-layer provenance, synthetic-for-Silver-only,
   owner as sole Gold authority). Since then: **S-0** reservation pre-registered, **S-1** limited
   taxonomy review completed, **S-2**'s catalogue and `GuidelineVersion v1` were ratified and **frozen
-  2026-09-04** ([freeze record](../plans/2026-09-04-s2-v1-freeze-record.md)), and an independent
-  human reproducibility probe **PASSED** 2026-09-12 (TaskType 20/20, Difficulty 20/20 — see
-  `docs/CHANGELOG.md` and
-  [`../reports/2026-09-12-s2-reproducibility-probe.md`](../reports/2026-09-12-s2-reproducibility-probe.md)).
+  2026-09-04** ([freeze record](../plans/2026-09-04-s2-v1-freeze-record.md)), and the independent
+  human §10 reproducibility probe was **performed** 2026-09-12 — result **PASS under owner ruling
+  `F-1`/`D-6` (Reading A)**, recorded 2026-09-18, scoped to one independent reader on one sealed
+  20-row batch (figures and required companions:
+  [`../reports/2026-09-18-epic4-s2-section10-result.md`](../reports/2026-09-18-epic4-s2-section10-result.md);
+  source sheets still uncommitted, evidence location `F-4` open). That satisfies `DFD-2`'s single
+  condition only; it authorizes no further stage. This is Data Maturation, upstream of — not the same
+  as — canonical Epic 4 (`T4.1`–`T4.3`), which has not started.
   Stages beyond S-2 (provenance → Gold-A/Gold-R → evaluation → controlled expansion) remain
-  **not scheduled**:
+  **not authorized, not scheduled**:
   [`../plans/2026-08-26-data-maturation-coverage-expansion.md`](../plans/2026-08-26-data-maturation-coverage-expansion.md).
   Ruling: [`../plans/2026-08-26-data-foundation-owner-decision-handoff.md`](../plans/2026-08-26-data-foundation-owner-decision-handoff.md).
 
