@@ -81,8 +81,9 @@ This folder contains all living documentation for Smart Study Planner. Outdated/
 reason.)* A decision record sets **direction** — it is read before planning, and it lives beside the
 plans in `plans/`. An owner ruling record answers a question raised by **work already in flight**: its
 rulings are cited by policy code, by tests, and by later slices, which is why they sit in `specs/`
-next to the contracts they bind. Since 2026-09-11 every ruling round in this project has been filed
-that way. Give a ruling record the header block that makes it checkable — **Closes · Amends · Does
+next to the contracts they bind. Since 2026-09-11 every Epic 2 ruling round has been filed that way.
+(A ruling that settles a question inside an existing decision series is recorded in that series' own
+file instead — e.g. S-2's `F-1` on `D-6`, 2026-09-18, in `plans/2026-09-05-s2-owner-decisions.md`.) Give a ruling record the header block that makes it checkable — **Closes · Amends · Does
 not amend · Leaves open · Implemented by** — and a closing consistency-check table; a ruling that
 *confirms* existing text should say so explicitly, because "this amends nothing" is a claim like any
 other. See [`knowledge/decision-governance.md`](knowledge/decision-governance.md).
