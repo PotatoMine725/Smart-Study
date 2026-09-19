@@ -1584,6 +1584,37 @@ Vietnamese."*
 *exists*; it assigns nobody, it is owner action, and **no AI substitute is permitted** (S-2.2). Until
 a reader is recruited, §10 cannot begin.
 
+### §10 performed 2026-09-12; `D-6` ruled 2026-09-18 (`F-1`, Reading A) — §10 **PASS**, nothing further authorized
+
+**Appended 2026-09-19. Nothing above this heading is changed** — each subsection of §8 was true when
+written and is superseded, not corrected, by what follows.
+
+**What happened.** An independent human reader was recruited (owner-attested) and the §10 probe was
+performed on the ratified Vietnamese rendering (in-sheet date 2026-09-12). The owner's Gold pass and
+the reader agree cell-for-cell on all four recorded fields across all 20 rows; `R-12` and `R-20` are
+`unresolved=true` in both. Because `D-6` had deliberately left the scoring of `unresolved` open, the
+result was not scorable until the owner ruled **`F-1` — Reading A** on 2026-09-18: a shared
+`unresolved=true` counts as exact agreement. Under that ruling the **§10 reproducibility gate
+passes**. The ruling is recorded in
+[`2026-09-05-s2-owner-decisions.md`](2026-09-05-s2-owner-decisions.md) §`F-1`; the figures and their
+required `G2`/`G4`/`C4`/`D-2` companions — never quoted apart from one another — are in
+[`../reports/2026-09-18-epic4-s2-section10-result.md`](../reports/2026-09-18-epic4-s2-section10-result.md).
+The scope sentence above still applies: reproducibility of `v1` as rendered in Vietnamese, one
+independent reader, one sealed 20-row batch.
+
+**What it settles.** `DFD-2`'s single stated condition — "satisfied only after the §10 test passes" —
+is met.
+
+**What it does not settle.** It authorizes no further stage. `S-3` implementation, labelled-data
+collection/import/generation, dataset promotion, `S-7.1` Gold-A eligibility for `collected_v4`, and
+controlled expansion each remain separately gated; unlocking any of them is a new owner decision. See
+the [freeze record](2026-09-04-s2-v1-freeze-record.md)'s "Gates — status update, appended
+2026-09-18". Canonical Epic 4 (`T4.1`–`T4.3`, ML Maturation) is unaffected and **not started**. The two
+filled annotation sheets remain uncommitted; where they live is open owner decision `F-4`. The line
+in the "Authorized 2026-09-04" paragraph above that still describes S-1 as *"awaiting owner
+acceptance"* predates the S-1 record's acceptance on 2026-09-04
+([`2026-09-04-s1-limited-taxonomy-review.md`](2026-09-04-s1-limited-taxonomy-review.md)).
+
 
 
 
