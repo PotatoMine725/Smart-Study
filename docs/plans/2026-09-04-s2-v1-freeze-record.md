@@ -123,8 +123,11 @@ S-5's labelling half, and all of S-7."* Read narrowly — `DFD-2` was the thing 
 stages, and `DFD-2` is now met — but **each of those stages carries its own separate, independently
 unmet prerequisites that this ruling does not touch:**
 
-- **`S-1`** (limited taxonomy review) is still recorded as *"agent-authored and awaiting owner
-  acceptance"* in the same proposal (line ~1272) — not itself closed by this ruling.
+- **`S-1`** (limited taxonomy review) — the same proposal (line ~1272) still reads *"agent-authored
+  and awaiting owner acceptance"*, but that line is stale: the S-1 record itself states S-1 was
+  **accepted on 2026-09-04**
+  ([`2026-09-04-s1-limited-taxonomy-review.md`](2026-09-04-s1-limited-taxonomy-review.md)). Either
+  way, S-1's status is neither changed nor closed by this ruling.
 - **`S-3`** (provenance / lineage) has its decisions closed but **implementation not started** — a
   code/tooling gap, not a documentation one.
 - **`S-7.1`**'s per-source Gold-A eligibility ruling for `collected_v4` remains **unruled** (same
@@ -137,5 +140,5 @@ unmet prerequisites that this ruling does not touch:**
 is a **separate, new owner decision** — not inferred here, and not taken by this edit.
 
 **Canonical Epic 4** (`T4.1`–`T4.3`, ML Maturation,
-[`../2026-07-03-master-plan.md`](../2026-07-03-master-plan.md)) is unaffected by any of the above and
+[`2026-07-03-master-plan.md`](2026-07-03-master-plan.md)) is unaffected by any of the above and
 remains **not started**.
