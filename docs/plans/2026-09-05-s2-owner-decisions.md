@@ -57,6 +57,10 @@ Gold pass, so quoting those values into a working record would prime the very pa
 
 ## `D-6` — the scoring treatment of `unresolved` remains unauthorised
 
+> **As ruled 2026-09-05; superseded in one respect — see `F-1` below.** The finding that an
+> `unresolved` response scores nothing by default still stands as written; `F-1` is the later,
+> post-hoc ruling on how a **shared** `unresolved` outcome scores once it actually occurred.
+
 **The owner has not authorised how an `unresolved` response scores.** The reader keeps the ability
 to mark it, **no scoring semantics were added to `v1`** or to its Vietnamese rendering, and **no
 reader-facing text claims any treatment for it** — not that it counts, not that it does not count,
@@ -129,15 +133,66 @@ still ships beside the rendering byte-exact. **Enforced by validator check `C18`
 
 ---
 
+## `F-1` — post-hoc ruling on `D-6`: an agreed `unresolved` counts as exact agreement (Reading A)
+
+**Recorded 2026-09-18, after the §10 probe was performed.** `D-6` above was deliberately left
+unauthorised *before* the test — the honest-instrument reasoning in `D-6` — and the probe then
+produced exactly the situation `D-6` anticipated: both the owner's Gold pass and the independent
+reader's blind pass flagged `R-12` and `R-20` as `unresolved`, with no scoring convention on record
+for what that means. `S-2.7` forbids settling procedure after results are seen for anything `S-2.7`
+itself governs; `D-6`'s scoring question was never inside that invariant — it was **openly
+unauthorised**, which is why it can be ruled now, **as a post-hoc ruling, on record as such**, rather
+than silently.
+
+**The owner's ruling, verbatim:**
+
+> D-6 = Reading A.
+>
+> When the Owner Gold annotation and the independent human reader both record `unresolved=true` for a
+> row because Guideline v1 cannot resolve that row, that shared `unresolved` outcome counts as an
+> exact agreement for §10 reproducibility scoring.
+>
+> Therefore the §10 human probe result is PASS under Reading A.
+
+**Semantic effect:**
+
+1. `unresolved=true` is a valid annotation outcome of Guideline `v1` when the guideline cannot resolve
+   a row — not an annotator failure and not a missing label.
+2. For §10 scoring, a row where **both** Gold and the independent reader independently record
+   `unresolved=true` counts as an **exact agreement**, for **both** `TaskType` and `Difficulty` on
+   that row. The absence of a substantive label is not disagreement; shared `unresolved` is agreement
+   on the annotation outcome.
+3. This settles exactly the fork `D-6` left open. It resolves the previously open `D-6` scoring
+   question — it is **not** a revision of the human result, and it does not touch anything either
+   annotator wrote.
+
+**What this ruling does not do:**
+
+- does not change `GuidelineVersion v1`, its rules, or its Vietnamese rendering;
+- does not change the sealed 20-row batch or its composition;
+- does not change the `D-7` thresholds or the primary 16-row selection;
+- does not fill, revise or otherwise touch `R-12` or `R-20` — both remain `unresolved=true`, blank
+  `TaskType`/`Difficulty`, in both the Gold sheet and the returned sheet;
+- does not authorise re-annotation, a new batch, or re-running the §10 probe.
+
+**Full result and its required companions (`G2`/`G4`/`C4`/`D-2`)** are recorded in
+[`../reports/2026-09-18-epic4-s2-section10-result.md`](../reports/2026-09-18-epic4-s2-section10-result.md).
+The verbatim ruling above is also appended to
+[`../reports/2026-09-18-epic4-s2-state-reconstruction.md`](../reports/2026-09-18-epic4-s2-state-reconstruction.md)
+§12, the report that raised `D-6` as blocking.
+
+---
+
 ## What remains open
 
 | Open | Owner action |
 |---|---|
 | ~~Ratification of the rendering (`D-8`)~~ | **Done 2026-09-05** — read through, ratified as pass, anchor recorded |
-| **Reader recruitment** | Q-2 establishes that a network exists; it assigns nobody (`v1` §14). **No AI substitute** (S-2.2) |
-| **The §10 test** | Not performed, and not to be started before a reader is recruited |
+| ~~Reader recruitment~~ | **Done** — owner-attested independent pass performed; see `F-1` above. No repository recruitment record exists (evidence-custody gap, not a probe defect) |
+| ~~The §10 test~~ | **Performed and scored — PASS under `F-1`/Reading A.** See the result report linked above |
+| **Evidence location for the two annotation sheets** (`F-4` in the state-reconstruction report) | Still open — needs a new owner decision, not settled by `F-1` |
 
-**Reader recruitment is now the only thing between here and the test.**
+**As ruled 2026-09-05, before any annotation — superseded only in the one respect `F-1` states above.**
 
 ## Decisions made in producing this record
 
