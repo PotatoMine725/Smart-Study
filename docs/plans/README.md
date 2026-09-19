@@ -50,7 +50,16 @@ Two rules keep a runbook usable more than once:
 ## Lifecycle
 
 - `draft` → `in-progress` → `done`.
-- When a slice ships, record it in `docs/CHANGELOG.md`.
+- When a slice ships, record it in `docs/CHANGELOG.md`, and move the plan's **Status** on
+  (`draft` → `in-progress`) with the slice row naming its PR and date. A plan still reading
+  *"Status: draft. Planning only"* after two slices have merged is the project's only in-repo answer
+  to "what shipped?", and it is answering wrong.
+- **A PR description is not an in-repo artifact.** *(Added 2026-09-17: the fence slices' mutation
+  tables — the only evidence that those tests can fail — existed solely in the PR bodies on GitHub.)*
+  Whatever verification a slice produced beyond the suite count (mutants applied and observed RED,
+  probes, measurements) must be reachable from the repository: either mirrored into a short execution
+  report under `reports/`, or linked from the plan's slice row with the PR number. What is not in the
+  repo cannot be grepped, cannot be read offline, and does not survive the branch.
 - When all slices ship, move the plan to `legacy/Archived plans/` (local archive, gitignored —
   the repo keeps the content in git history; the living state is CHANGELOG + architecture).
 - Active in-progress plans must have a pointer row in `docs/active/README.md` for visibility.

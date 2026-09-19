@@ -179,6 +179,72 @@ consumer of the field being grouped/compared, not just the call site a ticket na
 explicitly bounded to `MonHoc` in the alpha; true cross-device identity-merge is out of scope until
 Epic 2's merge engine exists.
 
+## A domain effect is not every write the executing path performs
+
+**Problem.** The structural conflict fence models a mutation as an impact set — which rows change,
+which constraint scopes are released or acquired, which lifecycle transitions occur — and the plan
+defined the cascade predicate as *"the same predicate the executing path uses."* A Slice-0 probe
+(`CascadePredicateProbeTests`) then measured that the two executing paths disagree: the sync cascade
+(`SyncApplySession.CascadeTombstoneAsync`) visits live children only, while the local cascade
+(`TaskCascadeHelper`) is unfiltered and re-stamps `Rev`/`ModifiedAtUtc` on already-tombstoned rows.
+The definition had no answer.
+
+**Why it was hard.** "Do what the code does" reads like the conservative choice, and it is — right up
+to the point where two shipped implementations do different things. Then it is not a definition at
+all, and both readings are defensible: unfiltering the predicate makes the fence emit a scope release
+for a note that is already dead (turning passing cases into false blocks), while keeping it live-only
+leaves the local path writing rows the fence never modelled.
+
+**How it was solved.** The owner ruled it on **semantics rather than on either implementation**: the
+impact set models the *domain effects* of the mutation, not implementation-level re-stamping or
+provenance writes. An already-dead child is not a new tombstone target, so it produces no cascade row,
+no lifecycle effect, and no scope release. The predicate is `child.IsDeleted == false`, it lives at the
+`ImpactResolver` boundary, and **neither executing path changed** — the correct diff for both was zero
+lines.
+
+**Principle.** A model of "what this mutation does" needs a semantic definition, because the
+implementations it is abstracting over are allowed to differ in ways that do not matter to the domain —
+and to differ from each other. When a spec defines a model by pointing at an implementation, it is
+borrowing an answer, and it silently has none the moment a second implementation appears. Distinguish
+the *lifecycle transition* (a row becomes dead) from the *writes that accompany it* (`Rev` bumps,
+provenance stamps); only the first is a domain effect.
+
+**The distinction the ruling had to make explicit:** *"scope remains occupied"* and *"scope does not
+exist"* are different states and must not be conflated. A tombstoned `TaskNote` still occupies its
+unfiltered `UNIQUE(MaTask)` index; the ruling says only that this mutation does not **release** it. Two
+states that produce the same output today are two states, not one — and if a test cannot tell them
+apart, it is not testing the one you named (see
+[`qa-gates.md`](qa-gates.md#a-test-must-not-be-able-to-pass-by-destroying-what-it-protects)).
+
+## Resolve a compound request as a unit, and define "strongest effect" before you merge
+
+**Problem.** Two defects in the same impact resolver, both found by probes that went RED on first run:
+
+1. Each intent was expanded against **live database state in isolation**. For the request
+   `[Reparent(task T: M1→M2), Tombstone(MonHoc M1)]`, the resolver read T as still living under M1 and
+   swept T and its note into M1's cascade — inventing a cascade over rows the real write set never
+   touches, and contradicting T's own `Reparented` row in the same impact set.
+2. Rows were deduplicated by `(EntityType, EntityId)` "keeping the strongest effect", but *strongest*
+   was never defined: an ad-hoc 2-level rank made a cascade tombstone the **weakest** effect and
+   first-writer-wins among equals. `[Tombstone(M), Tombstone(T)]` and `[Tombstone(T), Tombstone(M)]`
+   therefore produced different results for the same logical request — and the row effect is the
+   primary sort key of the fence's output.
+
+**Why it was hard.** Both are invisible from a single-intent test, and every single-intent test passed.
+The second is worse than order-dependence: the direct intent was *discarded*, so a user's explicit
+delete was reported as a side effect of someone else's.
+
+**Principle.** A request containing several intents is one unit of meaning. Resolve it against the
+state the request itself produces, not against the state each intent would see alone; and when
+several effects land on the same row, define a **total order** over effects and apply it explicitly —
+"keep the strongest" is not an implementation until *strongest* is written down. Direct beats
+cascade, and the merge must be able to *upgrade* a row already visited as a cascade child.
+
+**How to avoid it next time.** Two standing tests for any request-level resolver: permute the order of
+the intents and assert the result is identical, and assert the result is **self-consistent** (no id may
+be `Reparented`/`Created` in one dimension while another says `Tombstone`). Both are cheap, and both
+are things a per-intent suite structurally cannot see.
+
 ## See also
 
 - [`../architecture/data-model.md`](../architecture/data-model.md) — the current, normative schema
@@ -186,6 +252,9 @@ Epic 2's merge engine exists.
 - `2026-07-03-g1-soft-delete-cascade.md` (archived 2026-07-26 → `legacy/Archived plans/`, local-only) — the G1 decision record (cascade-tombstone chosen over orphan-in-place).
 - [`release-engineering.md`](release-engineering.md) — the upgrade seam that backfills this
   metadata onto pre-existing rows, and the backup gap found alongside it.
+
+- [`decision-governance.md`](decision-governance.md) — how the rulings behind the fence's semantics
+  were framed and recorded.
 
 ## Sources
 
@@ -196,3 +265,6 @@ Epic 2's merge engine exists.
 - [`docs/review/2026-07-10-epic1-m1.2-r1-remediation-review.md`](../review/2026-07-10-epic1-m1.2-r1-remediation-review.md) — `TaskCascadeHelper`, completeness check
 - [`docs/reports/2026-07-10-epic1-m1.3-monhoc-identity-dedup.md`](../reports/2026-07-10-epic1-m1.3-monhoc-identity-dedup.md) — D1–D4, `MonHocIdentity`, the cascade-fixup timing fix (D3)
 - [`docs/review/2026-07-11-epic1-m1.3-review.md`](../review/2026-07-11-epic1-m1.3-review.md) — independent hand-trace of the reconcile fix
+- [`docs/specs/2026-09-17-fence-slice2-owner-rulings-m3-h1.md`](../specs/2026-09-17-fence-slice2-owner-rulings-m3-h1.md) — the live-only cascade ruling, its occupied-vs-absent table, and the three-authority separation
+- [`docs/review/2026-09-16-t2.4-slice2-fence-router-independent-review.md`](../review/2026-09-16-t2.4-slice2-fence-router-independent-review.md) — H-3 (per-intent resolution inventing cascade) and M-1 (undefined "strongest effect"), both reproduced
+- [`docs/plans/2026-09-13-policy-driven-mutation-routing-structural-conflict-fence-plan.md`](../plans/2026-09-13-policy-driven-mutation-routing-structural-conflict-fence-plan.md) §7.2–§7.4 — the two cascade implementations and the predicate the plan could not determine

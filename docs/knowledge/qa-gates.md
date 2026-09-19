@@ -260,6 +260,15 @@ and it can be wrong the way any other claim can. The research-side counterpart o
 measuring is [`ml-experimentation.md`](ml-experimentation.md), *Don't manufacture independence, and
 choose the input distribution before measuring*.
 
+**The same question answers "should I reproduce this?"** A Slice-2 review declined to mutate one
+claim it was checking — a test comment asserting that removing any `AsNoTracking()` would turn the
+read-only proof RED. Inspection gave the stronger result: every query in that component projects to an
+anonymous type or a scalar, so EF tracks nothing either way and **no RED/GREEN outcome exists to
+observe**. Running the mutation would have produced a green line in the evidence table that could not
+have been anything else. *"I did not reproduce this, and here is why reproduction would prove less
+than the reading"* is a legitimate — and in that case more informative — result than a measurement
+whose outcome was fixed in advance.
+
 ## A check verified somewhere other than where it runs has not been verified
 
 **Problem.** The DFD-9a runbook's read step was written as `cd … && python - <<'PY' … PY`. The
@@ -373,6 +382,36 @@ the point of use, so a later reader can see it is a snapshot rather than an inva
 anything, re-read the whole document rather than the sections you are editing. And ask specifically:
 *if someone followed the recovery path in here tomorrow, what would they lose?*
 
+## A test must not be able to pass by destroying what it protects
+
+**Problem.** A ruling fixed the fence's cascade predicate to live children only, which means that
+tombstoning a task whose only note is *already* tombstoned releases nothing: the constraint scope
+stays occupied, and the fence answers `Passed`. The obvious regression test — seed a dead note,
+request the tombstone, assert `Passed` — is worthless. `Passed` is also exactly what the fence would
+answer if the scope had ceased to exist, which is the opposite of the invariant the ruling preserves
+(a tombstoned row still occupies its unfiltered `UNIQUE` index). One output, two incompatible causes,
+and the asserted one is not the likelier one.
+
+**How it was solved.** The test establishes occupancy on a **channel independent of the thing under
+test**: a direct SQLite read showing the row present with `IsDeleted = true` and `MaTask == T`, *plus*
+an insert of a second note at the same scope which is required to raise a genuine `UNIQUE` violation.
+If the mechanism under test had quietly removed the occupant, the second insert would succeed and the
+test would fail — so the test cannot pass by having destroyed the property it exists to protect. A
+third test (`M3_LivenessIsTheOnlyDifference`) runs the live and dead cases from identical seeds and
+identical requests, with `IsDeleted` as the single differing bit, so the pair also proves that the
+liveness predicate — and nothing else in the fixture — produced the difference.
+
+**Principle.** When the expected output of a test is also the output of the failure you are guarding
+against, the assertion is decorative. Assert the surviving property through a second, independent
+channel — ideally one the system enforces for you, like a database constraint — and where two
+scenarios are supposed to differ by one input, build them from one fixture and vary exactly that
+input.
+
+**How to avoid it next time.** For every "nothing happened" assertion, name the two worlds that
+produce it: *the thing was protected* and *the thing was destroyed*. If the test cannot distinguish
+them, it is not yet a test. This is the sibling of *discriminating power is a property of each claim*
+above, at the level of a single regression test rather than a gate.
+
 ## See also
 
 - [`review-methodology.md`](review-methodology.md) — mutation as the technique this gate ran on
@@ -393,6 +432,9 @@ anything, re-read the whole document rather than the sections you are editing. A
   epistemics that *a diagnostic must refuse to name a cause it cannot distinguish* turns into a tool
   design rule.
 
+- [`decision-governance.md`](decision-governance.md) — the same evidence-labelling discipline applied
+  to decisions: analysis, ruling and inference kept visibly apart.
+
 ## Sources
 
 - [`docs/reports/2026-08-10-epic3-automated-qa-gate.md`](../reports/2026-08-10-epic3-automated-qa-gate.md) — the verdict: reachability narrowing, six mutations, findings and classification.
@@ -408,4 +450,9 @@ anything, re-read the whole document rather than the sections you are editing. A
 - [`docs/plans/2026-08-26-dfd9a-instrumentation-runbook.md`](../plans/2026-08-26-dfd9a-instrumentation-runbook.md) — the runbook, with criteria fixed in advance. §8 is its own correction record: the bash-in-PowerShell failure (§8.1–8.2), the two silent URI faults (§8.3), and the two corrections the run itself produced (§8.5).
 - [`docs/reports/2026-08-27-dfd9a-instrumentation-observation.md`](../reports/2026-08-27-dfd9a-instrumentation-observation.md) — the evidence record. §2.5 is the confidence-reproduction check; §5 is the undetermined-then-determined branch question; §3 shows an owner attestation quoted verbatim with its scope stated rather than paraphrased.
 - [`docs/plans/2026-08-26-prediction-instrumentation-defect.md`](../plans/2026-08-26-prediction-instrumentation-defect.md) — the defect record. §9.4 is the *"what is still true after the fix"* list, with the one closed gate struck through rather than deleted.
+**T2.4 structural conflict fence (2026-09-17):**
+
+- [`docs/specs/2026-09-17-fence-slice2-owner-rulings-m3-h1.md`](../specs/2026-09-17-fence-slice2-owner-rulings-m3-h1.md) §1.3 — the independent-channel requirement stated as part of the ruling, not left to the implementer.
+- `SmartStudyPlanner.Tests/Sync/Fence/ImpactCascadeLivenessTests.cs` — the three tests: live, dead, and the pair that differs by one bit.
+
 - [`tools/qa/read_outcome_logs.py`](../../tools/qa/read_outcome_logs.py) — the reader, committed so that the verified artifact and the executed artifact are the same bytes. Its comments carry the two Windows URI traps and its exit codes separate *broken instrument* from *wrong file*.

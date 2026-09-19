@@ -41,10 +41,12 @@ This folder contains all living documentation for Smart Study Planner. Outdated/
    [active/README.md](active/README.md) and [specs/system_roadmap.md](specs/system_roadmap.md) §A.3–A.4.
 5. **knowledge/** — extracted lessons (programming, system design, ML, **ML experimentation**,
    debugging, release engineering, review methodology, sync data model, architecture process,
-   incident investigation, QA gates). *[ml-experimentation.md](knowledge/ml-experimentation.md) is
-   the newest (2026-08-25): running an ML experiment whose answer you can trust — pre-registered kill
-   criteria, verifying the instrument before believing a null result, dataset-maturity measurement,
-   and why representation quality is not task-level improvement.*
+   incident investigation, QA gates, **decision governance**). Read
+   [knowledge/README.md](knowledge/README.md) first if you are adding to it — it carries the
+   extend-before-adding rule and the two article shapes.
+   *[decision-governance.md](knowledge/decision-governance.md) is the newest (2026-09-17): what an
+   agent does when two ratified sources disagree, how a ruling is recorded so a later slice can rely
+   on it, and how to write an analysis that cannot later be mistaken for a decision.*
 6. **specs/**, **plans/**, **reports/**, **review/** — working areas for new work. Each has a README explaining when/how to add files.
 7. **[ux_quality_gate_checklist.md](ux_quality_gate_checklist.md)** — regression checklist for UI work.
 
@@ -64,7 +66,8 @@ This folder contains all living documentation for Smart Study Planner. Outdated/
 | Type | Answers | Lives in | Naming |
 |---|---|---|---|
 | **Plan** | How do we ship this, in what slices? | `plans/` | `YYYY-MM-DD-<slug>.md` |
-| **Decision record** | What was ratified, why, and what would reopen it? | `plans/` | `…-decision(s).md` / `…-governance.md` |
+| **Decision record** | What direction was ratified, why, and what would reopen it? | `plans/` | `…-decision(s).md` / `…-governance.md` |
+| **Owner ruling record** | What did the owner rule on an open question of work already in flight — and what does it amend, *not* amend, and leave open? | `specs/` | `YYYY-MM-DD-<slug>-owner-rulings.md` (or `<Topic>-Rulings-<date>.md`) |
 | **Runbook** | Exactly how does a human execute this, and what is pass vs. fail? | `plans/` | `…-runbook.md` |
 | **Execution report** | What was implemented, what changed, what evidence shows completion, what is still open? | `reports/` | `YYYY-MM-DD-<slug>.md` |
 | **QA / gate report** | What was tested, what passed, what could **not** be tested automatically, what is the gate verdict? | `reports/` | `…-qa-*.md` / `…-gate*.md` |
@@ -73,6 +76,17 @@ This folder contains all living documentation for Smart Study Planner. Outdated/
 | **Review / verdict** | Independently assessed: what is confirmed, what findings remain, ship or not? | `review/` | `YYYY-MM-DD-<slug>.md` |
 | **Closing note** | Did the milestone satisfy its contract, on what evidence, with what accepted limitations? | `reports/` | `…-closing-note.md` |
 | **Knowledge article** | What should a future engineer remember, independent of this change? | `knowledge/` | `<topic>.md` (flat, topic-level — extend before adding) |
+
+**Decision record vs. owner ruling record.** *(Added 2026-09-17; practice had already diverged for a
+reason.)* A decision record sets **direction** — it is read before planning, and it lives beside the
+plans in `plans/`. An owner ruling record answers a question raised by **work already in flight**: its
+rulings are cited by policy code, by tests, and by later slices, which is why they sit in `specs/`
+next to the contracts they bind. Since 2026-09-11 every Epic 2 ruling round has been filed that way.
+(A ruling that settles a question inside an existing decision series is recorded in that series' own
+file instead — e.g. S-2's `F-1` on `D-6`, 2026-09-18, in `plans/2026-09-05-s2-owner-decisions.md`.) Give a ruling record the header block that makes it checkable — **Closes · Amends · Does
+not amend · Leaves open · Implemented by** — and a closing consistency-check table; a ruling that
+*confirms* existing text should say so explicitly, because "this amends nothing" is a claim like any
+other. See [`knowledge/decision-governance.md`](knowledge/decision-governance.md).
 
 Two rules cut across every type:
 

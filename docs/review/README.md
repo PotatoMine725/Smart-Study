@@ -48,4 +48,12 @@ label it as reasoning; a claim that sets another package's severity gets measure
 - A review is a snapshot in time — keep it dated and don't rewrite. Corrections are appended as a
   dated amendment, the same rule reports follow.
 - If a follow-up gets addressed, link the addressing PR/commit at the bottom rather than editing the body.
+- **When a later ruling closes a question the review raised, mark it at the finding.** *(Added
+  2026-09-17, from the Slice-2 fence review: both of its owner questions were ruled within a day, and
+  one engineering recommendation was ruled the **other way** — explicit registration only, where the
+  review had suggested a fallback. The merged review carries no sign of it.)* Add a one-line dated
+  pointer beside the finding (`> **Closed <date>** — ruled <outcome>; see <ruling record>.`), and
+  have the ruling record link back. Without both halves, a rejected engineering recommendation reads
+  as live advice to whoever finds the review next — and reviews are exactly what a later slice reads
+  to understand why the code looks the way it does.
 - After a review's findings are either fixed or accepted, the file can be deleted; the lessons should already be in `docs/knowledge/`.
