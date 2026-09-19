@@ -137,3 +137,24 @@ execution plan, a decision/handoff record, and a report. When it ends, walk the 
 > LiveCharts-based Dashboard) and `2026-06-25-m8c-study-time-predictor-retrain.md` (the real M8-C
 > retrain work shipped on `ui_rf`, not `dev` — this draft was never executed here). Both are owner-
 > known; left as-is per prior direction rather than touched during this sweep.
+>
+> Archive sweep 2026-09-18 (documentation-lifecycle housekeeping — Epic 3 closed a month earlier,
+> 2026-08-19, with no sweep yet run): 5 fully-executed Epic 3 execution/design plans moved to
+> `legacy/Archived plans/` — `2026-08-04-epic-3-execution-plan.md` (header stale "AWAITING OWNER
+> APPROVAL", but Cards A–H shipped, code complete 2026-08-07 per the closing note and
+> `system_roadmap.md`'s ledger), `2026-08-07-epic-3-convergence-plan.md` (self-marked `EXECUTED
+> 2026-08-07`), `2026-08-10-workload-balancer-stale-chart-fix-design.md` and
+> `2026-08-14-workload-balancer-stale-chart-fix-plan.md` (self-marked `implemented` / `done`, shipped
+> PR #54; already flagged as an archive candidate a month earlier in
+> `docs/reports/2026-08-19-epic3-knowledge-distillation.md:132`, never actioned until now),
+> `2026-08-19-e6-cascade-coverage-test.md` (self-marked `EXECUTED 2026-08-20`). Their two
+> living-doc citations in `system_roadmap.md`, three in `docs/knowledge/` and the `Reads with` lines of
+> six retained Epic 3 decision records were converted to the textual archived pointer used elsewhere
+> in this file; dated citations in `CHANGELOG.md` and `docs/reports/` were left untouched, so some
+> dated CHANGELOG and report links now point at archived plans (per `docs/README.md` "Amendments, not rewrites":
+> dated artifacts are not edited into a cleaner story). **Retained in `plans/`, not archived:** the Epic 3 gate/seam decision records (G2, G3,
+> T3.1, T3.8, T3.2, the CP-2 amendment, both T3.3 scope amendments, the T3.9 design/DoR, the M3.0
+> allocator classification, the deadline-tier proof) — same class as the Epic 1 decision records kept
+> in the 2026-07-26/08-02 sweeps — and `2026-08-10-epic-3-manual-qa-runbook.md`, exempt by the
+> explicit runbook rule above. `g3-weight-vector-governance.md` additionally stays because it is the
+> load-bearing origin of the still-open roadmap deferred item G3-1.

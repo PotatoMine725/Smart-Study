@@ -9,7 +9,8 @@ and G3-3 are ratified as written, with no changes requested. No code changes in 
 [architecture freeze 2026-07-02](2026-07-02-architecture-freeze-decisions.md) D-G/D-H/D-J and §4 (B5);
 [G2 note](2026-08-04-g2-optimization-pass-semantics.md) (the structural template this note follows,
 scaled to G3's narrower scope) — in particular its §4 "frozen guardrails" table and §7 ADR format;
-[epic-3 execution plan](2026-08-04-epic-3-execution-plan.md) lines 35, 95-97, 396, 474, §5.4 DP-2;
+epic-3 execution plan (`2026-08-04-epic-3-execution-plan.md`, archived 2026-09-18 →
+`legacy/Archived plans/`, local-only; recoverable from git history) lines 35, 95-97, 396, 474, §5.4 DP-2;
 [T3.2 seam decisions](2026-08-05-t32-objective-evaluator-seam-decisions.md) §4 (`SoeWeights`, already
 ratifies the non-sum-to-1.0 divergence from `WeightConfig` — not relitigated here).
 

@@ -4,6 +4,87 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
+## 2026-09-18 — S-2 §10 reproducibility probe: owner ruling `F-1`/`D-6` recorded, result **PASS** (Reading A) — *no code change; documentation + owner ruling only*
+
+> **Data Maturation / S-2 prerequisite milestone — not the canonical Epic 4.** Canonical Epic 4
+> (`T4.1`–`T4.3`, ML Maturation) has **not started**. This is the annotation-governance ladder
+> upstream of it. **Not** a corpus-wide agreement claim, **not** an ML accuracy result, **not** a
+> dataset validation result.
+
+| Area | Change | Verification |
+|---|---|---|
+| Owner ruling | `D-6` (unresolved-response scoring, left deliberately unauthorised 2026-09-05) ruled post-hoc as **`F-1` — Reading A**: a shared `unresolved=true` between the Owner Gold pass and the independent reader counts as exact agreement | [`plans/2026-09-05-s2-owner-decisions.md`](plans/2026-09-05-s2-owner-decisions.md) §`F-1` |
+| §10 result | **PASS** under Reading A — 20-row: TaskType 20/20, Difficulty 20/20; primary 16-row: TaskType 16/16, Difficulty 16/16, against `D-7`'s ≥17/20, ≥18/20, ≥14/16, ≥15/16 thresholds. Full `G2`/`G4`/`C4`/`D-2` companions recorded, not quoted alone | [`reports/2026-09-18-epic4-s2-section10-result.md`](reports/2026-09-18-epic4-s2-section10-result.md) |
+| `DFD-2` | The single, narrowly-scoped condition this project's own freeze record set — "satisfied only after the §10 test passes" — is now met. **Does not** by itself authorize `S-3` implementation, labelled-data collection/import/generation, or data promotion; those remain separately gated | [`plans/2026-09-04-s2-v1-freeze-record.md`](plans/2026-09-04-s2-v1-freeze-record.md) §"Gates — status update, appended 2026-09-18" |
+| Evidence | Both annotation sheets (Owner Gold, independent reader) verified byte-unchanged since the probe; `R-12`/`R-20` remain `unresolved=true`, unedited, in both. Reader-package validator: 18/18 PASS on the committed package; the working-tree copy still fails 3/18 purely because the probe artifacts sit inside the instrument directory — **left untouched**, pending a separate owner decision on evidence location (`F-4`) | Hashes and validator run re-verified independently this session |
+
+## 2026-09-17 — Epic 2 / T2.4 structural-conflict fence: **Slices 0–2 shipped** — *policy-driven mutation routing, local-origin only*
+
+> Every local-UI mutation that can reach an unresolved StructuralConflict/ConstraintConflict now gets
+> an explicit impact set, routed through case-specific read-only policies before persistence.
+> Sync-apply routing (Slice 6) stays gated behind an open owner decision (SB-2/OD-1) and is **not**
+> part of this shipment.
+
+| Area | Change | Verification |
+|---|---|---|
+| Spec + owner rulings | Canonical fence spec ratified 2026-09-13 ([`specs/2026-09-13-policy-driven-mutation-routing-structural-conflict-fence-spec-complete.md`](specs/2026-09-13-policy-driven-mutation-routing-structural-conflict-fence-spec-complete.md)); owner closed SB-3/OD-3, OD-4, OD-2 (L1), OD-7 on 2026-09-14 ([rulings](specs/2026-09-14-policy-driven-mutation-routing-owner-rulings.md)); Slice-2 review findings M-3/A-1 and H-1/A-2 closed 2026-09-17 ([rulings](specs/2026-09-17-fence-slice2-owner-rulings-m3-h1.md)) | None amend the frozen D1–D9 decision record or PR-5/PR-6 semantics — each says so explicitly |
+| Slice 1 — fence policies | Constraint + always-legal-parent-transition fence policies shipped; review findings B.1/B.2 closed same-day | PR #91, fix PR #92 |
+| Slice 2 — fence router | Impact resolver, conflict-dependency selector, aggregation logic shipped; independent adversarial review (2026-09-16) found 3 HIGH/4 MED/6 LOW — all closed by the rulings above | PR #93, review PR #94, fix PR #95 — independent re-run at PR #93's head: **942 passed / 1 skipped / 943 total** |
+| Scope boundary | This shipment covers **local UI saves only** — the only live mutation origin today | [`plans/2026-09-13-policy-driven-mutation-routing-structural-conflict-fence-plan.md`](plans/2026-09-13-policy-driven-mutation-routing-structural-conflict-fence-plan.md) §20 |
+
+**Deliberately still open:** Slices 3–6 of the fence plan (repository refactor, executor wiring,
+sync-origin routing) have not started; **SB-2/OD-1** (sync-origin fence crossing) remains an open
+owner decision and gates Slice 6. `docs/specs/system_roadmap.md` §A.3 item 3 is corrected in this
+same pass — it previously read "not started," which stopped being true 2026-09-07.
+
+## 2026-09-12 — Epic 2 / LAN Sync: **T2.3 merge core + T2.4 sync-apply seam through ConflictResolver shipped** — *first Epic 2 code merged to `dev`*
+
+> The first production code for the LAN-sync epic (Epic 2 in the master-plan order E1 → E3 → E2 → E4)
+> is now on `dev`: 3-way field-level merge, a persistent conflict-record staging boundary, the
+> apply/orchestration layer, and the conflict resolver that turns staged conflicts into resolutions.
+> This is sync-engine plumbing — no UI surface, no multi-device sync loop wired end-to-end yet.
+
+| Area | Change | Verification |
+|---|---|---|
+| T1.4 + T2.2 | Per-peer last-synced base-snapshot store + change enumeration via the `Rev` watermark | PR #66 (2026-09-07) |
+| T2.3 — merge core | Pure 3-way field-level merge core (PR-1); missing provenance/fields routed through a typed failure | PR #72 (2026-09-08) |
+| T2.4 — PR-2..PR-4 | Per-entry sync-apply seam on `SyncStamper`/`AppDbContext`; baseline store joins the caller's transaction with composable Upsert/Remove; persistent `ConflictRecord` staging boundary | PR #73, #74, #75 (2026-09-09) |
+| T2.4 — PR-5 | Sync apply/orchestration layer (`SyncApplySession`), apply-session integration tests A–W, D4/D9-T4 amendment implemented (a `StructuralConflict` may have no local candidate) | PR #76, #77 (2026-09-11); [amendment](specs/T2.3-T2.4-D4-D9-T4-Amendment-2026-09-10.md), [context-lifetime ruling](specs/T2.4-PR5-ContextLifetime-Amendment-2026-09-11.md) |
+| T2.4 — PR-6 | `ConflictResolver` implemented per the engineering DoR and owner rulings B-1..B-4/E-3; independent senior review; H-1 replay-identity discrimination test | PR #80, #81, #82, #83 (2026-09-11/12); [rulings](specs/T2.4-PR6-ConflictResolver-Rulings-2026-09-11.md) |
+| Governing decision record | [`specs/T2.3-T2.4-D1-D9-Decision-Record-updated.md`](specs/T2.3-T2.4-D1-D9-Decision-Record-updated.md) (D1–D9, D9-T1..T6 ratified) — frozen, unchanged by any of the above; each PR's rulings are dated amendments alongside it, none edit the root record | — |
+
+**Deliberately still open:** T2.5 and beyond (recon complete, [`review/2026-09-12-t2.5-recon.md`](review/2026-09-12-t2.5-recon.md), READY WITH EXPLICIT PRECONDITIONS — governance, not code); no multi-device sync loop is wired to a UI surface yet; the structural-conflict fence work that routes mutations through this machinery shipped separately (see the entry above).
+
+## 2026-09-12 — Data Maturation / S-2: **GuidelineVersion v1 frozen; independent human §10 reproducibility probe performed** — *no product/model change; result formally recorded 2026-09-18, see the 2026-09-18 entry*
+
+> **Nothing shipped to the product, and this is not the canonical Epic 4.** Data Maturation
+> (`S-0`…`S-8`, `S-T`) is the annotation-governance ladder upstream of canonical Epic 4 (`T4.1`–`T4.3`,
+> ML Maturation), which has **not started**. `GuidelineVersion v1` (the S-2 annotation
+> taxonomy/guideline) was frozen 2026-09-04 ([freeze record](plans/2026-09-04-s2-v1-freeze-record.md)).
+> The §10 reproducibility probe was then performed: the sealed 20-row scored batch was annotated
+> independently by the owner (Gold pass) and by one independent human reader, given only frozen `v1`
+> as rendered in Vietnamese and the blind annotation sheet — no row-level guidance. See
+> [`reports/2026-09-12-s2-reproducibility-probe.md`](reports/2026-09-12-s2-reproducibility-probe.md).
+
+| Area | State | Where |
+|---|---|---|
+| Probe outcome | Owner Gold and independent reader agree **cell-for-cell on all four recorded fields across all 20 rows**; `R-12` and `R-20` are `unresolved=true` in both | [`reports/2026-09-18-epic4-s2-state-reconstruction.md`](reports/2026-09-18-epic4-s2-state-reconstruction.md) |
+| Verdict at the time | **Not yet scorable** — `D-6` (how an `unresolved` response scores) had been deliberately left unauthorised, and under one reading the primary 16-row Difficulty figure fails | same report, §0/§2 (superseded by its §12) |
+| Verdict now | **PASS under owner ruling `F-1`/`D-6` (Reading A)**, recorded 2026-09-18 — figures and required `G2`/`G4`/`C4`/`D-2` companions in the 2026-09-18 entry; the 20-row figures are never quoted without the primary 16-row figures | [`reports/2026-09-18-epic4-s2-section10-result.md`](reports/2026-09-18-epic4-s2-section10-result.md) |
+
+**Scope, stated precisely:** reproducibility of `v1` as rendered in Vietnamese, for **one independent
+reader on one sealed 20-row batch**. It is **not** a corpus-wide accuracy figure, not an ML-model
+accuracy figure, not general future-annotator behaviour, and not a validation of the dataset itself
+(the project still holds zero verified real user rows, DFD-1). `GuidelineVersion` was **not** bumped;
+no v2 was created.
+
+**Evidence custody (still limited):** the two filled sheets
+(`s2-reader-package/02-annotation-sheet.md` as modified, `s2-reader-package/02-annotation-sheet-gold.md`)
+remain **uncommitted / untracked** in the owner's working tree; the committed
+`02-annotation-sheet.md` is the blank instrument, not the returned sheet. Where and whether to commit
+them is open owner decision **`F-4`**. Committing them so the result is re-derivable from the
+repository is a **recommendation**, not done here.
+
 ## 2026-08-27 — DFD-9a **end-to-end gate CLOSED** — *no code change; the last check was run by hand*
 
 > **Nothing shipped.** The fix shipped 2026-08-26; what changed today is that it is now *known to work

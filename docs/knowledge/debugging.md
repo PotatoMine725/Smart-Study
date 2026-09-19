@@ -45,7 +45,7 @@
   2. **overflow** — casting an out-of-range `double` to `int` is undefined and in practice yields `int.MinValue`, making `spaceLeft` negative so `remainingMinutes` **grows** each pass. This one runs away from termination rather than merely failing to reach it.
 - **Fix / do not undo**: the guard clamps below-floor input to `MinCapacityMinutes` and caps at `int.MaxValue`. Note it is written `if (!(capacityHours >= MinCapacityHours))`, **not** `if (capacityHours < MinCapacityHours)` — the negated form also catches `NaN`, since every comparison against `NaN` is false. Rewriting it to the "cleaner" form silently reopens the `NaN` path.
 - **Generalized lesson**: **a guard whose absence causes a hang is invisible to a test suite**, because a suite reports red and green, and a hang is neither. Guards like this must be named where the timeout will be read — a CI timeout in scheduling code should be checked against this *first*, before anyone starts bisecting. It is also why the guard was proven non-vacuous by deleting it and watching the suite **hang** rather than by watching it go red (commit `0e5d448`).
-- **See also**: [`qa-gates.md`](qa-gates.md) — *discriminating power is a property of each claim*; a green suite says nothing about a failure mode it cannot express. Ratified as risk **R4** in [`../plans/2026-08-04-epic-3-execution-plan.md`](../plans/2026-08-04-epic-3-execution-plan.md).
+- **See also**: [`qa-gates.md`](qa-gates.md) — *discriminating power is a property of each claim*; a green suite says nothing about a failure mode it cannot express. Ratified as risk **R4** in `2026-08-04-epic-3-execution-plan.md` (archived 2026-09-18 → `legacy/Archived plans/`, local-only; recoverable from git history).
 
 ## Reading the codebase efficiently
 
