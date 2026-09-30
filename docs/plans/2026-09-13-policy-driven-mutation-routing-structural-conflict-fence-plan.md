@@ -7,7 +7,7 @@
 | | |
 |---|---|
 | **Date** | 2026-09-13 |
-| **Status** | `in-progress`. Slice 3 executed 2026-09-30 (PR #103, §21). This document itself remains planning only |
+| **Status** | `in-progress`. Slices 0–2 merged (through PR #95); Slice 3 in PR #103 (2026-09-30, §21); Slices 4–6 not started. This document itself remains planning only |
 | **Goal** | Every mutation that can reach an unresolved StructuralConflict/ConstraintConflict gets an explicit impact set. That impact is routed to one case-specific, read-only policy per protected contract. Persistence happens only after the fence passes **and** the remaining business/persistence/transaction gates pass. The first delivery covers the only live mutation origin today, local UI saves. Sync-apply follows later behind an owner gate |
 | **Spec** | `docs/specs/2026-09-13-policy-driven-mutation-routing-structural-conflict-fence-spec-complete.md`: owner-authored. It was untracked when this plan was written and is committed as-is alongside this plan (2026-09-14). SB-1 is closed (§20) |
 | **Frozen authority** | `docs/specs/T2.3-T2.4-D1-D9-Decision-Record-updated.md` §23A (D9-T1..T6), D4, D8-G, D8-H · `docs/specs/T2.4-PR6-ConflictResolver-Rulings-2026-09-11.md` (B-1..B-4, E-3) · `docs/specs/T2.3-T2.4-D4-D9-T4-Amendment-2026-09-10.md` |

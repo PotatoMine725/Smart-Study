@@ -26,8 +26,8 @@ Not in this slice: the fence, any VM change, OD-7 restoration, any fix to the be
 ### 2.1 Baseline (P0-d) — OBSERVED
 
 Fresh worktree at `f4322fd`, before any edit: build 0 errors / 96 warnings; suite **971 total, 970
-passed, 0 failed, 1 skipped** (TRX counters; the skipped test is the `[Fact(Skip=…)]` in
-`Services/Soe/SoeBaselineCaptureTests.cs`). Local `dev` = `origin/dev` = `f4322fd` (0/0); the owner's
+passed, 0 failed, 1 skipped** (TRX counters; the TRX's one `NotExecuted` result is
+`SoeBaselineCaptureTests.CaptureBaseline_VerifiesFrozenArtifact_OrBootstrapsIfMissing`). Local `dev` = `origin/dev` = `f4322fd` (0/0); the owner's
 checkout was dirty and was not touched.
 
 ### 2.2 Impact analysis (GitNexus, index `Smart-Study`) — OBSERVED
@@ -141,11 +141,23 @@ Planner output (`SemesterReconcilePlan`): `IsCreate`, `FkHeals`, `TaskReparents`
 |---|---|
 | `rtk dotnet build` | 0 errors, 96 warnings (same as baseline) — OBSERVED |
 | Full suite after all three commits | **1001 total, 1000 passed, 0 failed, 1 skipped** (TRX) = baseline 970 + 16 snapshot + 14 planner — OBSERVED |
-| Existing test files changed | none (`git diff f4322fd --stat` lists only the 2 new test files under `Tests/`) — OBSERVED |
+| Existing test files changed | none. `git diff --stat origin/dev...HEAD` lists 10 files: the 2 new test files, the 3 new `Mutations/` files, `SqliteHocKyRepository.cs`, and 4 docs files — OBSERVED |
 | `SemesterSaveRegressionSnapshotTests` between commit 1 and commit 2 | unchanged, green on both — OBSERVED |
+| `SemesterSaveRegressionSnapshotTests` after the §3.1 amendment | green on HEAD **and** green with `SqliteHocKyRepository.cs` restored to its unrefactored content from `67505fb` (file then checked out back) — OBSERVED |
 | Mutants | §2.5 |
 | Schema diff / new packages | none (no `AppDbContext`, migration or csproj change) — FACT |
-| `gitnexus_detect_changes()` | **NOT RUN meaningfully** — see §4 |
+| `gitnexus_detect_changes()` | **NOT RUN meaningfully** — see below; acceptance item met by a substitute, not by the tool |
+
+### 3.1 Amendment to the oracle after the extraction (disclosed)
+
+The plan says the snapshot file is "pinned before the refactor, unchanged after". It was changed once
+after commit 2, in its own test-only commit: the first version snapshotted five tables and missed
+`StudyLog`, the sixth `ISyncMetadata` entity. The amendment adds `StudyLogs` to the snapshot and seeds
+one log under a task deleted by `XoaTask` and one under a task deleted by `XoaMon` (which shifts the
+clock ticks in those two tests by one). It is additive, and it was run against the unrefactored
+repository code as well as HEAD (table above); M1–M4 were re-run against the writer and are still RED.
+What it pins (OBSERVED, not desired): **a deleted task's `StudyLog` rows are not tombstoned** — they
+stay live under a tombstoned task, both before and after the extraction.
 
 ### What was not run
 
@@ -154,10 +166,20 @@ Planner output (`SemesterReconcilePlan`): `IsCreate`, `FkHeals`, `TaskReparents`
   instead (FACT): the only modified production file is `SqliteHocKyRepository.cs`
   (`LuuHocKyAsync` → delegate, `CopySyncSafeValues` removed), plus three new files. The index was not
   re-analyzed from the worktree, to avoid registering a second copy of the repo in the owner's GitNexus.
+  code-review-graph's `detect_changes_tool` was also tried with `repo_root` = this worktree and
+  `base` = `origin/dev`: it saw the 10 changed files but reported 0 changed functions, because it has no
+  graph for the worktree either. Uninformative, not a pass.
 - No manual run of the WPF app. The four VMs are exercised only through the existing test suite.
 - P0-b and P0-c (Slice 0 remainder, PR #102) are not part of this slice.
-- No snapshot topology for a `MonHoc` arriving with a wrong `MaHocKy`, for null entries in the
-  collections, or for duplicate ids in the create branch.
+- No snapshot topology for a `MonHoc` arriving with a wrong `MaHocKy`, or for duplicate ids in the
+  create branch.
+- **Known difference, not pinned (INFERENCE — not run): a `null` entry inside a `DanhSachTask`.** The
+  old code healed the tasks before the null and then threw `NullReferenceException` inside the heal
+  loop (step 5), leaving those heals on the caller's graph. The planner now hits the null first and
+  throws before the writer runs, so no heal is applied. Same exception type, DB unchanged in both; the
+  caller-graph state on that failure path differs. No VM puts a null into these collections (FACT for
+  the 8 call sites' own code paths; not proven for every binding). Filed as open question **Q-S3-1**
+  for the owner: accept, or pin and preserve.
 
 ## 4. Follow-ups
 
@@ -177,7 +199,10 @@ Planner output (`SemesterReconcilePlan`): `IsCreate`, `FkHeals`, `TaskReparents`
 6. **Branch name**: plan §24.2 names `refactor/epic2-fence-s3-reconcile-extract`; git cannot create it
    while the owner's local branch `refactor` exists, so this slice used
    `refactor-epic2-fence-s3-reconcile-extract`.
-7. Plan §12.2 says "7 call sites in 4 VMs"; the tree has 8 call lines in 8 methods in those 4 VMs.
+7. **Merge order with PR #102** (Slice 0 remainder, open): it edits the same plan Status line and the
+   same `docs/active/README.md` Epic 2 row. Whichever merges second will conflict on those lines.
+8. **`StudyLog` orphaning** (§3.1): logs of a deleted task stay live. Pre-existing; pinned, not fixed.
+9. Plan §12.2 says "7 call sites in 4 VMs"; the tree has 8 call lines in 8 methods in those 4 VMs.
 
 ## 5. Decisions made
 
