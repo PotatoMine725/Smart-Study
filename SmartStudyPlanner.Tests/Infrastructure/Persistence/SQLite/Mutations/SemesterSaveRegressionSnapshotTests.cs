@@ -15,8 +15,7 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
     /// <summary>
     /// Epic 2 / T2.4 fence Slice 3 regression oracle. Pinned against the UNREFACTORED
     /// <c>SqliteHocKyRepository.LuuHocKyAsync</c> and kept unchanged across the planner/writer/executor
-    /// extraction. Every test is a bare before/after snapshot diff over the five synced tables the save
-    /// can reach (rows, Rev, IsDeleted, DeletedAtUtc, ModifiedAtUtc, FKs) plus, where the save mutates
+    /// extraction. Every test is a bare before/after snapshot diff over all six synced tables (rows, Rev, IsDeleted, DeletedAtUtc, ModifiedAtUtc, FKs) plus, where the save mutates
     /// the caller's graph, the caller-visible state afterwards.
     ///
     /// Everything asserted here is OBSERVED behaviour, not desired behaviour. Tests whose name ends in
@@ -101,6 +100,16 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
                 await ctx.SaveChangesAsync();
             }
 
+            // StudyLog is the sixth synced table. The save never touches it; seeding one under a task
+            // that is about to be deleted pins that (it stays live -- OBSERVED, not desired).
+            public async Task AddStudyLogAsync(StudyTask task)
+            {
+                _tick++;
+                using var ctx = NewContext();
+                ctx.StudyLogs.Add(new StudyLog { MaTask = task.MaTask, NgayHoc = new DateTime(2026, 1, 10), SoPhutHoc = 25, GhiChu = "log(" + task.TenTask + ")" });
+                await ctx.SaveChangesAsync();
+            }
+
             public async Task<SortedDictionary<string, string>> SnapshotAsync()
             {
                 var rows = new SortedDictionary<string, string>(StringComparer.Ordinal);
@@ -116,6 +125,8 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
                     rows.Add("TaskNote/" + n.Content, Row(n, Name(n.MaTask, "?"), n.Content ?? ""));
                 foreach (var l in await ctx.TaskReferenceLinks.IgnoreQueryFilters().AsNoTracking().ToListAsync())
                     rows.Add("TaskLink/" + l.Title, Row(l, Name(l.MaTask, "?"), l.Title));
+                foreach (var g in await ctx.StudyLogs.IgnoreQueryFilters().AsNoTracking().ToListAsync())
+                    rows.Add("StudyLog/" + g.GhiChu, Row(g, Name(g.MaTask, "?"), g.GhiChu ?? ""));
 
                 return rows;
             }
@@ -336,18 +347,22 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
             await h.SaveAsync(hk);                              // t1
             await h.AddNoteAndLinksAsync(t1, "A1", "A2");       // t2
             await h.AddNoteAndLinksAsync(t2, "B1");             // t3 (control: survives)
+            await h.AddStudyLogAsync(t1);                       // t4
 
             toan.DanhSachTask.Remove(t1);
 
             var before = await h.SnapshotAsync();
-            await h.SaveAsync(hk);                              // t4
+            await h.SaveAsync(hk);                              // t5
             var after = await h.SnapshotAsync();
 
+            // OBSERVED, NOT DESIRED: the deleted task's StudyLog is not in the diff -- it stays live.
+            Assert.Equal(Live(1, 4, "T1", "log(T1)"), after["StudyLog/log(T1)"]);
+
             AssertDiff(before, after,
-                Changed("StudyTask/T1", Live(1, 1, "Toan", "T1"), Dead(2, 4, "Toan", "T1")),
-                Changed("TaskNote/note(T1)", Live(1, 2, "T1", "note(T1)"), Dead(2, 4, "T1", "note(T1)")),
-                Changed("TaskLink/A1", Live(1, 2, "T1", "A1"), Dead(2, 4, "T1", "A1")),
-                Changed("TaskLink/A2", Live(1, 2, "T1", "A2"), Dead(2, 4, "T1", "A2")));
+                Changed("StudyTask/T1", Live(1, 1, "Toan", "T1"), Dead(2, 5, "Toan", "T1")),
+                Changed("TaskNote/note(T1)", Live(1, 2, "T1", "note(T1)"), Dead(2, 5, "T1", "note(T1)")),
+                Changed("TaskLink/A1", Live(1, 2, "T1", "A1"), Dead(2, 5, "T1", "A1")),
+                Changed("TaskLink/A2", Live(1, 2, "T1", "A2"), Dead(2, 5, "T1", "A2")));
         }
 
         [Fact]
@@ -365,22 +380,26 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
             await h.AddNoteAndLinksAsync(t1, "A1", "A2");       // t2
             await h.AddNoteAndLinksAsync(t2);                   // t3
             await h.AddNoteAndLinksAsync(s1, "S1Link");         // t4 (control: sibling survives)
+            await h.AddStudyLogAsync(t2);                       // t5
 
             hk.DanhSachMonHoc.Remove(toan);
 
             var before = await h.SnapshotAsync();
-            await h.SaveAsync(hk);                              // t5
+            await h.SaveAsync(hk);                              // t6
             var after = await h.SnapshotAsync();
 
+            // OBSERVED, NOT DESIRED: the StudyLog of a task under the deleted MonHoc stays live.
+            Assert.Equal(Live(1, 5, "T2", "log(T2)"), after["StudyLog/log(T2)"]);
+
             AssertDiff(before, after,
-                Changed("MonHoc/Toan", Live(1, 1, "HK1", "Toan"), Dead(2, 5, "HK1", "Toan")),
-                Changed("StudyTask/T1", Live(1, 1, "Toan", "T1"), Dead(2, 5, "Toan", "T1")),
-                Changed("StudyTask/T2", Live(1, 1, "Toan", "T2"), Dead(2, 5, "Toan", "T2")),
-                Changed("StudyTask/T3", Live(1, 1, "Toan", "T3"), Dead(2, 5, "Toan", "T3")),
-                Changed("TaskNote/note(T1)", Live(1, 2, "T1", "note(T1)"), Dead(2, 5, "T1", "note(T1)")),
-                Changed("TaskLink/A1", Live(1, 2, "T1", "A1"), Dead(2, 5, "T1", "A1")),
-                Changed("TaskLink/A2", Live(1, 2, "T1", "A2"), Dead(2, 5, "T1", "A2")),
-                Changed("TaskNote/note(T2)", Live(1, 3, "T2", "note(T2)"), Dead(2, 5, "T2", "note(T2)")));
+                Changed("MonHoc/Toan", Live(1, 1, "HK1", "Toan"), Dead(2, 6, "HK1", "Toan")),
+                Changed("StudyTask/T1", Live(1, 1, "Toan", "T1"), Dead(2, 6, "Toan", "T1")),
+                Changed("StudyTask/T2", Live(1, 1, "Toan", "T2"), Dead(2, 6, "Toan", "T2")),
+                Changed("StudyTask/T3", Live(1, 1, "Toan", "T3"), Dead(2, 6, "Toan", "T3")),
+                Changed("TaskNote/note(T1)", Live(1, 2, "T1", "note(T1)"), Dead(2, 6, "T1", "note(T1)")),
+                Changed("TaskLink/A1", Live(1, 2, "T1", "A1"), Dead(2, 6, "T1", "A1")),
+                Changed("TaskLink/A2", Live(1, 2, "T1", "A2"), Dead(2, 6, "T1", "A2")),
+                Changed("TaskNote/note(T2)", Live(1, 3, "T2", "note(T2)"), Dead(2, 6, "T2", "note(T2)")));
         }
 
         // ---- reparent ------------------------------------------------------------------------
