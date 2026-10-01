@@ -1,7 +1,7 @@
 # D-2: a local save no longer re-stamps rows that are already tombstoned
 
 **Date:** 2026-10-01 · **Author:** Claude Code agent (owner-dispatched, ticket
-`Prompt/2026-09-30-d2-tombstone-restamp-fix.md`) · **PR:** #PR → `dev` · **Branch:**
+`Prompt/2026-09-30-d2-tombstone-restamp-fix.md`) · **PR:** #105 → `dev` · **Branch:**
 `fix-d2-tombstone-restamp` (worktree `.claude/worktrees/d2-restamp`, from `origin/dev` `5d80eee`)
 
 Labels: **OBSERVED** (seen in a run in this session) · **FACT** (read in the tree) · **INFERENCE**

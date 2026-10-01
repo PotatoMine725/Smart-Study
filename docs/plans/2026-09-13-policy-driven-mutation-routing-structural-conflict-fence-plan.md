@@ -965,6 +965,8 @@ working-tree files · T2.5 test files (`Sync/Convergence/*`), if they have lande
 | R-10 | Primary spec untracked; implementation cites a file absent from `origin/dev` | High (governance) | **Closed 2026-09-14:** spec committed with this plan (SB-1) |
 | R-11 | GitNexus index stale/nondeterministic | Low | re-run `impact` per slice; do not compare counts |
 
+> **Amendment 2026-10-01 (R-9, D-2):** **D-2 FIXED** by PR #105. The local save's old-graph load is now live-only and `TaskCascadeHelper` removes only live children (`IsDeleted == false`), so a no-change save no longer re-stamps tombstones. D9-T1 is kept: no hard delete, and a dead note still occupies `UNIQUE(MaTask)`. No backfill. Report: [`../reports/2026-10-01-d2-tombstone-restamp-fix.md`](../reports/2026-10-01-d2-tombstone-restamp-fix.md). D-1, D-3 and D-4 are unchanged.
+
 ---
 
 ## 20. Open questions / owner decisions still required
