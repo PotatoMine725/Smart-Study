@@ -94,7 +94,9 @@ P0-a (the plan's original question): **a no-change save re-stamps rows that are 
 Each such MonHoc, task, note and link gets `Rev + 1` and a new `DeletedAtUtc`/`ModifiedAtUtc` on every
 save of that semester (`NoChangeSave_OverAlreadyTombstonedRows_Observed`). Cause (FACT): the old graph is
 loaded without an `IsDeleted` filter, so a tombstoned row is "in the old graph, absent from the new"
-again. This is the plan's R-9 D-2 "re-stamp churn"; it is pinned, not fixed.
+again. This is the plan's R-9 D-2 "re-stamp churn"; it is pinned, not fixed. **This observation
+confirms defect D-2.** Its fix is a separate owner ticket after this PR and is not part of Slice 3
+(owner direction, 2026-09-30). The same test closes P0-a's `LuuHocKyAsync` leg in plan §21 Slice 0.
 
 One thing the first run of the oracle taught: which clone `LayDanhSachHocKyAsync` keeps follows the
 DB's row order over random Guid keys, so the surviving clone differs between runs. The clone-merge
@@ -141,6 +143,7 @@ Planner output (`SemesterReconcilePlan`): `IsCreate`, `FkHeals`, `TaskReparents`
 |---|---|
 | `rtk dotnet build` | 0 errors, 96 warnings (same as baseline) — OBSERVED |
 | Full suite after all three commits | **1001 total, 1000 passed, 0 failed, 1 skipped** (TRX) = baseline 970 + 16 snapshot + 14 planner — OBSERVED |
+| Full suite after rebasing onto `origin/dev` `62c8042` (PR #102 merged) | **1011 total, 1010 passed, 0 failed, 1 skipped** (TRX) = 1001 + #102's 10 tests — OBSERVED. Commit SHAs cited in this report are pre-rebase; `67505fb`/`033b89b`/`2920804`/`cd99f72`/`01ca7b4` became `7170e41`/`8850986`/`fe9afad`/`f89e453`/`7a34354` |
 | Existing test files changed | none. `git diff --stat origin/dev...HEAD` lists 10 files: the 2 new test files, the 3 new `Mutations/` files, `SqliteHocKyRepository.cs`, and 4 docs files — OBSERVED |
 | `SemesterSaveRegressionSnapshotTests` between commit 1 and commit 2 | unchanged, green on both — OBSERVED |
 | `SemesterSaveRegressionSnapshotTests` after the §3.1 amendment | green on HEAD **and** green with `SqliteHocKyRepository.cs` restored to its unrefactored content from `67505fb` (file then checked out back) — OBSERVED |
@@ -170,16 +173,17 @@ stay live under a tombstoned task, both before and after the extraction.
   `base` = `origin/dev`: it saw the 10 changed files but reported 0 changed functions, because it has no
   graph for the worktree either. Uninformative, not a pass.
 - No manual run of the WPF app. The four VMs are exercised only through the existing test suite.
-- P0-b and P0-c (Slice 0 remainder, PR #102) are not part of this slice.
+- P0-b and P0-c are not part of this slice; they merged with PR #102 before this branch was rebased.
 - No snapshot topology for a `MonHoc` arriving with a wrong `MaHocKy`, or for duplicate ids in the
   create branch.
-- **Known difference, not pinned (INFERENCE — not run): a `null` entry inside a `DanhSachTask`.** The
+- **Known difference, not pinned, ACCEPTED by owner ruling (§5.5) — not run: a `null` entry inside a
+  `DanhSachTask`.** The
   old code healed the tasks before the null and then threw `NullReferenceException` inside the heal
   loop (step 5), leaving those heals on the caller's graph. The planner now hits the null first and
   throws before the writer runs, so no heal is applied. Same exception type, DB unchanged in both; the
   caller-graph state on that failure path differs. No VM puts a null into these collections (FACT for
-  the 8 call sites' own code paths; not proven for every binding). Filed as open question **Q-S3-1**
-  for the owner: accept, or pin and preserve.
+  the 8 call sites' own code paths; not proven for every binding). Raised as **Q-S3-1**; closed by the
+  owner ruling in §5.5.
 
 ## 4. Follow-ups
 
@@ -191,16 +195,17 @@ stay live under a tombstoned task, both before and after the extraction.
    write, but the throw is still late (step 12) to preserve effect 7. Moving it ahead of the fence is a
    caller-visible behaviour change and needs to be decided there, together with OD-7 restoration.
 3. **Effects 4 and 7, and the P0-a re-stamp** are pinned as OBSERVED. Slice 4 / OD-7 owns effects 4 and
-   7; the re-stamp is plan R-9 D-2 (separate owner ticket). Any fix must update the `_Observed` tests
-   deliberately.
+   7; the re-stamp confirms plan R-9 defect D-2, whose fix is a separate ticket after this PR, not part
+   of Slice 3. Any fix must update the `_Observed` tests deliberately.
 4. **M5** remains an uncovered line (E6 follow-up 3, still open).
 5. **GitNexus**: the three missed callers (§2.2), and the index needs `npx gitnexus analyze` after merge
    to pick up the three new types.
 6. **Branch name**: plan §24.2 names `refactor/epic2-fence-s3-reconcile-extract`; git cannot create it
    while the owner's local branch `refactor` exists, so this slice used
    `refactor-epic2-fence-s3-reconcile-extract`.
-7. **Merge order with PR #102** (Slice 0 remainder, open): it edits the same plan Status line and the
-   same `docs/active/README.md` Epic 2 row. Whichever merges second will conflict on those lines.
+7. **Merge order with PR #102** — resolved. #102 merged first (`62c8042`); this branch was rebased onto
+   it and the `docs/active/README.md` Epic 2 row conflict resolved keeping #102's facts and adding
+   Slice 3's. With P0-a's last leg measured here, plan §21 marks Slice 0 complete (PRs #95, #102, #103).
 8. **`StudyLog` orphaning** (§3.1): logs of a deleted task stay live. Pre-existing; pinned, not fixed.
 9. Plan §12.2 says "7 call sites in 4 VMs"; the tree has 8 call lines in 8 methods in those 4 VMs.
 
@@ -241,3 +246,17 @@ it's for:* one clock tick per save turns "was this row re-stamped" into a visibl
 what pinned P0-a. *Experience:* every expected diff was written before the first run and 15 of 16
 matched; the one that did not exposed the non-deterministic clone survivor (§2.4) rather than a wrong
 expectation about the save.
+
+### 5.5 Q-S3-1 — null entry in `DanhSachTask`: difference accepted (owner ruling, 2026-09-30)
+
+*Ruling:* the owner accepted the one known behaviour difference (§3, "What was not run"): on a `null`
+entry the old code applied the earlier heals and then threw `NullReferenceException`; the planner now
+throws first and no heal is applied. It is not pinned and not preserved. *Evidence (FACT, by reading;
+the failure path itself is NOT RUN):* the only VM writes into `DanhSachTask` are
+`QuanLyTaskViewModel.cs:116` and `:196`, and both add non-null objects. `:196` adds a freshly
+constructed `StudyTask`. `:116` re-adds the items of a list built from the same collection, and the
+loop just before it (`:103`) dereferences every entry, so a `null` would already throw there.
+*What it's for:* it closes the only behaviour difference this slice knowingly introduces, so Slice 3
+stays behaviour-preserving for every input the app can produce. *Experience:* an open question about
+an unreachable input is closed fastest by showing the write sites, not by building a test for a
+state the app cannot reach.

@@ -8,7 +8,7 @@
 
 | Area | Change | Verification |
 |---|---|---|
-| Slice 3 — reconcile extraction | `SqliteHocKyRepository.LuuHocKyAsync` split into `SemesterReconcilePlanner` (pure diff), `SemesterGraphWriter` (same tracker writes, same order) and `LocalSemesterSaveExecutor` (context + transaction) under `Infrastructure/Persistence/SQLite/Mutations/`; the `IHocKyRepository` port is unchanged. Behaviour pinned first by `SemesterSaveRegressionSnapshotTests` on the unrefactored code ([report](reports/2026-09-30-epic2-fence-s3-extract.md)) | PR #103 — **1000 passed / 1 skipped / 1001 total** (baseline 970 / 1 / 971); mutants M1–M4 RED before and after, M5 survives (recorded) |
+| Slice 3 — reconcile extraction | `SqliteHocKyRepository.LuuHocKyAsync` split into `SemesterReconcilePlanner` (pure diff), `SemesterGraphWriter` (same tracker writes, same order) and `LocalSemesterSaveExecutor` (context + transaction) under `Infrastructure/Persistence/SQLite/Mutations/`; the `IHocKyRepository` port is unchanged. Behaviour pinned first by `SemesterSaveRegressionSnapshotTests` on the unrefactored code ([report](reports/2026-09-30-epic2-fence-s3-extract.md)) | PR #103 — **1000 passed / 1 skipped / 1001 total** (baseline 970 / 1 / 971); mutants M1–M4 RED before and after, M5 survives (recorded). Also closes fence Slice 0 (with #95, #102): P0-a's no-change-save leg observed re-stamping already-tombstoned rows, confirming defect D-2 (fix is a separate ticket) |
 
 ## 2026-09-18 — S-2 §10 reproducibility probe: owner ruling `F-1`/`D-6` recorded, result **PASS** (Reading A) — *no code change; documentation + owner ruling only*
 
