@@ -18,6 +18,12 @@ namespace SmartStudyPlanner.Tests.Sync.Fence
     /// or modelled"). Characterization only: these tests pin the OBSERVED behaviour of the two
     /// independent cascade implementations, they do not assert a desired semantic.
     /// <para>
+    /// D-2 (defect fix, ticket <c>Prompt/2026-09-30-d2-tombstone-restamp-fix.md</c>) aligned both paths:
+    /// the local cascade now uses the same live-only predicate as the sync cascade
+    /// (<c>child.IsDeleted == false</c>, Slice-2 owner rulings §1, M-3/A-1). Leg 1 was flipped in the
+    /// same commit; before D-2 it observed the local path re-stamping the already-dead note.
+    /// </para>
+    /// <para>
     /// The question under measurement (review finding M-3/A-1): when a <c>StudyTask</c> is tombstoned,
     /// is an <b>already-tombstoned</b> <c>TaskNote</c> occupying that task's <c>MaTask</c> constraint
     /// scope included in the actual cascade? The answer decides whether
@@ -73,8 +79,8 @@ namespace SmartStudyPlanner.Tests.Sync.Fence
         /// <summary>
         /// P0-a leg 1 — the LOCAL cascade (<c>TaskCascadeHelper.RemoveChildrenAsync</c>, reached from
         /// <c>SqliteStudyTaskRepository.DeleteAsync</c> and <c>SqliteHocKyRepository.LuuHocKyAsync</c>
-        /// delete-by-absence). Its query has no <c>IsDeleted</c> filter and <c>AppDbContext</c> declares
-        /// no global query filter, so it is expected to re-reach the already-dead note.
+        /// delete-by-absence). Since D-2 its queries carry <c>&amp;&amp; !IsDeleted</c>, so it leaves
+        /// the already-dead note untouched, like the sync cascade (leg 2).
         /// </summary>
         [Fact]
         public async Task P0a_Leg1_LocalTaskCascade_OverAlreadyTombstonedNote_ObservedBehaviour()
@@ -91,11 +97,12 @@ namespace SmartStudyPlanner.Tests.Sync.Fence
 
             var after = await ReadNoteStateAsync(noteId);
 
-            // OBSERVATION (not a desired semantic): the local cascade re-stamps the already-dead note.
+            // OBSERVATION, flipped by D-2: the local cascade skips the already-dead note entirely (before
+            // D-2 it re-stamped it). The note is still present and dead, so it still occupies UNIQUE(MaTask).
             Assert.True(after.IsDeleted);
-            Assert.True(after.Rev > before.Rev,
-                $"local cascade re-stamped the dead note: Rev {before.Rev} -> {after.Rev}");
-            Assert.NotEqual(before.ModifiedAtUtc, after.ModifiedAtUtc);
+            Assert.Equal(before.Rev, after.Rev);
+            Assert.Equal(before.ModifiedAtUtc, after.ModifiedAtUtc);
+            Assert.Equal(before.DeletedAtUtc, after.DeletedAtUtc);
         }
 
         // ------------------------------------------------------------------ Leg 2: SYNC path

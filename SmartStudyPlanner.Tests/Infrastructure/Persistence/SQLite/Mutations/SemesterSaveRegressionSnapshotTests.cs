@@ -19,9 +19,9 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
     /// the caller's graph, the caller-visible state afterwards.
     ///
     /// Everything asserted here is OBSERVED behaviour, not desired behaviour. Tests whose name ends in
-    /// <c>_Observed</c> pin something a reader could mistake for a contract (re-stamping tombstones,
-    /// repository instances leaking into the caller's graph, a half-refilled graph after a failed
-    /// save). They are not to be "fixed" in Slice 3; Slice 4 / OD-7 owns them.
+    /// <c>_Observed</c> pin something a reader could mistake for a contract (repository instances leaking into the caller's graph, a half-refilled graph after a failed
+    /// save). They are not to be "fixed" in Slice 3; Slice 4 / OD-7 owns them. (The re-stamping of
+    /// already-tombstoned rows was pinned here too until the D-2 defect fix flipped that row.)
     /// </summary>
     public class SemesterSaveRegressionSnapshotTests
     {
@@ -300,7 +300,7 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
         }
 
         [Fact]
-        public async Task NoChangeSave_OverAlreadyTombstonedRows_Observed()
+        public async Task NoChangeSave_OverAlreadyTombstonedRows_WritesNothing()
         {
             using var h = new Harness();
             var hk = h.Semester("HK1");
@@ -323,15 +323,12 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
             await h.SaveAsync(hk);                       // t4: nothing changed in the caller's graph
             var after = await h.SnapshotAsync();
 
-            // OBSERVED, NOT DESIRED (plan P0-a / R-9 D-2 "re-stamp churn"). The old graph is loaded
-            // without an IsDeleted filter, so rows tombstoned by an earlier save are "present in the
-            // old graph, absent from the new one" again and are re-removed and re-stamped.
-            AssertDiff(before, after,
-                Changed("MonHoc/Ly", Dead(2, 3, "HK1", "Ly"), Dead(3, 4, "HK1", "Ly")),
-                Changed("StudyTask/L1", Dead(2, 3, "Ly", "L1"), Dead(3, 4, "Ly", "L1")),
-                Changed("StudyTask/T2", Dead(2, 3, "Toan", "T2"), Dead(3, 4, "Toan", "T2")),
-                Changed("TaskLink/LinkT2", Dead(2, 3, "T2", "LinkT2"), Dead(3, 4, "T2", "LinkT2")),
-                Changed("TaskNote/note(T2)", Dead(2, 3, "T2", "note(T2)"), Dead(3, 4, "T2", "note(T2)")));
+            // INTENTIONAL FLIP (D-2, ticket Prompt/2026-09-30-d2-tombstone-restamp-fix.md). Until D-2 this
+            // row pinned the OBSERVED re-stamp churn (plan P0-a / R-9): the old graph was loaded without
+            // an IsDeleted filter, so rows tombstoned by an earlier save were re-removed and re-stamped
+            // on every save. The executor now loads the old graph live-only, so a no-change save over
+            // tombstones writes nothing. This is the only Slice-3 oracle row D-2 changes.
+            AssertDiff(before, after);
         }
 
         // ---- delete --------------------------------------------------------------------------
