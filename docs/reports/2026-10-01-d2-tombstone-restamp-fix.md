@@ -61,11 +61,11 @@ The three questions the ticket requires:
      - Previously-dead T2 and its note/link, and T3's dead note/link, are byte-identical.
    - The existing `DeleteMonHoc_WithThreeTasksNotesAndLinks_XoaMon` snapshot is unchanged and green.
 2. **Can the incoming graph contain an id that exists only as a tombstone?** Not through any path
-   today. Each source of the incoming graph (FACT):
+   today. Each source of the incoming graph (code paths read; FACT for each cited line, INFERENCE for the runtime conclusion):
    - Load: `LayDanhSachHocKyAsync` filters dead HocKy, MonHoc and StudyTask
      (`SqliteHocKyRepository.cs:29-31`). Load-time dedup only merges live clones.
    - `ThemTask` and new MonHocs mint fresh Guids (`QuanLyTaskViewModel.cs:192`, `new StudyTask(...)`).
-   - Instances: every page gets the same `HocKy` instance per semester (`MainWindow` → `DashboardPage` →
+   - Instances (INFERENCE from reading the navigation code, including frame back-navigation; not run): every page gets the same `HocKy` instance per semester (`MainWindow` → `DashboardPage` →
      `QuanLyMonHocPage`/`QuanLyTaskPage`). `SetupPage` is created once (`MainWindow.xaml.cs:49`) and
      loads once. The background deadline scan reloads, but only reads.
 
@@ -100,9 +100,28 @@ The three questions the ticket requires:
 - **Stale doc comment, `ImpactResolver.cs:35-41`.** It still says the local path "has no `IsDeleted`
   filter and re-stamps an already-tombstoned child". `Sync/**` is on the MUST-NOT-edit list; this
   needs a follow-up doc touch.
-- **`detect_changes`.** GitNexus `detect_changes` cannot target this worktree (only the main checkout
-  is registered). The scope check used code-review-graph `detect_changes` on the worktree (2 changed
-  files, the two above) and `git diff --stat`.
+- **`detect_changes` — OBSERVED.** The worktree was indexed with `npx gitnexus analyze` (its
+  side-effect edits to `AGENTS.md`, `CLAUDE.md` and `.claude/skills/gitnexus/*` were reverted, so the
+  tree is clean). Then `detect_changes(scope: compare, base_ref: origin/dev)` on the worktree was run.
+  - Production symbols changed: only `LocalSemesterSaveExecutor.ExecuteAsync` and
+    `TaskCascadeHelper.RemoveChildrenAsync`, plus their containing class and namespace nodes.
+  - Everything else is test methods and doc sections.
+  - Affected flows: 8, all `ExecuteAsync → …`, which is the local save.
+- **Stale references left untouched** (existing tests outside the two allowed flips, frozen specs, or
+  `Sync/**`). Each now describes pre-D-2 behaviour:
+  - `SmartStudyPlanner/Sync/Fence/ImpactResolver.cs:35-41`: the local path "has no `IsDeleted` filter and
+    re-stamps".
+  - `Tests/Sync/Fence/ImpactCascadeLivenessTests.cs:29`: the helper "may re-stamp its `Rev`/provenance".
+  - `Tests/…/Mutations/SemesterReconcilePlannerTests.cs:317-321`
+    (`TombstonedRowsInOldGraph_ArePlannedAsDeletesAgain_Observed`):
+    - Its comment says the executor loads with "no IsDeleted filter" and cites the old snapshot name.
+    - The planner itself is unchanged, so the test still passes.
+    - The executor no longer hands it dead rows.
+  - `docs/specs/2026-09-17-fence-slice2-owner-rulings-m3-h1.md:42`: a frozen table row records the
+    local path as "unfiltered / re-stamps". It was correct when ruled.
+  - The old test name `NoChangeSave_OverAlreadyTombstonedRows_Observed` (renamed to `…_WritesNothing`
+    by this PR) is still cited as P0-a evidence in fence plan §21 row 0 and in
+    `docs/reports/2026-09-30-epic2-fence-s3-extract.md:95`. The R-9 amendment line records the rename.
 
 ## 3. Tests
 
@@ -136,15 +155,17 @@ the fix applied. Exactly two existing tests went red; no other existing test cha
 
 - `dotnet test SmartStudyPlanner.Tests`: baseline 1010 passed / 0 failed. With the fix and before
   the flip: 1012 passed / 2 failed / 1 skipped, and the 2 failures are the two expected rows. After
-  the flip: **1014 passed, 0 failed** (= baseline + 4 new).
+  the flip: **1014 passed / 0 failed / 1 skipped / 1015 total** (TRX counters; = baseline + 4 new). The
+  baseline was read from the rtk summary (1010 passed / 0 failed), which does not show skips.
 - Build clean (warnings only, pre-existing).
 - **NOT RUN:** the app itself (no UI change), CI (runs on the PR), and the inferences in §2.3 Q2/Q3
   and §2.4.
 
 ## 5. Follow-ups
 
-- Update `ImpactResolver.cs:35-41` to say the local path is live-only since D-2. It is doc only, but
-  it sits in `Sync/**`.
+- Doc-only touch for the stale references listed in §2.5: `ImpactResolver.cs`,
+  `ImpactCascadeLivenessTests.cs` and the `SemesterReconcilePlannerTests` comment. Each is outside this
+  ticket's MAY-edit list.
 - `SqliteStudyTaskRepository.DeleteAsync`: filter the task lookup on `!IsDeleted` (OD-5 owner).
 - Stale-graph zombie id: a save now fails loudly instead of silently. Slice 4 / D-4 owns it.
 - D-1 (`UpsertNoteAsync` over a dead note) is still open, as a separate ticket.
@@ -163,7 +184,7 @@ the fix applied. Exactly two existing tests went red; no other existing test cha
 ### 6.2 Accept "loud failure" for a stale zombie id
 - **Why it had to be made.** Under A, a tombstoned id in the incoming graph turns into an `Add` and a
   PK violation. Under the old code it was a silent no-op.
-- **What it's for.** I verified that no current path feeds a dead id into a save, because all pages
+- **What it's for.** Reading the code paths shows that no current path feeds a dead id into a save, because all pages
   share one graph instance. A failed, rolled-back save is safer than silently writing to a tombstone.
   The general fix belongs to the fence (Slice 4 / D-4).
 - **Experience.** Before making a load stricter, check where the incoming graph comes from. "Same
