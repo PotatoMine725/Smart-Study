@@ -314,9 +314,10 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
             Assert.Empty(plan.TaskDeletes);
         }
 
-        // Already-tombstoned rows are still in the old graph the executor loads (no IsDeleted
-        // filter), so they are planned as deletes again on every save. OBSERVED, not desired --
-        // see SemesterSaveRegressionSnapshotTests.NoChangeSave_OverAlreadyTombstonedRows_Observed.
+        // The planner itself has no IsDeleted filter: tombstoned rows handed to it in the old graph
+        // are planned as deletes again. Since D-2 (PR #105) the executor loads the old graph
+        // live-only, so this input no longer reaches the planner from a real save -- see
+        // SemesterSaveRegressionSnapshotTests.NoChangeSave_OverAlreadyTombstonedRows_WritesNothing.
         [Fact]
         public void TombstonedRowsInOldGraph_ArePlannedAsDeletesAgain_Observed()
         {

@@ -144,3 +144,7 @@ confirms text that already existed:
 
 No frozen D1–D9 / D9-T1..T6 semantics, no canonical spec text, and no PR-5 or PR-6 semantics were
 changed. No schema or migration change was required. No new application service was added.
+
+## 5. Amendment 2026-10-01: D-2 (#105)
+
+2026-10-01: D-2 (#105) aligned the local path - TaskCascadeHelper is now live-only; the table records the state at ruling time.
