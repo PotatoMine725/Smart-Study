@@ -27,9 +27,13 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Mutations
             using var transaction = await db.Database.BeginTransactionAsync(ct);
             try
             {
+                // D-2: the old graph is live-only (IsDeleted == false, the ruled cascade predicate),
+                // the same view LayDanhSachHocKyAsync gives the caller. Loading tombstones here made
+                // every dead row look "removed" again on each save, and made EF's cascade fixup on a
+                // removed MonHoc reach its dead tasks -- both re-stamped rows that were already dead.
                 var hocKyCu = await db.HocKys
-                    .Include(h => h.DanhSachMonHoc)
-                    .ThenInclude(m => m.DanhSachTask)
+                    .Include(h => h.DanhSachMonHoc.Where(m => !m.IsDeleted))
+                    .ThenInclude(m => m.DanhSachTask.Where(t => !t.IsDeleted))
                     .FirstOrDefaultAsync(h => h.MaHocKy == hocKy.MaHocKy, ct);
 
                 var plan = SemesterReconcilePlanner.Plan(hocKyCu, hocKy);
