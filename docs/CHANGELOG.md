@@ -4,6 +4,12 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
+## 2026-10-03 — Epic 2 / T2.4 structural-conflict fence: **Slice 4 — fence wired into the local semester save + OD-7** — *behaviour change for saves that cross an unresolved conflict; no schema change*
+
+| Area | Change | Verification |
+|---|---|---|
+| Fence Slice 4 (plan §21 row 4) | `SemesterReconcilePlanner` emits the save's `MutationRequest` (plan §6; Merge-field `UpdateFields` only, no intent for Derived fields). `LocalSemesterSaveExecutor` evaluates `FenceRouter` on the same context and transaction as the write and throws `MutationRejectedException` before `SemesterGraphWriter` runs on any non-passed decision. OD-7, mechanism R2 (owner ruling 2026-10-03): the caller's graph is restored in place to persisted state before the throw; `App.DispatcherUnhandledException` shows the blocking rule ids; nothing is retried. No production code catches the rejection (N-10). In production no conflict record can exist yet, so every save still passes ([report](reports/2026-10-03-epic2-fence-s4-local-save.md)) | PR #106 — **1089 passed / 1 skipped / 1090 total**, 0 failed (baseline 1014 / 1 / 1015); 75 new tests; one existing test intentionally flipped (P0-c → Blocked); mutants M1–M15 RED. Open owner question: E-2 (Derived-only saves drift a held row, OBSERVED) |
+
 ## 2026-10-01 — Defect **D-2** fixed: a local save no longer re-stamps already-tombstoned rows — *bug fix; no schema change*
 
 | Area | Change | Verification |
