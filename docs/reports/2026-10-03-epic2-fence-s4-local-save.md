@@ -1,11 +1,21 @@
 # Epic 2 / T2.4 fence Slice 4: the fence is wired into the local semester save, with OD-7 restoration
 
 **Date:** 2026-10-03 · **Author:** Claude Code agent (owner-dispatched; card
-`Prompt/2026-10-03-epic2-fence-slice4-wire-local-save.md`) · **PR:** #106 → `dev` (draft) · **Branch:**
+`Prompt/2026-10-03-epic2-fence-slice4-wire-local-save.md`) · **PR:** #106 → `dev` · **Branch:**
 `feat-epic2-fence-s4-local-save` (worktree `.claude/worktrees/fence-s4`, from `origin/dev` `6283231`)
 
 Labels: **OBSERVED** (seen in a run in this session) · **FACT** (read in the tree) · **INFERENCE**
 (reasoned, not run) · **RULING** (owner decision, 2026-10-03 unless dated otherwise) · **NOT RUN**.
+
+**Post-review amendments (2026-10-03).** The independent review (docs PR #107, `ship-with-followups`)
+was answered with new commits on #106, as the owner directed:
+- **M-1 / Q-1:** fixed under a new owner ruling. `ThemTask` and `ThemMon` leave edit mode only after the
+  save succeeds (§2.3, §7.5, §11.4).
+- **L-1:** the "0 warnings" claim is corrected to the clean-build count (§0, §8).
+- **L-2:** the "draft" wording is removed.
+- **L-3:** recorded as a known limitation, with no code change (§3).
+
+Counts in §0, §4, §6 and §8 are for the new head.
 
 ## 0. Verdict
 
@@ -14,22 +24,28 @@ writer in `LocalSemesterSaveExecutor`. It runs on the same context and inside th
 as the write, and a decision that is not `RouteKnown ∧ FencePassed` throws before the writer runs.
 On rejection nothing is committed, the caller's in-memory graph is restored in place to persisted
 state (OD-7, mechanism R2 per your ruling), the rejection reaches the global handler with its rule
-ids, and nothing is retried.
+ids, and nothing is retried. Under the Q-1 ruling, the two edit-mode save commands also keep their
+edit mode after a failed save, so the next click edits the same row instead of creating a duplicate.
 
 | Acceptance item (card) | Result |
 |---|---|
-| Build clean | **OBSERVED** — 0 errors, 0 warnings |
-| Suite ≥ baseline + new, 0 failed | **OBSERVED** — 1090 total / 1089 passed / 0 failed / 1 skipped (baseline 1015 / 1014 / 0 / 1; +75 new) |
+| Build clean | **OBSERVED** — 0 errors. A clean build (`dotnet build SmartStudyPlanner.slnx --no-incremental`) gives 96 warning lines (30 distinct). The set is identical to `origin/dev` `6283231`, so this PR introduces none. Two are in files this PR touches: the pre-existing CS8618 at the constructors of the two Q-1 view models (`QuanLyTaskViewModel.cs:85`, `QuanLyMonHocViewModel.cs:51`), present at the same lines on `origin/dev`. *Corrected after review L-1: the earlier "0 warnings" came from an incremental build.* |
+| Suite ≥ baseline + new, 0 failed | **OBSERVED** — 1096 total / 1095 passed / 0 failed / 1 skipped (baseline 1015 / 1014 / 0 / 1; +81 new: 75 for the fence, 6 for Q-1) |
 | Rulings §5 items 1–7 checkable | **OBSERVED** — §5 below, each with its test and mutant |
-| Mutants RED then reverted (remove fence call; writer before fence; drop restoration; swallow) | **OBSERVED** — M1–M4, plus 11 more (§6) |
+| Mutants RED then reverted (remove fence call; writer before fence; drop restoration; swallow) | **OBSERVED** — M1–M4, plus 13 more, including the two Q-1 mutants M16/M17 (§6) |
 | `gitnexus_detect_changes()` ⊆ expected | **Branch diff used instead** (worktree not indexed) — ⊆ expected (§8) |
-| Draft PR to `dev`, body split OBSERVED / INFERENCE / NOT RUN | #106 |
+| PR to `dev`, body split OBSERVED / INFERENCE / NOT RUN | #106 |
 
-**One owner question is open (E-2, §7.1).** A save that changes only Derived fields on a held row
-drifts that row away from the record's Base fingerprint. The fence cannot see it, because the
-planner (correctly, per plan §6) emits no intent for it. Opening `QuanLyTaskViewModel` and then
-saving anything reaches this in production as soon as records can exist. As you instructed, I
-measured and recorded it without fixing it.
+**Two owner questions are open.**
+- **E-2 (§7.1).** A save that changes only Derived fields on a held row drifts that row away from the
+  record's Base fingerprint. The fence cannot see it, because the planner (correctly, per plan §6)
+  emits no intent for it. Opening `QuanLyTaskViewModel` and then saving anything reaches this in
+  production as soon as records can exist. As you instructed, I measured and recorded it without
+  fixing it.
+- **Q-2 (§7.5), new.** A failed save in **create** mode is outside the Q-1 ruling. `ThemTask` still writes
+  two rows on the next click. `ThemMon`'s next click is stopped by the duplicate-name guard, and the
+  unsaved MonHoc is written with whatever save comes next. Both behaviours already exist on `origin/dev`.
+  They are pinned as characterizations, not fixed.
 
 ## 1. Scope
 
@@ -42,10 +58,11 @@ Plan §21 row 4 and §24.2 card A4. Production diff (FACT, branch diff vs `origi
 | `Mutations/SemesterGraphRestorer.cs` (new) | OD-7 R2: in-place restore of the caller's graph from the old graph |
 | `Mutations/LocalSaveRejection.cs` (new) | Surfacing pieces that are not WPF: find a rejection, the user message, the attached restore failure |
 | `App.xaml.cs` (code-behind) | One `if (LocalSaveRejection.TryFind(...))` branch in `DispatcherUnhandledException` |
+| `ViewModels/QuanLyTaskViewModel.cs`, `ViewModels/QuanLyMonHocViewModel.cs` (Q-1, post-review) | `ThemTask` / `ThemMon`: the edit-mode reset (`_taskDangSua`/`_monDangSua = null` and the button text and colour) moves from before `await LuuHocKyAsync` to after it. Nothing else changes |
 
 Not touched: `Sync/**` (only read; mutants edited it temporarily and were reverted), `SqliteHocKyRepository.cs`,
-`SemesterGraphWriter.cs`, `AppDbContext`, `SyncStamper`, any XAML, any VM, frozen specs, schema, packages,
-port signatures. One existing test changed: P0-c (its own commit, `efe258a`).
+`SemesterGraphWriter.cs`, `AppDbContext`, `SyncStamper`, any XAML, VM architecture (only the Q-1 reorder above),
+frozen specs, schema, packages, port signatures. One existing test changed: P0-c (its own commit, `efe258a`).
 
 ## 2. Findings
 
@@ -86,6 +103,27 @@ conflict id`, says nothing was saved and nothing will be retried, and says wheth
 restored. `Handled = true`, as before. Code after the `await` in a command does not run, which is the same as
 for any save exception today (Phase 0 §3a lists what each command skips).
 
+**VM state that a command changes before the `await` (added after review M-1; Q-1 ruling, §11.4).** Phase 0
+listed only what a command skips **after** the await. What each of the 8 commands changes **before** it
+(the review's audit at `2842b98`, by code reading, INFERENCE. I re-read only the `ThemTask` and `ThemMon` rows, and
+§7.5 runs those two):
+
+| Command | Changed before the save | Brought back on rejection by |
+|---|---|---|
+| `QuanLyTaskViewModel.HoanThanhTask` | model only (`TrangThai`, Derived recompute, re-sort) | the R2 restore |
+| `QuanLyTaskViewModel.XoaTask` | model only (collection remove) | the R2 restore (X-20) |
+| `QuanLyTaskViewModel.ThemTask` | model; **edit mode, until Q-1** | the R2 restore; edit mode is now cleared only after a successful save |
+| `QuanLyMonHocViewModel.XoaMon` | model only | the R2 restore (X-13) |
+| `QuanLyMonHocViewModel.ThemMon` | model; **edit mode, until Q-1** | the R2 restore; edit mode is now cleared only after a successful save |
+| `SetupViewModel.TaoHocKy` | none (new `HocKy` per click) | n/a (OQ-3) |
+| `DashboardViewModel.LuuDuLieu` | none | n/a |
+| `DashboardViewModel.MoFocusMode` | whatever `FocusWindow` wrote into the model | the R2 restore, which discards those edits (OD-7: bundled edits are not kept) |
+
+After a rejected edit, the form still holds the user's edited values and the button still reads "Cập Nhật".
+The next click re-submits the same edit to the same row. While the record is unresolved it is rejected again;
+it never takes the create branch. The note/link follow-up in `ThemTask` runs only after a successful save, so
+it targets the edited task (OBSERVED, §7.5).
+
 ## 3. OD-7: the mechanism (RULING) and how it works
 
 **RULING:** R2. The executor restores in place, preserving identity, from the old graph loaded in the same
@@ -114,6 +152,8 @@ transaction, before the throw. Surfacing is one `MutationRejectedException` bran
 - Instance identity is preserved for rows the caller still holds: the HocKy, every MonHoc it kept (so `QuanLyTaskViewModel.MonHocHienTai` stays attached), and every task it kept. A row the caller **removed** comes back as a new detached instance. The executor never had the removed object, so anything else still pointing at it (a selected-item field, a journaled task page of a deleted MonHoc) is not re-attached. X-20's `Same` assertions are scoped accordingly: same MonHoc and sibling instances, T equal by value.
 - The models have no `INotifyPropertyChanged`, so a reverted scalar does not repaint a bound cell until the VM refreshes, and derived displays refresh on the next navigation. This is the status quo after any failed save.
 - The restore mutates UI-bound collections. That relies on nothing under `Infrastructure/`, `Sync/` or `Data/` using `ConfigureAwait(false)` (FACT, grep: 0 hits), which the writer already relies on when a save succeeds.
+- **Known limitation, review L-3 (INFERENCE, not measured; owner: note it, no code change).** `SemesterGraphRestorer.Restore` rebuilds `DanhSachTask` only for MonHocs that exist in persisted state, then drops unsaved MonHocs from the HocKy. If the caller moved task X into an unsaved MonHoc N, X goes back under its persisted owner, but N's own `DanhSachTask` still lists X. This only matters if something keeps a reference to N. No VM can today: `ThemMon` saves immediately, and `QuanLyTaskViewModel` is opened on persisted MonHocs.
+- The restore covers the model graph. VM fields are outside the executor's reach. The two VM fields a save command changes before the await (edit mode in `ThemTask` and `ThemMon`) are handled in the commands themselves (Q-1, §2.3).
 
 **OD-2 argument (why this is not repository-side hidden policy):** the restore never reads the decision, runs
 identically for every rejection, and only keeps a caller-owned cache coherent with the database. That is the same class of
@@ -136,6 +176,8 @@ save through the public `LayDanhSachHocKyAsync`/`LuuHocKyAsync` path (`Fixtures/
 | `MutationRejectedCatchSourceScanTests` (7) | N-10 + scanner self-checks |
 | `LocalSaveRejectionTests` (4) | message builder, `Exception.Data` round trip, `TryFind` |
 | `LocalSaveLatencyMeasurementTests` (1) | measurement only, no assertion on numbers |
+| `ViewModels/EditModeSaveRejectionTests` (2, Q-1) | (a) fence rejection: `ThemTask` editing an S1-CR-held task; `ThemMon` renaming an S1-CR-held MonHoc (local recipe: both sides reparent the MonHoc to different HocKys). After the rejection: edit mode is kept and the graph matches persisted state. The second click is rejected again with `S1CR.NonStructuralFields` (an edit, not a Create). Live row counts are unchanged, and no note or link write happens |
+| `ViewModels/EditModeSaveFailureTests` (4, Q-1) | (b) a forced non-fence save failure (the first `LuuHocKyAsync` throws, nothing is written; real SQLite repository). The second click updates the same row: one row, edited values, and note/link writes target its id, with no "đã tồn tại" message. Plus 2 CHARACTERIZATIONS of create mode (Q-2). Self-contained, so it also runs on `origin/dev` |
 
 Rows not here, by construction:
 - Editor rows P-CR-5, P-PT-5, P-K-1, P-K-4, P-K-7 belong to Slice 5.
@@ -189,6 +231,8 @@ are in §6.
 | M13 | `S1CR.NonStructuralFields` → Passed | 1 | P-CR-6 |
 | M14 | `S1PT.NonStructuralFields` → Passed | 1 | P-PT-6 |
 | M15 | `CONS.EmptyScopeParentTombstoned` → Blocked | 3 | P-K-5 |
+| M16 | `ThemTask`: edit-mode reset moved back before the await (Q-1) | 6 | 2: `ThemTask` rejection (a) and failure (b) |
+| M17 | `ThemMon`: edit-mode reset moved back before the await (Q-1) | 6 | 2: `ThemMon` rejection (a) and failure (b) |
 
 X-15 stays labelled CHARACTERIZATION (it pins D-2's "the stale id becomes a Create and collides on the
 PK"). After D-2 no single-point mutant reaches it; the two-point M12 does.
@@ -256,11 +300,51 @@ numbers overlap within run-to-run noise. Not analysed and not optimised (card: n
 edit path is the only one whose request is non-empty without being a delete, so it pays the resolver and
 selector reads.
 
+### 7.5 M-1 / Q-1: edit mode across a failed save (OBSERVED, post-review)
+
+**Before the fix.** The same tests were run with only the "still in edit mode" assertions removed, so that
+each could run on to its duplicate check:
+- **(a) Fence rejection, this branch before the VM commit (`fc83688`).** For both `ThemTask` and `ThemMon`, the
+  second click was **not** rejected. It took the create branch, and the new row's `Create` passed the fence.
+  For `ThemTask` this is the review's M-1. For `ThemMon` it is new evidence (the review had not probed it):
+  a renamed held MonHoc gets a second MonHoc carrying the rejected name.
+- **(b) Forced non-fence failure, on `origin/dev` `6283231`** (temporary worktree, only
+  `EditModeSaveFailureTests.cs` added):
+  - **`ThemTask`, edit mode: the duplicate reproduces, so it is a pre-existing bug.** Two live rows exist after
+    the second click.
+  - **`ThemMon`, edit mode: no duplicate, but the retry is lost.** The edited MonHoc still carries the old name
+    in the database. The edited name is already in memory, so the second click reaches the duplicate-name
+    guard. Reading the code, it returns with "Môn '…' đã tồn tại" (INFERENCE: the run stopped at the earlier
+    name assertion, before the message assertion). This is also pre-existing.
+  - **Both create-mode characterizations** pass on `origin/dev` and on head, unchanged by this PR (see Q-2).
+
+**After the fix (`b7bc48b`).** All 6 tests pass, and M16/M17 each turn their two tests RED.
+
+**Q-2, owner question (create mode, outside the Q-1 ruling).** `ThemTask` and `ThemMon` add the new row to
+the shared collection before the save. Under a fence rejection, the R2 restore drops it. Under any other
+save failure nothing does:
+- `ThemTask`'s next click adds a second task, and both are written (pinned:
+  `ThemTask_CreateMode_SaveFails_NextClick_PersistsTwoRows_Characterization`).
+- `ThemMon`'s next click is stopped by the name guard. The unsaved MonHoc then stays in memory and is written
+  by the next save of anything (pinned: `ThemMon_CreateMode_SaveFails_NextClick_IsStoppedByNameGuard_Characterization`).
+
+Fixing this needs a rollback-on-failure in the command, which is broader than the reorder Q-1 authorised.
+The options are:
+- (a) accept it;
+- (b) roll the addition back when the save throws;
+- (c) defer to Slice 5, where `ThemTask` is reworked anyway.
+
 ## 8. Verification
 
 - Baseline (TRX counters, before any edit, `6283231`): 1015 total / 1014 passed / 0 failed / 1 skipped
   (`SoeBaselineCaptureTests.CaptureBaseline_…`, skipped by design).
-- Head `cd60611` (TRX counters): **1090 / 1089 / 0 / 1**. `dotnet build SmartStudyPlanner.slnx`: 0 errors, 0 warnings.
+- Head `cd60611` (TRX counters): 1090 / 1089 / 0 / 1.
+- Head `b7bc48b`, after the Q-1 fix (TRX counters): **1096 / 1095 / 0 / 1**. The docs commits that follow change no code.
+- Clean build (`dotnet build SmartStudyPlanner.slnx --no-incremental`, warnings logged to a file) at `b7bc48b` and
+  at `origin/dev` `6283231`: 0 errors and 96 warning lines on each, the same 30 distinct warnings (CS8618 ×15,
+  CS8625 ×4, NU1903 ×3, CS8622 ×2, xUnit1031 ×2, xUnit2031 ×2, NU1904, CS8602). None is introduced. The two in
+  files this PR touches are the pre-existing CS8618 at `QuanLyTaskViewModel.cs:85` and `QuanLyMonHocViewModel.cs:51`.
+  The original "0 warnings" came from an incremental build (review L-1).
 - Commit `4b0df27` alone: 1078 / 1077 / 0 / 1.
 - **Scope: branch diff vs `origin/dev`, not `gitnexus_detect_changes`.** The GitNexus index points at the owner's
   checkout, not this worktree, and is stale (last indexed `6283231`). Changed production symbols:
@@ -270,7 +354,11 @@ selector reads.
   - new `SemesterReconcilePlan.Request`;
   - new types `SemesterGraphRestorer` and `LocalSaveRejection`.
 
-  All are within the card's MAY-edit list.
+  All are within the card's MAY-edit list. Post-review, Q-1 adds `QuanLyTaskViewModel.ThemTask` and
+  `QuanLyMonHocViewModel.ThemMon`, under the owner's 2026-10-03 authorisation for that reorder. I checked the
+  branch diff after committing and before pushing.
+- GitNexus `impact` before the Q-1 edit: `ThemTask` LOW, `ThemMon` LOW, 0 indexed callers each. The source-generated
+  `ThemTaskCommand`/`ThemMonCommand` and their XAML bindings are the real callers, and the index does not see them.
 - GitNexus `impact` before editing: `LocalSemesterSaveExecutor` **HIGH** (1 direct caller,
   `LuuHocKyAsync`, then 8 VM commands and the regression suites; priced as R-1 by the plan),
   `SemesterReconcilePlan` LOW, `App.OnStartup` LOW (0 callers). The Phase 0 miss is recorded below.
@@ -278,7 +366,9 @@ selector reads.
 ## 9. NOT RUN
 
 - The WPF branch in `App.DispatcherUnhandledException` (MessageBox); only `LocalSaveRejection` is unit-tested.
-- Any VM save command end to end (they show MessageBoxes); the port they call is tested instead.
+- Any VM save command end to end (they show MessageBoxes); the port they call is tested instead. Exception:
+  `ThemTaskCommand` and `ThemMonCommand` run through `ExecuteAsync` in the Q-1 tests, with no Dispatcher and no
+  handler.
 - Repaint of reverted POCO scalars in the UI.
 - X-2 (executor-level three-shape overlap). The router-level X-1 exists from Slice 2.
 - E-2 with the real priority engine (stub engine used; see §7.1).
@@ -286,6 +376,7 @@ selector reads.
 ## 10. Follow-ups
 
 - **E-2 owner ruling** (§7.1). Until then, D8-H rejects a resolution whose Base drifted, so the failure mode is loud, not silent.
+- **Q-2 owner ruling** (§7.5): a failed save in create mode. This is pre-existing and not caused by the fence.
 - After merge: compare local `dev` vs `origin/dev`, and re-run `npx gitnexus analyze`. In Phase 0 the index
   reported 0 callers for `LocalSemesterSaveExecutor.ExecuteAsync`, while grep shows `SqliteHocKyRepository.cs:85`.
   That is the third caller this index has missed.
@@ -326,7 +417,28 @@ selector reads.
 - **Experience:** the measurement includes the real VM recompute path, not only a synthetic edit. That is
   what makes it a production concern rather than a theoretical one.
 
-### 11.4 Engineering decisions accepted by the owner (3b(1)–(3), not rulings)
+### 11.4 RULING (2026-10-03, post-review): Q-1, OD-7's "restore the in-memory graph" covers VM state the save command itself changes before the await
+- **The ruling, as given:** OD-7's "restore the in-memory graph" also covers VM state that the save command
+  itself changes before awaiting the save. It is narrow: only that state, nothing broader. `ThemTask`
+  (`QuanLyTaskViewModel`) and `ThemMon` (`QuanLyMonHocViewModel`) leave edit mode and reset the form only after
+  the save succeeds. The change is a minimal reorder, with no VM architecture change and no XAML.
+- **Why it had to be made:** the independent review (PR #107, M-1, REPRODUCED) showed that the R2 restore brings
+  the model back but cannot reach VM fields. After a rejected edit, the next click took the create branch,
+  wrote a duplicate carrying the rejected edit, and sent the note to the held task. The review's Q-1 asked
+  whether OD-7 extends to that state. The options were (a) fix, (b) accept as UX, (c) defer to Slice 5;
+  the owner chose (a), narrowed.
+- **What it's for:** a rejection or failure leaves the user exactly where they were. The same row is still being
+  edited and the form still holds their input. A retry is then the user's explicit re-submission of the
+  same edit, never a different operation. It also fixes the pre-existing duplicate after any failed `ThemTask`
+  edit (§7.5 (b)), because the reorder does not depend on why the save failed.
+- **What it deliberately does not cover:** create mode (Q-2, §7.5), any other VM field, and the
+  remaining 6 commands, which change only the model before the await.
+- **Experience:** a restore at the persistence layer is complete only for state the persistence layer owns.
+  Auditing "what does each caller change **before** the await" belongs next to "what does it skip **after**
+  it"; Phase 0 did only the second. Running the VM command once, which the review's probe did, found what eight
+  executor-level tests could not.
+
+### 11.5 Engineering decisions accepted by the owner (3b(1)–(3), not rulings)
 1. **No direct Tombstone for tasks under a deleted MonHoc.** A direct intent outranks the cascade
    (RowEffect precedence) and would turn P-CR-3/P-PT-3 from `@CascadeReached` into `@DirectSubject`. M8 proves the
    tests see it.
@@ -335,7 +447,7 @@ selector reads.
 3. **`Reparent(MonHoc, MaHocKy)` when the FK differs:** the writer copies `MaHocKy` verbatim, so every structural
    write is in the request even though no VM does this today.
 
-### 11.5 Engineering decisions made in this slice (not ruled)
+### 11.6 Engineering decisions made in this slice (not ruled)
 #### The restore failure travels in `Exception.Data`, not as an inner exception
 - **Why it had to be made:** owner requirement 5 says a failing restore must not hide the rejection, and suggested
   "attached as inner". `MutationRejectedException` lives in `Sync/Fence` and has only a `(FenceDecision)`
@@ -364,6 +476,17 @@ selector reads.
 - **P-PT local recipe and X-16 interpretation** (§4): both stated in the test headers as well.
 - **A shared `LocalSaveDriver` test fixture** drives saves through the public port only, so every executor
   test observes what a VM observes.
+- **Q-1 test recipes (post-review).**
+  - The `ThemMon` rejection uses a local S1-CR-on-MonHoc recipe. Before it is used, the test asserts that the
+    record is a `StructuralConflict/ConcurrentReparent` on that MonHoc, and that the MonHoc is held live at
+    Base. This keeps the rejection from passing for the wrong reason.
+  - The edit is a **rename**: a `SoTinChi`-only edit would be stopped by the name guard and would not reach the
+    duplicate.
+  - The generic failure is thrown by a wrapper before the real repository is called. Nothing is written and
+    no restore runs, which isolates the VM ordering from the R2 restore.
+
+  The failure file is self-contained, so it could be run on `origin/dev` to answer "pre-existing or not". The
+  only change for that run was removing the edit-mode assertions (§7.5).
 
 ---
 
