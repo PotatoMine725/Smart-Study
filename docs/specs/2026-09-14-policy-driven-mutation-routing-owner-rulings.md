@@ -124,6 +124,8 @@ ruling plus tracked text, not itself a ruling · **FACT** read in the tree at `o
 | **Affected plan sections / tests** | §2.2, §12.2, §15.2, §15.3, §16.2 X-20, §17 N-10, §19 R-3, §20, §21 (Slice 4), §22 item 5, §24.2 A4, §26 |
 | **Amends frozen D1–D9?** | **No amendment to frozen D1–D9.** |
 
+> *2026-10-03 pointer:* OD-7's scope was extended (not changed) by the Slice 4 follow-up rulings: §4 there records Q-1 (VM state changed by the save command before it awaits), and §2 (D-5) adds a narrower, membership-only restore for **non-fence** save failures. The fence-rejection behaviour above is unchanged. See [`2026-10-03-fence-slice4-followup-owner-rulings.md`](2026-10-03-fence-slice4-followup-owner-rulings.md).
+
 ---
 
 ## 3. Guardrails that stay explicit
@@ -185,7 +187,7 @@ under §8 / O-1 / A-4. OD-7 operates inside §9.2 and §12 (no UI prescription).
 | # | Residual | Status |
 |---|---|---|
 | E-1 | OD-7 restoration mechanism, call sites, surfacing channel | Engineering, Slice 4 |
-| E-2 | **Derived-only saves on a held row.** FACT: plan §6 derives no intent from Derived fields (`DiemUuTien`, `MucDoCanhBao`, `IsSeeded`; D9-T3, `MergeSurfaceRegistry.cs:63,83-84`), and Derived columns are excluded from snapshots (`EntitySnapshotMapper.cs:167-171`). NOT VERIFIED: whether such a save still stamps provenance (`Rev`/`ModifiedAtUtc`) on the held row. If it does, it drifts the D8-H fingerprint, which includes provenance (W-2/F-2 §3.4; `ConflictStaging.cs:185-186`), with no intent to route. The existing no-change resave test does not cover a Derived-only change | Measure in Slice 0/4. Report the finding; do not decide it in code |
+| E-2 | **Derived-only saves on a held row.** FACT: plan §6 derives no intent from Derived fields (`DiemUuTien`, `MucDoCanhBao`, `IsSeeded`; D9-T3, `MergeSurfaceRegistry.cs:63,83-84`), and Derived columns are excluded from snapshots (`EntitySnapshotMapper.cs:167-171`). NOT VERIFIED: whether such a save still stamps provenance (`Rev`/`ModifiedAtUtc`) on the held row. If it does, it drifts the D8-H fingerprint, which includes provenance (W-2/F-2 §3.4; `ConflictStaging.cs:185-186`), with no intent to route. The existing no-change resave test does not cover a Derived-only change | Measure in Slice 0/4. Report the finding; do not decide it in code. *2026-10-03 pointer: measured in Slice 4 (PR #106) and **ruled (c)** — Derived-only changes do not stamp; see [`2026-10-03-fence-slice4-followup-owner-rulings.md`](2026-10-03-fence-slice4-followup-owner-rulings.md) §1* |
 | E-3 | Rule-id names (the existing `*.NonStructuralFields` ids are kept, now as `Blocked` rules) | Engineering naming |
 
 ---
