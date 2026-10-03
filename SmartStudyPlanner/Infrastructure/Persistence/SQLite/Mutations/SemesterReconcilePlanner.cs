@@ -1,19 +1,24 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using SmartStudyPlanner.Models;
+using SmartStudyPlanner.Sync;
+using SmartStudyPlanner.Sync.Fence;
+using SmartStudyPlanner.Sync.Merge;
 
 namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Mutations
 {
     // Epic 2 / T2.4 fence Slice 3: the diff half of what used to be SqliteHocKyRepository.LuuHocKyAsync.
     // Pure: no AppDbContext, no I/O, and it mutates neither graph -- it only reads the loaded old graph
-    // and the incoming graph and says what SemesterGraphWriter is about to do. Slice 4 puts the fence
-    // between this and the writer.
+    // and the incoming graph and says what SemesterGraphWriter is about to do. Slice 4: it also says
+    // it as a MutationRequest (plan §6), which the executor routes through the fence before the writer.
     internal static class SemesterReconcilePlanner
     {
         public static SemesterReconcilePlan Plan(HocKy? oldGraph, HocKy incoming)
         {
-            if (oldGraph == null) return SemesterReconcilePlan.Create();
+            if (oldGraph == null)
+                return new SemesterReconcilePlan { IsCreate = true, Request = LocalRequest(CreateIntents(incoming)) };
 
             var errors = new List<PlanValidationError>();
 
@@ -99,18 +104,142 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Mutations
                         newTask.MaTask, owner, UnknownMonHocMessage(newTask.TenTask, newTask.MaTask, owner, oldGraph.MaHocKy)));
             }
 
+            var monHocDeletes = oldMonList.Where(m => !newMonIds.Contains(m.MaMonHoc)).Select(m => m.MaMonHoc).ToList();
+
             return new SemesterReconcilePlan
             {
                 FkHeals = fkHeals,
                 TaskReparents = reparents,
-                MonHocDeletes = oldMonList.Where(m => !newMonIds.Contains(m.MaMonHoc)).Select(m => m.MaMonHoc).ToList(),
+                MonHocDeletes = monHocDeletes,
                 MonHocAdds = incoming.DanhSachMonHoc.Where(m => !oldMonIds.Contains(m.MaMonHoc)).Select(m => m.MaMonHoc).ToList(),
                 MonHocUpdates = incoming.DanhSachMonHoc.Where(m => oldMonIds.Contains(m.MaMonHoc)).Select(m => m.MaMonHoc).ToList(),
                 TaskDeletes = taskDeletes,
                 TaskUpserts = upserts,
                 ValidationErrors = errors,
+                Request = LocalRequest(ReconcileIntents(oldGraph, oldMonList, oldTasks, incoming, monHocDeletes, reparents, taskDeletes, upserts, newTasksByMaTask)),
             };
         }
+
+        // ---------------------------------------------------------------- fence request (Slice 4)
+
+        // Plan §6 intent table, read off the same reconcile data the writer walks. Every structural
+        // write the writer will make is in the request (Reparent of a MonHoc's MaHocKy included, which
+        // the writer copies verbatim though no VM does it today); field edits are UpdateFields over
+        // MergeSurfaceRegistry Merge-class fields ONLY, so a Derived (DiemUuTien, MucDoCanhBao,
+        // IsSeeded) or NotMapped change emits nothing. Early-return validation errors emit an empty
+        // request: the writer throws at its original stage before touching anything that matters.
+        private static List<MutationIntent> ReconcileIntents(
+            HocKy oldGraph, List<MonHoc> oldMonList, List<StudyTask> oldTasks, HocKy incoming,
+            List<Guid> monHocDeletes, List<TaskReparent> reparents, List<Guid> taskDeletes,
+            List<TaskUpsert> upserts, Dictionary<Guid, StudyTask> newTasksByMaTask)
+        {
+            var intents = new List<MutationIntent>();
+            var oldMonById = oldMonList.ToDictionary(m => m.MaMonHoc);
+            var oldTaskById = oldTasks.ToDictionary(t => t.MaTask);
+
+            AddFieldUpdate(intents, SyncEntityTypes.HocKy, oldGraph.MaHocKy, HocKyMergeFields, oldGraph, incoming);
+
+            foreach (var maMonHoc in monHocDeletes)
+                intents.Add(Intent(MutationOperation.Tombstone, SyncEntityTypes.MonHoc, maMonHoc));
+
+            foreach (var newMon in incoming.DanhSachMonHoc)
+            {
+                if (!oldMonById.TryGetValue(newMon.MaMonHoc, out var oldMon))
+                {
+                    // The writer adds it to the loaded HocKy's collection; EF fixup sets MaHocKy to it.
+                    intents.Add(Intent(MutationOperation.Create, SyncEntityTypes.MonHoc, newMon.MaMonHoc,
+                        new RelationChange(MaHocKy, null, oldGraph.MaHocKy)));
+                    continue;
+                }
+
+                if (oldMon.MaHocKy != newMon.MaHocKy)
+                    intents.Add(Intent(MutationOperation.Reparent, SyncEntityTypes.MonHoc, newMon.MaMonHoc,
+                        new RelationChange(MaHocKy, oldMon.MaHocKy, newMon.MaHocKy)));
+
+                AddFieldUpdate(intents, SyncEntityTypes.MonHoc, newMon.MaMonHoc, MonHocMergeFields, oldMon, newMon);
+            }
+
+            foreach (var reparent in reparents)
+                intents.Add(Intent(MutationOperation.Reparent, SyncEntityTypes.StudyTask, reparent.MaTask,
+                    new RelationChange(MaMonHoc, reparent.FromMon, reparent.ToMon)));
+
+            // A task removed together with its MonHoc gets no intent of its own: Tombstone(MonHoc)
+            // reaches it through ImpactResolver's live-only cascade. A direct Tombstone would outrank
+            // that (RowEffect precedence) and report the row @DirectSubject instead of @CascadeReached.
+            var deletedMonIds = monHocDeletes.ToHashSet();
+            foreach (var maTask in taskDeletes)
+            {
+                if (!deletedMonIds.Contains(oldTaskById[maTask].MaMonHoc))
+                    intents.Add(Intent(MutationOperation.Tombstone, SyncEntityTypes.StudyTask, maTask));
+            }
+
+            foreach (var upsert in upserts)
+            {
+                if (upsert.IsNew)
+                {
+                    intents.Add(Intent(MutationOperation.Create, SyncEntityTypes.StudyTask, upsert.MaTask,
+                        new RelationChange(MaMonHoc, null, upsert.Owner)));
+                    continue;
+                }
+
+                AddFieldUpdate(intents, SyncEntityTypes.StudyTask, upsert.MaTask, StudyTaskMergeFields,
+                    oldTaskById[upsert.MaTask], newTasksByMaTask[upsert.MaTask]);
+            }
+
+            return intents;
+        }
+
+        // hocKyCu == null: the writer attaches the whole incoming graph, and EF's fixup gives every
+        // MonHoc/task its navigation owner's key, whatever FK the caller stamped.
+        private static List<MutationIntent> CreateIntents(HocKy incoming)
+        {
+            var intents = new List<MutationIntent> { Intent(MutationOperation.Create, SyncEntityTypes.HocKy, incoming.MaHocKy) };
+            foreach (var mon in incoming.DanhSachMonHoc)
+            {
+                intents.Add(Intent(MutationOperation.Create, SyncEntityTypes.MonHoc, mon.MaMonHoc,
+                    new RelationChange(MaHocKy, null, incoming.MaHocKy)));
+                foreach (var task in mon.DanhSachTask)
+                    intents.Add(Intent(MutationOperation.Create, SyncEntityTypes.StudyTask, task.MaTask,
+                        new RelationChange(MaMonHoc, null, mon.MaMonHoc)));
+            }
+            return intents;
+        }
+
+        private const string MaHocKy = "MaHocKy";
+        private const string MaMonHoc = "MaMonHoc";
+
+        private static readonly PropertyInfo[] HocKyMergeFields = MergeFieldsOf(SyncEntityTypes.HocKy, typeof(HocKy));
+        private static readonly PropertyInfo[] MonHocMergeFields = MergeFieldsOf(SyncEntityTypes.MonHoc, typeof(MonHoc));
+        private static readonly PropertyInfo[] StudyTaskMergeFields = MergeFieldsOf(SyncEntityTypes.StudyTask, typeof(StudyTask));
+
+        // Ordinal by name, so ChangedFields is deterministic whatever the registry's canonical order.
+        private static PropertyInfo[] MergeFieldsOf(string entityType, Type clrType) =>
+            MergeSurfaceRegistry.Get(entityType).Fields
+                .Where(f => f.Class == FieldClass.Merge)
+                .Select(f => clrType.GetProperty(f.Name)
+                    ?? throw new InvalidOperationException($"MergeSurfaceRegistry names {entityType}.{f.Name}, which {clrType.Name} does not have."))
+                .OrderBy(p => p.Name, StringComparer.Ordinal)
+                .ToArray();
+
+        // Value equality on the boxed values, the same notion EF's default change detection uses for
+        // these scalar types (DateTime by ticks, string ordinal, enum by value).
+        private static void AddFieldUpdate(List<MutationIntent> intents, string entityType, Guid id,
+            PropertyInfo[] mergeFields, object oldRow, object newRow)
+        {
+            var changed = mergeFields
+                .Where(p => !Equals(p.GetValue(oldRow), p.GetValue(newRow)))
+                .Select(p => p.Name)
+                .ToArray();
+
+            if (changed.Length > 0)
+                intents.Add(new MutationIntent(MutationOperation.UpdateFields, entityType, id, Array.Empty<RelationChange>(), changed));
+        }
+
+        private static MutationIntent Intent(MutationOperation operation, string entityType, Guid id, params RelationChange[] relations) =>
+            new(operation, entityType, id, relations, Array.Empty<string>());
+
+        private static MutationRequest LocalRequest(IReadOnlyList<MutationIntent> intents) =>
+            new(MutationOrigin.LocalApplication, intents);
 
         internal static string UnknownMonHocMessage(string tenTask, Guid maTask, Guid maMonHoc, Guid maHocKy) =>
             $"Reconcile: task '{tenTask}' ({maTask}) references MonHoc {maMonHoc} not present in HocKy {maHocKy}.";
@@ -148,6 +277,8 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Mutations
         public IReadOnlyList<Guid> TaskDeletes { get; init; } = Array.Empty<Guid>();
         public IReadOnlyList<TaskUpsert> TaskUpserts { get; init; } = Array.Empty<TaskUpsert>();
         public IReadOnlyList<PlanValidationError> ValidationErrors { get; init; } = Array.Empty<PlanValidationError>();
+
+        public MutationRequest Request { get; init; } = new(MutationOrigin.LocalApplication, Array.Empty<MutationIntent>());
 
         public static SemesterReconcilePlan Create() => new() { IsCreate = true };
     }
