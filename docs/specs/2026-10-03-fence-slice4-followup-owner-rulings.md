@@ -8,7 +8,7 @@
 | **Amends** | OD-7 (2026-09-14 §2.4) — *scope extension only*: D-5 adds a narrower restoration for non-fence save failures. OD-7's fence-rejection behaviour is unchanged |
 | **Does not amend** | D1–D9 frozen record; SB-3, OD-4, OD-2; M-3/A-1 live-only predicate; D8-H fingerprint definition; `ConflictResolver`; any `Sync/**` semantics |
 | **Leaves open** | SB-2/OD-1 (Slice 6), OD-6, OD-8, G4; long-term direction for persisted time-dependent Derived values (see E-2 §note) |
-| **Implemented by** | E-2: ticket `2026-10-03-e2-derived-no-stamp` (PR <PR>) · D-5: ticket `2026-10-03-d5-failed-save-restore` (PR <PR>) · OD-5: fence Slice 5 (PR <PR>) · Q-1: PR #106 |
+| **Implemented by** | E-2: ticket `2026-10-03-e2-derived-no-stamp` (PR #109) · D-5: ticket `2026-10-03-d5-failed-save-restore` (PR <PR>) · OD-5: fence Slice 5 (PR <PR>) · Q-1: PR #106 |
 
 ## 1. E-2 — CLOSED: (c) Derived-only changes do not stamp
 
@@ -16,6 +16,9 @@
 (`MergeSurfaceRegistry`; today `DiemUuTien`, `MucDoCanhBao`, `IsSeeded`), `SyncStamper` persists the new values but
 does **not** increment `Rev` and does **not** change `ModifiedAtUtc` / `ModifiedByDeviceId`. Any non-Derived property
 in the same entry ⇒ normal stamping. Unclassified properties ⇒ normal stamping (fail toward today's behaviour).
+
+*Clarified 2026-10-03: a save in which no property value changed is the vacuous case of this rule and is not stamped
+(D-4, measured in PR #109).*
 
 **Why.** Measured in Slice 4: a Derived-only save on a row held at Base re-stamps provenance, drifting the D8-H
 fingerprint and making the conflict record permanently unresolvable, with no intent for the fence to route.
