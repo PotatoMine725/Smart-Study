@@ -17,15 +17,19 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
     /// restore puts the persisted values back. <c>HocKyRepository_ResaveWithNoChanges_*</c> reloads a
     /// fresh graph between saves and so never exercises this pattern.
     /// <para>
-    /// The second save runs on a later clock (<see cref="Later"/>) so a restamp of
-    /// <c>ModifiedAtUtc</c> is visible: with the fixture's fixed clock it would rewrite the same value.
+    /// OBSERVED on origin/dev 3c49924 (commit 8387f03): the no-change save restamped the row, and on
+    /// an S1-CR held row moved its live fingerprint a second time after E-2. Ruled as the vacuous case
+    /// of E-2 (c) (rulings §1, clarified 2026-10-03): a save in which no value changed is not stamped.
+    /// </para>
+    /// <para>
+    /// The second save runs on a second local identity (<see cref="Later"/>, <see cref="OtherDevice"/>)
+    /// so a restamp of any of the three stamp columns is visible on its own.
     /// </para>
     /// </summary>
-    [Trait("Kind", "Characterization")]
     public class LongLivedGraphNoChangeSaveTests : IDisposable
     {
-        // CHARACTERIZATION — OBSERVED on origin/dev 3c49924, before the E-2/D-4 stamper change
         private static readonly DateTime Later = SyncApplyFixture.LocalNow.AddHours(1);
+        private const string OtherDevice = "OTHER-LOCAL";
 
         private readonly FenceScenarioFixture _fence = new();
         private readonly LocalSaveDriver _save;
@@ -36,7 +40,7 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
         {
             _out = output;
             _save = new LocalSaveDriver(_fence.Fx);
-            _laterRepo = new SqliteHocKyRepository(() => _fence.Fx.NewContext(Later));
+            _laterRepo = new SqliteHocKyRepository(() => _fence.Fx.NewContext(Later, OtherDevice));
         }
 
         public void Dispose() => _fence.Dispose();
@@ -52,7 +56,7 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
             SyncBaseFingerprint.Of(IncomingChanges.Of((await _fence.Fx.ReadTaskAsync(taskId))!).Snapshot);
 
         [Fact]
-        public async Task D4_NoChangeSave_FromPreviouslySavedGraph_Observed()
+        public async Task D4_NoChangeSave_FromPreviouslySavedGraph_IsNotStamped()
         {
             var (hocKy, _, task) = await _fence.Fx.SeedTreeAsync();
 
@@ -64,19 +68,19 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
             await _laterRepo.LuuHocKyAsync(graph);                                  // same graph, nothing changed
             var afterSecond = await ReadAsync(task.MaTask, "after no-change save");
 
-            Assert.Equal(afterFirst.Rev + 1, afterSecond.Rev);                     // OBSERVED: restamped
-            Assert.Equal(Later, afterSecond.ModifiedAtUtc);
+            Assert.Equal(SyncApplyFixture.LocalNow, afterFirst.ModifiedAtUtc);
+            Assert.Equal(afterFirst, afterSecond);                                  // Rev, ModifiedAtUtc, ModifiedBy unchanged
         }
 
         /// <summary>
-        /// The held-row form. S1-CR resets the live row to Base, so a graph loaded before staging
-        /// differs from the live row in content and its save is not a no-change save. A graph loaded
-        /// after staging is stale on the held row only if an earlier save from it stamped the row, and
-        /// the only fence-passing edit on a held row is a Derived-only one (E-2). So on origin/dev the
-        /// held-row drift from a no-change save is a second drift that compounds E-2.
+        /// The held-row form. A graph loaded after staging is stale on the held row only if an earlier
+        /// save from it stamped the row, and the only fence-passing edit on a held row is a Derived-only
+        /// one (E-2) — so on origin/dev this drift compounded E-2. With E-2 (c) the Derived-only save
+        /// is not stamped, the graph stays current, and neither save moves the held row.
+        /// (The vacuous rule on its own is pinned by the test above; here the graph never goes stale.)
         /// </summary>
         [Fact]
-        public async Task D4_NoChangeSave_AfterDerivedOnlySave_OnHeldRow_Observed()
+        public async Task D4_NoChangeSave_AfterDerivedOnlySave_OnHeldRow_NoDrift()
         {
             var (record, hocKy, _, _, _, task) = await _fence.StageS1CrAsync();
             var staged = await ReadAsync(task.MaTask, "staged");
@@ -91,11 +95,10 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
             await _laterRepo.LuuHocKyAsync(graph);                                  // same graph, nothing changed
             var afterSecond = await ReadAsync(task.MaTask, "after no-change save");
 
-            Assert.Equal(staged.Rev + 1, afterFirst.Rev);                          // OBSERVED: E-2 stamp
-            Assert.Equal(afterFirst.Rev + 1, afterSecond.Rev);                     // OBSERVED: restamped again
-            Assert.Equal(Later, afterSecond.ModifiedAtUtc);                        // provenance moved again
-            Assert.NotEqual(fpAfterFirst, await LiveFingerprintAsync(task.MaTask));  // the no-change save itself drifts
-            Assert.False(await _save.BaseStillMatchesAsync(record, task.MaTask));
+            Assert.Equal(staged, afterFirst);                                       // E-2 (c): not stamped
+            Assert.Equal(staged, afterSecond);                                      // vacuous case: not stamped
+            Assert.Equal(fpAfterFirst, await LiveFingerprintAsync(task.MaTask));
+            Assert.True(await _save.BaseStillMatchesAsync(record, task.MaTask));
             Assert.Equal(ConflictRecordStatus.Unresolved, await _save.StatusOfAsync(record));
         }
     }
