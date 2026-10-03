@@ -111,6 +111,7 @@ transaction, before the throw. Surfacing is one `MutationRejectedException` bran
 - **Restore failure (owner requirement 5):** the restore failure is attached to the rejection under `LocalSaveRejection.RestoreFailureDataKey` in `Exception.Data` and never replaces it. "Inner exception" was not possible, because `MutationRejectedException` (Sync/Fence, frozen for this slice) has only a `(FenceDecision)` constructor, and changing it is a stop condition. `Exception.Data` accepting an Exception value on .NET 10 is OBSERVED in `LocalSaveRejectionTests`.
 
 **Limits, stated:**
+- Instance identity is preserved for rows the caller still holds: the HocKy, every MonHoc it kept (so `QuanLyTaskViewModel.MonHocHienTai` stays attached), and every task it kept. A row the caller **removed** comes back as a new detached instance. The executor never had the removed object, so anything else still pointing at it (a selected-item field, a journaled task page of a deleted MonHoc) is not re-attached. X-20's `Same` assertions are scoped accordingly: same MonHoc and sibling instances, T equal by value.
 - The models have no `INotifyPropertyChanged`, so a reverted scalar does not repaint a bound cell until the VM refreshes, and derived displays refresh on the next navigation. This is the status quo after any failed save.
 - The restore mutates UI-bound collections. That relies on nothing under `Infrastructure/`, `Sync/` or `Data/` using `ConfigureAwait(false)` (FACT, grep: 0 hits), which the writer already relies on when a save succeeds.
 
@@ -298,9 +299,19 @@ selector reads.
   and the VMs share one `HocKy` instance across pages, which rules out per-VM replacement.
 - **What it's for:** one site restores the graph for all 8 callers, no production code catches the rejection
   (N-10 with an empty allowlist), and X-20 (spec §13.5 on the local path) holds.
-- **Experience:** check who else holds an object graph before choosing between "replace" and "restore". The
-  table in §3 shows that R1 would have failed X-20 through MainWindow's instance alone, which a per-VM test
-  would never have shown.
+- **Alternatives, as put to the owner (Phase 0 table, repeated here per the ruling's instruction):**
+
+  | | R1 VM-level reload + replace | **R2 in-place restore in the executor (chosen)** | R3 per-VM in-place restore |
+  |---|---|---|---|
+  | Sites | 8 catch sites in 4 VMs | 1 (executor, before the throw) | 8 |
+  | Shared instance | replaced in one VM only; MainWindow and journaled VMs keep the stale graph, so the next save re-derives the rejected Tombstone and X-20 fails unless a shared-state service is added (VM architecture change = stop) | caller's own instances kept; every holder sees the restore | ok, but duplicated |
+  | Child `MonHocHienTai` | orphaned | kept (same instance) | kept |
+  | `catch (MutationRejectedException` in production | 8 | 0 | 8 |
+  | Source of truth | second query through the de-duplicated view | old graph loaded live-only in the same tx | needs reload |
+  | Tests | VM tests with WPF MessageBoxes | executor-level X-20 on real SQLite | VM tests |
+
+- **Experience:** check who else holds an object graph before choosing between "replace" and "restore". R1
+  would have failed X-20 through MainWindow's instance alone, which a per-VM test would never have shown.
 
 ### 11.2 RULING: OQ-1 (i), restore to the raw live rows
 - **Why:** the old graph is raw, and the caller's graph is the de-duplicated view.
@@ -325,11 +336,27 @@ selector reads.
    write is in the request even though no VM does this today.
 
 ### 11.5 Engineering decisions made in this slice (not ruled)
-- **The restore failure travels in `Exception.Data`, not as an inner exception.** The frozen type has no such
-  constructor. Owner requirement 5 is met (the rejection and its rule ids always reach the user; M7).
-- **OQ-3:** a never-persisted HocKy is restored to an empty MonHoc list, with its scalars kept. This is the literal reading of
-  "persisted state" for a row that has none, and it is only reachable through an AL-PT identity collision (pinned
-  by a test).
+#### The restore failure travels in `Exception.Data`, not as an inner exception
+- **Why it had to be made:** owner requirement 5 says a failing restore must not hide the rejection, and suggested
+  "attached as inner". `MutationRejectedException` lives in `Sync/Fence` and has only a `(FenceDecision)`
+  constructor, and changing a fence type is a stop condition.
+- **What it's for:** the user always gets the rejection with its rule ids. The restore failure is logged by the
+  handler and changes the message to "could not restore the screen". `LocalSaveRejection.RestoreFailureOf` is the
+  one reader, and M7 (throw instead of attach) turns the forced-failure test RED.
+- **Experience:** `Exception.Data` takes an Exception value on .NET 10 (OBSERVED; .NET Framework demanded
+  `[Serializable]`). If the fence types are ever reopened, an inner-exception constructor would be the more
+  conventional channel. Swapping it in later is local to `RejectAndRestore` and `LocalSaveRejection`.
+
+#### OQ-3: a never-persisted HocKy is restored to an empty MonHoc list
+- **Why it had to be made:** OQ-3 was raised in Phase 0 and not ruled. A create-branch rejection has no old graph
+  to restore from, so the restorer needed some defined behaviour.
+- **What it's for:** the literal reading of OD-7's "persisted state" for a row that has none: no MonHoc. The
+  HocKy's own scalars have no row to copy from and are left as typed. This is reachable only through an AL-PT
+  identity collision, and is pinned by `OQ3_RejectedCreateOfNewHocKy_EmptiesItsMonHocList_NoRowWritten`.
+- **Experience:** if a creating flow ever lets the user retry the same form, this choice discards their typed
+  subjects. Revisit it if `SetupViewModel` grows a retry path. Today `TaoHocKy` builds a fresh HocKy on every
+  attempt.
+
 - **The rejection wins over validation** when a save is both: the writer never runs on a rejected
   decision (N-6), so the unknown-MonHoc error is not reached.
 - **Surfacing uses a type test in the existing handler, not a catch.** The rejection is already unhandled when
