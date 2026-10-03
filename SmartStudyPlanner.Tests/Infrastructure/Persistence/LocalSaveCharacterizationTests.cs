@@ -68,18 +68,18 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence
         }
 
         /// <summary>
-        /// P0-c — <b>OBSERVED 2026-09-30</b>: with an Unresolved S1-CR record held live at Base on task T
-        /// (Base parent A, local candidate B, remote candidate C), a local <c>XoaMon(A)</c> save
-        /// tombstones T through the local cascade. The record stays <c>Unresolved</c> and
-        /// <c>SyncBaseFingerprint.Matches(record.BaseFingerprint, snapshot(T))</c> flips from
-        /// <c>true</c> to <c>false</c> — the D9-T1 "live = Base while Unresolved" invariant is broken,
-        /// nothing consulted the conflict record, and no new conflict row was written. This matches the
-        /// INFERENCE in W-2 §2.5 ("parent tombstoned by a local UI delete: same end state"); it is now
-        /// MEASURED for the local path. Not a desired semantic: P-CR-3 (Slice 4) makes this Blocked.
+        /// P0-c — flipped by <b>fence Slice 4</b> (plan §21 row 4, P-CR-3). Was OBSERVED 2026-09-30: the
+        /// local <c>XoaMon(A)</c> save tombstoned the held task T through the local cascade, the record
+        /// stayed <c>Unresolved</c> and <c>SyncBaseFingerprint.Matches</c> flipped to <c>false</c> (D9-T1
+        /// broken, nothing consulted the record). Since Slice 4 the fence sits between the planner and
+        /// the writer: <c>Tombstone(A)</c> reaches T by cascade, the S1-CR policy blocks it
+        /// (<c>S1CR.SubjectRemoved</c> @CascadeReached), the save throws
+        /// <see cref="SmartStudyPlanner.Sync.Fence.MutationRejectedException"/>, and nothing is written:
+        /// A and T stay live, the record stays Unresolved, the fingerprint still matches.
         /// <para>
         /// Discriminator: <see cref="P0c_Control_LocalDeleteOfLocalCandidateParent_LeavesBaseHeld"/> runs
-        /// the identical staging and the identical save shape with a different MonHoc removed and gets
-        /// the opposite result on every assertion.
+        /// the identical staging and the identical save shape with a different MonHoc removed; that save
+        /// is not rejected and its delete lands.
         /// </para>
         /// </summary>
         [Fact]
@@ -95,17 +95,22 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence
             Assert.Equal(ConflictRecordStatus.Unresolved, before.RecordStatus);
             Assert.Equal(1, before.RecordCount);
 
-            await DeleteMonHocViaLocalSaveAsync(hocKy.MaHocKy, monHocA.MaMonHoc);
+            var rejected = await Assert.ThrowsAsync<SmartStudyPlanner.Sync.Fence.MutationRejectedException>(
+                () => DeleteMonHocViaLocalSaveAsync(hocKy.MaHocKy, monHocA.MaMonHoc));
+            var blocking = Assert.Single(rejected.Decision.Results,
+                r => r.Outcome == SmartStudyPlanner.Sync.Fence.FenceOutcome.Blocked);
+            Assert.Equal("S1CR.SubjectRemoved", blocking.RuleId);
+            Assert.Equal(SmartStudyPlanner.Sync.Fence.RoutingStage.CascadeReached, blocking.Stage);
+            Assert.Equal(record.ConflictId, blocking.ConflictId);
 
             var after = await ObserveAsync(task.MaTask, record.ConflictId);
-            Assert.True((await _fence.Fx.ReadMonHocAsync(monHocA.MaMonHoc))!.IsDeleted); // the delete itself landed
-            Assert.True(after.TaskIsDeleted);                                            // T tombstoned (cascade)
-            Assert.Equal(monHocA.MaMonHoc, after.TaskMaMonHoc);                          // still points at A
-            Assert.True(after.TaskRev > before.TaskRev);
-            Assert.Equal(SyncApplyFixture.LocalDevice, after.TaskModifiedBy);            // same device as before staging -> NOT discriminating alone; the Rev bump above is
-            Assert.Equal(ConflictRecordStatus.Unresolved, after.RecordStatus);           // record untouched
-            Assert.False(after.BaseFingerprintMatches);                                  // D9-T1 no longer holds
-            Assert.Equal(1, after.RecordCount);                                          // nothing was staged or resolved
+            Assert.False((await _fence.Fx.ReadMonHocAsync(monHocA.MaMonHoc))!.IsDeleted); // the delete did NOT land
+            Assert.False(after.TaskIsDeleted);                                            // T not tombstoned
+            Assert.Equal(monHocA.MaMonHoc, after.TaskMaMonHoc);                           // still under A
+            Assert.Equal(before.TaskRev, after.TaskRev);                                  // not re-stamped
+            Assert.Equal(ConflictRecordStatus.Unresolved, after.RecordStatus);            // record untouched
+            Assert.True(after.BaseFingerprintMatches);                                    // D9-T1 still holds
+            Assert.Equal(1, after.RecordCount);                                           // nothing was staged or resolved
         }
 
         /// <summary>
