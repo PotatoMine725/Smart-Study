@@ -126,13 +126,18 @@ namespace SmartStudyPlanner.ViewModels
                 _monDangSua.TenMonHoc = TenMon;
                 _monDangSua.SoTinChi = tinChi;
                 OnRefreshGrid?.Invoke();
+            }
 
+            await _hocKyRepository.LuuHocKyAsync(HocKyHienTai); // Đã đổi sang Async
+
+            // Q-1 (owner ruling 2026-10-03): leave edit mode only once the save succeeded, so a failed
+            // or fence-rejected edit is re-submitted to the same MonHoc instead of creating a new one.
+            if (_monDangSua != null)
+            {
                 _monDangSua = null;
                 TextNutThem = "Thêm Môn";
                 MauNutThem = "#2ECC71";
             }
-
-            await _hocKyRepository.LuuHocKyAsync(HocKyHienTai); // Đã đổi sang Async
 
             TenMon = string.Empty;
             SoTinChi = string.Empty;
