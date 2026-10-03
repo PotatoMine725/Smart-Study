@@ -145,11 +145,12 @@ Unchanged paths:
 - **For:** a no-change save writes no new provenance, so held rows keep their Base, and non-held rows stop accumulating spurious Rev bumps. INFERENCE: those bumps would otherwise be sent to peers as fresh, newer changes once sync exists.
 - **Experience:** a test that reloads between saves (`ResaveWithNoChanges`) cannot see a defect that lives in the caller's long-lived graph. Write the test the way the VM uses the API.
 
-### 6.3 Fail-safe: a flagged-but-unchanged non-provenance property stamps (agent decision, for owner review)
+### 6.3 Fail-safe: a flagged-but-unchanged non-provenance property stamps (agent decision, RATIFIED by owner 2026-10-03)
+- **Ratified (owner, 2026-10-03):** entries whose original values cannot be trusted (detached `DbSet.Update` / `Attach`) are stamped as today, failing toward stamping. Recorded as a dated clarification at the end of rulings §1.
 - **Why:** with `DbSet.Update` on a detached instance, EF sets Original = Current for every property. Value comparison then sees "no change" even for a real edit. Under a literal D-2/D-4 rule, `SqliteStudyTaskRepository.UpdateAsync` would persist the edit but never stamp it, so sync would never enumerate it, silently.
 - **What:** a property that is flagged modified with an unchanged value only counts as harmless when it is in the provenance block the writer restores (`SyncMetadata`/`Tombstone`). Anything else means the originals are unknown, so the entry is stamped.
 - **Direction:** this only adds stamping relative to the literal rule. It never removes a stamp the ruling requires, and it is the same "fail toward today's behaviour" principle the ruling applies to unclassified properties.
-- **Not done instead:** editing `SqliteStudyTaskRepository`, which is out of scope, and stopping. A conservative default existed, and the owner can veto it in review.
+- **Not done instead:** editing `SqliteStudyTaskRepository`, which is out of scope, and stopping. A conservative default existed, so it shipped for owner review, and the owner ratified it.
 - **Experience:** in an EF value-compare rule, "no difference" can mean "EF does not know the database value". Grep for `Update(`/`Attach(` before trusting `OriginalValue`. This was found by re-grepping after Phase 0's claim, which turned out wrong.
 
 ### 6.4 No entity-state handling (owner instruction: minimal)

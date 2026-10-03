@@ -32,6 +32,9 @@ root-cause direction. Recorded as a candidate, not scheduled.
 *Clarified 2026-10-03: a save in which no property value changed is the vacuous case of this rule and is not stamped
 (D-4, measured in PR #109).*
 
+*Clarified 2026-10-03: when the stamper cannot trust original values (detached Update/Attach), it stamps as before;
+value comparison applies only to tracked entries with real originals (PR #109 report §6.3).*
+
 ## 2. D-5 (Q-2) — CLOSED: V2, membership-only restore on non-fence failures
 
 **Defect.** A local semester save that fails for any reason other than a fence rejection leaves **unsaved additions**
