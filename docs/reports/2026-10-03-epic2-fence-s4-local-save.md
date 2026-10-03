@@ -304,10 +304,13 @@ selector reads.
 
 **Before the fix.** The same tests were run with only the "still in edit mode" assertions removed, so that
 each could run on to its duplicate check:
-- **(a) Fence rejection, this branch before the VM commit (`fc83688`).** For both `ThemTask` and `ThemMon`, the
-  second click was **not** rejected. It took the create branch, and the new row's `Create` passed the fence.
-  For `ThemTask` this is the review's M-1. For `ThemMon` it is new evidence (the review had not probed it):
-  a renamed held MonHoc gets a second MonHoc carrying the rejected name.
+- **(a) Fence rejection, this branch with the VM commit reversed.** For both `ThemTask` and `ThemMon`, the second
+  click was **not** rejected. A throwaway probe (not committed) then made the second click a plain
+  `ExecuteAsync` and read the result:
+  - **`ThemTask`:** live tasks went 1 → 2. The in-memory MonHoc held T plus a new task carrying "edited while
+    held", and `UpsertNoteAsync` was called with **T's** id. This is the review's M-1, reproduced.
+  - **`ThemMon`:** live MonHocs went up by 1, and the new MonHoc in the graph carries the rejected name
+    "renamed while held". This is new evidence; the review had not probed it.
 - **(b) Forced non-fence failure, on `origin/dev` `6283231`** (temporary worktree, only
   `EditModeSaveFailureTests.cs` added):
   - **`ThemTask`, edit mode: the duplicate reproduces, so it is a pre-existing bug.** Two live rows exist after
