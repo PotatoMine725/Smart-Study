@@ -25,8 +25,8 @@ namespace SmartStudyPlanner.Tests.Sync.Fence
     ///       constraint scope it occupied;</item>
     /// <item>an ALREADY-TOMBSTONED child is NOT a new cascade lifecycle target — no
     ///       <see cref="RowEffect.CascadeTombstoned"/>, no <see cref="LifecycleEffect.Tombstone"/>, and
-    ///       critically no scope release, even though a production path
-    ///       (<c>TaskCascadeHelper</c>) may re-stamp its <c>Rev</c>/provenance.</item>
+    ///       critically no scope release. (Before D-2, PR #105, the local path
+    ///       <c>TaskCascadeHelper</c> re-stamped its <c>Rev</c>/provenance; it is now live-only too.)</item>
     /// </list>
     /// <para>
     /// <b>D9-T1 is preserved and is asserted here.</b> The <c>UNIQUE(MaTask)</c> index on TaskNote is

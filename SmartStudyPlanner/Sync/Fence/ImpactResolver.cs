@@ -35,11 +35,13 @@ namespace SmartStudyPlanner.Sync.Fence
     /// The ruling's principle: the ImpactSet models the SEMANTIC DOMAIN EFFECTS of the requested
     /// mutation, never implementation-only re-stamping/provenance writes. P0-a
     /// (<c>CascadePredicateProbeTests</c>) measured that the two production cascade implementations
-    /// differ — the sync path (<c>SyncApplySession.CascadeTombstoneAsync</c>) is live-only, while the
+    /// differed — the sync path (<c>SyncApplySession.CascadeTombstoneAsync</c>) was live-only, while the
     /// local path (<c>TaskCascadeHelper</c>, reached from <c>LuuHocKyAsync</c> and
-    /// <c>SqliteStudyTaskRepository.DeleteAsync</c>) has no <c>IsDeleted</c> filter and re-stamps an
+    /// <c>SqliteStudyTaskRepository.DeleteAsync</c>) had no <c>IsDeleted</c> filter and re-stamped an
     /// already-tombstoned child. That re-stamp is an implementation-level <c>Rev</c>/provenance write,
-    /// NOT a semantic lifecycle transition, so it does not belong in the impact set. An
+    /// NOT a semantic lifecycle transition, so it does not belong in the impact set. Since D-2
+    /// (PR #105) the local path is live-only as well, so both production cascades now match this
+    /// predicate. An
     /// already-tombstoned child therefore produces no new <see cref="LifecycleEffect.Tombstone"/>, no
     /// <see cref="RowEffect.CascadeTombstoned"/> row, and no constraint-scope release.
     /// </para>

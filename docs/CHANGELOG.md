@@ -4,6 +4,12 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
+## 2026-10-01 — Defect **D-2** fixed: a local save no longer re-stamps already-tombstoned rows — *bug fix; no schema change*
+
+| Area | Change | Verification |
+|---|---|---|
+| D-2 (fence plan §19 R-9) | `LocalSemesterSaveExecutor` loads the old graph live-only (filtered `Include` on MonHoc/StudyTask, `IsDeleted == false`) and `TaskCascadeHelper` removes only live notes/links. A no-change save over tombstones now writes nothing; deleting a live MonHoc still tombstones every live child and leaves dead ones byte-identical; a dead note still occupies `UNIQUE(MaTask)` (D9-T1). No backfill: rows already re-stamped keep the re-stamped values ([report](reports/2026-10-01-d2-tombstone-restamp-fix.md)) | PR #105 — **1014 passed / 1 skipped / 1015 total**, 0 failed (baseline 1010 passed / 0 failed); 4 new tests; intentional flip of exactly two existing rows (Slice-3 snapshot no-change-over-tombstones, renamed `…_Observed` → `…_WritesNothing`; P0-a probe leg 1); mutants M1–M4 RED |
+
 ## 2026-09-30 — Epic 2 / T2.4 structural-conflict fence: **Slice 3 — `LuuHocKyAsync` extraction** — *behaviour-preserving refactor; no fence wired*
 
 | Area | Change | Verification |
