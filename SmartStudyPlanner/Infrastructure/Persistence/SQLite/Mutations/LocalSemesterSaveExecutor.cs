@@ -72,9 +72,33 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Mutations
             AppDbContext db, HocKy? hocKyCu, HocKy hocKy, SemesterReconcilePlan plan, FenceDecision decision, CancellationToken ct)
         {
             if (!decision.RouteKnown || !decision.FencePassed)
-                throw new MutationRejectedException(decision);
+                throw RejectAndRestore(db, decision, hocKyCu, hocKy);
 
             await SemesterGraphWriter.ApplyAsync(db, hocKyCu, hocKy, plan, ct);
+        }
+
+        // OD-7 (rulings §2.4; mechanism R2, owner ruling 2026-10-03): on rejection nothing is committed
+        // (the caller's catch rolls back), the caller's graph is brought back to persisted state here,
+        // BEFORE the throw -- so no production code ever has to catch MutationRejectedException (N-10)
+        // -- and the rejection carries its rule ids to the global handler, which shows them. Nothing is
+        // retried. The restore mutates UI-bound collections; that is safe because nothing under
+        // Infrastructure/, Sync/ or Data/ uses ConfigureAwait(false), so a VM's awaited save resumes
+        // here on the Dispatcher (the writer relies on the same thing on success).
+        //
+        // If the restore itself fails, the user must still get the rejection with its rule ids (owner
+        // requirement 2026-10-03): the restore failure is attached to it, never thrown instead of it.
+        private static MutationRejectedException RejectAndRestore(AppDbContext db, FenceDecision decision, HocKy? hocKyCu, HocKy hocKy)
+        {
+            var rejection = new MutationRejectedException(decision);
+            try
+            {
+                SemesterGraphRestorer.Restore(db.Model, hocKyCu, hocKy);
+            }
+            catch (Exception restoreFailure)
+            {
+                rejection.Data[LocalSaveRejection.RestoreFailureDataKey] = restoreFailure;
+            }
+            return rejection;
         }
     }
 }
