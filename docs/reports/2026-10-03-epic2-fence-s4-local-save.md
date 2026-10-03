@@ -270,6 +270,8 @@ can exist while sync is unwired.
 Per your instruction there is no Derived intent, no block and no fix in this PR. Mutant M9 shows that
 "route Derived fields as intents" would turn these saves into rejections.
 
+> **Ruled 2026-10-03: (c)** — Derived-only changes do not stamp (`Rev`, `ModifiedAtUtc`, `ModifiedByDeviceId` unchanged; any non-Derived property in the entry ⇒ normal stamping). Record: [`../specs/2026-10-03-fence-slice4-followup-owner-rulings.md`](../specs/2026-10-03-fence-slice4-followup-owner-rulings.md) §1. Implemented by ticket `2026-10-03-e2-derived-no-stamp`, not by this report's PR.
+
 ### 7.2 OQ-1 consequence (RULING (i), OBSERVED as requested)
 
 After a rejection, a MonHoc clone that the read-side dedup had folded into its representative reappears in
@@ -336,6 +338,8 @@ The options are:
 - (a) accept it;
 - (b) roll the addition back when the save throws;
 - (c) defer to Slice 5, where `ThemTask` is reworked anyway.
+
+> **Ruled 2026-10-03: filed as defect D-5, closed V2** — on a non-fence save failure the caller's graph loses every unsaved addition (a `MonHoc`/`StudyTask` with no persisted live row); scalar edits and pending deletions on persisted rows are kept. Record: [`../specs/2026-10-03-fence-slice4-followup-owner-rulings.md`](../specs/2026-10-03-fence-slice4-followup-owner-rulings.md) §2. Implemented by ticket `2026-10-03-d5-failed-save-restore`, not by this report's PR.
 
 ## 8. Verification
 
