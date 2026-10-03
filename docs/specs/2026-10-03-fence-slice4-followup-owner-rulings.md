@@ -17,9 +17,6 @@
 does **not** increment `Rev` and does **not** change `ModifiedAtUtc` / `ModifiedByDeviceId`. Any non-Derived property
 in the same entry ⇒ normal stamping. Unclassified properties ⇒ normal stamping (fail toward today's behaviour).
 
-*Clarified 2026-10-03: a save in which no property value changed is the vacuous case of this rule and is not stamped
-(D-4, measured in PR #109).*
-
 **Why.** Measured in Slice 4: a Derived-only save on a row held at Base re-stamps provenance, drifting the D8-H
 fingerprint and making the conflict record permanently unresolvable, with no intent for the fence to route.
 `QuanLyTaskViewModel` recomputes `DiemUuTien` (deadline- and time-dependent) on open, so ordinary use triggers it.
@@ -31,6 +28,9 @@ knowledge into the persistence writer.
 
 **Note (not a ruling).** Option (d) — stop persisting time-dependent Derived values and compute them on read — is the
 root-cause direction. Recorded as a candidate, not scheduled.
+
+*Clarified 2026-10-03: a save in which no property value changed is the vacuous case of this rule and is not stamped
+(D-4, measured in PR #109).*
 
 ## 2. D-5 (Q-2) — CLOSED: V2, membership-only restore on non-fence failures
 
