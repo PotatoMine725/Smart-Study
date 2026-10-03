@@ -203,16 +203,22 @@ namespace SmartStudyPlanner.ViewModels
                 _taskDangSua.LoaiTask = loaiTask;
                 _taskDangSua.DoKho = doKhoInt;
                 savedTask = _taskDangSua;
-
-                _taskDangSua = null;
-                TextNutThem = "Thêm Deadline";
-                MauNutThem = "#9B59B6";
                 _telemetry.Track("task_update");
             }
 
             TinhDiemVaSapXep();
             OnRefreshGrid?.Invoke();
             await _hocKyRepository.LuuHocKyAsync(HocKyHienTai);
+
+            // Q-1 (owner ruling 2026-10-03): leave edit mode only once the save succeeded. A failed
+            // or fence-rejected save keeps editing the same task, so the next click updates it
+            // instead of creating a duplicate, and the note/link follow-up below keeps its id.
+            if (_taskDangSua != null)
+            {
+                _taskDangSua = null;
+                TextNutThem = "Thêm Deadline";
+                MauNutThem = "#9B59B6";
+            }
             HasData = MonHocHienTai.DanhSachTask.Count > 0;
 
             // Ground-truth instrumentation: fire-and-forget, never blocks save

@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using Microsoft.EntityFrameworkCore;
 using SmartStudyPlanner.Data;
+using SmartStudyPlanner.Infrastructure.Persistence.SQLite.Mutations;
 using SmartStudyPlanner.Services;
 using SmartStudyPlanner.Services.ML;
 using SmartStudyPlanner.Services.Telemetry;
@@ -22,6 +23,22 @@ namespace SmartStudyPlanner
             // (they post to the Dispatcher), shrinking investigation item 2.8-3 without restructuring.
             DispatcherUnhandledException += (_, args) =>
             {
+                // Epic 2 / T2.4 fence Slice 4, OD-7 surfacing: a save the structural-conflict fence
+                // rejected arrives here like any save exception (AsyncRelayCommand rethrows on the
+                // Dispatcher). It gets its own message listing the blocking rule ids instead of the
+                // generic "may not have been saved". Recognised, not caught: nothing is retried and the
+                // executor already restored the in-memory graph before throwing.
+                if (LocalSaveRejection.TryFind(args.Exception, out var rejected))
+                {
+                    CrashLogger.Log("MutationRejected", rejected);
+                    if (LocalSaveRejection.RestoreFailureOf(rejected) is { } restoreFailure)
+                        CrashLogger.Log("MutationRejected.RestoreFailure", restoreFailure);
+                    System.Windows.MessageBox.Show(LocalSaveRejection.UserMessage(rejected),
+                        "Không thể lưu", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    args.Handled = true;
+                    return;
+                }
+
                 CrashLogger.Log("DispatcherUnhandledException", args.Exception);
                 System.Windows.MessageBox.Show(
                     "Đã xảy ra lỗi không mong muốn. Thao tác vừa rồi có thể chưa được lưu.\nChi tiết đã ghi vào crash.log.",
