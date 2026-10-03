@@ -3,5 +3,31 @@
     "github@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": false,
     "skill-creator@claude-plugins-official": true
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-ml-training-data.mjs\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/build-on-cs-edit.mjs\"",
+            "timeout": 120,
+            "statusMessage": "Checking dotnet build after .cs edit..."
+          }
+        ]
+      }
+    ]
   }
 }
