@@ -141,6 +141,32 @@ namespace SmartStudyPlanner.Tests.Data
         }
 
         /// <summary>
+        /// A Tombstone-class value change on the unmarked Modified path is a non-Derived change and
+        /// stamps (rulings §1). <c>Remove()</c> above takes the Deleted branch and never reaches the
+        /// Derived-only check; setting <c>IsDeleted</c> on a tracked row does. Review PR #110 F-2: the
+        /// mutant "a Tombstone-class change is ignorable" survived the suite before this test.
+        /// </summary>
+        [Fact]
+        public async Task LocalIsDeletedSet_OnTrackedRow_NotViaRemove_IsStamped()
+        {
+            var (_, _, task) = await _fx.SeedTreeAsync();
+            var before = (await _fx.ReadTaskAsync(task.MaTask))!;
+
+            using (var ctx = _fx.NewContext(Later, OtherDevice))
+            {
+                var tracked = await ctx.StudyTasks.FirstAsync(x => x.MaTask == task.MaTask);
+                tracked.IsDeleted = true;
+                tracked.DeletedAtUtc = Later;
+                await ctx.SaveChangesAsync();
+            }
+
+            var after = (await _fx.ReadTaskAsync(task.MaTask))!;
+            Assert.True(after.IsDeleted);
+            Assert.Equal(Later, after.DeletedAtUtc);
+            AssertStampedByOther(before.Rev + 1, after);
+        }
+
+        /// <summary>
         /// The marked sync-apply path is untouched: a marked entry whose only change is Derived still
         /// gets the local Rev++ and keeps the provenance it carries (DoR §10.1).
         /// </summary>
