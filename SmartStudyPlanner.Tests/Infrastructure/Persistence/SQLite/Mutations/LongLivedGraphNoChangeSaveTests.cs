@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories;
 using SmartStudyPlanner.Sync;
 using SmartStudyPlanner.Sync.Apply;
+using SmartStudyPlanner.Sync.Merge;
 using SmartStudyPlanner.Tests.Fixtures;
 using Xunit;
 using Xunit.Abstractions;
@@ -100,6 +101,36 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
             Assert.Equal(fpAfterFirst, await LiveFingerprintAsync(task.MaTask));
             Assert.True(await _save.BaseStillMatchesAsync(record, task.MaTask));
             Assert.Equal(ConflictRecordStatus.Unresolved, await _save.StatusOfAsync(record));
+        }
+
+        /// <summary>
+        /// E-2's purpose end to end (rulings §1 "Why": a drifted Base makes the record permanently
+        /// unresolvable). The tests above stop at the D8-H fingerprint; this one resolves. A held row
+        /// gets a Derived-only save and then a no-change save from the same graph, and KeepBase must
+        /// still apply. The outcome is asserted first, with no fingerprint check before it, so a
+        /// regression shows as the resolver's own <c>Rejected</c>. Review PR #110 F-3 / probe P6:
+        /// on origin/dev 3c49924 (before PR #109) this resolve returns Rejected.
+        /// </summary>
+        [Fact]
+        public async Task HeldRow_DerivedOnlyThenNoChangeSave_ThenResolveKeepBase_IsApplied()
+        {
+            var (record, hocKy, monHocA, _, _, task) = await _fence.StageS1CrAsync();
+
+            var graph = await _save.LoadAsync(hocKy.MaHocKy);
+            LocalSaveDriver.Task(graph, task.MaTask).DiemUuTien += 7;
+            LocalSaveDriver.Task(graph, task.MaTask).MucDoCanhBao = "Khẩn cấp";
+            await _save.SaveAsync(graph);                                           // Derived-only (E-2)
+            await _laterRepo.LuuHocKyAsync(graph);                                  // same graph, nothing changed
+
+            var outcome = await new ConflictResolver(_fence.Fx.Factory)
+                .ResolveAsync(record.ConflictId, new ResolutionRequest(ResolutionKind.KeepBase, null, null));
+            _out.WriteLine($"outcome={outcome.Kind}");
+
+            Assert.Equal(ResolutionOutcomeKind.Applied, outcome.Kind);
+            var live = (await _fence.Fx.ReadTaskAsync(task.MaTask))!;
+            Assert.False(live.IsDeleted);
+            Assert.Equal(monHocA.MaMonHoc, live.MaMonHoc);
+            Assert.Equal(ConflictRecordStatus.Resolved, await _save.StatusOfAsync(record));
         }
     }
 }
