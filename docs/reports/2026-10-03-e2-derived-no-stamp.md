@@ -169,3 +169,33 @@ Unchanged paths:
 - **Why:** every local write uses `LOCAL-DEVICE`, and seeded rows already carry fixed timestamps. An "unchanged" assertion on the same identity cannot go RED for `ModifiedByDeviceId`, and with the fixed clock it cannot for `ModifiedAtUtc` either.
 - **What:** the save under test runs on a second identity.
 - **Experience:** the mutant table maps each mutant to the test that caught it. M4 is caught by exactly one test, so that test carries the D-4 guarantee and must not be weakened.
+
+## 7. Amendment 2026-10-04: follow-ups from the independent review (PR #110, `ship-with-followups`)
+
+Added as new commits on PR #109. Sections 1–6 above stand as the 2026-10-03 record. Where they are corrected, the correction is marked in place.
+
+| Finding | What was done | Evidence |
+|---|---|---|
+| **F-1** (OQ-1) | Owner ruling 2026-10-04: an `Attach`ed entity given a Derived-only change is **not** stamped. `Attach` keeps the attach-time originals, so value comparison applies (E-2's intent). The fail-safe covers only absent originals: detached `DbSet.Update()`, or a forced `State = Modified`. The rulings §1 2026-10-03 clarification and §6.3 above are marked superseded in place, and dated 2026-10-04 lines are added. **No code change.** | FACT: the code and its comment (`SyncStamper.cs:93-95`) already matched. The review's probe P2a measured the behaviour. |
+| **F-2** | New test `SyncStamperDerivedOnlyTests.LocalIsDeletedSet_OnTrackedRow_NotViaRemove_IsStamped`. A local save that sets `IsDeleted`/`DeletedAtUtc` on a tracked row, without `Remove()`, is stamped (`Rev + 1`, second identity). | OBSERVED: with mutant **MX1** (`cls is not (Derived or Tombstone)` ⇒ a Tombstone-class change is ignorable) the full suite gives **1 failed / 1108 passed / 1 skipped**. The one RED is this test. In the review, MX1 survived with 0 RED. Mutant reverted with `git checkout`, and `git status` showed only the test edits. |
+| **F-3** | New test `LongLivedGraphNoChangeSaveTests.HeldRow_DerivedOnlyThenNoChangeSave_ThenResolveKeepBase_IsApplied` (review probe P6). On an S1-CR held row: a Derived-only save, then a no-change save from the same graph, then `ConflictResolver` `KeepBase`. The resolver outcome is asserted first, with no fingerprint assertion before it, and must be `Applied`. Then the task must be back under MonHoc A and the record `Resolved`. | OBSERVED at this head: pass. **OBSERVED on `origin/dev` `3c49924` (before this PR)**, with the same test body in a throwaway detached worktree that was then removed: **`Expected: Applied, Actual: Rejected`**. This is the evidence for E-2's severity. Without the fix, ordinary use (a priority recompute, then any later save) makes a held conflict record **unresolvable** by KeepBase, not just fingerprint-drifted. This independently reproduces the reviewer's P6. |
+| **F-4** | Stale "E-2 open" wording now carries dated pointers. Fence plan: the Slice 4 row, and R-4 (beyond the review's list; it said "unmeasured"). Slice 4 report §7.1. Slice 4 review §8 item 2 and §9 (lifecycle `Closed` format, with the back-link in rulings §1). The Epic 2 row of `docs/active/README.md` (E-2 fix in #109; D-5 not started). This resolves §5 item 4 above. | FACT (diff). |
+
+**Verification after the follow-ups (OBSERVED):** full suite **1109 passed / 1 skipped / 1110 total, 0 failed**. That is 1107 plus the 2 new tests. No production file changed in this amendment. The CHANGELOG row is updated in place, because it is unmerged PR text.
+
+**NOT RUN:** GitNexus `detect_changes`, for the same reason as §3: the tool indexes the owner's checkout, not this worktree. The changes in this amendment are tests and docs only (`git diff --stat`).
+
+### 7.1 Decisions made (amendment)
+
+- **F-3's test asserts the resolver outcome before anything else.**
+  - *Why:* a fingerprint or `BaseStillMatches` assertion placed earlier fails first on the base. The test would then report the D8-H proxy, not the outcome the ruling cares about. The reviewer hit exactly this and had to relax the base copy.
+  - *For:* a regression shows up as the resolver's own `Rejected`. That is the end-to-end signal for E-2.
+  - *Experience:* when a test exists to prove an end effect, assert the end effect first. Proxies come after it, or not at all.
+- **F-3 was re-run on the base in this session instead of citing the review.**
+  - *Why:* the report's claim "Rejected on dev before this PR" is evidence, so it must come from a run with this test body, not from a probe in another session.
+  - *Experience:* a test runs on the base only if it has no new fixture dependencies. `FenceScenarioFixture` and `LocalSaveDriver` already exist at `3c49924`.
+- **F-2 is pinned through a tracked context, not through the semester writer.**
+  - *Why:* `CopySyncSafeValues` restores the tombstone columns, so setting `IsDeleted` on the caller graph never reaches the stamper as a change. The test would pass for the wrong reason.
+- **F-1 is fixed in the docs, not in code.**
+  - *Why:* the owner ruled that the code's behaviour is E-2's intent. The texts were wrong, not the stamper.
+  - *Rejected:* the review's alternative, an `Attach` ban guard. It would enforce a rule the owner did not make.
