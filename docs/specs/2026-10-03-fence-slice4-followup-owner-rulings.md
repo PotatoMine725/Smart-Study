@@ -34,6 +34,17 @@ root-cause direction. Recorded as a candidate, not scheduled.
 
 *Clarified 2026-10-03: when the stamper cannot trust original values (detached Update/Attach), it stamps as before;
 value comparison applies only to tracked entries with real originals (PR #109 report §6.3).*
+**[Superseded 2026-10-04 as to "Update/Attach" — see the 2026-10-04 clarification below.]**
+
+*Clarified 2026-10-04 (owner, OQ-1 of review PR #110, finding F-1), superseding the "Update/Attach" phrasing of the
+2026-10-03 clarification above: an entity `Attach`ed and then given a Derived-only change is **not** stamped. `Attach`
+keeps the attach-time values as originals, so value comparison applies and this section's rule governs; that is
+E-2's intent. The stamp-as-before fail-safe applies only when original values are absent: a detached
+`DbSet.Update()`, or a state forced to `Modified`. The code already behaves this way; no code change.*
+
+*Back-link 2026-10-04: E-2 was raised as an owner question in the Slice 4 report §7.1 and carried open in its review
+([`../review/2026-10-03-t2.4-slice4-local-save-fence-independent-review.md`](../review/2026-10-03-t2.4-slice4-local-save-fence-independent-review.md)
+§8 item 2, §9); both now carry a dated "Closed" pointer to this section.*
 
 ## 2. D-5 (Q-2) — CLOSED: V2, membership-only restore on non-fence failures
 

@@ -147,6 +147,14 @@ Unchanged paths:
 
 ### 6.3 Fail-safe: a flagged-but-unchanged non-provenance property stamps (agent decision, RATIFIED by owner 2026-10-03)
 - **Ratified (owner, 2026-10-03):** entries whose original values cannot be trusted (detached `DbSet.Update` / `Attach`) are stamped as today, failing toward stamping. Recorded as a dated clarification at the end of rulings §1.
+  **[Superseded 2026-10-04 as to "`Attach`" — see the correction below.]**
+- **Corrected 2026-10-04 (owner ruling on OQ-1, review PR #110 F-1):** `Attach` is **not** a case of untrusted
+  originals. It keeps the attach-time values as originals, so value comparison applies, and an `Attach`ed entity
+  given a Derived-only change is not stamped (the main E-2 rule; probe P2a in the review). The fail-safe covers
+  only entries whose originals are absent: a detached `DbSet.Update()`, or a state forced to `Modified`. The code
+  always behaved this way (the comment at `SyncStamper.cs:93-95` and the CHANGELOG row name only the detached
+  `DbSet.Update`); only this bullet and the rulings clarification overstated it. Rulings §1 carries the matching
+  2026-10-04 line. No code change.
 - **Why:** with `DbSet.Update` on a detached instance, EF sets Original = Current for every property. Value comparison then sees "no change" even for a real edit. Under a literal D-2/D-4 rule, `SqliteStudyTaskRepository.UpdateAsync` would persist the edit but never stamp it, so sync would never enumerate it, silently.
 - **What:** a property that is flagged modified with an unchanged value only counts as harmless when it is in the provenance block the writer restores (`SyncMetadata`/`Tombstone`). Anything else means the originals are unknown, so the entry is stamped.
 - **Direction:** this only adds stamping relative to the literal rule. It never removes a stamp the ruling requires, and it is the same "fail toward today's behaviour" principle the ruling applies to unclassified properties.
