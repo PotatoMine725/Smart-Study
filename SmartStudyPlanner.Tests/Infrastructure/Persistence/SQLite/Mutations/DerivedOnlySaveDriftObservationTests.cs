@@ -17,9 +17,10 @@ using Xunit.Abstractions;
 namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
 {
     /// <summary>
-    /// Epic 2 / T2.4 fence Slice 4 — <b>E-2 measurement, OBSERVED 2026-10-03</b> (rulings §7 E-2;
-    /// owner instruction 2026-10-03: measure, record as an owner question, continue; do NOT add a
-    /// Derived intent, do NOT block, do NOT fix).
+    /// Epic 2 / T2.4 fence Slice 4 — <b>E-2</b>, measured 2026-10-03 (OBSERVED: the row was re-stamped
+    /// and drifted), then ruled (c) in <c>docs/specs/2026-10-03-fence-slice4-followup-owner-rulings.md</c>
+    /// §1: a save whose only changed values are Derived persists them without stamping. The tests below
+    /// pin the ruled behaviour.
     /// <para>
     /// Question: on a StudyTask held live at Base by an Unresolved record, does a save that changes
     /// ONLY Derived fields (<c>DiemUuTien</c>, <c>MucDoCanhBao</c> — <c>MergeSurfaceRegistry</c>
@@ -28,12 +29,9 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
     /// <see cref="SemesterReconcilePlannerIntentTests.DerivedOnlyChange_EmitsNoIntent"/>), so the
     /// fence has nothing to route and the save passes.
     /// </para>
-    /// These are characterizations: they pin what the code does, they assert no desired semantic.
     /// </summary>
-    [Trait("Kind", "Characterization")]
     public class DerivedOnlySaveDriftObservationTests : IDisposable
     {
-        // CHARACTERIZATION — pins status quo pending an owner ruling on E-2; not evidence of a ruling
         private readonly FenceScenarioFixture _fence = new();
         private readonly LocalSaveDriver _save;
         private readonly ITestOutputHelper _out;
@@ -72,7 +70,7 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
         }
 
         [Fact]
-        public async Task E2_DiemUuTienOnlySave_OnHeldRow_Observed()
+        public async Task E2_DiemUuTienOnlySave_OnHeldRow_NotStamped_NoDrift()
         {
             var (record, hocKy, _, _, _, task) = await _fence.StageS1CrAsync();
             var before = await ObserveAsync(record, task.MaTask, "before");
@@ -84,14 +82,15 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
 
             var after = await ObserveAsync(record, task.MaTask, "after");
             Assert.Equal(before.DiemUuTien + 42.5, after.DiemUuTien);              // the Derived value was written
-            Assert.Equal(before.Rev + 1, after.Rev);                               // and the row re-stamped
-            Assert.Equal(SyncApplyFixture.LocalNow, after.ModifiedAtUtc);
-            Assert.False(after.BaseMatches);                                       // E-2: Base drift on a held row
+            Assert.Equal(before.Rev, after.Rev);                                   // E-2 (c): not stamped
+            Assert.Equal(before.ModifiedAtUtc, after.ModifiedAtUtc);
+            Assert.Equal(before.ModifiedBy, after.ModifiedBy);
+            Assert.True(after.BaseMatches);                                        // no Base drift on the held row
             Assert.Equal(ConflictRecordStatus.Unresolved, await _save.StatusOfAsync(record));
         }
 
         [Fact]
-        public async Task E2_MucDoCanhBaoOnlySave_OnHeldRow_Observed()
+        public async Task E2_MucDoCanhBaoOnlySave_OnHeldRow_NotStamped_NoDrift()
         {
             var (record, hocKy, _, _, _, task) = await _fence.StageS1CrAsync();
             var before = await ObserveAsync(record, task.MaTask, "before");
@@ -102,8 +101,9 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
 
             var after = await ObserveAsync(record, task.MaTask, "after");
             Assert.NotEqual(before.MucDoCanhBao, after.MucDoCanhBao);
-            Assert.Equal(before.Rev + 1, after.Rev);
-            Assert.False(after.BaseMatches);
+            Assert.Equal(before.Rev, after.Rev);
+            Assert.Equal(before.ModifiedAtUtc, after.ModifiedAtUtc);
+            Assert.True(after.BaseMatches);
         }
 
         /// <summary>A priority engine with a fixed answer, so the VM's recompute is deterministic.</summary>
@@ -125,10 +125,10 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
         /// the MonHoc it opens, on the SHARED graph. Any later save from that page then writes those
         /// Derived columns. Here the engine is a fixed stub (82 ⇒ "Khẩn cấp"); whether the real engine's
         /// value differs from the stored one on a given day depends on the clock and the deadline
-        /// (INFERENCE — not measured with the real engine).
+        /// (INFERENCE — not measured with the real engine). Under E-2 (c) the values land, unstamped.
         /// </summary>
         [Fact]
-        public async Task E2_QuanLyTaskViewModelOpen_ThenAnySave_DriftsHeldRow_Observed()
+        public async Task E2_QuanLyTaskViewModelOpen_ThenAnySave_DoesNotDriftHeldRow()
         {
             var (record, hocKy, monHocA, _, _, task) = await _fence.StageS1CrAsync();
             var before = await ObserveAsync(record, task.MaTask, "before");
@@ -146,8 +146,9 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
 
             var after = await ObserveAsync(record, task.MaTask, "after");
             Assert.Equal(82, after.DiemUuTien);
-            Assert.Equal(before.Rev + 1, after.Rev);
-            Assert.False(after.BaseMatches);
+            Assert.Equal(before.Rev, after.Rev);
+            Assert.Equal(before.ModifiedAtUtc, after.ModifiedAtUtc);
+            Assert.True(after.BaseMatches);
         }
     }
 }

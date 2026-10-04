@@ -4,6 +4,12 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
+## 2026-10-03 — **E-2 (c)**: Derived-only and no-change local saves no longer stamp Rev/provenance — *behaviour change in `SyncStamper` (local path); no schema change*
+
+| Area | Change | Verification |
+|---|---|---|
+| E-2 (rulings 2026-10-03 §1; owner D-1..D-4) | `SyncStamper` classifies through `MergeSurfaceRegistry` (`ClrType.Name`, guarded). A Modified local entry whose value-changed properties are all Derived (`DiemUuTien`, `MucDoCanhBao`, `IsSeeded`), or which changed no value at all (D-4: a no-change save from a previously-saved caller graph, OBSERVED to restamp on origin/dev), keeps `Rev`/`ModifiedAtUtc`/`ModifiedByDeviceId`. Derived values are still written. A held S1-CR row keeps its D8-H Base. Added, local delete→tombstone, the marked sync-apply path and unclassified fields stamp as before; a detached `DbSet.Update` stamps (fail-safe, owner-ratified 2026-10-03 as a rulings §1 clarification; narrowed 2026-10-04: `Attach` keeps real originals, so the main rule applies to it) ([report](reports/2026-10-03-e2-derived-no-stamp.md)). After review PR #110: a held row stays resolvable (KeepBase → Applied) after a Derived-only then a no-change save; it is Rejected on origin/dev | PR #109 — **1109 passed / 1 skipped / 1110 total**, 0 failed (baseline 1095 / 1 / 1096); 14 new tests (12 + 2 review follow-ups); intentional flip of exactly the three E-2 `*_Observed` tests (own commit); mutants M1–M6 and MX1 RED |
+
 ## 2026-10-03 — Epic 2 / T2.4 structural-conflict fence: **Slice 4 — fence wired into the local semester save + OD-7** — *behaviour change for saves that cross an unresolved conflict; no schema change*
 
 | Area | Change | Verification |
