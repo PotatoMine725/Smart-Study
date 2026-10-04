@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Metadata;
 using SmartStudyPlanner.Models;
+using SmartStudyPlanner.Sync.Merge;
 
 namespace SmartStudyPlanner.Data
 {
@@ -16,6 +18,11 @@ namespace SmartStudyPlanner.Data
     /// fixup (only reaches children that are loaded/tracked — see docs/plans/2026-07-03-g1-soft-delete-cascade.md).
     /// Entries() is snapshotted to a list first so flipping a parent's State back to Modified can't
     /// disturb the fixup that already ran for its children.
+    ///
+    /// E-2 (c) (docs/specs/2026-10-03-fence-slice4-followup-owner-rulings.md §1): a Modified entry
+    /// whose only changed values are <see cref="FieldClass.Derived"/> — or which changed no value at
+    /// all (the vacuous case, D-4) — is saved as-is, without Rev/ModifiedAtUtc/ModifiedByDeviceId.
+    /// See <see cref="HasStampableChange"/>.
     /// </summary>
     public static class SyncStamper
     {
@@ -51,6 +58,8 @@ namespace SmartStudyPlanner.Data
                     continue;
                 }
 
+                if (entry.State == EntityState.Modified && !HasStampableChange(entry)) continue;
+
                 if (entry.State is EntityState.Added or EntityState.Modified)
                 {
                     meta.Rev++;
@@ -67,6 +76,44 @@ namespace SmartStudyPlanner.Data
                     meta.ModifiedByDeviceId = deviceId;
                 }
             }
+        }
+
+        /// <summary>
+        /// The registry lookup the stamper classifies by; the guard test asserts every ISyncMetadata
+        /// entity in the model resolves through it, so a CLR rename cannot silently disable E-2.
+        /// </summary>
+        internal static bool TryGetSpec(IReadOnlyEntityType entityType, out EntitySpec spec) =>
+            MergeSurfaceRegistry.TryGet(entityType.ClrType.Name, out spec);
+
+        /// <summary>
+        /// False when every property whose VALUE changed is Derived, or when no value changed (D-2:
+        /// "modified" means <c>IsModified</c> and the EF value comparer says Current != Original —
+        /// <c>IsModified</c> alone is not enough, because re-copying a stale caller graph flags the
+        /// restored Rev/ModifiedAtUtc with unchanged values). Unclassified entity or property ⇒ true.
+        /// A property flagged modified with an unchanged value outside the provenance block
+        /// (SyncMetadata/Tombstone, which the writer restores) means EF never read the stored value —
+        /// a detached <c>DbSet.Update</c> — so the comparison is blind there and the entry is stamped.
+        /// </summary>
+        private static bool HasStampableChange(EntityEntry entry)
+        {
+            var spec = TryGetSpec(entry.Metadata, out var s) ? s : null;
+
+            foreach (var p in entry.Properties)
+            {
+                if (!p.IsModified) continue;
+
+                var cls = spec?.Fields.FirstOrDefault(f => f.Name == p.Metadata.Name)?.Class;
+                if (!p.Metadata.GetValueComparer().Equals(p.CurrentValue, p.OriginalValue))
+                {
+                    if (cls != FieldClass.Derived) return true;
+                }
+                else if (cls is not (FieldClass.SyncMetadata or FieldClass.Tombstone))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

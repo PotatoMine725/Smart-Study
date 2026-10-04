@@ -272,6 +272,8 @@ Per your instruction there is no Derived intent, no block and no fix in this PR.
 
 > **Ruled 2026-10-03: (c)** — Derived-only changes do not stamp (`Rev`, `ModifiedAtUtc`, `ModifiedByDeviceId` unchanged; any non-Derived property in the entry ⇒ normal stamping). Record: [`../specs/2026-10-03-fence-slice4-followup-owner-rulings.md`](../specs/2026-10-03-fence-slice4-followup-owner-rulings.md) §1. Implemented by ticket `2026-10-03-e2-derived-no-stamp`, not by this report's PR.
 
+> **2026-10-04** — Fix in PR #109 (draft; [report](2026-10-03-e2-derived-no-stamp.md)). The question above is closed; the open-question wording in this section and in §10 stands only as the 2026-10-03 snapshot.
+
 ### 7.2 OQ-1 consequence (RULING (i), OBSERVED as requested)
 
 After a rejection, a MonHoc clone that the read-side dedup had folded into its representative reappears in
