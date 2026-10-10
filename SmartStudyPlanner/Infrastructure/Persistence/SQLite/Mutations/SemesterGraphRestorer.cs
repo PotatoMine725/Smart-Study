@@ -9,7 +9,8 @@ using SmartStudyPlanner.Models;
 namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Mutations
 {
     // Epic 2 / T2.4 fence Slice 4 — OD-7 restoration, mechanism R2 (owner ruling 2026-10-03): after a
-    // fence rejection, bring the CALLER's in-memory graph back to persisted state, in place.
+    // fence rejection, bring the CALLER's in-memory graph back to persisted state, in place. (Any other
+    // failed save gets the narrower, membership-only DropUnsavedAdditions below -- D-5.)
     //
     // Why in place: the VMs share one HocKy instance (MainWindow builds every sidebar page from it,
     // pages are navigated by instance, QuanLyTaskViewModel also holds a child MonHoc). Replacing the
@@ -88,6 +89,66 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Mutations
             foreach (var (owner, tasks) in wantedTasks)
                 Rebuild(owner.DanhSachTask, tasks);
             Rebuild(caller.DanhSachMonHoc, wantedMons);
+        }
+
+        // D-5 (rulings 2026-10-03 §2, V2) -- the narrower repair after a save that failed for any reason
+        // OTHER than a fence rejection. Membership only: it removes every unsaved addition (a MonHoc or
+        // StudyTask with no persisted live row) and copies no value, so scalar edits on persisted rows
+        // (MoFocusMode's study minutes, an edit retried after SQLITE_BUSY) and pending deletions -- rows
+        // the caller already dropped -- stay as the caller left them, for the next save to write.
+        //
+        // `persisted` is a FRESH read taken after the rollback (null: the HocKy has no row), not the failed
+        // transaction's old graph: a row another save committed in the meantime is not an addition any more.
+        //
+        // The writer swaps the task collection of every MonHoc it adds (SemesterGraphWriter) and may have
+        // half-refilled it, with the repository's instances of persisted tasks, when the save failed.
+        // `collectionsBefore` (TaskCollectionsOf, taken before the save) puts the caller's own collections
+        // back first; the writer never mutates the collection it swapped out, so that undoes the swap exactly.
+        //
+        // Shape K (owner ruling 2026-10-10, rulings §2 amendment): an unsaved MonHoc holding a persisted
+        // task is kept, minus its unsaved tasks. Dropping it would leave that task in no collection, and
+        // the next save would tombstone a persisted row.
+        public static IReadOnlyDictionary<MonHoc, ObservableCollection<StudyTask>> TaskCollectionsOf(HocKy caller)
+        {
+            var collections = new Dictionary<MonHoc, ObservableCollection<StudyTask>>(ReferenceEqualityComparer.Instance);
+            foreach (var mon in caller.DanhSachMonHoc)
+                collections.TryAdd(mon, mon.DanhSachTask);
+            return collections;
+        }
+
+        public static void DropUnsavedAdditions(
+            HocKy? persisted, HocKy caller, IReadOnlyDictionary<MonHoc, ObservableCollection<StudyTask>> collectionsBefore)
+        {
+            var liveMons = new HashSet<Guid>();
+            var liveTasks = new HashSet<Guid>();
+            foreach (var mon in persisted?.DanhSachMonHoc ?? Enumerable.Empty<MonHoc>())
+            {
+                liveMons.Add(mon.MaMonHoc);
+                foreach (var task in mon.DanhSachTask)
+                    liveTasks.Add(task.MaTask);
+            }
+
+            foreach (var (mon, before) in collectionsBefore)
+            {
+                if (!ReferenceEquals(mon.DanhSachTask, before))
+                    mon.DanhSachTask = before;
+            }
+
+            for (var i = caller.DanhSachMonHoc.Count - 1; i >= 0; i--)
+            {
+                var mon = caller.DanhSachMonHoc[i];
+                if (!liveMons.Contains(mon.MaMonHoc) && !mon.DanhSachTask.Any(t => liveTasks.Contains(t.MaTask)))
+                    caller.DanhSachMonHoc.RemoveAt(i);
+            }
+
+            foreach (var mon in caller.DanhSachMonHoc)
+            {
+                for (var i = mon.DanhSachTask.Count - 1; i >= 0; i--)
+                {
+                    if (!liveTasks.Contains(mon.DanhSachTask[i].MaTask))
+                        mon.DanhSachTask.RemoveAt(i);
+                }
+            }
         }
 
         private static PropertyInfo[] MappedScalars(IModel model, Type clrType) =>

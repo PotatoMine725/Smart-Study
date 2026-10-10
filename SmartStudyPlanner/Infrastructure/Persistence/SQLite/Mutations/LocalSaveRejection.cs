@@ -37,6 +37,23 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Mutations
         public static Exception? RestoreFailureOf(MutationRejectedException rejection) =>
             rejection.Data.Contains(RestoreFailureDataKey) ? rejection.Data[RestoreFailureDataKey] as Exception : null;
 
+        // D-5 (rulings 2026-10-03 §2): after a save that failed for any OTHER reason, the executor removes
+        // the caller's unsaved additions. If that repair fails, the failure is attached to the save's own
+        // exception under this key -- same mechanism as above, never thrown in its place -- and the
+        // global handler logs it next to the exception.
+        public const string RepairFailureDataKey = "SmartStudyPlanner.LocalSave.RepairFailure";
+
+        public static Exception? RepairFailureOf(Exception? exception)
+        {
+            for (var current = exception; current is not null; current = current.InnerException)
+            {
+                if (current.Data.Contains(RepairFailureDataKey))
+                    return current.Data[RepairFailureDataKey] as Exception;
+            }
+
+            return null;
+        }
+
         public static string UserMessage(MutationRejectedException rejection)
         {
             var restored = RestoreFailureOf(rejection) is null

@@ -8,7 +8,7 @@
 | **Amends** | OD-7 (2026-09-14 §2.4) — *scope extension only*: D-5 adds a narrower restoration for non-fence save failures. OD-7's fence-rejection behaviour is unchanged |
 | **Does not amend** | D1–D9 frozen record; SB-3, OD-4, OD-2; M-3/A-1 live-only predicate; D8-H fingerprint definition; `ConflictResolver`; any `Sync/**` semantics |
 | **Leaves open** | SB-2/OD-1 (Slice 6), OD-6, OD-8, G4; long-term direction for persisted time-dependent Derived values (see E-2 §note) |
-| **Implemented by** | E-2: ticket `2026-10-03-e2-derived-no-stamp` (PR #109) · D-5: ticket `2026-10-03-d5-failed-save-restore` (PR <PR>) · OD-5: fence Slice 5 (PR <PR>) · Q-1: PR #106 |
+| **Implemented by** | E-2: ticket `2026-10-03-e2-derived-no-stamp` (PR #109) · D-5: ticket `2026-10-03-d5-failed-save-restore` (PR #111) · OD-5: fence Slice 5 (PR <PR>) · Q-1: PR #106 |
 
 ## 1. E-2 — CLOSED: (c) Derived-only changes do not stamp
 
@@ -66,6 +66,11 @@ survive in memory; a transient failure is not a rejection).
 **Edges recorded, not ruled.** A failed create of a brand-new semester (`hocKyCu == null`): the root `HocKy` is held by
 `SetupViewModel` and cannot be "removed"; the implementer reports the behaviour. Create-mode form state that the
 command clears before awaiting the save is covered by Q-1 (§4).
+
+*Amended 2026-10-10 (owner, D-5 Phase 0, shape K): an unsaved `MonHoc` that holds a **persisted** task (a task
+reparented into it) is **kept**, with its pre-call task collection, minus its unsaved tasks. Removing it would leave
+the persisted task in no collection, so the next save would tombstone it. Not reachable from the UI today. Report:
+[`../reports/2026-10-10-d5-failed-save-restore.md`](../reports/2026-10-10-d5-failed-save-restore.md) §6.5.*
 
 ## 3. OD-5 — CLOSED: (a) guard test
 

@@ -74,7 +74,8 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
             LocalSaveDriver.RemoveTask(graph, sibling.MaTask);
 
             FailingSaveDbContext? failing = null;
-            var repo = new SqliteHocKyRepository(() => failing = Fx.NewFailingContext(failOnSaveNumber: 1));
+            // Captures the save's context only: D-5's repair opens a second, ordinary one for its fresh read.
+            var repo = new SqliteHocKyRepository(() => failing is null ? failing = Fx.NewFailingContext(failOnSaveNumber: 1) : Fx.NewContext());
             var before = await _fence.SnapshotAllTablesAsync();
 
             var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => repo.LuuHocKyAsync(graph));

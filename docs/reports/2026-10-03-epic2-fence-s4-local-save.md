@@ -335,6 +335,10 @@ save failure nothing does:
 - `ThemMon`'s next click is stopped by the name guard. The unsaved MonHoc then stays in memory and is written
   by the next save of anything (pinned: `ThemMon_CreateMode_SaveFails_NextClick_IsStoppedByNameGuard_Characterization`).
 
+*Closed 2026-10-03 → rulings [`../specs/2026-10-03-fence-slice4-followup-owner-rulings.md`](../specs/2026-10-03-fence-slice4-followup-owner-rulings.md)
+§2 (filed as defect D-5, ruled V2). Fixed 2026-10-10 in the executor, not the commands. Both characterizations above were
+flipped to the ruled state and renamed. See [`2026-10-10-d5-failed-save-restore.md`](2026-10-10-d5-failed-save-restore.md).*
+
 Fixing this needs a rollback-on-failure in the command, which is broader than the reorder Q-1 authorised.
 The options are:
 - (a) accept it;
