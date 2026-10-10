@@ -1,7 +1,7 @@
 # D-5 (V2): a failed non-fence local save no longer leaves unsaved additions behind
 
 **Date:** 2026-10-10 · **Author:** Claude Code agent (owner-dispatched, ticket
-`Prompt/2026-10-03-d5-failed-save-restore.md`) · **PR:** <PR> → `dev` (draft) · **Branch:**
+`Prompt/2026-10-03-d5-failed-save-restore.md`) · **PR:** #111 → `dev` (draft) · **Branch:**
 `fix-d5-failed-save-restore` (worktree `.claude/worktrees/d5-restore`, from `origin/dev` `9394110`)
 
 Labels: **OBSERVED** (seen in a run in this session) · **FACT** (read in the tree) · **INFERENCE**
