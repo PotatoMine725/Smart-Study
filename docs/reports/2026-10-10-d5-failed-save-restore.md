@@ -106,7 +106,7 @@ No value is copied. FK heals are left as they are: they are what the next save w
 |---|---|
 | Baseline, `origin/dev` `9394110` | **1109 passed / 1 skipped / 1110 total**, 0 failed (OBSERVED) |
 | After `test(d5)` commits, before the fix | 9 red, all assertion failures on behaviour, no setup errors (OBSERVED) |
-| HEAD `f158081` | **1117 passed / 1 skipped / 1118 total**, 0 failed; build 0 errors, no warning in a changed file (OBSERVED) |
+| HEAD `4305bd7` (code at `f158081` + test tightening) | **1117 passed / 1 skipped / 1118 total**, 0 failed; build 0 errors, no warning in a changed file (OBSERVED) |
 
 There are 8 new tests in `LocalSemesterSaveFailedSaveRepairTests`, plus these existing tests:
 - 2 flipped Q-2 tests (`EditModeSaveFailureTests`, renamed to the ruled behaviour).
