@@ -67,6 +67,11 @@ survive in memory; a transient failure is not a rejection).
 `SetupViewModel` and cannot be "removed"; the implementer reports the behaviour. Create-mode form state that the
 command clears before awaiting the save is covered by Q-1 (§4).
 
+*Amended 2026-10-10 (owner, D-5 Phase 0, shape K): an unsaved `MonHoc` that holds a **persisted** task (a task
+reparented into it) is **kept**, with its pre-call task collection, minus its unsaved tasks. Removing it would leave
+the persisted task in no collection, so the next save would tombstone it. Not reachable from the UI today. Report:
+[`../reports/2026-10-10-d5-failed-save-restore.md`](../reports/2026-10-10-d5-failed-save-restore.md) §6.5.*
+
 ## 3. OD-5 — CLOSED: (a) guard test
 
 `IStudyTaskRepository.AddAsync` / `UpdateAsync` / `DeleteAsync` have zero production callers (re-verified 2026-10-03:

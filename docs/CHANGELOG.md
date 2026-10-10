@@ -4,6 +4,12 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
+## 2026-10-10 — Defect **D-5** fixed (V2): a failed non-fence local save no longer leaves unsaved additions in memory — *bug fix; no schema change*
+
+| Area | Change | Verification |
+|---|---|---|
+| D-5 (rulings 2026-10-03 §2, V2; owner A/B/C 2026-10-10) | `LocalSemesterSaveExecutor` wraps the whole transaction, BEGIN included (where SQLITE_BUSY surfaces). After any failure that was not a fence rejection, it re-reads persisted state on a fresh context and `SemesterGraphRestorer.DropUnsavedAdditions` removes every MonHoc/StudyTask with no live row. It copies no values: scalar edits (e.g. focus minutes) and pending deletions are kept for the next save. It also undoes the writer's collection swap. Shape K: an unsaved MonHoc holding a persisted task is kept. The original exception is rethrown; a repair failure travels in `Exception.Data` and `App`'s generic handler logs it. The fence path (OD-7) is unchanged. `ThemTask`'s retry after a failed create now writes 1 row, not 2; `ThemMon`'s unsaved MonHoc is no longer written by a later save ([report](reports/2026-10-10-d5-failed-save-restore.md)) | PR <PR> — **1117 passed / 1 skipped / 1118 total**, 0 failed (baseline 1109 / 1 / 1110); 8 new tests; 2 Q-2 characterizations flipped, the Slice 3 half-refilled snapshot moved to the ruled state (own commit), X11 harness-only change (owner A); mutants M1–M8 RED. Unlike the ticket's expectation, the "repair on the fence path" mutant turns no existing OD-7 test red; a new context-count test catches it |
+
 ## 2026-10-03 — **E-2 (c)**: Derived-only and no-change local saves no longer stamp Rev/provenance — *behaviour change in `SyncStamper` (local path); no schema change*
 
 | Area | Change | Verification |
