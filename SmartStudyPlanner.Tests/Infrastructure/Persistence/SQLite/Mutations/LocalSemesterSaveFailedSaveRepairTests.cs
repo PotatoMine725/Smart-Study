@@ -209,6 +209,29 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
         }
 
         /// <summary>
+        /// A cancelled save must still not leave additions behind, so the repair reads on
+        /// <see cref="CancellationToken.None"/>, not on the save's token. Every production caller passes
+        /// <c>default</c>, so this is reached only through the executor. Mutant: the repair uses the save's
+        /// token ⇒ its read is cancelled too, the addition stays ⇒ RED (review PR #112, F-2).
+        /// </summary>
+        [Fact]
+        public async Task CancelledSave_TheRepairStillRuns()
+        {
+            var (graph, toan, t1, _) = await SeedAndReloadAsync();
+            var n1 = NewTask(toan, "N1");
+            using var cancelled = new CancellationTokenSource();
+            cancelled.Cancel();
+
+            var ex = await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => new LocalSemesterSaveExecutor(_script.Create).ExecuteAsync(graph, cancelled.Token));
+
+            Assert.Null(LocalSaveRejection.RepairFailureOf(ex));
+            Assert.Contains(t1, toan.DanhSachTask);
+            Assert.DoesNotContain(n1, toan.DanhSachTask);
+            Assert.DoesNotContain(await LiveTasksAsync(), t => t.MaTask == n1.MaTask);
+        }
+
+        /// <summary>
         /// The repair's own failure (here: the fresh read cannot get a context) never replaces the save's
         /// exception; it is attached under <see cref="LocalSaveRejection.RepairFailureDataKey"/>.
         /// Mutant: no try/catch around the repair ⇒ the repair's exception surfaces instead ⇒ RED.

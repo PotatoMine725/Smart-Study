@@ -2,7 +2,9 @@
 
 **Date:** 2026-10-10 · **Author:** Claude Code agent (owner-dispatched, ticket
 `Prompt/2026-10-03-d5-failed-save-restore.md`) · **PR:** #111 → `dev` (draft) · **Branch:**
-`fix-d5-failed-save-restore` (worktree `.claude/worktrees/d5-restore`, from `origin/dev` `9394110`)
+`fix-d5-failed-save-restore` (worktree `.claude/worktrees/d5-restore`, from `origin/dev` `9394110`) ·
+**Independent review:** draft PR #112 (`docs/review/2026-10-10-t2.4-d5-failed-save-restore-independent-review.md`,
+reviewed head `c334736`): ship-with-followups; F-1, F-2, F-4 fixed in this PR, F-3 filed as D-6 (§5)
 
 Labels: **OBSERVED** (seen in a run in this session) · **FACT** (read in the tree) · **INFERENCE**
 (reasoned, not run) · **NOT RUN**.
@@ -106,9 +108,11 @@ No value is copied. FK heals are left as they are: they are what the next save w
 |---|---|
 | Baseline, `origin/dev` `9394110` | **1109 passed / 1 skipped / 1110 total**, 0 failed (OBSERVED) |
 | After `test(d5)` commits, before the fix | 9 red, all assertion failures on behaviour, no setup errors (OBSERVED) |
-| HEAD `4305bd7` (code at `f158081` + test tightening) | **1117 passed / 1 skipped / 1118 total**, 0 failed; build 0 errors, no warning in a changed file (OBSERVED) |
+| HEAD `4305bd7` (code at `f158081` + test tightening; the reviewed head `c334736` adds docs only) | **1117 passed / 1 skipped / 1118 total**, 0 failed; build 0 errors, no warning in a changed file (OBSERVED) |
+| After the review follow-ups (F-2 test, F-4 comment, docs) | **1118 passed / 1 skipped / 1119 total**, 0 failed; build 0 errors, no warning in a changed file (OBSERVED) |
 
-There are 8 new tests in `LocalSemesterSaveFailedSaveRepairTests`, plus these existing tests:
+There are 9 new tests in `LocalSemesterSaveFailedSaveRepairTests` (the 9th, `CancelledSave_TheRepairStillRuns`,
+added for review F-2), plus these existing tests:
 - 2 flipped Q-2 tests (`EditModeSaveFailureTests`, renamed to the ruled behaviour).
 - 1 snapshot moved to the ruled state (own commit).
 - 1 harness-only change (X11).
@@ -129,14 +133,20 @@ No other existing test was edited.
 | M8: `RepairFailureOf` finds nothing | 1: `RepairFailure_…` |
 | M9: decide persistence from the failed transaction's old graph (ids copied right after the load, before the writer touches it; the fresh-read context is still opened) | 2: `RowsCommittedElsewhereBeforeTheRepair_…` (the target) and `BusyAtBegin_…` (no old graph exists at BEGIN, so the mutant drops the persisted MonHoc wholesale) |
 
+| M10: the repair reads on the save's token, not `CancellationToken.None` (review F-2) | 1: `CancelledSave_TheRepairStillRuns`. Before that test, M10 left the whole suite green (reviewer, OBSERVED; reproduced here) |
+
 M9's second red showed that `BusyAtBegin_…` did not assert that persisted rows **survive**. The test was tightened in
 this PR (the persisted MonHoc stays, its task stays) before the final run.
 
-**Note on M3: an acceptance item changed, needs owner ack (OBSERVED).** The ticket expected "repair on
+M1–M9 were run on the reviewed head; the reviewer re-ran M1, M3 and M9 with the same counts. M10 was run on the
+follow-up tree.
+
+**Note on M3: an acceptance item changed, accepted by the owner 2026-10-10 (OBSERVED).** The ticket expected "repair on
 fence path too ⇒ OD-7 tests RED". **No existing OD-7 test goes red.** After a successful OD-7 restore,
 the caller's graph already equals persisted state, so a V2 pass removes nothing, and graph-shape
 assertions cannot tell the two apart. The new test counts contexts instead: one per rejected save, plus no
-`RepairFailure` entry. It is the only signal for that mutant.
+`RepairFailure` entry. It is the only signal for that mutant. The owner accepted this replacement on
+2026-10-10: `FenceRejection_DoesNotRunTheRepair` replaces the "OD-7 tests RED" mutant check.
 
 ## 4. NOT RUN
 
@@ -156,8 +166,22 @@ assertions cannot tell the two apart. The new test counts contexts instead: one 
 - **Pre-existing:** `RollbackAsync(ct)` in the transaction catch. A cancelled token makes the rollback throw,
   and that exception replaces the original. The D-5 repair still runs (it sits outside), but attaches to
   the replacement. No production caller passes a token.
-- **Shape K and in-memory stamps:** after an F11 failure, the kept unsaved MonHoc carries the stamps
-  SaveChanges put on it in memory. The next save adds it again; not observed to matter, not tested.
+- **D-6 (filed 2026-10-10, owner; review F-3): a first insert writes `Rev` 2 after a failed save.** Measured by
+  the reviewer (REPRODUCED in PR #112, not re-run here). `SyncStamper` stamps an Added entity in memory
+  (`meta.Rev++`) during SaveChanges. If SaveChanges then fails *inside the provider* (here a real
+  `INSERT INTO StudyTasks` failure), the rollback leaves that stamp on the caller's object. The next save adds
+  it again and stamps it again: the DB gets `Rev` 2 where a normal first insert writes 1. It covers:
+  - the shape-K MonHoc (kept by this PR, so this PR makes it reachable for that one shape);
+  - the root HocKy of a failed create that is retried (unchanged by this PR; pre-existing).
+
+  This PR's tests did not see it: `FailingSaveDbContext.SaveChangesAsync` throws before `base`, so
+  `SyncStamper` never runs. **Not fixed in #111** (the fix would sit in `SyncStamper`, out of this ticket's
+  scope). The D-6 ticket must first grep for any logic that depends on an absolute `Rev` value (merge, base
+  snapshot, D8-H fingerprint) before rating severity. Record of the ruling: §6.8.
+- **Accepted residual (owner Q1, 2026-10-10): no D-5 repair after a failed OD-7 restore.** If the OD-7
+  restore throws partway, the rejection surfaces with the restore failure attached (and logged), and the
+  repair does not run; an unsaved addition can stay in memory (reviewer probe J6). D-5 stays non-fence only
+  (rulings §2). A fallback would need its own ticket. Record of the ruling: §6.7.
 
 ## 6. Decisions made
 
@@ -201,3 +225,29 @@ assertions cannot tell the two apart. The new test counts contexts instead: one 
 - **Why:** the generic handler logs `ex.ToString()`, which omits `Exception.Data`. Attach-only would have
   been invisible.
 - **What for:** the original exception still wins; the repair failure reaches `crash.log` next to it.
+
+### 6.7 No fallback repair when the OD-7 restore fails (owner Q1, 2026-10-10)
+- **Why:** D-5 is ruled for non-fence failures only (rulings §2), and the fence path's behaviour is a STOP
+  condition of this ticket. A failed OD-7 restore is already surfaced: the restore failure travels with the
+  rejection and is logged.
+- **What for:** the fence path keeps one restore mechanism, with no second one layered on top of it.
+- **Experience:** the reviewer's probe J6 showed the residual (one context, an unsaved task stays). It is
+  recorded in §5 as an accepted residual; a fallback would need its own ticket.
+
+### 6.8 File the first-insert `Rev` 2 as defect D-6, not fixed here (owner Q2, 2026-10-10)
+- **Why:** the cause is in `SyncStamper` (in-memory stamps survive a provider-level rollback), outside this
+  ticket's MAY-edit scope. It also affects the create-path HocKy retry, which this PR does not change.
+- **What for:** the severity is rated once it is known what reads an absolute `Rev`. The D-6 ticket starts
+  by grepping for logic that depends on it (merge, base snapshot, D8-H fingerprint).
+- **Experience:** this PR's failure double throws before `base.SaveChangesAsync`, so it can never show
+  stamping effects. A test that needs them must fail inside the provider.
+- **Naming:** "D-6" continues the fence defect series (D-1..D-4 in the fence plan §19 R-9, D-5 in rulings
+  2026-10-03 §2) and is filed there as a dated R-9 amendment. It is unrelated to the Epic 4 S-2 owner
+  decision `D-6` (Reading A).
+
+### 6.9 Test the cancellation guarantee through the executor (review F-2, agent decision)
+- **Why:** every production caller passes `default`, so no repository-level test can cancel a save. Mutant
+  M10 left the suite green.
+- **What for:** `CancelledSave_TheRepairStillRuns` calls `LocalSemesterSaveExecutor.ExecuteAsync` with a
+  cancelled token and asserts that the unsaved task is gone and no repair failure is attached. M10 turns it
+  red.

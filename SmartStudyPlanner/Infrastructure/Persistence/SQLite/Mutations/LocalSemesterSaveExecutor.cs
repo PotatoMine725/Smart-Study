@@ -20,8 +20,9 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Mutations
     // throws MutationRejectedException before SemesterGraphWriter runs (N-6): the writer is the code
     // that heals FKs on, and rewrites collections of, the caller's graph, and that issues every tracker
     // write. A passed decision authorizes nothing more than "no unresolved conflict is crossed" --
-    // business validation (the unknown-MonHoc check, still thrown by the writer at its Slice-3 stage
-    // so the caller-visible effect 7 is unchanged) and SaveChanges can still fail, and roll back.
+    // business validation (the unknown-MonHoc check, still thrown by the writer at its Slice-3 stage;
+    // since D-5 the caller's unsaved additions are then removed, see ExecuteAsync) and SaveChanges can
+    // still fail, and roll back.
     //
     // Stateless: nothing about a rejected request is recorded, queued or retried (rulings §2.4).
     // Origin is LocalApplication on the request and is never handed to a policy (INV-6).
