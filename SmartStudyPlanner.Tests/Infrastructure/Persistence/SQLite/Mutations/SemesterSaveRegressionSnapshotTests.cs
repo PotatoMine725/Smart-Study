@@ -21,7 +21,8 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
     /// Everything asserted here is OBSERVED behaviour, not desired behaviour. Tests whose name ends in
     /// <c>_Observed</c> pin something a reader could mistake for a contract (repository instances leaking into the caller's graph, a half-refilled graph after a failed
     /// save). They are not to be "fixed" in Slice 3; Slice 4 / OD-7 owns them. (The re-stamping of
-    /// already-tombstoned rows was pinned here too until the D-2 defect fix flipped that row.)
+    /// already-tombstoned rows was pinned here too until the D-2 defect fix flipped that row, and the
+    /// half-refilled graph after a failed save until the D-5 fix -- rulings 2026-10-03 §2 -- flipped that one.)
     /// </summary>
     public class SemesterSaveRegressionSnapshotTests
     {
@@ -550,7 +551,7 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
         // ---- failure paths -------------------------------------------------------------------
 
         [Fact]
-        public async Task TaskPointingToUnknownMonHoc_Throws_DbUnchanged_CallerGraphHalfRefilled_Observed()
+        public async Task TaskPointingToUnknownMonHoc_Throws_DbUnchanged_UnsavedAdditionsRemovedFromCallerGraph()
         {
             using var h = new Harness();
             var hk = h.Semester("HK1");
@@ -579,25 +580,23 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
             Assert.Contains(bad.MaMonHoc.ToString(), ex.Message);
             AssertDiff(before, after); // rolled back: no table changed
 
-            // OBSERVED, NOT DESIRED (Phase 0 effect 7; Slice 4 / OD-7 owns it). The throw happens late,
-            // so the caller's graph keeps every mutation made before it:
-            //  - the heal was applied;
-            Assert.Equal(toan.MaMonHoc, heal.MaMonHoc);
-            //  - both new MonHocs had their task collection replaced ...
-            Assert.NotSame(hoaCollection, hoa.DanhSachTask);
-            Assert.NotSame(sinhCollection, sinh.DanhSachTask);
-            //  - ... and only the tasks iterated before the failing one were put back: Hoa is refilled,
-            //    Sinh is left EMPTY (N3 is gone from the caller's graph).
-            Assert.Equal(new[] { n1 }, hoa.DanhSachTask);
-            Assert.Empty(sinh.DanhSachTask);
-            Assert.DoesNotContain(n3, hk.DanhSachMonHoc.SelectMany(m => m.DanhSachTask));
-            //  - the existing MonHoc's caller collection is untouched, the bad task still in it;
+            // Ruled state (D-5, rulings 2026-10-03 §2, V2), replacing the Slice 3 OBSERVED "half-refilled"
+            // snapshot. The throw is late -- the writer had already swapped both new MonHocs' task
+            // collections and refilled Hoa's but not Sinh's -- and the repair after it leaves:
+            //  - only the persisted MonHoc, with its own collection and only its persisted task (Heal and
+            //    Bad were unsaved additions);
+            Assert.Equal(new[] { toan }, hk.DanhSachMonHoc);
             Assert.Same(toanCollection, toan.DanhSachTask);
-            Assert.Equal(new[] { t1, heal, bad }, toan.DanhSachTask);
-            //  - nothing was stamped, because SaveChanges never ran.
+            Assert.Equal(new[] { t1 }, toan.DanhSachTask);
+            //  - the dropped MonHocs with their pre-call collections back (the writer's swap undone), so
+            //    no half-built collection survives anywhere the caller can still reach;
+            Assert.Same(hoaCollection, hoa.DanhSachTask);
+            Assert.Same(sinhCollection, sinh.DanhSachTask);
+            Assert.Equal(new[] { n1 }, hoa.DanhSachTask);
+            Assert.Equal(new[] { n3 }, sinh.DanhSachTask);
+            //  - nothing stamped, because SaveChanges never ran.
             Assert.Equal(0, n1.Rev);
             Assert.Equal(0, hoa.Rev);
-            Assert.Equal(new[] { hoa, toan, sinh }, hk.DanhSachMonHoc);
         }
 
         [Fact]

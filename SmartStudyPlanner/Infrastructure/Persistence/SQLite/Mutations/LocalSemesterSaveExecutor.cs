@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -18,8 +20,9 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Mutations
     // throws MutationRejectedException before SemesterGraphWriter runs (N-6): the writer is the code
     // that heals FKs on, and rewrites collections of, the caller's graph, and that issues every tracker
     // write. A passed decision authorizes nothing more than "no unresolved conflict is crossed" --
-    // business validation (the unknown-MonHoc check, still thrown by the writer at its Slice-3 stage
-    // so the caller-visible effect 7 is unchanged) and SaveChanges can still fail, and roll back.
+    // business validation (the unknown-MonHoc check, still thrown by the writer at its Slice-3 stage;
+    // since D-5 the caller's unsaved additions are then removed, see ExecuteAsync) and SaveChanges can
+    // still fail, and roll back.
     //
     // Stateless: nothing about a rejected request is recorded, queued or retried (rulings §2.4).
     // Origin is LocalApplication on the request and is never handed to a policy (INV-6).
@@ -32,10 +35,36 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Mutations
             _ctxFactory = ctxFactory;
         }
 
+        // D-5 (rulings 2026-10-03 §2, V2): a save that fails for any reason other than a fence rejection
+        // -- BEGIN timing out on SQLITE_BUSY included, which is why this wraps the whole transaction --
+        // removes the caller's unsaved additions after the rollback, then rethrows the original
+        // exception. A rejection is told apart by its decision, not by catching its type (N-10): its
+        // graph was already fully restored (OD-7) before the throw, and it gets no second repair.
         public async Task ExecuteAsync(HocKy hocKy, CancellationToken ct = default)
         {
             if (hocKy == null) return;
 
+            var collectionsBefore = SemesterGraphRestorer.TaskCollectionsOf(hocKy);
+            var attempt = new SaveAttempt();
+            try
+            {
+                await SaveInTransactionAsync(hocKy, attempt, ct);
+            }
+            catch (Exception failure)
+            {
+                if (attempt.Decision is not { } decision || Passed(decision))
+                    await DropUnsavedAdditionsAsync(hocKy, collectionsBefore, failure);
+                throw;
+            }
+        }
+
+        private sealed class SaveAttempt
+        {
+            public FenceDecision? Decision;
+        }
+
+        private async Task SaveInTransactionAsync(HocKy hocKy, SaveAttempt attempt, CancellationToken ct)
+        {
             using var db = _ctxFactory();
             using var transaction = await db.Database.BeginTransactionAsync(ct);
             try
@@ -43,7 +72,7 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Mutations
                 var hocKyCu = await LoadLiveGraphAsync(db, hocKy.MaHocKy, ct);
 
                 var plan = SemesterReconcilePlanner.Plan(hocKyCu, hocKy);
-                var decision = await FenceRouter.EvaluateAsync(db, plan.Request, ct);
+                var decision = attempt.Decision = await FenceRouter.EvaluateAsync(db, plan.Request, ct);
                 await ApplyIfPassedAsync(db, hocKyCu, hocKy, plan, decision, ct);
 
                 await db.SaveChangesAsync(ct);
@@ -55,6 +84,27 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Mutations
                 throw;
             }
         }
+
+        // The repair reads persisted state on a context of its own: the failed one may be the problem.
+        // CancellationToken.None, because a cancelled save must still not leave additions behind. If the
+        // repair fails, the save's exception still surfaces, carrying the repair failure (same mechanism
+        // as RejectAndRestore below); the global handler logs it.
+        private async Task DropUnsavedAdditionsAsync(
+            HocKy hocKy, IReadOnlyDictionary<MonHoc, ObservableCollection<StudyTask>> collectionsBefore, Exception failure)
+        {
+            try
+            {
+                using var db = _ctxFactory();
+                var persisted = await LoadLiveGraphAsync(db, hocKy.MaHocKy, CancellationToken.None);
+                SemesterGraphRestorer.DropUnsavedAdditions(persisted, hocKy, collectionsBefore);
+            }
+            catch (Exception repairFailure)
+            {
+                failure.Data[LocalSaveRejection.RepairFailureDataKey] = repairFailure;
+            }
+        }
+
+        private static bool Passed(FenceDecision decision) => decision.RouteKnown && decision.FencePassed;
 
         // D-2: the old graph is live-only (IsDeleted == false, the ruled cascade predicate),
         // the same view LayDanhSachHocKyAsync gives the caller. Loading tombstones here made
@@ -71,7 +121,7 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Mutations
         internal static async Task ApplyIfPassedAsync(
             AppDbContext db, HocKy? hocKyCu, HocKy hocKy, SemesterReconcilePlan plan, FenceDecision decision, CancellationToken ct)
         {
-            if (!decision.RouteKnown || !decision.FencePassed)
+            if (!Passed(decision))
                 throw RejectAndRestore(db, decision, hocKyCu, hocKy);
 
             await SemesterGraphWriter.ApplyAsync(db, hocKyCu, hocKy, plan, ct);

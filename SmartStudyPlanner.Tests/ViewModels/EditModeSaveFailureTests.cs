@@ -27,8 +27,9 @@ namespace SmartStudyPlanner.Tests.ViewModels
     /// Self-contained on purpose (real SQLite repository, no fence fixtures), so the same file can be
     /// run against <c>origin/dev</c> to show whether the failure mode pre-dates Slice 4.
     /// </para>
-    /// The two <c>*_CreateMode_*</c> tests are CHARACTERIZATIONS: they pin what a failed CREATE does
-    /// today. The Q-1 ruling covers edit-mode state only; create mode is an open owner question.
+    /// The two <c>*_CreateMode_*</c> tests were Slice 4 characterizations of a failed CREATE (defect D-5);
+    /// since the D-5 fix (rulings 2026-10-03 §2, V2) they pin the ruled behaviour, with the failure
+    /// injected inside the executor.
     /// </summary>
     public class EditModeSaveFailureTests : IDisposable
     {
@@ -166,49 +167,71 @@ namespace SmartStudyPlanner.Tests.ViewModels
             Assert.Equal("Thêm Môn", vm.TextNutThem);
         }
 
+        // D-5: the create-mode tests need the failure INSIDE the executor (a context whose SaveChanges
+        // throws after the writer ran) -- FailNextSaveRepository throws before the executor, where no
+        // repair can run. The executor's repair opens a second context for its fresh read; that one,
+        // and every later one, is ordinary.
+        private bool _failNextContextSave;
+
+        private AppDbContext ScriptedContext()
+        {
+            if (!_failNextContextSave) return _factory();
+            _failNextContextSave = false;
+            return new FailingSaveDbContext(new DbContextOptionsBuilder<AppDbContext>().UseSqlite(_conn).Options, failOnSaveNumber: 1);
+        }
+
         /// <summary>
-        /// CHARACTERIZATION (create mode, outside the Q-1 ruling): the new task is added to the shared
-        /// collection before the save, a failed save leaves it there, and the next click adds a second
-        /// one -- both are then written. Pins status quo; not a desired semantic.
+        /// D-5 (rulings 2026-10-03 §2, V2), flipped from the Slice 4 characterization that pinned TWO
+        /// rows: the failed save removes the unsaved task from the shared collection, the form still
+        /// holds the input (create mode clears it only after a successful save), and the next click
+        /// writes exactly one row.
         /// </summary>
         [Fact]
-        public async Task ThemTask_CreateMode_SaveFails_NextClick_PersistsTwoRows_Characterization()
+        public async Task ThemTask_CreateMode_SaveFails_NextClick_PersistsOneRow()
         {
-            var real = new SqliteHocKyRepository(_factory);
+            var real = new SqliteHocKyRepository(ScriptedContext);
             var (hocKy, monHoc, _) = await SeedAndReloadAsync(real);
-            var repo = new FailNextSaveRepository(real);
-            var vm = TaskVm(hocKy, monHoc, repo, new RecordingTaskEditorRepository());
+            var vm = TaskVm(hocKy, monHoc, real, new RecordingTaskEditorRepository());
             vm.TenTask = "Bai moi";
             vm.HanChot = DateTime.Today.AddDays(2);
             vm.DoKho = "1";
 
+            _failNextContextSave = true;
             await Assert.ThrowsAsync<InvalidOperationException>(() => vm.ThemTaskCommand.ExecuteAsync(null));
+            Assert.DoesNotContain(monHoc.DanhSachTask, t => t.TenTask == "Bai moi");
+            Assert.Equal("Bai moi", vm.TenTask);
+
             await vm.ThemTaskCommand.ExecuteAsync(null);
 
-            Assert.Equal(2, (await LiveTasksAsync(monHoc.MaMonHoc)).Count(t => t.TenTask == "Bai moi"));
+            Assert.Single(await LiveTasksAsync(monHoc.MaMonHoc), t => t.TenTask == "Bai moi");
+            Assert.Single(monHoc.DanhSachTask, t => t.TenTask == "Bai moi");
         }
 
         /// <summary>
-        /// CHARACTERIZATION (create mode, outside the Q-1 ruling): the new MonHoc stays in the shared
-        /// collection after the failed save, so the next click is stopped by the duplicate-name guard
-        /// ("đã tồn tại") and nothing is written -- the unsaved MonHoc rides along with whatever save
-        /// comes next. Pins status quo; not a desired semantic.
+        /// D-5 (rulings 2026-10-03 §2, V2), flipped from the Slice 4 characterization in which the
+        /// unsaved MonHoc stayed in memory, blocked the next click with "đã tồn tại", and rode along
+        /// with a later save: now a later save does not write it, and the next click writes it once.
         /// </summary>
         [Fact]
-        public async Task ThemMon_CreateMode_SaveFails_NextClick_IsStoppedByNameGuard_Characterization()
+        public async Task ThemMon_CreateMode_SaveFails_UnsavedMonHocNotWrittenByALaterSave_NextClickWritesItOnce()
         {
-            var real = new SqliteHocKyRepository(_factory);
+            var real = new SqliteHocKyRepository(ScriptedContext);
             var (hocKy, _, _) = await SeedAndReloadAsync(real);
-            var repo = new FailNextSaveRepository(real);
             var thongBao = new List<string>();
-            var vm = new QuanLyMonHocViewModel(hocKy, repo) { OnThongBao = thongBao.Add, TenMon = "Lý", SoTinChi = "2" };
+            var vm = new QuanLyMonHocViewModel(hocKy, real) { OnThongBao = thongBao.Add, TenMon = "Lý", SoTinChi = "2" };
 
+            _failNextContextSave = true;
             await Assert.ThrowsAsync<InvalidOperationException>(() => vm.ThemMonCommand.ExecuteAsync(null));
-            await vm.ThemMonCommand.ExecuteAsync(null);
+            Assert.DoesNotContain(hocKy.DanhSachMonHoc, m => m.TenMonHoc == "Lý");
 
-            Assert.Contains("đã tồn tại", Assert.Single(thongBao));
+            await real.LuuHocKyAsync(hocKy);                                   // some other save comes next
             Assert.DoesNotContain(await LiveMonHocsAsync(hocKy.MaHocKy), m => m.TenMonHoc == "Lý");
-            Assert.Single(hocKy.DanhSachMonHoc, m => m.TenMonHoc == "Lý");     // unsaved, still in memory
+
+            await vm.ThemMonCommand.ExecuteAsync(null);                         // the user clicks again
+
+            Assert.Empty(thongBao);
+            Assert.Single(await LiveMonHocsAsync(hocKy.MaHocKy), m => m.TenMonHoc == "Lý");
+            Assert.Single(hocKy.DanhSachMonHoc, m => m.TenMonHoc == "Lý");
         }
     }
 }

@@ -967,6 +967,8 @@ working-tree files · T2.5 test files (`Sync/Convergence/*`), if they have lande
 
 > **Amendment 2026-10-01 (R-9, D-2):** **D-2 FIXED** by PR #105. The local save's old-graph load is now live-only and `TaskCascadeHelper` removes only live children (`IsDeleted == false`), so a no-change save no longer re-stamps tombstones. D9-T1 is kept: no hard delete, and a dead note still occupies `UNIQUE(MaTask)`. No backfill. Report: [`../reports/2026-10-01-d2-tombstone-restamp-fix.md`](../reports/2026-10-01-d2-tombstone-restamp-fix.md). The P0-a evidence test `SemesterSaveRegressionSnapshotTests.NoChangeSave_OverAlreadyTombstonedRows_Observed` (cited in §21 row 0) is renamed to `…_WritesNothing` by PR #105 and now asserts an empty diff. D-1, D-3 and D-4 are unchanged.
 
+> **Amendment 2026-10-10 (R-9, D-6, owner):** **D-6 filed, not started:** after a SaveChanges that fails inside the provider, the in-memory `Rev` stamp `SyncStamper` put on an Added entity survives the rollback, so the retry's first insert writes `Rev` 2. Affects the D-5 shape-K MonHoc (PR #111) and the root HocKy of a retried failed create (pre-existing). Measured in independent review PR #112 (F-3). The ticket must first grep for any logic that depends on an absolute `Rev` value (merge, base snapshot, D8-H fingerprint) before rating severity. Report: [`../reports/2026-10-10-d5-failed-save-restore.md`](../reports/2026-10-10-d5-failed-save-restore.md) §5, §6.8.
+
 ---
 
 ## 20. Open questions / owner decisions still required
