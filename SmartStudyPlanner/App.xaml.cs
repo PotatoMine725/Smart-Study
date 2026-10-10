@@ -40,6 +40,8 @@ namespace SmartStudyPlanner
                 }
 
                 CrashLogger.Log("DispatcherUnhandledException", args.Exception);
+                if (LocalSaveRejection.RepairFailureOf(args.Exception) is { } repairFailure)
+                    CrashLogger.Log("LocalSave.RepairFailure", repairFailure);
                 System.Windows.MessageBox.Show(
                     "Đã xảy ra lỗi không mong muốn. Thao tác vừa rồi có thể chưa được lưu.\nChi tiết đã ghi vào crash.log.",
                     "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
