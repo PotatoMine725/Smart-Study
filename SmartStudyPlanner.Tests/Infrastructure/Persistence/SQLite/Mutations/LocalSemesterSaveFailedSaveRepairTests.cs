@@ -202,7 +202,9 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
             var ex = await Assert.ThrowsAsync<SqliteException>(() => _repo.LuuHocKyAsync(graph));
             Assert.Equal(5, ex.SqliteErrorCode);
 
-            Assert.DoesNotContain(n1, toan.DanhSachTask);
+            Assert.Equal(new[] { toan }, graph.DanhSachMonHoc);            // persisted rows stay ...
+            Assert.Contains(t1, toan.DanhSachTask);
+            Assert.DoesNotContain(n1, toan.DanhSachTask);                  // ... the addition goes
             Assert.Equal(10, t1.ThoiGianDaHoc);
         }
 

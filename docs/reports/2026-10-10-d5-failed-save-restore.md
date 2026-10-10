@@ -127,8 +127,12 @@ No other existing test was edited.
 | M6: no try/catch around the repair | 1: `RepairFailure_TheOriginalExceptionSurfaces_…` |
 | M7: no collection-swap undo | 3: K, fresh-read, snapshot |
 | M8: `RepairFailureOf` finds nothing | 1: `RepairFailure_…` |
+| M9: decide persistence from the failed transaction's old graph (ids copied right after the load, before the writer touches it; the fresh-read context is still opened) | 2: `RowsCommittedElsewhereBeforeTheRepair_…` (the target) and `BusyAtBegin_…` (no old graph exists at BEGIN, so the mutant drops the persisted MonHoc wholesale) |
 
-**Note on M3, which differs from the ticket's expectation (OBSERVED).** The ticket expected "repair on
+M9's second red showed that `BusyAtBegin_…` did not assert that persisted rows **survive**. The test was tightened in
+this PR (the persisted MonHoc stays, its task stays) before the final run.
+
+**Note on M3: an acceptance item changed, needs owner ack (OBSERVED).** The ticket expected "repair on
 fence path too ⇒ OD-7 tests RED". **No existing OD-7 test goes red.** After a successful OD-7 restore,
 the caller's graph already equals persisted state, so a V2 pass removes nothing, and graph-shape
 assertions cannot tell the two apart. The new test counts contexts instead: one per rejected save, plus no
@@ -136,15 +140,11 @@ assertions cannot tell the two apart. The new test counts contexts instead: one 
 
 ## 4. NOT RUN
 
-- The `App.xaml.cs` line (ruling C). The WPF handler has no test harness. Its helper
-  `RepairFailureOf` is covered (M8). A manual check would be:
-  1. Force a generic save failure.
-  2. Make the repair fail.
-  3. Look for a `LocalSave.RepairFailure` entry in `crash.log`.
+- The `App.xaml.cs` line (ruling C). The WPF handler has no test harness, and there is **no practical manual
+  check**: the shipped app has no way to make the save fail *and* the repair fail on demand. The residual risk is
+  two lines. Its helper `RepairFailureOf` is covered (M8); the call site was only read, not run.
 - Real SQLITE_BUSY at BEGIN with a second process holding the write lock. It was simulated with a
   `DbTransactionInterceptor` throwing `SqliteException(…, 5)` at `TransactionStartingAsync`.
-- Mutant "decide persistence from the failed transaction's old graph". The fresh-read test
-  (`RowsCommittedElsewhereBeforeTheRepair_…`) is designed to catch it, but the mutant was not applied.
 - What the UI shows after the repair. `ThemTask` ran `TinhDiemVaSapXep`/`OnRefreshGrid` before the
   await; the removal goes through the bound `ObservableCollection`. `HasData` is not recomputed on
   failure (status quo for any failed save).
