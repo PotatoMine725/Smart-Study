@@ -69,12 +69,18 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Mutations
         /// E2 (owner ruling 2026-10-16): the note plus the whole link set as ONE request, in the order of
         /// the port's reference sequence -- note, deletes of live links <paramref name="incoming"/> does
         /// not name, then per incoming link an edit (live link of this task) or an add.
+        /// <para>
+        /// Unlike <see cref="PlanUpsertNote"/>: no live note and null/empty content ⇒ no note at all, so a
+        /// links-only edit does not acquire K(T) (owner ruling 2026-10-16, Q2). A live note edited to
+        /// empty is still an UpdateFields.
+        /// </para>
         /// </summary>
         public static TaskEditorPlan PlanSave(Guid taskId, TaskNote? liveNote, string? content,
             IReadOnlyList<TaskReferenceLink> liveLinks, IReadOnlyList<TaskReferenceLink> incoming)
         {
             var plan = new Builder();
-            plan.Note(taskId, liveNote, content);
+            if (liveNote is not null || !string.IsNullOrEmpty(content))
+                plan.Note(taskId, liveNote, content);
 
             var incomingIds = incoming.Select(l => l.Id).ToHashSet();
             foreach (var dead in liveLinks.Where(l => !incomingIds.Contains(l.Id)))

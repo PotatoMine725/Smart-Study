@@ -325,6 +325,52 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
             Assert.False(Assert.Single(await LinksOfAsync(task.MaTask)).IsDeleted);
         }
 
+        // ------------------------------------------------------------------ Q2: where the note is (not) created
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        public async Task SaveEditor_NoLiveNote_NullOrEmptyContent_CreatesNoNoteRow_NoNoteIntent(string? content)
+        {
+            var (_, _, task) = await Fx.SeedTreeAsync();
+            var link = NewLink(task.MaTask);
+
+            var plan = TaskEditorPlanner.PlanSave(task.MaTask, null, content, Array.Empty<TaskReferenceLink>(), new[] { link });
+            await Repo.SaveEditorAsync(task.MaTask, content, new[] { link });
+
+            Assert.DoesNotContain(plan.Request.Intents, i => i.EntityType == SyncEntityTypes.TaskNote);
+            Assert.Empty(await NotesOfAsync(task.MaTask));
+            Assert.Single(await LinksOfAsync(task.MaTask));
+        }
+
+        [Fact]
+        public async Task SaveEditor_LiveNoteEditedToEmpty_IsStillAnUpdateFields_AndPersists()
+        {
+            var (_, _, task) = await Fx.SeedTreeAsync();
+            var note = new TaskNote { Id = Guid.NewGuid(), MaTask = task.MaTask, Content = "old note" };
+            await Fx.AddLocalAsync(note);
+
+            var plan = TaskEditorPlanner.PlanSave(task.MaTask, note, "", Array.Empty<TaskReferenceLink>(), Array.Empty<TaskReferenceLink>());
+            await Repo.SaveEditorAsync(task.MaTask, "", Array.Empty<TaskReferenceLink>());
+
+            var intent = Assert.Single(plan.Request.Intents);
+            Assert.Equal((MutationOperation.UpdateFields, SyncEntityTypes.TaskNote, note.Id), (intent.Operation, intent.EntityType, intent.EntityId));
+            Assert.Equal("", Assert.Single(await NotesOfAsync(task.MaTask)).Content);
+        }
+
+        /// <summary>Q2 is PlanSave only: UpsertNoteAsync with no live note still creates the null-content note.</summary>
+        [Fact]
+        public async Task UpsertNote_NoLiveNote_NullContent_StillCreatesTheNote_Unchanged()
+        {
+            var (_, _, task) = await Fx.SeedTreeAsync();
+
+            await Repo.UpsertNoteAsync(task.MaTask, null);
+
+            var note = Assert.Single(await NotesOfAsync(task.MaTask));
+            Assert.Null(note.Content);
+            Assert.False(note.IsDeleted);
+        }
+
         [Fact]
         public async Task SaveEditor_UnderS1CrOnTask_LinkAddAndDelete_ArePassed_AndPersistTogether()
         {
