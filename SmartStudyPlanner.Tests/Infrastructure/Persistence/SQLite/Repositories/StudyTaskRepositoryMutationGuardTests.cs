@@ -16,9 +16,11 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Repositories
     /// Matched by RECEIVER TYPE, not by method name — other repositories (telemetry, logs) have
     /// <c>AddAsync</c> too. Per file: every identifier declared as <c>IStudyTaskRepository</c> /
     /// <c>SqliteStudyTaskRepository</c> (field, parameter, local, <c>var x = new SqliteStudyTaskRepository(..)</c>),
-    /// plus the receiver-less forms <c>Get&lt;IStudyTaskRepository&gt;()</c>,
-    /// <c>GetRequiredService&lt;IStudyTaskRepository&gt;()</c> and <c>new SqliteStudyTaskRepository(..)</c>
-    /// chained straight into a mutation.
+    /// every identifier assigned from the service locator (<c>var x = ServiceLocator.Get&lt;IStudyTaskRepository&gt;()</c>,
+    /// also <c>GetRequiredService</c>/<c>GetService</c>; review #114 F-2), plus the receiver-less forms
+    /// <c>Get&lt;IStudyTaskRepository&gt;()</c>, <c>GetRequiredService&lt;IStudyTaskRepository&gt;()</c> and
+    /// <c>new SqliteStudyTaskRepository(..)</c> chained straight into a mutation.
+    /// Known blind spots: a receiver obtained by a cast, or passed through another type or file.
     /// </para>
     /// </summary>
     public class StudyTaskRepositoryMutationGuardTests
@@ -27,7 +29,8 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Repositories
 
         private static readonly Regex DeclaredReceiver = new(
             @"\b(?:IStudyTaskRepository|SqliteStudyTaskRepository)\??\s+(?<name>[A-Za-z_]\w*)\b(?!\s*\()" +
-            @"|(?<name>[A-Za-z_]\w*)\s*=\s*new\s+SqliteStudyTaskRepository\s*\(",
+            @"|(?<name>[A-Za-z_]\w*)\s*=\s*new\s+SqliteStudyTaskRepository\s*\(" +
+            @"|(?<name>[A-Za-z_]\w*)\s*=\s*(?:[\w.]+\s*\.\s*)?(?:Get|GetRequiredService|GetService)\s*<\s*IStudyTaskRepository\s*>\s*\(\s*\)",
             RegexOptions.Compiled);
 
         private static readonly Regex ReceiverlessCall = new(
@@ -95,10 +98,16 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Repositories
             Assert.Single(FindMutationCalls("await ServiceLocator.Get<IStudyTaskRepository>().AddAsync(t);"));
             Assert.Single(FindMutationCalls("await sp.GetRequiredService<IStudyTaskRepository>().UpdateAsync(t);"));
             Assert.Single(FindMutationCalls("await new SqliteStudyTaskRepository(() => db).AddAsync(t);"));
+            // Review #114 F-2: a local or field assigned from the service locator.
+            Assert.Single(FindMutationCalls("var repo9 = ServiceLocator.Get<IStudyTaskRepository>();\nawait repo9.DeleteAsync(Guid.Empty, ct);"));
+            Assert.Single(FindMutationCalls("_repo = sp.GetRequiredService<IStudyTaskRepository>()!;\nawait _repo.AddAsync(t);"));
+            Assert.Single(FindMutationCalls("var r = Get<IStudyTaskRepository>();\nawait r?.UpdateAsync(t)!;"));
 
             Assert.Empty(FindMutationCalls(field + "var all = await _tasks.GetAllAsync(ct);"));
             Assert.Empty(FindMutationCalls(field + "private readonly IDifficultyLabelLogRepository _logRepo;\nawait _logRepo.AddAsync(entry);"));
             Assert.Empty(FindMutationCalls("private readonly IStudyTelemetry _telemetry;\nawait _telemetry.AddAsync(x);"));
+            Assert.Empty(FindMutationCalls("var log = ServiceLocator.Get<IDifficultyLabelLogRepository>();\nawait log.AddAsync(x);"));
+            Assert.Empty(FindMutationCalls("var repo9 = ServiceLocator.Get<IStudyTaskRepository>();\nvar all = await repo9.GetAllAsync(ct);"));
             Assert.Empty(FindMutationCalls(field + "// await _tasks.DeleteAsync(id);"));
             Assert.Empty(FindMutationCalls("public async Task AddAsync(StudyTask task, CancellationToken ct = default)"));
         }
