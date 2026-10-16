@@ -307,21 +307,22 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
         }
 
         /// <summary>
-        /// Pinned, unchanged from the four-call sequence: a links-only edit still creates a
-        /// <c>Content = null</c> note when T has none (the port's reference body upserts the note
-        /// unconditionally), so S3 on K(T) rejects it with <c>CONS.ScopeAcquired</c> although the user
-        /// changed no note. Reported to the owner, not changed (R-9).
+        /// Owner ruling 2026-10-16 (Q2): with no live note, a links-only edit (null content) creates no
+        /// note, so it does not acquire K(T) and S3 does not block it -- the user changed no note. The
+        /// note rows are compared before/after, since the S3 staging may leave a non-live row in scope.
         /// </summary>
         [Fact]
-        public async Task SaveEditor_LinksOnlyEdit_NoLiveNote_UnderS3_IsBlocked_BecauseTheNullNoteIsCreated()
+        public async Task SaveEditor_LinksOnlyEdit_NoLiveNote_UnderS3_IsPassed_NoNoteCreated()
         {
-            var (record, task) = await _fence.StageS3Async();
+            var (_, task) = await _fence.StageS3Async();
+            var notesBefore = (await NotesOfAsync(task.MaTask)).Select(n => (n.Id, n.IsDeleted, n.Content, n.Rev)).ToList();
+            var link = NewLink(task.MaTask);
 
-            var ex = await AssertBlockedAndUnchangedAsync(() =>
-                Repo.SaveEditorAsync(task.MaTask, null, new[] { NewLink(task.MaTask) }));
+            var decision = await Executor.SaveEditorAsync(task.MaTask, null, new[] { link });
 
-            AssertRule(ex, "CONS.ScopeAcquired", RoutingStage.ConstraintScope, record.ConflictId);
-            Assert.Empty(await LinksOfAsync(task.MaTask));
+            Assert.True(decision.RouteKnown && decision.FencePassed);
+            Assert.Equal(notesBefore, (await NotesOfAsync(task.MaTask)).Select(n => (n.Id, n.IsDeleted, n.Content, n.Rev)).ToList());
+            Assert.False(Assert.Single(await LinksOfAsync(task.MaTask)).IsDeleted);
         }
 
         [Fact]
