@@ -126,12 +126,23 @@ namespace SmartStudyPlanner.ViewModels
             if (taskCanXoa != null)
             {
                 if (System.Windows.MessageBox.Show($"Xóa bài tập '{taskCanXoa.TenTask}'?", "Xác nhận", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
-                {
-                    MonHocHienTai.DanhSachTask.Remove(taskCanXoa);
-                    await _hocKyRepository.LuuHocKyAsync(HocKyHienTai);
-                    HasData = MonHocHienTai.DanhSachTask.Count > 0;
-                }
+                    await XoaTaskDaXacNhanAsync(taskCanXoa);
             }
+        }
+
+        // XoaTask after the confirmation (internal: the MessageBox cannot run in a test).
+        internal async Task XoaTaskDaXacNhanAsync(StudyTask taskCanXoa)
+        {
+            MonHocHienTai.DanhSachTask.Remove(taskCanXoa);
+            await _hocKyRepository.LuuHocKyAsync(HocKyHienTai);
+            HasData = MonHocHienTai.DanhSachTask.Count > 0;
+
+            // Owner ruling Q-1 on review #114 (2026-10-16): deleting the task being edited leaves edit mode
+            // and clears the form, as a successful ThemTask does -- otherwise the next click saves the
+            // editor onto a deleted task. Only after the delete persisted: a failed or rejected delete
+            // leaves the task live, and the form keeps editing it.
+            if (_editingTaskId == taskCanXoa.MaTask)
+                RoiCheDoSuaVaDonForm();
         }
 
         [RelayCommand]
@@ -241,6 +252,13 @@ namespace SmartStudyPlanner.ViewModels
                 await _taskEditorRepository.SaveEditorAsync(taskId, NoteContent, StudyLinks.Select(vm => vm.ToModel()).ToList());
             }
 
+            RoiCheDoSuaVaDonForm();
+        }
+
+        // Leave edit mode and clear the form: the end of a successful ThemTask, and XoaTask of the task
+        // being edited.
+        private void RoiCheDoSuaVaDonForm()
+        {
             _taskDangSua = null;
             _editingTaskId = null;
             TextNutThem = "Thêm Deadline";
