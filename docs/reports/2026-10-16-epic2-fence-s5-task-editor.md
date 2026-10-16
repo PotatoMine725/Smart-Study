@@ -2,7 +2,7 @@
 
 | Field | Content |
 |---|---|
-| **Status** | **Done 2026-10-16, draft PR #113.** Phase 0 (§1–§5) delivered and ruled the same day ([rulings record](../specs/2026-10-16-fence-slice5-owner-rulings.md)); Phase 1 RED, Phase 2, Phase 3 below (§6–§9). Owner answers to the two PR questions (Q1, Q2) applied the same day (§11). |
+| **Status** | **Done 2026-10-16, draft PR #113.** Phase 0 (§1–§5) delivered and ruled the same day ([rulings record](../specs/2026-10-16-fence-slice5-owner-rulings.md)); Phase 1 RED, Phase 2, Phase 3 below (§6–§9). Owner answers to the two PR questions (Q1, Q2) applied the same day (§11). Independent review #114 and its owner rulings applied (§12). |
 | **Ticket** | `Prompt/2026-10-10-epic2-fence-slice5-task-editor.md` (plan §21 row 5, §24.2 card A5) |
 | **Worktree / branch** | `.claude/worktrees/fence-s5`, `feat-epic2-fence-s5-task-editor` (hyphenated), from `origin/dev` `2ec5d31` |
 | **Baseline** | build OK (96 pre-existing warnings, 0 errors) · **1118 passed / 0 failed / 1 skipped (1119)** · `dotnet test`, no rtk filter |
@@ -168,6 +168,13 @@ inner `SQLite Error 19: 'UNIQUE constraint failed: TaskNotes.MaTask'`. Still 1 n
 Reachability (INFERENCE): the only local note tombstone is `TaskCascadeHelper.cs:24`, which runs only when the
 owning task is tombstoned. `ClearNote` sets content to null and never deletes. So no local UI path produces
 "live task + dead note" today; only sync can. Not fixed (R-9). Phase 1 tests use live-note scenarios.
+
+> **Correction 2026-10-16 (review #114 F-3, owner ruling Q-1).** The conclusion above was **wrong**: D-1 **was**
+> UI-reachable before the Q-1 fix. The inference only covered a *live* task, and the editor never checks that its task
+> is live. Edit T (which has a note) → delete T (`XoaTask`, which left edit mode untouched) → click "Cập Nhật". The
+> editor save then finds no live note, plans a `Create`, and hits `UNIQUE constraint failed: TaskNotes.MaTask`. This
+> was REPRODUCED on base `2ec5d31` and head `0f09d45`. The Q-1 fix (`XoaTask` leaves edit mode, §12) closes that
+> path. Writing live rows under a tombstoned task is filed as **D-8**.
 Under the executor, D-1 stays a **non-fence** persistence failure: the fence passes (or blocks on K(T)), then
 SaveChanges throws, rollback, rethrow. Behaviour unchanged.
 
@@ -218,7 +225,7 @@ Recorded in [`docs/specs/2026-10-16-fence-slice5-owner-rulings.md`](../specs/202
 | `SQLite/Repositories/SqliteTaskEditorRepository.cs` | reads unchanged; the four mutations and `SaveEditorAsync` delegate to the executor |
 | `ViewModels/QuanLyTaskViewModel.cs` (`ThemTask` only) | rulings 2 and 2′; the editor writes go through one `SaveEditorAsync` call |
 
-**Tests:** 31 new tests in 5 new files. No existing test was edited.
+**Tests:** 31 new tests in 5 new files at Phase 2. No existing test was edited. *(Superseded counts: 38 tests after §11; 42 tests in 6 files after §12.)*
 
 | File | Covers |
 |---|---|
@@ -234,7 +241,7 @@ Recorded in [`docs/specs/2026-10-16-fence-slice5-owner-rulings.md`](../specs/202
 - The 1118 baseline tests were unchanged.
 - The create-mode test and the end-to-end writer test came after the create-mode ruling, before Phase 2 (commit `c9fcbcf`).
 
-**Phase 2 (OBSERVED):** build 0 errors, 96 warnings (same as the baseline); **1149 passed / 0 failed / 1 skipped (1150)**.
+**Phase 2 (OBSERVED):** build 0 errors, 96 warnings (same as the baseline); **1149 passed / 0 failed / 1 skipped (1150)**. *(Superseded by §11 and §12. The warning claim was wrong from the X-19 file on: it added xUnit2029, review #114 F-7. Fixed in §12.)*
 
 ## 8. Mutants (OBSERVED; each one applied, built and run against the full suite, then reverted with `git checkout`)
 
@@ -264,7 +271,7 @@ it was replaced by M7b. After every mutant the source tree was restored (`git st
   - `SaveEditorAsync` cannot reach a dead link, because its diff reads live links only.
   - `DeleteLinkAsync` still re-stamps a dead link. That's unchanged, and a test pins it so the D-7 fix flips it.
   - After Slice 5, `DeleteLinkAsync` has no production caller.
-- D-1 under the executor: `UNIQUE constraint failed: TaskNotes.MaTask`, and the whole request rolls back, including a link add in the same request. Still unfixed (R-9), and still unreachable from the UI (INFERENCE, Phase 0 §3e).
+- D-1 under the executor: `UNIQUE constraint failed: TaskNotes.MaTask`, and the whole request rolls back, including a link add in the same request. Still unfixed (R-9). ~~Still unreachable from the UI~~ **Corrected (§3e, §12):** it was UI-reachable via edit → delete → save until the Q-1 fix.
 - ~~A links-only edit with no live note still creates a `Content = null` note, so S3 on K(T) rejects it.~~ **Superseded by Q2 (§11):** `PlanSave` no longer creates that note; the pin was flipped.
 - The GitNexus index that `detect_changes` reads points at the owner's main checkout, not this worktree. The scope check is therefore the **branch diff** `origin/dev...HEAD` (§10).
 
@@ -282,8 +289,8 @@ it was replaced by M7b. After every mutant the source tree was restored (`git st
 ## 10. Scope check (branch diff, not `gitnexus_detect_changes`)
 
 `git diff --stat origin/dev...HEAD`:
-- **Production:** the six files in §7 (one additive port method; in the VM, `ThemTask` only), plus `Mutations/LocalSaveRejection.cs` for Q1 (§11) — seven, all inside the scope fence.
-- **Tests:** five new files.
+- **Production:** the six files in §7 (one additive port method; in the VM, `ThemTask` only), plus `Mutations/LocalSaveRejection.cs` for Q1 (§11) — seven, all inside the scope fence. After §12, still seven files plus `App.xaml.cs`, as ruled: the VM also changes `XoaTask` (Q-1) and `App.xaml.cs` gets a comment change only (F-6).
+- **Tests:** five new files; six after §12 (`ViewModels/DeleteEditedTaskTests.cs`).
 - **Docs:** this report, the new rulings record, pointers in the 2026-09-14 and 2026-10-03 records, plan §21 row 5 and its Status line, `docs/CHANGELOG.md`, `docs/active/README.md`.
 - **Not touched:** `Sync/**`, `AppDbContext`/`SyncStamper`, XAML, schema, packages, any existing test.
 
@@ -367,3 +374,82 @@ Recorded in the [rulings record](../specs/2026-10-16-fence-slice5-owner-rulings.
 - **The flipped S3 test compares note rows before/after rather than asserting none.** *Why:* the S3 staging leaves a
   non-live note row in K(T); "no rows" would fail for the seed, not for the change. It reads the executor's decision
   to assert `FencePassed` instead of assuming the link add passes under S3.
+
+## 12. Independent review #114 and its owner rulings (2026-10-16) — applied
+
+Review: [`docs/review/2026-10-16-t2.4-fence-s5-task-editor-independent-review.md`](../review/2026-10-16-t2.4-fence-s5-task-editor-independent-review.md) (PR #114), verdict
+`ship-with-followups`. The owner's rulings on its questions are recorded in the rulings record, §9.
+
+**Commits** (one follow-up set):
+
+| Commit | Change |
+|---|---|
+| `c8f968e` | **Q-1:** `XoaTask` deleting the task being edited leaves edit mode and clears the form. The reset is shared with `ThemTask`'s success path (`RoiCheDoSuaVaDonForm`) and runs only after the delete persisted. 3 tests, in new file `ViewModels/DeleteEditedTaskTests.cs`: edit → delete → save creates a new task with no UNIQUE error; deleting another task keeps edit mode; a rejected delete keeps edit mode |
+| `a3b70fa` | **F-1:** X-19 matches `AddAsync`/`AddRangeAsync`, `Set<synced entity>()` and calls split across lines (logical lines); each shape is in the self-check; `ExecuteDelete` is listed as a blind spot; xUnit2029 fixed |
+| `579906b` | **F-2:** the OD-5 guard resolves a local or field assigned from `Get/GetRequiredService/GetService<IStudyTaskRepository>()`; the shape is in the self-check |
+| `b75c196` | **F-4:** every concrete production `ITaskEditorRepository` must map `SaveEditorAsync` to its own method, not the non-atomic default |
+| `92254f2` | **F-6:** the `App.xaml.cs` rejection-handler comment now separates the semester path (restored) from the editor path (form kept). Comment only |
+
+**OBSERVED**
+- Suite **1160 passed / 0 failed / 1 skipped (1161)**. That is +4 over §11: 3 for Q-1 and 1 for F-4. The F-1/F-2 cases
+  are assertions added to existing self-checks. Existing tests changed: **none**. All edited test files are new in this PR.
+- Q-1 RED first: with `XoaTask`'s body extracted but no reset, the edit → delete → save test failed (`TextNutThem` still
+  "Cập Nhật") and the other two passed.
+- **Warnings (F-7).**
+  - `dotnet build --no-incremental` gives 0 errors and 95 warnings.
+  - Merge base `2ec5d31`, built in a fresh worktree under the same conditions, also gives 95, and the normalised
+    warning lists are identical. So xUnit2029 is gone and this PR adds no warning.
+  - The absolute count varies by build environment by about 1. The Phase 1–3 figure of "96" and the review's 96 → 97
+    were measured differently. The comparison that holds is "same set as the base".
+- **Mutants** (applied after committing, full suite, reverted; tree clean). Planted production shapes:
+
+| # | Mutant | Result |
+|---|---|---|
+| X19b | `await db.TaskNotes.AddAsync(..)` in a VM (green before F-1, review §7.1) | **RED** (1) |
+| X19c | `db.Set<TaskNote>().Add(..)` in a VM (green before F-1) | **RED** (1) |
+| X19d | `db.TaskReferenceLinks` ⏎ `.Remove(link)` in a VM (green before F-1) | **RED** (1) |
+| OD5b | `var repo9 = ServiceLocator.Get<IStudyTaskRepository>(); await repo9.DeleteAsync(..)` in `OutcomeMaturationService` (green before F-2) | **RED** (1) |
+| F4 | override signature drift (`IEnumerable`) ⇒ the DIM default runs | **RED** (7), including the new interface-map test |
+| Q1a | `XoaTask` never leaves edit mode | **RED** (1) |
+| Q1b | `XoaTask` leaves edit mode before the delete is saved | **RED** (1): the rejected-delete test |
+| Q1c | `XoaTask` leaves edit mode on any delete | **RED** (1): the delete-another-task test |
+
+**Filed, not fixed** (fence plan §19 R-9 amendment 2026-10-16):
+- **D-8:** the editor writes live rows under a tombstoned task. `SaveEditorAsync` on a dead task with no prior note
+  commits a live note and a live link. This is pre-existing, and the fence passes because no record exists.
+  - Intended fix: a "task must be live" business validation after the fence.
+  - INFERENCE: after Q-1 no in-VM path keeps the form on a deleted task. Only `QuanLyTaskViewModel` drives the editor.
+- **Rollback-token ticket (F-5):** both local executors roll back with the caller's token. A cancelled token then
+  replaces the original exception (the data stays intact). Intended fix: `RollbackAsync(CancellationToken.None)` in
+  `LocalTaskEditorExecutor` and `LocalSemesterSaveExecutor`. The semester side has not been probed. Neither path is
+  reachable in production, because no caller passes a token.
+
+**Not changed:** F-8, where `PlanSave` trusts the incoming link's `Id`/`MaTask` (UI-unreachable, LOW, no ruling). Also
+the review's §7.3 test-gap suggestions (a second "writer before fence" test, a wider intents ⇔ writes oracle) and the
+cast-receiver OD-5 shape, which is listed as a blind spot.
+
+## Decisions made (engineering, review #114 follow-ups)
+
+- **`XoaTask`'s post-confirmation body became an `internal` method.**
+  - *Why:* its `MessageBox` cannot run in a test, and the ruling asks for a VM-level test.
+  - *What for:* the tests drive the real delete through `LuuHocKyAsync` on SQLite, not a copy of the body. The review
+    probe had to inline the body instead.
+  - *Experience:* `InternalsVisibleTo` was already in place (`AssemblyInfo.cs`), so the extraction needed nothing else.
+- **The reset runs after the save and compares `_editingTaskId`.**
+  - *Why:* Q-1′ says to leave edit mode only after the command succeeds. A rejected delete restores the task (OD-7), so
+    the form should keep editing it. `_editingTaskId` covers the create-mode extension too, where `_taskDangSua` is the
+    saved task.
+  - *What for:* mutants Q1b and Q1c each have a test that turns RED.
+- **One reset helper shared with `ThemTask`.**
+  - *Why:* the ruling says "same reset as a successful ThemTask". One helper makes that literally true, so the two
+    resets cannot drift apart.
+- **X-19 logical lines rather than a whitespace-normalised file.**
+  - *Why:* joining only continuation lines keeps line numbers in the failure message, and keeps the comment-skip and
+    the FK pattern's line semantics.
+  - *Experience:* a chain with a comment line inside it still joins, and a self-check pins that.
+- **F-4 enumerates every concrete production implementation, not only the SQLite class.**
+  - *Why:* the review's remaining gap was a future implementation, such as a decorator.
+  - *What for:* a new implementation that forgets the override fails by name.
+- **Warning baseline re-measured instead of matching "96".**
+  - *Why:* the owner asked for "back to 96". The environment-independent fact is "identical to the merge base", and
+    that is what was measured. The count is reported as observed (95).

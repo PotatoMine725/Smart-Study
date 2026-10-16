@@ -3,11 +3,11 @@
 | | |
 |---|---|
 | **Date** | 2026-10-16 |
-| **Status** | E2: **CLOSED — E2, with a dated L1 amendment** · OD-7 on the editor path: **CLOSED — R-a, Q-1′ = whole command** · create mode: **CLOSED — extension of the R-a ruling** · X-19: **CLOSED — allowlist + scanner scope accepted** · D-7: **FILED — separate ticket** · Q1 editor rejection wording: **CLOSED** (§7) · Q2 links-only note: **CLOSED** (§8) |
-| **Closes** | The four Phase 0 questions of fence Slice 5 ([report](../reports/2026-10-16-epic2-fence-s5-task-editor.md) §4), plus the create-mode question raised after Phase 1 and the two PR #113 owner questions (§7–§8) |
+| **Status** | E2: **CLOSED — E2, with a dated L1 amendment** · OD-7 on the editor path: **CLOSED — R-a, Q-1′ = whole command** · create mode: **CLOSED — extension of the R-a ruling** · X-19: **CLOSED — allowlist + scanner scope accepted** · D-7: **FILED — separate ticket** · Q1 editor rejection wording: **CLOSED** (§7) · Q2 links-only note: **CLOSED** (§8) · review #114 Q-1/Q-2/Q-3: **CLOSED** (§9); D-8 and the rollback-token ticket **FILED** |
+| **Closes** | The four Phase 0 questions of fence Slice 5 ([report](../reports/2026-10-16-epic2-fence-s5-task-editor.md) §4), plus the create-mode question raised after Phase 1 and the two PR #113 owner questions (§7–§8), and the three questions of independent review #114 (§9) |
 | **Amends** | OD-2 / **L1** (2026-09-14 §2.3) — *additive only* (§1 below). OD-7 (2026-09-14 §2.4) and Q-1 (2026-10-03 §4) — *scope extension only* to the editor's form state (§2–§3) |
 | **Does not amend** | D1–D9 frozen record; SB-3, OD-4; D-5 V2; M-3/A-1 live-only predicate; D8-H fingerprint definition; `ConflictResolver`; any `Sync/**` semantics; any existing `ITaskEditorRepository` signature |
-| **Leaves open** | SB-2/OD-1 (Slice 6), OD-6, OD-8, G4; D-1 (R-9); D-6; D-7 (§5) |
+| **Leaves open** | SB-2/OD-1 (Slice 6), OD-6, OD-8, G4; D-1 (R-9); D-6; D-7 (§5); D-8 and the rollback-token ticket (§9) |
 | **Implemented by** | fence Slice 5, branch `feat-epic2-fence-s5-task-editor` (PR #113) |
 
 Labels: **[R]** owner ruling · **[D]** derived from a ruling, not itself a ruling.
@@ -99,3 +99,36 @@ Flip the pinning test in its own commit.
 **[D] Consequence.** A links-only `SaveEditorAsync` no longer acquires K(T), so S3 on K(T) no longer blocks it. The
 port's default-interface body (used only by test doubles) still upserts the note unconditionally: the ruling names
 `PlanSave` only, so the default and the SQLite override now differ on this case.
+
+## 9. Independent review #114 — owner rulings (2026-10-16)
+
+Review: [`docs/review/2026-10-16-t2.4-fence-s5-task-editor-independent-review.md`](../review/2026-10-16-t2.4-fence-s5-task-editor-independent-review.md) (PR #114).
+
+**[R] Q-1 (F-3).** `XoaTask` deleting the task currently being edited leaves edit mode and clears the form (the same
+reset as a successful `ThemTask`). Test: edit → delete → save does not hit `UNIQUE TaskNotes.MaTask`, and the next
+click creates a new task. File "editor writes live rows under a tombstoned task" as defect **D-8** (fence plan R-9;
+intended fix: a "task must be live" validation after the fence), not fixed here. Correct the report: D-1 **was**
+UI-reachable before this fix.
+
+**[D] Q-1 implementation.** This authorises a VM change outside `ThemTask`, in `XoaTask` only. The reset runs after the
+delete persisted, and only when the deleted task is the one being edited. A rejected or failed delete leaves the task
+live, so the form keeps editing it (Q-1′). `XoaTask`'s body after the confirmation `MessageBox` is an `internal`
+method, so tests can run it.
+
+**[R] Q-2 (F-1, F-2).** Fix in #113:
+- the X-19 scanner: `AddAsync`, `Set<T>().Add`, calls split across lines;
+- the OD-5 guard: a service-located instance.
+
+Each fix comes with a self-check proving the new case goes RED. The CHANGELOG states the X-19 scope and the listed blind
+spots. Also:
+- add a test that `SqliteTaskEditorRepository` overrides `SaveEditorAsync`;
+- fix the `App.xaml.cs:30` comment;
+- remove the new X-19 test warning.
+
+**[R] Q-3 (F-5).** The rollback-token fix (roll back with `CancellationToken.None`) is a separate follow-up ticket
+covering BOTH executors (`LocalTaskEditorExecutor`, `LocalSemesterSaveExecutor`). Recorded, not fixed here.
+
+**[D] Consistency.**
+- No frozen D1–D9 text, `Sync/**`, port signature or `LocalSemesterSaveExecutor` behaviour changed.
+- `App.xaml.cs` gets a comment change only.
+- N-10 still holds: `XoaTask` has no catch.
