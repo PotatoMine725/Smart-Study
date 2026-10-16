@@ -4,6 +4,12 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
+## 2026-10-16 — Epic 2 / T2.4 structural-conflict fence: **Slice 5 — task editor wired through the fence + X-19 write-path fence + OD-5 guard** — *behaviour change for editor saves that cross an unresolved conflict, and for `ThemTask` after a failed editor save; no schema change*
+
+| Area | Change | Verification |
+|---|---|---|
+| Fence Slice 5 (plan §21 row 5; owner rulings [2026-10-16](specs/2026-10-16-fence-slice5-owner-rulings.md)) | The four `ITaskEditorRepository` mutations go through `LocalTaskEditorExecutor`: own context + transaction, `TaskEditorPlanner` intents (plan §6, live-only), `FenceRouter` on the same context, gate, business validation, `TaskEditorWriter`, one save, commit; rollback on any failure. **E2:** a new additive port method `SaveEditorAsync` applies the whole note + links change as one request (dated L1 amendment); `ThemTask` calls it once. **R-a + Q-1′:** `ThemTask` leaves edit mode and clears the form only after the task save AND the editor save succeeded; on any failure it stays in edit mode with the form as typed (no catch, N-10 holds), and in create mode the saved task becomes the edited one, so the next click updates it — the duplicate task + `UNIQUE constraint failed: TaskReferenceLinks.Id` retry OBSERVED in Phase 0 is gone. **X-19** `SyncedEntityWritePathFenceTests`: synced-table writes and FK reassignments only in allowlisted files (`SqliteStudyLogRepository.cs` added by the owner). **OD-5** guard: no production call of `IStudyTaskRepository.Add/Update/DeleteAsync`. In production no conflict record can exist yet, so every editor save still passes ([report](reports/2026-10-16-epic2-fence-s5-task-editor.md)) | PR <PR> — **1149 passed / 1 skipped / 1150 total**, 0 failed (baseline 1118 / 1 / 1119); 31 new tests, no existing test changed; mutants RED (report §7). Filed, not fixed: **D-7** (re-deleting a dead link re-stamps `Rev`; unreachable through `SaveEditorAsync`). Reported: D-1 still a persistence failure under the executor; a links-only edit still creates a null-content note |
+
 ## 2026-10-10 — Defect **D-5** fixed (V2): a failed non-fence local save no longer leaves unsaved additions in memory — *bug fix; no schema change*
 
 | Area | Change | Verification |

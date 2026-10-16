@@ -1,8 +1,8 @@
-# Epic 2 / T2.4 — Fence Slice 5 (task editor): Phase 0 recon + proposal
+# Epic 2 / T2.4 — Fence Slice 5 (task editor): report
 
 | Field | Content |
 |---|---|
-| **Status** | Phase 0 delivered 2026-10-16 — **waiting for owner rulings** (§4). No production or test code written. |
+| **Status** | **Done 2026-10-16, draft PR <PR>.** Phase 0 (§1–§5) delivered and ruled the same day ([rulings record](../specs/2026-10-16-fence-slice5-owner-rulings.md)); Phase 1 RED, Phase 2, Phase 3 below (§6–§9). |
 | **Ticket** | `Prompt/2026-10-10-epic2-fence-slice5-task-editor.md` (plan §21 row 5, §24.2 card A5) |
 | **Worktree / branch** | `.claude/worktrees/fence-s5`, `feat-epic2-fence-s5-task-editor` (hyphenated), from `origin/dev` `2ec5d31` |
 | **Baseline** | build OK (96 pre-existing warnings, 0 errors) · **1118 passed / 0 failed / 1 skipped (1119)** · `dotnet test`, no rtk filter |
@@ -179,7 +179,7 @@ probe; `DeletedAtUtc` unchanged). UI-unreachable: `ThemTask` deletes only ids fr
 target. Plan: keep the writer's behaviour byte-identical (re-stamp preserved, no fix folded in, R-9) and file it as
 **D-7 candidate**. The owner can instead rule "dead target ⇒ no write".
 
-## 4. Owner decisions needed before Phase 1
+## 4. Owner decisions needed before Phase 1 (all ruled 2026-10-16 — see §6)
 
 1. **E-option**: E1 / E2 / (E3 out of scope) — §3b.
 2. **OD-7 on the editor path**: R-a / R-b / R-c — §3c. Plus **Q-1′** (task save vs whole command), and whether a
@@ -187,10 +187,105 @@ target. Plan: keep the writer's behaviour byte-identical (re-stamp preserved, no
 3. **X-19**: allowlist `SqliteStudyLogRepository.cs`? Accept the proposed scanner scope (§3d)?
 4. **D-7 candidate** (§3f): preserve the re-stamp (default) or rule "dead ⇒ no write"?
 
-## 5. Not run
+## 5. Not run (Phase 0)
 
 - No implementation, no Phase-1 tests, no mutants. Probes were throwaway files, deleted; the worktree is clean.
 - The GitNexus index was not refreshed (`npx gitnexus analyze` not run). Every impact result above was cross-checked by grep.
+
+## 6. Owner rulings applied (2026-10-16)
+
+| # | Ruling | Where it landed |
+|---|---|---|
+| 1 | **E2** + dated L1 amendment (additive port method, no signature change) | `ITaskEditorRepository.SaveEditorAsync`; `SqliteTaskEditorRepository` overrides it with `LocalTaskEditorExecutor.SaveEditorAsync` (one request, one decision, one transaction); `ThemTask` calls it once |
+| 2 | **R-a + Q-1′ = whole command** | `ThemTask` leaves edit mode and clears the form only after the task save and the editor save; no catch; no reload |
+| 2′ | **Create mode** (asked after Phase 1, option 1) | after a successful create-mode task save, `ThemTask` sets `_taskDangSua`/`_editingTaskId` to the saved task (button "Cập Nhật") before the editor call; reset on success |
+| 3 | **X-19** allowlist + scanner scope | `SyncedEntityWritePathFenceTests`; `SqliteStudyLogRepository.cs` allowlisted with its reason |
+| 4 | **D-7** filed | see §9 (which of the two outcomes) |
+
+Recorded in [`docs/specs/2026-10-16-fence-slice5-owner-rulings.md`](../specs/2026-10-16-fence-slice5-owner-rulings.md), with
+2026-10-16 pointers in the 2026-09-14 record (OD-2/L1, OD-7) and the 2026-10-03 record (Q-1, OD-5 "Implemented by").
+
+## 7. What changed
+
+**Production** (all inside the scope fence):
+
+| File | Change |
+|---|---|
+| `Repositories/ITaskEditorRepository.cs` | `+ SaveEditorAsync` as a **default interface method** whose body is the pre-Slice-5 four-call sequence. *Why a DIM:* three existing test doubles implement the port, and a plain member would not compile without editing them (a STOP condition). The doubles keep recording the four calls, so `EditModeSaveFailureTests` stays unchanged and green |
+| `SQLite/Mutations/TaskEditorPlanner.cs` (new) | pure planner: live rows + input → writer plan + `MutationRequest` (plan §6). Note: none → `Create` (+`MaTask` relation, K(T) Acquired); other content → `UpdateFields[Content]`; same content → nothing. Link: add → `Create` (+`MaTask`); edit → `UpdateFields[changed ⊆ Category, SortOrder, Title, Url]`; live delete → `Tombstone`; dead or missing → no intent. `UpdateLink` on a missing/dead target → validation error |
+| `SQLite/Mutations/TaskEditorWriter.cs` (new) | the four former mutation bodies; no decisions, no `SaveChanges` |
+| `SQLite/Mutations/LocalTaskEditorExecutor.cs` (new) | own context + `BeginTransactionAsync` → load → plan → `FenceRouter.EvaluateAsync` (same context/tx) → `ApplyIfPassed` (gate, then validation, then writer) → one save → commit; catch-all rollback + rethrow. Returns the decision (tests read P-CR-5's Passed entry); the repository discards it |
+| `SQLite/Repositories/SqliteTaskEditorRepository.cs` | reads unchanged; the four mutations and `SaveEditorAsync` delegate to the executor |
+| `ViewModels/QuanLyTaskViewModel.cs` (`ThemTask` only) | rulings 2 and 2′; the editor writes go through one `SaveEditorAsync` call |
+
+**Tests:** 31 new tests in 5 new files. No existing test was edited.
+
+| File | Covers |
+|---|---|
+| `Mutations/LocalTaskEditorFenceTests.cs` (11) | P-K-1, P-K-4, P-K-7, P-CR-5 (record ≠ subject ≠ contract), P-PT-5; each port method Blocked under a record that reaches it; E2 all-or-nothing ("3rd of 5"); the links-only null-note pin; S1-CR passed child edges |
+| `Mutations/LocalTaskEditorGateOrderTests.cs` (12) | N-6; RouteKnown = false; gate before validation; today's validation message; rollback on a mid-save PK collision; D-1 under the executor; end-to-end "writer never ran" on rejection; N-9 no-ops; D-7 ×2; intents ⇔ writes |
+| `Mutations/SyncedEntityWritePathFenceTests.cs` (3) | X-19, stale-allowlist check, non-vacuity self-check |
+| `Repositories/StudyTaskRepositoryMutationGuardTests.cs` (2) | OD-5 guard (receiver-type resolution) + self-check |
+| `ViewModels/EditorSaveFailureRetryTests.cs` (3) | ruling 2 failure retry, ruling 2 rejection retry, ruling 2′ create-mode retry |
+
+**Phase 1 RED (OBSERVED, commit `b012772`, skeletons throwing):**
+- 23 of the 29 tests that existed then failed, each for the intended reason: the old unfenced path, or a skeleton.
+- 6 were green by design: the two self-checks, the OD-5 guard (no caller exists), and three characterizations that hold both before and after (`NoOp_SameNoteSameLinks…`, `D1_…RolledBack`, `D7_SaveEditorAsync_NeverTouchesADeadLink`).
+- The 1118 baseline tests were unchanged.
+- The create-mode test and the end-to-end writer test came after the create-mode ruling, before Phase 2 (commit `c9fcbcf`).
+
+**Phase 2 (OBSERVED):** build 0 errors, 96 warnings (same as the baseline); **1149 passed / 0 failed / 1 skipped (1150)**.
+
+## 8. Mutants (OBSERVED; each one applied, built and run against the full suite, then reverted with `git checkout`)
+
+| # | Mutant | Result | Caught by (examples) |
+|---|---|---|---|
+| M1 | remove the fence call (vacuous pass) | **RED** (12) | PK1, PK4, PCR5, PPT5, the four per-method rejections, E2 all-or-nothing, the VM rejection retry |
+| M2a | writer before the gate inside `ApplyIfPassed` | **RED** (3) | `N6_BlockedDecision…`, `RouteUnknown…`, `RejectedRequest_WriterNeverRan…` |
+| M2b | writer before the fence call in `RunAsync` | **RED** (4) | `RejectedRequest_WriterNeverRan…` (the one test aimed at it); also today's `UpdateLinkAsync_*_Throws` |
+| M3a | drop the TaskNote `MaTask` edge from the note `Create` intent | **RED** (4) | PK1, the links-only null-note pin, intents ⇔ writes |
+| M3b | drop the link `MaTask` edge from the link `Create` intent | **RED** (4) | PCR5, PPT5, `AddLink_UnderUnsupportedRecord…`, intents ⇔ writes |
+| M3c | registry: `StudyTask→TaskReferenceLink` edge not fence-routable (`Sync/**`, reverted) | **RED** (29) | every link path (RouteKnown false), incl. existing H-1 router tests |
+| M4 | X-19 self-check: `db.StudyTasks.Remove(x)` added to a VM | **RED** (1) | `X19_SyncedWrites_OnlyInAllowlistedFiles` |
+| M5 | OD-5 guard self-check: `_studyTaskRepo?.DeleteAsync(..)` in `WeightOptimizerViewModel` | **RED** (1) | `OD5_NoProductionCodeCallsStudyTaskRepositoryMutations` |
+| M6 | `ThemTask` leaves edit mode before the editor save (pre-ruling order) | **RED** (3) | the three `EditorSaveFailureRetryTests` |
+| M7b | E2 override replaced by the non-atomic four-call sequence | **RED** (4) | E2 all-or-nothing, mid-save PK-collision rollback, both VM failure retries |
+| M8 | create mode not switched to editing the saved task | **RED** (1) | `ThemTask_CreateMode_EditorSaveFails…` |
+| M9 | business validation before the gate | **RED** (1) | `GateRunsBeforeBusinessValidation…` |
+
+M7 as first written (delete the override) did not compile — a test calls `SaveEditorAsync` on the concrete type — so
+it was replaced by M7b. After every mutant the source tree was restored (`git status` showed only docs).
+
+## 9. Findings: OBSERVED / INFERENCE / NOT RUN
+
+**OBSERVED**
+- E2 closes the Phase 0 duplicate-on-retry. With an editor failure injected inside SaveChanges, no note or link is written and the VM stays on T. The second click then writes exactly one task, its note and both links (`EditorSaveFailureRetryTests`).
+- D-7 (ruling 4 asked which outcome): **both**.
+  - `SaveEditorAsync` cannot reach a dead link, because its diff reads live links only.
+  - `DeleteLinkAsync` still re-stamps a dead link. That's unchanged, and a test pins it so the D-7 fix flips it.
+  - After Slice 5, `DeleteLinkAsync` has no production caller.
+- D-1 under the executor: `UNIQUE constraint failed: TaskNotes.MaTask`, and the whole request rolls back, including a link add in the same request. Still unfixed (R-9), and still unreachable from the UI (INFERENCE, Phase 0 §3e).
+- A links-only edit with no live note still creates a `Content = null` note. S3 on K(T) therefore rejects it with `CONS.ScopeAcquired`. This is pinned and byte-identical with the pre-Slice-5 sequence. **It's a candidate for an owner decision**; not changed.
+- The GitNexus index that `detect_changes` reads points at the owner's main checkout, not this worktree. The scope check is therefore the **branch diff** `origin/dev...HEAD` (§10).
+
+**INFERENCE (code read, not run)**
+- `LocalSaveRejection.UserMessage` ("đã được đưa về trạng thái đã lưu") isn't literally true for the editor form under R-a, which keeps the rejected edit. Not changed, because changing it would change `LocalSaveRejectionTests`.
+- Pre-existing and unchanged: `ThemTask` skips the editor save when the note is empty and there are no links. Removing the last link of a note-less task is therefore not persisted (R-9).
+- A retry after an editor failure fires `task_update` telemetry and the difficulty-label log again; both fire after every successful task save. `DifficultyLabelLoggingTests` doesn't retry, so it's unaffected.
+- GitNexus rates `ITaskEditorRepository`'s impact HIGH: 4 direct implementers, 3 of them test doubles. The DIM keeps all of them compiling unchanged.
+
+**NOT RUN**
+- No manual UI run of `ThemTask`. The owner accepted the brief "Cập Nhật" flash on a successful create, but I didn't observe it.
+- `npx gitnexus analyze` not run. The index is stale; the owner re-runs it after merge.
+- No production conflict record exists, so none of this was exercised against real sync data.
+
+## 10. Scope check (branch diff, not `gitnexus_detect_changes`)
+
+`git diff --stat origin/dev...HEAD`:
+- **Production:** the six files in §7 (one additive port method; in the VM, `ThemTask` only).
+- **Tests:** five new files.
+- **Docs:** this report, the new rulings record, pointers in the 2026-09-14 and 2026-10-03 records, plan §21 row 5 and its Status line, `docs/CHANGELOG.md`, `docs/active/README.md`.
+- **Not touched:** `Sync/**`, `AppDbContext`/`SyncStamper`, XAML, schema, packages, any existing test.
 
 ## Decisions made (engineering, Phase 0)
 
@@ -202,3 +297,27 @@ target. Plan: keep the writer's behaviour byte-identical (re-stamp preserved, no
 - **Dead-link delete ⇒ no intent, writer unchanged.** *Why:* M-3/A-1 says a re-stamp is not a domain effect, and
   R-9 says adjacent defects are not fixed in fence PRs. *What for:* both rules hold without an owner ruling. The
   ruling is only needed if the owner wants the re-stamp gone.
+
+## Decisions made (engineering, Phases 1–3)
+
+- **`SaveEditorAsync` as a default interface method.** *Why:* the owner ruled one additive method, and the STOP list
+  forbids editing existing tests. Three test doubles implement the port. *What for:* the doubles compile and keep
+  recording the four calls, so the pre-existing Q-1 retry test still proves its claim without changes. *Experience:*
+  the default body is non-atomic by design. Only `SqliteTaskEditorRepository` implements the port in production, and
+  it overrides the default; mutant M7 shows the tests notice when it doesn't.
+- **One planner and one executor loop for all five entry points.** *Why:* the four single methods and
+  `SaveEditorAsync` must agree on intents and writes; otherwise the fence judges something other than what is
+  written. *What for:* the intents ⇔ writes test covers every operation once. *Experience:* the planner fixes the new
+  note's id up front, which is what makes that test exact.
+- **The executor returns its `FenceDecision`.** *Why:* P-CR-5 must see a Passed entry on a call that succeeds. An
+  observer callback or a stored "last decision" would make a stateless executor stateful. *What for:* tests read
+  decisions without a test-only hook.
+- **An end-to-end "writer never ran" test on top of N-6.** *Why:* Slice 4's N-6 test catches a writer moved ahead of
+  the gate inside `ApplyIfPassed`. It doesn't catch a writer moved ahead of the fence call, because the rollback hides
+  that from the tables. *What for:* mutant M2b. *Experience:* recording tracker state at `Dispose` is enough; no new
+  shared test double was needed.
+- **The mid-save failure is injected on the link row, not on the first save.** *Why:* a failing note write would pass
+  under the old four-call sequence too, since nothing after it ran. *What for:* the rollback and retry tests tell old
+  from new behaviour, which is why they were RED in Phase 1.
+- **Create-mode behaviour was asked, not inferred.** *Why:* ruling 2 names edit mode only, and making a just-created
+  task the edited one is visible UI state. The owner ruled option 1 the same day.
