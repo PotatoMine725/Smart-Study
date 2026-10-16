@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Infrastructure.Persistence.Repositories;
 using SmartStudyPlanner.Infrastructure.Persistence.SQLite.Mutations;
 using SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories;
@@ -64,6 +65,49 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
 
             Assert.Equal(conflictId, Assert.Single(ex.Decision.Results).ConflictId);
             Assert.DoesNotContain(db.ChangeTracker.Entries(), e => Writes.Contains(e.State));
+        }
+
+        /// <summary>Records, when disposed, whether its tracker still held writes.</summary>
+        private sealed class PendingWritesAtDisposeDbContext : AppDbContext
+        {
+            public PendingWritesAtDisposeDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+            public bool? HadPendingWritesAtDispose { get; private set; }
+
+            public override void Dispose()
+            {
+                HadPendingWritesAtDispose ??= ChangeTracker.Entries().Any(e => Writes.Contains(e.State));
+                base.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// End to end through the executor, not only its gate step: a rejected request leaves NOTHING in
+        /// the tracker -- the writer ran neither before nor after the decision. (A writer moved ahead of
+        /// the fence call would be invisible in the tables, since the rollback undoes it.)
+        /// </summary>
+        [Fact]
+        public async Task RejectedRequest_WriterNeverRan_ContextHadNoPendingWrites()
+        {
+            var (_, task) = await _fence.StageS3Async();
+            PendingWritesAtDisposeDbContext? used = null;
+            Func<AppDbContext> factory = () =>
+            {
+                using var probe = Fx.NewContext();
+                var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(probe.Database.GetDbConnection()).Options;
+                used = new PendingWritesAtDisposeDbContext(options)
+                {
+                    Clock = () => SyncApplyFixture.LocalNow,
+                    DeviceIdProvider = () => SyncApplyFixture.LocalDevice,
+                };
+                return used;
+            };
+
+            await Assert.ThrowsAsync<MutationRejectedException>(() =>
+                new SqliteTaskEditorRepository(factory).SaveEditorAsync(task.MaTask, "x", new[] { NewLink(task.MaTask, "added") }));
+
+            Assert.NotNull(used);
+            Assert.False(used!.HadPendingWritesAtDispose);
         }
 
         [Fact]

@@ -158,6 +158,54 @@ namespace SmartStudyPlanner.Tests.ViewModels
         }
 
         /// <summary>
+        /// Owner ruling 2026-10-16, extension of ruling 2 to create mode: once the new task's save
+        /// succeeded, <c>ThemTask</c> treats that task as the one being edited until the whole command
+        /// succeeds, so a failed editor save is retried against it instead of creating a second task.
+        /// (A REJECTION in create mode needs a record on a brand-new task id's scope — not reachable;
+        /// the failure path covers the same VM state.)
+        /// </summary>
+        [Fact]
+        public async Task ThemTask_CreateMode_EditorSaveFails_SwitchesToEditingTheNewTask_NextClickUpdatesIt_NoDuplicate()
+        {
+            var hocKyRepo = new SqliteHocKyRepository(_factory);
+            var (hocKy, monHoc, original, _) = await SeedAndReloadAsync(hocKyRepo);
+            var vm = TaskVm(hocKy, monHoc, hocKyRepo, new SqliteTaskEditorRepository(EditorContext));
+            vm.TenTask = "Bai moi";
+            vm.HanChot = DateTime.Today.AddDays(2);
+            vm.DoKho = "1";
+            vm.NoteContent = "ghi chu moi";
+            vm.NewLinkUrl = "https://example.com/moi";
+            vm.AddLinkCommand.Execute(null);
+            var linkId = Assert.Single(vm.StudyLinks).Id;
+
+            _failSaveAddingLinkId = linkId;
+            await Assert.ThrowsAsync<InvalidOperationException>(() => vm.ThemTaskCommand.ExecuteAsync(null));
+
+            var created = Assert.Single(await LiveTasksAsync(monHoc.MaMonHoc), t => t.MaTask != original.MaTask);
+            Assert.Equal("Bai moi", created.TenTask);                               // the task save committed
+            Assert.Equal("Cập Nhật", vm.TextNutThem);                               // now editing the new task
+            Assert.Equal("Bai moi", vm.TenTask);
+            Assert.Equal("ghi chu moi", vm.NoteContent);
+            Assert.Single(vm.StudyLinks);
+            var (notes, links) = await EditorRowsAsync();
+            Assert.Empty(notes);
+            Assert.DoesNotContain(links, l => l.Id == linkId);
+
+            await vm.ThemTaskCommand.ExecuteAsync(null);                           // the user clicks again
+
+            var live = await LiveTasksAsync(monHoc.MaMonHoc);
+            Assert.Equal(2, live.Count);                                            // original + ONE new task
+            Assert.Equal(created.MaTask, Assert.Single(live, t => t.TenTask == "Bai moi").MaTask);
+            Assert.Single(monHoc.DanhSachTask, t => t.TenTask == "Bai moi");
+            (notes, links) = await EditorRowsAsync();
+            Assert.Equal("ghi chu moi", Assert.Single(notes, n => n.MaTask == created.MaTask).Content);
+            Assert.Equal(created.MaTask, links.Single(l => l.Id == linkId).MaTask);
+            Assert.Equal("Thêm Deadline", vm.TextNutThem);
+            Assert.Equal(string.Empty, vm.TenTask);
+            Assert.Empty(vm.StudyLinks);
+        }
+
+        /// <summary>
         /// The rejection variant (S2 on K(T): the task rename passes the fence, the note edit is the held
         /// occupant's content — SB-3 Blocked). R-a: the VM stays in edit mode with the rejected edit still
         /// in the form; the next click re-submits it to the same task and is rejected again while the
