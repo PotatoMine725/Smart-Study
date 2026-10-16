@@ -26,8 +26,10 @@ namespace SmartStudyPlanner
                 // Epic 2 / T2.4 fence Slice 4, OD-7 surfacing: a save the structural-conflict fence
                 // rejected arrives here like any save exception (AsyncRelayCommand rethrows on the
                 // Dispatcher). It gets its own message listing the blocking rule ids instead of the
-                // generic "may not have been saved". Recognised, not caught: nothing is retried and the
-                // executor already restored the in-memory graph before throwing.
+                // generic "may not have been saved". Recognised, not caught: nothing is retried. The
+                // semester-save executor already restored the in-memory graph before throwing (OD-7); the
+                // task editor restores nothing -- its form keeps the input (R-a, fence Slice 5), and its
+                // rejection is marked so the message says so (LocalSaveRejection.FormKeptDataKey).
                 if (LocalSaveRejection.TryFind(args.Exception, out var rejected))
                 {
                     CrashLogger.Log("MutationRejected", rejected);

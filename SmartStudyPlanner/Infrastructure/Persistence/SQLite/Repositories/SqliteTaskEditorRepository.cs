@@ -6,17 +6,23 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using SmartStudyPlanner.Data;
 using SmartStudyPlanner.Infrastructure.Persistence.Repositories;
+using SmartStudyPlanner.Infrastructure.Persistence.SQLite.Mutations;
 using SmartStudyPlanner.Models;
 
 namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
 {
+    // Epic 2 / T2.4 fence Slice 5: reads stay here; every mutation is delegated to
+    // LocalTaskEditorExecutor, which routes it through the structural conflict fence (T-11: the
+    // repository is not the semantic owner of a write).
     public sealed class SqliteTaskEditorRepository : ITaskEditorRepository
     {
         private readonly Func<AppDbContext> _ctxFactory;
+        private readonly LocalTaskEditorExecutor _executor;
 
         public SqliteTaskEditorRepository(Func<AppDbContext> ctxFactory)
         {
             _ctxFactory = ctxFactory;
+            _executor = new LocalTaskEditorExecutor(ctxFactory);
         }
 
         public async Task<TaskEditorBundle?> GetBundleAsync(Guid taskId, CancellationToken ct = default)
@@ -32,18 +38,8 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
             return new TaskEditorBundle { Task = task, Note = note, Links = links };
         }
 
-        public async Task UpsertNoteAsync(Guid taskId, string? content, CancellationToken ct = default)
-        {
-            using var db = _ctxFactory();
-            var note = await db.TaskNotes.FirstOrDefaultAsync(n => n.MaTask == taskId && !n.IsDeleted, ct);
-            if (note is null)
-                db.TaskNotes.Add(new TaskNote { MaTask = taskId, Content = content });
-            else
-            {
-                note.Content = content;
-            }
-            await db.SaveChangesAsync(ct);
-        }
+        public Task UpsertNoteAsync(Guid taskId, string? content, CancellationToken ct = default) =>
+            _executor.UpsertNoteAsync(taskId, content, ct);
 
         public async Task<List<TaskReferenceLink>> GetLinksAsync(Guid taskId, CancellationToken ct = default)
         {
@@ -54,12 +50,8 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
                 .ToListAsync(ct);
         }
 
-        public async Task AddLinkAsync(TaskReferenceLink link, CancellationToken ct = default)
-        {
-            using var db = _ctxFactory();
-            db.TaskReferenceLinks.Add(link);
-            await db.SaveChangesAsync(ct);
-        }
+        public Task AddLinkAsync(TaskReferenceLink link, CancellationToken ct = default) =>
+            _executor.AddLinkAsync(link, ct);
 
         /// <summary>
         /// Applies an edit to an existing link. The caller hands us a *detached* POCO (the editor VM
@@ -67,37 +59,17 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Repositories
         /// fields; its Id/MaTask/Rev/CreatedAtUtc/sync metadata are not authoritative. Loading the
         /// tracked row and copying just the editable fields keeps identity (Id, MaTask), creation
         /// provenance (CreatedAtUtc) and the Rev watermark intact, and lets SaveChanges stamp this as
-        /// the ordinary local modification it is.
+        /// the ordinary local modification it is. A missing or tombstoned target is rejected, not a
+        /// no-op, so the bug surfaces at the call site.
         /// </summary>
-        public async Task UpdateLinkAsync(TaskReferenceLink link, CancellationToken ct = default)
-        {
-            using var db = _ctxFactory();
-            // Raw DbSet + explicit !IsDeleted: there is no global query filter, and a tombstoned row
-            // is not an update target (resurrection is out of scope) — reject instead of no-op so the
-            // bug surfaces at the call site.
-            var tracked = await db.TaskReferenceLinks
-                .FirstOrDefaultAsync(l => l.Id == link.Id && !l.IsDeleted, ct);
-            if (tracked is null)
-                throw new InvalidOperationException(
-                    $"TaskReferenceLink {link.Id} không tồn tại (hoặc đã bị xoá) — không thể cập nhật.");
+        public Task UpdateLinkAsync(TaskReferenceLink link, CancellationToken ct = default) =>
+            _executor.UpdateLinkAsync(link, ct);
 
-            tracked.Title = link.Title;
-            tracked.Url = link.Url;
-            tracked.Category = link.Category;
-            tracked.SortOrder = link.SortOrder;
+        public Task DeleteLinkAsync(Guid linkId, CancellationToken ct = default) =>
+            _executor.DeleteLinkAsync(linkId, ct);
 
-            await db.SaveChangesAsync(ct);
-        }
-
-        public async Task DeleteLinkAsync(Guid linkId, CancellationToken ct = default)
-        {
-            using var db = _ctxFactory();
-            var link = await db.TaskReferenceLinks.FindAsync(new object[] { linkId }, ct);
-            if (link is not null)
-            {
-                db.TaskReferenceLinks.Remove(link);
-                await db.SaveChangesAsync(ct);
-            }
-        }
+        /// <summary>E2 (owner ruling 2026-10-16): the whole editor change in one fenced transaction.</summary>
+        public Task SaveEditorAsync(Guid taskId, string? noteContent, IReadOnlyList<TaskReferenceLink> links, CancellationToken ct = default) =>
+            _executor.SaveEditorAsync(taskId, noteContent, links, ct);
     }
 }
