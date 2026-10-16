@@ -2,7 +2,7 @@
 
 | Field | Content |
 |---|---|
-| **Status** | **Done 2026-10-16, draft PR <PR>.** Phase 0 (§1–§5) delivered and ruled the same day ([rulings record](../specs/2026-10-16-fence-slice5-owner-rulings.md)); Phase 1 RED, Phase 2, Phase 3 below (§6–§9). |
+| **Status** | **Done 2026-10-16, draft PR #113.** Phase 0 (§1–§5) delivered and ruled the same day ([rulings record](../specs/2026-10-16-fence-slice5-owner-rulings.md)); Phase 1 RED, Phase 2, Phase 3 below (§6–§9). |
 | **Ticket** | `Prompt/2026-10-10-epic2-fence-slice5-task-editor.md` (plan §21 row 5, §24.2 card A5) |
 | **Worktree / branch** | `.claude/worktrees/fence-s5`, `feat-epic2-fence-s5-task-editor` (hyphenated), from `origin/dev` `2ec5d31` |
 | **Baseline** | build OK (96 pre-existing warnings, 0 errors) · **1118 passed / 0 failed / 1 skipped (1119)** · `dotnet test`, no rtk filter |

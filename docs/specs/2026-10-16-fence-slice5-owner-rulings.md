@@ -8,7 +8,7 @@
 | **Amends** | OD-2 / **L1** (2026-09-14 §2.3) — *additive only* (§1 below). OD-7 (2026-09-14 §2.4) and Q-1 (2026-10-03 §4) — *scope extension only* to the editor's form state (§2–§3) |
 | **Does not amend** | D1–D9 frozen record; SB-3, OD-4; D-5 V2; M-3/A-1 live-only predicate; D8-H fingerprint definition; `ConflictResolver`; any `Sync/**` semantics; any existing `ITaskEditorRepository` signature |
 | **Leaves open** | SB-2/OD-1 (Slice 6), OD-6, OD-8, G4; D-1 (R-9); D-6; D-7 (§5) |
-| **Implemented by** | fence Slice 5, branch `feat-epic2-fence-s5-task-editor` (PR <PR>) |
+| **Implemented by** | fence Slice 5, branch `feat-epic2-fence-s5-task-editor` (PR #113) |
 
 Labels: **[R]** owner ruling · **[D]** derived from a ruling, not itself a ruling.
 
