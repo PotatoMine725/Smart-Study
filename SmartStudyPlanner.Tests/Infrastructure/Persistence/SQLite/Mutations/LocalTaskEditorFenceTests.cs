@@ -325,6 +325,58 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
             Assert.False(Assert.Single(await LinksOfAsync(task.MaTask)).IsDeleted);
         }
 
+        // ------------------------------------------------------------------ Q1: the rejection's wording
+
+        private const string FormKeptLine = "Nội dung bạn vừa nhập vẫn còn trong biểu mẫu.";
+        private const string RestoredLine = "đã được đưa về trạng thái đã lưu";
+
+        /// <summary>
+        /// Owner ruling 2026-10-16 (Q1): the editor restores nothing (R-a), so its rejection says nothing
+        /// was saved and the input is still in the form -- never "restored".
+        /// </summary>
+        [Fact]
+        public async Task EditorRejection_SaysTheInputIsStillInTheForm_NotRestored()
+        {
+            var (_, task) = await _fence.StageS3Async();
+
+            var ex = await Assert.ThrowsAsync<MutationRejectedException>(() =>
+                Repo.SaveEditorAsync(task.MaTask, "x", Array.Empty<TaskReferenceLink>()));
+            var text = LocalSaveRejection.UserMessage(ex);
+
+            Assert.Contains("Không có thay đổi nào được lưu", text, StringComparison.Ordinal);
+            Assert.Contains(FormKeptLine, text, StringComparison.Ordinal);
+            Assert.DoesNotContain(RestoredLine, text, StringComparison.Ordinal);
+        }
+
+        /// <summary>The marker is on the executor's one gate, so a RouteUnknown rejection carries it too.</summary>
+        [Fact]
+        public async Task EditorRejection_RouteUnknown_IsMarkedFormKept()
+        {
+            var (_, _, task) = await Fx.SeedTreeAsync();
+            using var db = Fx.NewContext();
+
+            var ex = Assert.Throws<MutationRejectedException>(() => LocalTaskEditorExecutor.ApplyIfPassed(db,
+                TaskEditorPlanner.PlanUpsertNote(task.MaTask, null, "x"), new FenceDecision(Array.Empty<PolicyResult>(), RouteKnown: false)));
+
+            Assert.True(LocalSaveRejection.IsFormKept(ex));
+            Assert.Contains(FormKeptLine, LocalSaveRejection.UserMessage(ex), StringComparison.Ordinal);
+        }
+
+        /// <summary>The semester save, where OD-7's restore ran, keeps the "restored" wording.</summary>
+        [Fact]
+        public async Task SemesterRejection_KeepsTheRestoredWording()
+        {
+            var (_, hocKy, _, _, _, task) = await _fence.StageS1CrAsync();
+            var save = new LocalSaveDriver(Fx);
+            var graph = await save.LoadAsync(hocKy.MaHocKy);
+            LocalSaveDriver.RemoveTask(graph, task.MaTask);
+
+            var text = LocalSaveRejection.UserMessage(await save.SaveExpectingRejectionAsync(graph));
+
+            Assert.Contains(RestoredLine, text, StringComparison.Ordinal);
+            Assert.DoesNotContain(FormKeptLine, text, StringComparison.Ordinal);
+        }
+
         // ------------------------------------------------------------------ Q2: where the note is (not) created
 
         [Theory]

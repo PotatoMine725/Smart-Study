@@ -87,7 +87,12 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Mutations
         internal static void ApplyIfPassed(AppDbContext db, TaskEditorPlan plan, FenceDecision decision)
         {
             if (!(decision.RouteKnown && decision.FencePassed))
-                throw new MutationRejectedException(decision);
+            {
+                // Nothing to restore here (R-a): the message tells the user the form still holds the input.
+                var rejection = new MutationRejectedException(decision);
+                rejection.Data[LocalSaveRejection.FormKeptDataKey] = true;
+                throw rejection;
+            }
 
             if (plan.ValidationError is { } message)
                 throw new InvalidOperationException(message);
