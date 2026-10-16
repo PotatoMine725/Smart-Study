@@ -2,7 +2,7 @@
 
 | Field | Content |
 |---|---|
-| **Status** | **Done 2026-10-16, draft PR #113.** Phase 0 (§1–§5) delivered and ruled the same day ([rulings record](../specs/2026-10-16-fence-slice5-owner-rulings.md)); Phase 1 RED, Phase 2, Phase 3 below (§6–§9). |
+| **Status** | **Done 2026-10-16, draft PR #113.** Phase 0 (§1–§5) delivered and ruled the same day ([rulings record](../specs/2026-10-16-fence-slice5-owner-rulings.md)); Phase 1 RED, Phase 2, Phase 3 below (§6–§9). Owner answers to the two PR questions (Q1, Q2) applied the same day (§11). |
 | **Ticket** | `Prompt/2026-10-10-epic2-fence-slice5-task-editor.md` (plan §21 row 5, §24.2 card A5) |
 | **Worktree / branch** | `.claude/worktrees/fence-s5`, `feat-epic2-fence-s5-task-editor` (hyphenated), from `origin/dev` `2ec5d31` |
 | **Baseline** | build OK (96 pre-existing warnings, 0 errors) · **1118 passed / 0 failed / 1 skipped (1119)** · `dotnet test`, no rtk filter |
@@ -265,11 +265,11 @@ it was replaced by M7b. After every mutant the source tree was restored (`git st
   - `DeleteLinkAsync` still re-stamps a dead link. That's unchanged, and a test pins it so the D-7 fix flips it.
   - After Slice 5, `DeleteLinkAsync` has no production caller.
 - D-1 under the executor: `UNIQUE constraint failed: TaskNotes.MaTask`, and the whole request rolls back, including a link add in the same request. Still unfixed (R-9), and still unreachable from the UI (INFERENCE, Phase 0 §3e).
-- A links-only edit with no live note still creates a `Content = null` note. S3 on K(T) therefore rejects it with `CONS.ScopeAcquired`. This is pinned and byte-identical with the pre-Slice-5 sequence. **It's a candidate for an owner decision**; not changed.
+- ~~A links-only edit with no live note still creates a `Content = null` note, so S3 on K(T) rejects it.~~ **Superseded by Q2 (§11):** `PlanSave` no longer creates that note; the pin was flipped.
 - The GitNexus index that `detect_changes` reads points at the owner's main checkout, not this worktree. The scope check is therefore the **branch diff** `origin/dev...HEAD` (§10).
 
 **INFERENCE (code read, not run)**
-- `LocalSaveRejection.UserMessage` ("đã được đưa về trạng thái đã lưu") isn't literally true for the editor form under R-a, which keeps the rejected edit. Not changed, because changing it would change `LocalSaveRejectionTests`.
+- ~~`LocalSaveRejection.UserMessage` ("đã được đưa về trạng thái đã lưu") isn't literally true for the editor form under R-a.~~ **Superseded by Q1 (§11):** the editor's rejection now has its own wording.
 - Pre-existing and unchanged: `ThemTask` skips the editor save when the note is empty and there are no links. Removing the last link of a note-less task is therefore not persisted (R-9).
 - A retry after an editor failure fires `task_update` telemetry and the difficulty-label log again; both fire after every successful task save. `DifficultyLabelLoggingTests` doesn't retry, so it's unaffected.
 - GitNexus rates `ITaskEditorRepository`'s impact HIGH: 4 direct implementers, 3 of them test doubles. The DIM keeps all of them compiling unchanged.
@@ -321,3 +321,49 @@ it was replaced by M7b. After every mutant the source tree was restored (`git st
   from new behaviour, which is why they were RED in Phase 1.
 - **Create-mode behaviour was asked, not inferred.** *Why:* ruling 2 names edit mode only, and making a just-created
   task the edited one is visible UI state. The owner ruled option 1 the same day.
+
+## 11. Owner answers Q1 / Q2 (2026-10-16, after the PR) — applied
+
+Recorded in the [rulings record](../specs/2026-10-16-fence-slice5-owner-rulings.md) §7–§8.
+
+**Commits**
+- `1449a62` test: flip the links-only pin to Q2 — **RED by design** (its own commit, as ruled; fails with
+  `CONS.ScopeAcquired` until the next commit).
+- `7dbcbd0` feat: Q2 in `PlanSave`, plus 4 tests (null/empty content ⇒ no note intent or row; live note edited to
+  empty stays `UpdateFields`; `UpsertNoteAsync(null)` still creates the null note).
+- `6db70ac` feat: Q1, plus 3 tests (editor rejection via `SaveEditorAsync` and via RouteUnknown carries the
+  form-kept wording and not "restored"; a real semester rejection keeps "restored" and not the form-kept line).
+
+**OBSERVED**
+- Build 0 errors / 96 warnings (full rebuild, same as baseline). Suite **1156 passed / 0 failed / 1 skipped (1157)**.
+  New tests on this branch: 38 (31 + 7). Existing tests changed: **none**. `LocalSaveRejectionTests` was not edited:
+  its "restored" assertion uses an unmarked rejection, which keeps that wording.
+- After `7dbcbd0`, no pre-existing test went red (STOP check for Q2).
+- Mutants (applied after committing, run against the full suite, reverted; tree clean afterwards):
+
+| # | Mutant | Result |
+|---|---|---|
+| M10 | drop the FormKept marker on the editor's rejection | **RED** (2) |
+| M11 | `PlanSave` creates the note unconditionally (pre-Q2) | **RED** (3) |
+| M12 | `PlanSave` condition content-only (loses "live note edited to empty") | **RED** (1) |
+| M13 | Q2 skip moved into the shared `Builder.Note` (reaches `UpsertNoteAsync`) | **RED** (1) |
+| M14 | `UserMessage` ignores the marker | **RED** (2) |
+
+**INFERENCE / not changed**
+- The `App.DispatcherUnhandledException` comment ("the executor already restored the in-memory graph before
+  throwing") is now inaccurate for the editor path. `App.xaml.cs` is outside the Slice 5 scope fence; not edited.
+- The port's default-interface body (test doubles only) still upserts the note unconditionally; the SQLite override
+  differs on the no-live-note, empty-content case (ruled "PlanSave only").
+- A future rejection producer that does not set the marker gets the "restored" wording.
+
+## Decisions made (engineering, Q1 / Q2)
+
+- **The marker sits on the editor's rejection, not on the semester's.** *Why:* the semester executor's behaviour is
+  out of scope, and `MutationRejectedException` (`Sync/Fence`) must not change. `Exception.Data` is the channel Slice 4
+  already uses for restore/repair failures. *What for:* the semester wording and its existing test stay untouched.
+  *Experience:* the cost is the default — an unmarked future producer reads as "restored"; recorded above.
+- **The Q2 condition is in `PlanSave`, not in the shared `Builder.Note`.** *Why:* the ruling keeps `UpsertNoteAsync`
+  unchanged, and both share `Builder.Note`. *What for:* M13 shows the `UpsertNoteAsync(null)` test catches the move.
+- **The flipped S3 test compares note rows before/after rather than asserting none.** *Why:* the S3 staging leaves a
+  non-live note row in K(T); "no rows" would fail for the seed, not for the change. It reads the executor's decision
+  to assert `FencePassed` instead of assuming the link add passes under S3.
