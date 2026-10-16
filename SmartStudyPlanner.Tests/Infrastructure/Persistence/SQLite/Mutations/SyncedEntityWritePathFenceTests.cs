@@ -12,27 +12,34 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
     /// tables, and FK reassignments, happen only in the allowlisted writer files. A mutation added
     /// anywhere else (a VM, a new repository) would bypass the fence without anything going red.
     /// <para>
-    /// What is matched, per production line:
+    /// What is matched, per LOGICAL production line (a line plus the continuation lines that start with
+    /// <c>.</c>/<c>?.</c> or follow a line ending in <c>.</c>, so a call split across lines is one line;
+    /// whole-line <c>//</c> comments are skipped):
     /// <list type="bullet">
     /// <item>a DbSet-typed write — <c>.HocKys/.MonHocs/.StudyTasks/.StudyLogs/.TaskNotes/.TaskReferenceLinks</c>
-    /// then <c>.Add/AddRange/Update/UpdateRange/Remove/RemoveRange/Attach/AttachRange(</c>;</item>
-    /// <item>the generic form on an <c>AppDbContext</c> receiver named <c>db</c>, <c>ctx</c>, <c>context</c>
-    /// or <c>.Db</c> (the two sync sites write that way);</item>
+    /// or <c>Set&lt;HocKy|MonHoc|StudyTask|StudyLog|TaskNote|TaskReferenceLink&gt;()</c>, then
+    /// <c>.Add/AddAsync/AddRange/AddRangeAsync/Update/UpdateRange/Remove/RemoveRange/Attach/AttachRange(</c>;</item>
+    /// <item>the generic form (same methods) on an <c>AppDbContext</c> receiver named <c>db</c>, <c>ctx</c>,
+    /// <c>context</c> or <c>.Db</c> (the two sync sites write that way);</item>
     /// <item>a member-access FK assignment <c>x.MaMonHoc =</c> / <c>x.MaHocKy =</c> (not <c>==</c>, not an
     /// object initializer: the model constructors set those PKs themselves).</item>
     /// </list>
-    /// Known blind spots, reported rather than scanned (Slice 5 report §3d): raw SQL
+    /// Known blind spots, reported rather than scanned (Slice 5 report §3d, review #114 F-1): raw SQL
     /// (<c>ConflictStaging</c>'s M5 delete — fenced by <c>SyncApplyAuditFenceTests</c> — and
     /// <c>AppStartup</c>'s <c>UPDATE HocKys SET IsSeeded</c>), <c>Entry(..).State =</c>
     /// (<c>SyncStamper</c>, <c>SyncBaseSnapshotStore</c>), generic writes on receivers with other names,
-    /// <c>ExecuteUpdate</c>, and <c>.MaTask =</c> (the editor's item VM assigns a property of that name).
+    /// <c>ExecuteUpdate</c>/<c>ExecuteDelete</c>, a DbSet or context held in a local first, and
+    /// <c>.MaTask =</c> (the editor's item VM assigns a property of that name).
     /// </para>
     /// </summary>
     public class SyncedEntityWritePathFenceTests
     {
+        private const string WriteMethod = @"\s*\??\.\s*(Add|AddAsync|AddRange|AddRangeAsync|Update|UpdateRange|Remove|RemoveRange|Attach|AttachRange)\s*\(";
+
         private static readonly Regex SyncedWrite = new(
-            @"\.(HocKys|MonHocs|StudyTasks|StudyLogs|TaskNotes|TaskReferenceLinks)\s*\.\s*(Add|AddRange|Update|UpdateRange|Remove|RemoveRange|Attach|AttachRange)\s*\(" +
-            @"|(\bdb|\bctx|\bcontext|\.Db)\s*\.\s*(Add|AddRange|Update|UpdateRange|Remove|RemoveRange|Attach|AttachRange)\s*\(" +
+            @"(\.(HocKys|MonHocs|StudyTasks|StudyLogs|TaskNotes|TaskReferenceLinks)" +
+            @"|\bSet\s*<\s*(HocKy|MonHoc|StudyTask|StudyLog|TaskNote|TaskReferenceLink)\s*>\s*\(\s*\))" + WriteMethod +
+            @"|(\bdb|\bctx|\bcontext|\.Db)" + WriteMethod +
             @"|\.\s*(MaMonHoc|MaHocKy)\s*=(?![=>])",
             RegexOptions.Compiled);
 
@@ -68,7 +75,7 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
         {
             var filesWithHits = ScanProduction().Select(h => h.RelativePath).ToHashSet(StringComparer.Ordinal);
 
-            Assert.Empty(Allowlist.Keys.Where(f => !filesWithHits.Contains(f)));
+            Assert.DoesNotContain(Allowlist.Keys, f => !filesWithHits.Contains(f));
         }
 
         /// <summary>
@@ -96,12 +103,24 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
             Assert.Matches(SyncedWrite, "db.Attach(task);");
             Assert.Matches(SyncedWrite, "task.MaMonHoc = other;");
             Assert.Matches(SyncedWrite, "mon.MaHocKy =hk;");
+            // Review #114 F-1: async, Set<T>() and split calls.
+            Assert.Matches(SyncedWrite, "await db.TaskNotes.AddAsync(new TaskNote());");
+            Assert.Matches(SyncedWrite, "await db.StudyTasks.AddRangeAsync(tasks, ct);");
+            Assert.Matches(SyncedWrite, "db.Set<TaskNote>().Add(new TaskNote());");
+            Assert.Matches(SyncedWrite, "_db.Set< StudyTask >( ).Remove(t);");
+            Assert.Matches(SyncedWrite, "await ctx.AddAsync(note);");
+            Assert.Single(Scan(new[] { "db.TaskReferenceLinks", "    .Remove(link);" }), h => h.LineNumber == 1);
+            Assert.Single(Scan(new[] { "await db.TaskNotes.", "    AddAsync(n);" }));
+            Assert.Single(Scan(new[] { "db.Set<MonHoc>()", "  // a comment inside the chain", "  ?.Update(m);" }));
+            Assert.Single(Scan(new[] { "var x = 1;", "db.TaskNotes", "  .Add(n);", "var y = 2;" }), h => h.LineNumber == 2);
 
             Assert.DoesNotMatch(SyncedWrite, "db.DifficultyLabelLogs.Add(entry);");   // non-synced telemetry table
             Assert.DoesNotMatch(SyncedWrite, "MaMonHoc = MonHocHienTai.MaMonHoc,");    // object initializer
             Assert.DoesNotMatch(SyncedWrite, "if (t.MaMonHoc == m.MaMonHoc)");
             Assert.DoesNotMatch(SyncedWrite, "Func<StudyTask, Guid> f = t => t.MaMonHoc;");
             Assert.DoesNotMatch(SyncedWrite, "await db.TaskNotes.FirstOrDefaultAsync(n => n.MaTask == id);");
+            Assert.DoesNotMatch(SyncedWrite, "db.Set<DifficultyLabelLog>().Add(entry);");
+            Assert.Empty(Scan(new[] { "var notes = db.TaskNotes", "    .Where(n => n.MaTask == id)", "    .ToList();" }));
         }
 
         private static IEnumerable<(string RelativePath, int LineNumber, string Line)> ScanProduction()
@@ -110,16 +129,41 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
             foreach (var file in SourceFiles(root))
             {
                 var relative = Path.GetRelativePath(root, file).Replace(Path.DirectorySeparatorChar, '/');
-                var lineNumber = 0;
-                foreach (var line in File.ReadLines(file))
-                {
-                    lineNumber++;
-                    // Whole-line `//` comments (doc comments included) name these APIs in prose; they are
-                    // not write sites. A trailing comment is not stripped: "//" also occurs inside URLs.
-                    if (line.TrimStart().StartsWith("//", StringComparison.Ordinal)) continue;
-                    if (SyncedWrite.IsMatch(line)) yield return (relative, lineNumber, line.Trim());
-                }
+                foreach (var (lineNumber, line) in Scan(File.ReadLines(file)))
+                    yield return (relative, lineNumber, line);
             }
+        }
+
+        /// <summary>The matching logical lines of one source, numbered by the line they start on.</summary>
+        private static IEnumerable<(int LineNumber, string Line)> Scan(IEnumerable<string> lines) =>
+            LogicalLines(lines).Where(l => SyncedWrite.IsMatch(l.Line));
+
+        private static IEnumerable<(int LineNumber, string Line)> LogicalLines(IEnumerable<string> lines)
+        {
+            string? current = null;
+            var start = 0;
+            var lineNumber = 0;
+            foreach (var raw in lines)
+            {
+                lineNumber++;
+                var line = raw.Trim();
+                // Whole-line `//` comments (doc comments included) name these APIs in prose; they are not
+                // write sites, and they do not end a chain. A trailing comment is not stripped: "//" also
+                // occurs inside URLs.
+                if (line.StartsWith("//", StringComparison.Ordinal)) continue;
+
+                if (current is not null && (line.StartsWith('.') || line.StartsWith("?.", StringComparison.Ordinal) || current.EndsWith('.')))
+                {
+                    current += line;
+                    continue;
+                }
+
+                if (current is not null) yield return (start, current);
+                current = line;
+                start = lineNumber;
+            }
+
+            if (current is not null) yield return (start, current);
         }
 
         private static IEnumerable<string> SourceFiles(string root) =>
