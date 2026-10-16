@@ -282,7 +282,7 @@ it was replaced by M7b. After every mutant the source tree was restored (`git st
 ## 10. Scope check (branch diff, not `gitnexus_detect_changes`)
 
 `git diff --stat origin/dev...HEAD`:
-- **Production:** the six files in §7 (one additive port method; in the VM, `ThemTask` only).
+- **Production:** the six files in §7 (one additive port method; in the VM, `ThemTask` only), plus `Mutations/LocalSaveRejection.cs` for Q1 (§11) — seven, all inside the scope fence.
 - **Tests:** five new files.
 - **Docs:** this report, the new rulings record, pointers in the 2026-09-14 and 2026-10-03 records, plan §21 row 5 and its Status line, `docs/CHANGELOG.md`, `docs/active/README.md`.
 - **Not touched:** `Sync/**`, `AppDbContext`/`SyncStamper`, XAML, schema, packages, any existing test.
