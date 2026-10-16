@@ -325,6 +325,29 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
             Assert.False(Assert.Single(await LinksOfAsync(task.MaTask)).IsDeleted);
         }
 
+        /// <summary>
+        /// Review #114 F-4: the port's default <c>SaveEditorAsync</c> is the non-atomic four-call sequence.
+        /// Every production implementation — today only <c>SqliteTaskEditorRepository</c> — must override it,
+        /// or callers through the port silently lose E2's one transaction (a signature drift would too).
+        /// </summary>
+        [Fact]
+        public void EveryProductionTaskEditorRepository_OverridesSaveEditorAsync_NotTheNonAtomicDefault()
+        {
+            var implementations = typeof(SqliteTaskEditorRepository).Assembly.GetTypes()
+                .Where(t => t.IsClass && !t.IsAbstract && typeof(ITaskEditorRepository).IsAssignableFrom(t))
+                .ToList();
+            Assert.Contains(typeof(SqliteTaskEditorRepository), implementations);
+
+            foreach (var type in implementations)
+            {
+                var map = type.GetInterfaceMap(typeof(ITaskEditorRepository));
+                var i = Array.FindIndex(map.InterfaceMethods, m => m.Name == nameof(ITaskEditorRepository.SaveEditorAsync));
+                Assert.True(i >= 0);
+                Assert.True(map.TargetMethods[i].DeclaringType == type,
+                    $"{type.Name}.SaveEditorAsync resolves to {map.TargetMethods[i].DeclaringType?.Name}, the non-atomic default");
+            }
+        }
+
         // ------------------------------------------------------------------ Q1: the rejection's wording
 
         private const string FormKeptLine = "Nội dung bạn vừa nhập vẫn còn trong biểu mẫu.";
