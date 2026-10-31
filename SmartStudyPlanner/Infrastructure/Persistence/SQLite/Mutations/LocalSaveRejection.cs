@@ -54,11 +54,21 @@ namespace SmartStudyPlanner.Infrastructure.Persistence.SQLite.Mutations
             return null;
         }
 
+        // Fence Slice 5 (owner ruling 2026-10-16, Q1): the task editor restores nothing -- under R-a the
+        // form keeps what the user typed -- so its rejection carries this key and gets its own line.
+        // Unmarked rejections (the semester save, where OD-7's restore ran) keep the "restored" wording.
+        public const string FormKeptDataKey = "SmartStudyPlanner.LocalSave.FormKept";
+
+        public static bool IsFormKept(MutationRejectedException rejection) =>
+            rejection.Data.Contains(FormKeptDataKey);
+
         public static string UserMessage(MutationRejectedException rejection)
         {
-            var restored = RestoreFailureOf(rejection) is null
-                ? "Dữ liệu trong ứng dụng đã được đưa về trạng thái đã lưu; nếu màn hình chưa cập nhật, hãy mở lại trang."
-                : "Không khôi phục được dữ liệu trên màn hình về trạng thái đã lưu; hãy mở lại trang trước khi sửa tiếp.";
+            var restored = IsFormKept(rejection)
+                ? "Nội dung bạn vừa nhập vẫn còn trong biểu mẫu."
+                : RestoreFailureOf(rejection) is null
+                    ? "Dữ liệu trong ứng dụng đã được đưa về trạng thái đã lưu; nếu màn hình chưa cập nhật, hãy mở lại trang."
+                    : "Không khôi phục được dữ liệu trên màn hình về trạng thái đã lưu; hãy mở lại trang trước khi sửa tiếp.";
 
             var rules = rejection.Decision.RouteKnown
                 ? string.Join(Environment.NewLine, rejection.Decision.Results

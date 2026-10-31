@@ -108,6 +108,8 @@ ruling plus tracked text, not itself a ruling · **FACT** read in the tree at `o
 | **Affected plan sections / tests** | §5, §12.2, §20, §21 (Slice 4 gate), §24.2 A4, §26 |
 | **Amends frozen D1–D9?** | **No amendment to frozen D1–D9.** |
 
+> *2026-10-16 pointer:* L1 was amended, additively only, by the Slice 5 rulings: one new `ITaskEditorRepository` method (`SaveEditorAsync`, the whole editor change in one fenced transaction) is allowed; no existing signature changes. See [`2026-10-16-fence-slice5-owner-rulings.md`](2026-10-16-fence-slice5-owner-rulings.md) §1.
+
 ### 2.4 OD-7 — CLOSED: reject + restore in-memory graph consistency + no automatic retry
 
 | Field | Content |
@@ -125,6 +127,8 @@ ruling plus tracked text, not itself a ruling · **FACT** read in the tree at `o
 | **Amends frozen D1–D9?** | **No amendment to frozen D1–D9.** |
 
 > *2026-10-03 pointer:* OD-7's scope was extended (not changed) by the Slice 4 follow-up rulings: §4 there records Q-1 (VM state changed by the save command before it awaits), and §2 (D-5) adds a narrower, membership-only restore for **non-fence** save failures. The fence-rejection behaviour above is unchanged. See [`2026-10-03-fence-slice4-followup-owner-rulings.md`](2026-10-03-fence-slice4-followup-owner-rulings.md).
+
+> *2026-10-16 pointer:* on the task-editor path OD-7 is applied as R-a: a failed or rejected editor save keeps the form as typed and stays in edit mode (no reload, no catch); edit mode is left only after the whole command succeeded (Q-1′), in create mode too. See [`2026-10-16-fence-slice5-owner-rulings.md`](2026-10-16-fence-slice5-owner-rulings.md) §2–§3.
 
 ---
 
