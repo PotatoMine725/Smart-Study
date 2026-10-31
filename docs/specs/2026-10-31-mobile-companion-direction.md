@@ -1,9 +1,9 @@
 # Mobile Companion — Direction Spec
 
-> **Trạng thái:** **FROZEN 2026-10-31** (owner chốt M1–M5c và OD-M1..M4), **trừ OD-M5** đang chờ owner. Không có production code nào được viết từ spec này.
+> **Trạng thái:** **FROZEN 2026-10-31** (owner chốt M1–M5c và OD-M1..M5). Không có production code nào được viết từ spec này.
 > **Nguồn:** thảo luận M1–M5 ngày 2026-10-31 (thread "Định hướng bản mobile").
 > **Nguyên mẫu UI (đã duyệt 2026-10-31):** https://claude.ai/artifact/JNKzyosJTrEeqaw1AMgwv3
-> **Rev 2 (2026-10-31):** làm rõ sau review PR #115 — mTLS hai chiều (OD-M1), lịch chính thức đi một chiều từ desktop (C-3/C-4), định danh task trong lịch (C-6), quyền thông báo bị từ chối (N-1). Không đổi quyết định nào; OD-M5 (giờ bắt đầu phiên) mở mới.
+> **Rev 2 (2026-10-31):** làm rõ sau review PR #115 — mTLS hai chiều (OD-M1), lịch chính thức đi một chiều từ desktop (C-3/C-4), định danh task trong lịch (C-6), quyền thông báo bị từ chối (N-1). Không đổi quyết định nào; OD-M5 (giờ bắt đầu phiên) mở mới và đã chốt cùng ngày.
 > **Thay thế:** mục *"Mobile / hybrid clients — revisit after LAN sync lands"* trong `system_roadmap.md` (deferred list).
 
 ---
@@ -58,6 +58,7 @@ tools/TokenGen              design-tokens.json → Wpf ResourceDictionary + Aval
 - **C-3:** Lịch (schedule) là **dữ liệu dẫn xuất**, không nằm trong `SyncEntityTypes`, **không đi qua merge E2**. Desktop là nguồn lịch chính thức (M5b): sau mỗi lần sync, desktop gửi **`ScheduleSnapshot` một chiều** (desktop → phone) qua cùng `ISyncTransport`, gồm toàn bộ lịch đang hiệu lực và `GeneratedAtUtc`. Phone **thay thế toàn bộ** lịch cục bộ bằng snapshot mới hơn; không bao giờ merge từng dòng. Phone không bao giờ gửi lịch lên desktop.
 - **C-4:** Lịch tạm trên phone mang cờ `IsProvisional`, lưu cục bộ, chỉ chứa task tạo/sửa trên phone **sau** `GeneratedAtUtc` của snapshot gần nhất. Khi nhận snapshot mới, mọi dòng tạm bị xoá; task nào snapshot chưa xếp (desktop chưa thấy) thì được xếp tạm lại.
 - **C-6:** Mỗi dòng lịch (cả snapshot lẫn lịch tạm) mang **`MaTask`** của `StudyTask` nguồn. Check-in, Focus và nhắc nhở ghi/tra theo `MaTask`, không bao giờ theo tên task hay tên môn. (Hiện `Models/ScheduledTask` chỉ có `TenTask`/`TenMon`/`SoPhut`, cần thêm `MaTask` ở P0/P4.)
+- **C-7 (theo OD-M5):** Người dùng đặt một hoặc nhiều **khung giờ học** mỗi ngày trong tuần (cài đặt trên desktop). Sau khi scheduler chia phút/ngày, một bước dàn trang thuần (`Core`, không đổi thuật toán scheduler/SOE) xếp các phiên **nối tiếp** từ đầu khung theo thứ tự scheduler trả về, tràn sang khung kế tiếp trong ngày. Mỗi dòng lịch có `StartLocal`. `ScheduleSnapshot` mang cả `StartLocal` lẫn khung giờ học hiện hành; phone dùng khung giờ đó để chèn phiên tạm vào chỗ trống còn lại. Khung giờ học **không** là entity trong `SyncEntityTypes` (giữ C-5).
 - **C-5:** Phone chỉ ghi các entity đã có trong `SyncEntityTypes` (`StudyTask`, `StudyLog`, `TaskNote`...). Không thêm entity type mới cho mobile ở MVP.
 
 ### 4.3 UI
@@ -74,7 +75,7 @@ tools/TokenGen              design-tokens.json → Wpf ResourceDictionary + Aval
 - [x] Owner chốt các OD ở §7 (2026-10-31: M1 A, M2 A, M3 A, M4 A).
 - [x] `system_roadmap.md` cập nhật: mobile không còn "revisit", trỏ tới spec này; group feature ghi deferred.
 - [ ] Prompt T2.1 (khi viết) có C-1, C-2, C-3 và mTLS của OD-M1.
-- [ ] Owner chốt OD-M5.
+- [x] Owner chốt OD-M5 (2026-10-31: A).
 
 ## 6. Non-goals
 
@@ -155,7 +156,7 @@ tools/TokenGen              design-tokens.json → Wpf ResourceDictionary + Aval
 | B | Tuần tự: xong E2 (T2.1–T2.5), rồi G3-1, rồi mới tới mobile. | An toàn nhất, không conflict. | Mobile bắt đầu rất muộn. |
 | C | Làm mobile ngay (P0, P2, P3 với dữ liệu giả), sync tính sau. | Sớm có app để xem, tạo động lực. | UI dựng trước khi contract sync ổn định thì dễ phải làm lại. Conflict với E2 nặng nhất. |
 
-### OD-M5 — Giờ bắt đầu của phiên học (mở sau review #115)
+### OD-M5 — Giờ bắt đầu của phiên học (mở sau review #115) — **CHỐT 2026-10-31: A (khung giờ học tự đặt)**
 
 **Vấn đề.** Scheduler hiện tại chỉ chia **số phút mỗi ngày** cho từng task (`ScheduleDay.Tasks[].SoPhut`), không có giờ bắt đầu. Nguyên mẫu tab *Hôm nay* (07:30, 14:00...) và luật "nhắc 10 phút trước phiên" đều cần giờ bắt đầu.
 
