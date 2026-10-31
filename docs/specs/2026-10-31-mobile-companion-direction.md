@@ -1,8 +1,9 @@
-# Mobile Companion — Direction Spec (DRAFT)
+# Mobile Companion — Direction Spec
 
-> **Trạng thái:** **FROZEN 2026-10-31** (owner chốt M1–M5c và OD-M1..M4). Không có production code nào được viết từ spec này.
+> **Trạng thái:** **FROZEN 2026-10-31** (owner chốt M1–M5c và OD-M1..M4), **trừ OD-M5** đang chờ owner. Không có production code nào được viết từ spec này.
 > **Nguồn:** thảo luận M1–M5 ngày 2026-10-31 (thread "Định hướng bản mobile").
 > **Nguyên mẫu UI (đã duyệt 2026-10-31):** https://claude.ai/artifact/JNKzyosJTrEeqaw1AMgwv3
+> **Rev 2 (2026-10-31):** làm rõ sau review PR #115 — mTLS hai chiều (OD-M1), lịch chính thức đi một chiều từ desktop (C-3/C-4), định danh task trong lịch (C-6), quyền thông báo bị từ chối (N-1). Không đổi quyết định nào; OD-M5 (giờ bắt đầu phiên) mở mới.
 > **Thay thế:** mục *"Mobile / hybrid clients — revisit after LAN sync lands"* trong `system_roadmap.md` (deferred list).
 
 ---
@@ -54,8 +55,9 @@ tools/TokenGen              design-tokens.json → Wpf ResourceDictionary + Aval
 
 - **C-1:** T2.1 định nghĩa `ISyncTransport`; pha 1 có đúng một implementation `LanTransport`.
 - **C-2:** Discovery: mDNS **và** nhập IP peer thủ công. (Nhập IP thủ công giúp LAN-over-Tailscale chạy sau này mà không cần code mới.)
-- **C-3:** Lịch (schedule) là **dữ liệu dẫn xuất**, không nằm trong `SyncEntityTypes`, không đi qua merge E2. Mỗi máy tự tính lịch từ entity đã sync.
-- **C-4:** Lịch tạm trên phone mang cờ `IsProvisional`, lưu cục bộ, bị thay thế khi nhận lịch/entity mới từ desktop.
+- **C-3:** Lịch (schedule) là **dữ liệu dẫn xuất**, không nằm trong `SyncEntityTypes`, **không đi qua merge E2**. Desktop là nguồn lịch chính thức (M5b): sau mỗi lần sync, desktop gửi **`ScheduleSnapshot` một chiều** (desktop → phone) qua cùng `ISyncTransport`, gồm toàn bộ lịch đang hiệu lực và `GeneratedAtUtc`. Phone **thay thế toàn bộ** lịch cục bộ bằng snapshot mới hơn; không bao giờ merge từng dòng. Phone không bao giờ gửi lịch lên desktop.
+- **C-4:** Lịch tạm trên phone mang cờ `IsProvisional`, lưu cục bộ, chỉ chứa task tạo/sửa trên phone **sau** `GeneratedAtUtc` của snapshot gần nhất. Khi nhận snapshot mới, mọi dòng tạm bị xoá; task nào snapshot chưa xếp (desktop chưa thấy) thì được xếp tạm lại.
+- **C-6:** Mỗi dòng lịch (cả snapshot lẫn lịch tạm) mang **`MaTask`** của `StudyTask` nguồn. Check-in, Focus và nhắc nhở ghi/tra theo `MaTask`, không bao giờ theo tên task hay tên môn. (Hiện `Models/ScheduledTask` chỉ có `TenTask`/`TenMon`/`SoPhut`, cần thêm `MaTask` ở P0/P4.)
 - **C-5:** Phone chỉ ghi các entity đã có trong `SyncEntityTypes` (`StudyTask`, `StudyLog`, `TaskNote`...). Không thêm entity type mới cho mobile ở MVP.
 
 ### 4.3 UI
@@ -70,8 +72,9 @@ tools/TokenGen              design-tokens.json → Wpf ResourceDictionary + Aval
 
 - [x] Owner xác nhận bảng M1–M5c.
 - [x] Owner chốt các OD ở §7 (2026-10-31: M1 A, M2 A, M3 A, M4 A).
-- [ ] `system_roadmap.md` cập nhật: mobile không còn "revisit", trỏ tới spec này; group feature ghi deferred.
-- [ ] Prompt T2.1 (khi viết) có C-1, C-2, C-3.
+- [x] `system_roadmap.md` cập nhật: mobile không còn "revisit", trỏ tới spec này; group feature ghi deferred.
+- [ ] Prompt T2.1 (khi viết) có C-1, C-2, C-3 và mTLS của OD-M1.
+- [ ] Owner chốt OD-M5.
 
 ## 6. Non-goals
 
@@ -97,8 +100,9 @@ tools/TokenGen              design-tokens.json → Wpf ResourceDictionary + Aval
 | C | Không bảo mật, chỉ sync trên Wi-Fi do người dùng đánh dấu "tin cậy" (SSID). | Đơn giản nhất. | Dữ liệu vẫn đi plaintext. SSID giả mạo được. Không phù hợp với ký túc xá. |
 
 **Hệ quả lên contract nếu chọn A:**
-- Mỗi `PeerChangeSet` gắn `DeviceId` của peer đã ghép cặp.
-- Peer chưa ghép cặp bị từ chối **ở tầng transport**, trước khi dữ liệu tới merge engine. Merge engine không cần biết gì về bảo mật.
+- **Xác thực hai chiều (mTLS).** Mỗi máy tự sinh một cặp khoá + chứng chỉ tự ký lúc cài. QR của desktop chứa fingerprint chứng chỉ desktop **và một pairing token dùng một lần** (hết hạn sau vài phút). Lần kết nối đầu, phone trình chứng chỉ client của mình kèm token; desktop chỉ chấp nhận khi token đúng, rồi lưu fingerprint chứng chỉ phone gắn với `DeviceId` của phone. Từ đó mọi kết nối đều là TLS hai chiều, **cả hai phía ghim fingerprint của nhau**.
+- **`DeviceId` lấy từ chứng chỉ đã xác thực, không lấy từ payload.** Transport gán danh tính peer theo fingerprint chứng chỉ client; `PeerChangeSet` có `DeviceId` không khớp danh tính đó bị từ chối.
+- Peer chưa ghép cặp hoặc đã thu hồi bị từ chối **ở tầng transport**, trước khi dữ liệu tới merge engine. Merge engine không cần biết gì về bảo mật.
 - Sau này dùng Tailscale vẫn giữ TLS (phòng thủ nhiều lớp).
 
 ### OD-M2 — Thư viện component nền cho Avalonia — **CHỐT 2026-10-31: A (Fluent có sẵn + token)**
@@ -131,6 +135,12 @@ tools/TokenGen              design-tokens.json → Wpf ResourceDictionary + Aval
 - Phải đăng ký lại alarm sau khi máy khởi động lại (`BOOT_COMPLETED`).
 - Từ Android 13, cần xin quyền `POST_NOTIFICATIONS`.
 
+**N-1 — Khi quyền bị từ chối hoặc bị thu hồi:**
+- Xin quyền theo ngữ cảnh (lần đầu bật nhắc nhở), không xin lúc mở app.
+- Mỗi lần app vào foreground, kiểm tra lại quyền. Thiếu `POST_NOTIFICATIONS`: tab *Hôm nay* hiện banner "Nhắc nhở đang tắt" kèm nút mở cài đặt hệ thống.
+- Thiếu quyền exact alarm: hạ cấp nhắc phiên học xuống inexact (có thể trễ vài phút) và ghi rõ trong cài đặt.
+- Nhắc đến hạn trong lúc không giao được thì hiển thị trong app ở lần mở kế tiếp, không im lặng bỏ qua.
+
 ### OD-M4 — Thứ tự so với roadmap hiện tại — **CHỐT 2026-10-31: A (song song có kiểm soát)**
 
 **Bối cảnh.**
@@ -144,6 +154,16 @@ tools/TokenGen              design-tokens.json → Wpf ResourceDictionary + Aval
 | **A (đề xuất)** | Merge #113/#114 xong thì làm **P0 song song E2**, chia slice nhỏ xen giữa các slice fence. **P2 TokenGen làm bất cứ lúc nào**, vì nó độc lập và làm đẹp luôn desktop (gộp với mục UI polish). **P3 mobile shell chờ T2.1 xong.** | Mobile tiến dần mà không chặn E2. Có lợi ích cho desktop sớm (token). | Phải điều phối để P0 không đụng file mà fence đang sửa. |
 | B | Tuần tự: xong E2 (T2.1–T2.5), rồi G3-1, rồi mới tới mobile. | An toàn nhất, không conflict. | Mobile bắt đầu rất muộn. |
 | C | Làm mobile ngay (P0, P2, P3 với dữ liệu giả), sync tính sau. | Sớm có app để xem, tạo động lực. | UI dựng trước khi contract sync ổn định thì dễ phải làm lại. Conflict với E2 nặng nhất. |
+
+### OD-M5 — Giờ bắt đầu của phiên học (mở sau review #115)
+
+**Vấn đề.** Scheduler hiện tại chỉ chia **số phút mỗi ngày** cho từng task (`ScheduleDay.Tasks[].SoPhut`), không có giờ bắt đầu. Nguyên mẫu tab *Hôm nay* (07:30, 14:00...) và luật "nhắc 10 phút trước phiên" đều cần giờ bắt đầu.
+
+| | Cách làm | Ưu | Nhược |
+|---|---|---|---|
+| **A (đề xuất)** | Người dùng đặt **khung giờ học** trong cài đặt (ví dụ 19:00–22:30, có thể nhiều khung). Các phiên trong ngày được xếp **nối tiếp** từ đầu khung theo thứ tự scheduler trả về. | Không đổi thuật toán scheduler, chỉ thêm một bước dàn trang. Desktop và phone tính giống nhau. | Không biết lịch học trên lớp, có thể đặt phiên trùng giờ bận. |
+| B | Mở rộng scheduler gán **time slot** dựa trên thời khoá biểu và giờ bận. | Lịch thực tế nhất. | Tính năng lớn: cần entity thời khoá biểu mới, đổi thuật toán, chạm SOE. |
+| C | Bỏ giờ: *Hôm nay* là danh sách theo thứ tự, chỉ nhắc deadline. | Ít việc nhất. | Mất nhắc phiên học, timeline kém rõ ràng. |
 
 ## 8. Phân pha (theo OD-M4 = A)
 

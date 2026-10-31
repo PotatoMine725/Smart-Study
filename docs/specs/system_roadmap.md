@@ -250,7 +250,7 @@ execution decomposition + order per the [2026-07-03 master plan](../plans/2026-0
 - **Pipeline rehome** (`Services/Pipeline/*` → `Application/UseCases/*`) — independent plan.
 - **Core/Capacity** — only when a real need surfaces.
 - **Cloud model storage** — opt-in via `IModelStorageProvider`; no work until users ask.
-- **Mobile / hybrid clients** — preserves offline-first; revisit after LAN sync lands.
+- **Mobile / hybrid clients** — *(Direction frozen 2026-10-31, no longer "revisit".)* Android companion app (Avalonia, LAN-only sync); order: TokenGen → Core extraction → T2.1 → mobile shell. See [`2026-10-31-mobile-companion-direction.md`](2026-10-31-mobile-companion-direction.md). **Group / task-sharing feature: deferred** (needs an online server; no budget).
 - **Async pipeline end-to-end** — current sync MVP is acceptable.
 - **`System.Drawing.Common` NU1904** vulnerability — ~30 min, independent.
 - **`SQLitePCLRaw` NU1903** high-severity advisory — visible in every build; not Epic-1-caused,
