@@ -126,12 +126,23 @@ namespace SmartStudyPlanner.ViewModels
             if (taskCanXoa != null)
             {
                 if (System.Windows.MessageBox.Show($"Xóa bài tập '{taskCanXoa.TenTask}'?", "Xác nhận", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
-                {
-                    MonHocHienTai.DanhSachTask.Remove(taskCanXoa);
-                    await _hocKyRepository.LuuHocKyAsync(HocKyHienTai);
-                    HasData = MonHocHienTai.DanhSachTask.Count > 0;
-                }
+                    await XoaTaskDaXacNhanAsync(taskCanXoa);
             }
+        }
+
+        // XoaTask after the confirmation (internal: the MessageBox cannot run in a test).
+        internal async Task XoaTaskDaXacNhanAsync(StudyTask taskCanXoa)
+        {
+            MonHocHienTai.DanhSachTask.Remove(taskCanXoa);
+            await _hocKyRepository.LuuHocKyAsync(HocKyHienTai);
+            HasData = MonHocHienTai.DanhSachTask.Count > 0;
+
+            // Owner ruling Q-1 on review #114 (2026-10-16): deleting the task being edited leaves edit mode
+            // and clears the form, as a successful ThemTask does -- otherwise the next click saves the
+            // editor onto a deleted task. Only after the delete persisted: a failed or rejected delete
+            // leaves the task live, and the form keeps editing it.
+            if (_editingTaskId == taskCanXoa.MaTask)
+                RoiCheDoSuaVaDonForm();
         }
 
         [RelayCommand]
@@ -209,45 +220,49 @@ namespace SmartStudyPlanner.ViewModels
             TinhDiemVaSapXep();
             OnRefreshGrid?.Invoke();
             await _hocKyRepository.LuuHocKyAsync(HocKyHienTai);
-
-            // Q-1 (owner ruling 2026-10-03): leave edit mode only once the save succeeded. A failed
-            // or fence-rejected save keeps editing the same task, so the next click updates it
-            // instead of creating a duplicate, and the note/link follow-up below keeps its id.
-            if (_taskDangSua != null)
-            {
-                _taskDangSua = null;
-                TextNutThem = "Thêm Deadline";
-                MauNutThem = "#9B59B6";
-            }
             HasData = MonHocHienTai.DanhSachTask.Count > 0;
 
             // Ground-truth instrumentation: fire-and-forget, never blocks save
             _ = CrashLogger.Observe(LogDifficultyLabelAsync(loaiTask, doKhoInt, TenTask, savedTask.MaTask), "DifficultyLabelLog");
 
-            // Save notes & links (for both new and existing tasks)
+            // Q-1 (owner ruling 2026-10-03) read as the WHOLE command (Q-1′, owner ruling 2026-10-16):
+            // edit mode is left, and the form cleared, only once the task save AND the editor save below
+            // succeeded. Until then the form edits savedTask -- in create mode too (extension ruled
+            // 2026-10-16), since its row now exists -- so a failed or fence-rejected step keeps the form
+            // as typed (R-a, no reload, no catch) and the next click updates that task instead of
+            // creating a second one.
+            if (_taskDangSua == null)
+            {
+                _taskDangSua = savedTask;
+                _editingTaskId = savedTask.MaTask;
+                TextNutThem = "Cập Nhật";
+                MauNutThem = "#3498DB";
+            }
+
+            // Save notes & links (for both new and existing tasks): one fenced transaction (E2, owner
+            // ruling 2026-10-16) -- all of it persists or none of it does.
             var taskId = _editingTaskId ?? savedTask.MaTask;
-            _editingTaskId = null;
             if (!string.IsNullOrEmpty(NoteContent) || StudyLinks.Count > 0)
             {
-                await _taskEditorRepository.UpsertNoteAsync(taskId, NoteContent);
                 foreach (var (vm, i) in StudyLinks.Select((vm, i) => (vm, i)))
                 {
                     vm.SortOrder = i;
                     vm.MaTask = taskId;
                 }
-                var existingLinks = await _taskEditorRepository.GetLinksAsync(taskId);
-                var incomingIds = StudyLinks.Select(vm => vm.Id).ToHashSet();
-                foreach (var dead in existingLinks.Where(l => !incomingIds.Contains(l.Id)))
-                    await _taskEditorRepository.DeleteLinkAsync(dead.Id);
-                foreach (var vm in StudyLinks)
-                {
-                    var model = vm.ToModel();
-                    if (existingLinks.Any(l => l.Id == vm.Id))
-                        await _taskEditorRepository.UpdateLinkAsync(model);
-                    else
-                        await _taskEditorRepository.AddLinkAsync(model);
-                }
+                await _taskEditorRepository.SaveEditorAsync(taskId, NoteContent, StudyLinks.Select(vm => vm.ToModel()).ToList());
             }
+
+            RoiCheDoSuaVaDonForm();
+        }
+
+        // Leave edit mode and clear the form: the end of a successful ThemTask, and XoaTask of the task
+        // being edited.
+        private void RoiCheDoSuaVaDonForm()
+        {
+            _taskDangSua = null;
+            _editingTaskId = null;
+            TextNutThem = "Thêm Deadline";
+            MauNutThem = "#9B59B6";
 
             // Dọn dẹp form
             TenTask = string.Empty;
