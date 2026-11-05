@@ -600,7 +600,9 @@ namespace SmartStudyPlanner.Tests.Sync.Apply
                 dir = dir.Parent;
             Assert.NotNull(dir);
 
-            var hit = Directory.EnumerateFiles(Path.Combine(dir!.FullName, "SmartStudyPlanner"), fileName, SearchOption.AllDirectories).FirstOrDefault();
+            var hit = new[] { "SmartStudyPlanner.Core", "SmartStudyPlanner" }
+                .SelectMany(p => Directory.EnumerateFiles(Path.Combine(dir!.FullName, p), fileName, SearchOption.AllDirectories))
+                .FirstOrDefault();
             Assert.NotNull(hit);
             return hit!;
         }

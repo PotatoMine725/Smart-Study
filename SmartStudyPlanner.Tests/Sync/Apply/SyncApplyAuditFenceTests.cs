@@ -73,11 +73,13 @@ namespace SmartStudyPlanner.Tests.Sync.Apply
         [Fact]
         public void TheScanner_ActuallyMatchesTheKnownSite()
         {
-            var productionRoot = ProductionRoot();
-            Assert.True(Directory.Exists(productionRoot), productionRoot);
+            var productionRoots = ProductionRoots();
+            foreach (var productionRoot in productionRoots) Assert.True(Directory.Exists(productionRoot), productionRoot);
 
-            var files = SourceFiles(productionRoot).ToList();
+            var files = productionRoots.SelectMany(SourceFiles).ToList();
             Assert.True(files.Count > 50, $"expected a full production tree, scanned {files.Count} files");
+            Assert.True(SourceFiles(productionRoots[0]).Count() > 50, $"expected the full Core tree under {productionRoots[0]}");
+            Assert.True(SourceFiles(productionRoots[1]).Count() > 10, $"expected the full WPF tree under {productionRoots[1]}");
 
             // The scanner is not vacuous: it finds the site we know exists...
             Assert.NotEmpty(ScanProduction());
@@ -91,7 +93,7 @@ namespace SmartStudyPlanner.Tests.Sync.Apply
 
         private static IEnumerable<(string File, string Line)> ScanProduction()
         {
-            foreach (var file in SourceFiles(ProductionRoot()))
+            foreach (var file in ProductionRoots().SelectMany(SourceFiles))
             {
                 foreach (var line in File.ReadLines(file))
                 {
@@ -106,17 +108,17 @@ namespace SmartStudyPlanner.Tests.Sync.Apply
                               && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
 
         /// <summary>
-        /// The production project directory, by EXACT name. <c>SmartStudyPlanner</c> and
+        /// The production project directories (Core, then the WPF app), by EXACT name. <c>SmartStudyPlanner</c> and
         /// <c>SmartStudyPlanner.Tests</c> are siblings, so a prefix match would pull the test project in.
         /// </summary>
-        private static string ProductionRoot()
+        private static string[] ProductionRoots()
         {
             var dir = new DirectoryInfo(AppContext.BaseDirectory);
             while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "SmartStudyPlanner.slnx")))
                 dir = dir.Parent;
 
             Assert.NotNull(dir);
-            return Path.Combine(dir!.FullName, "SmartStudyPlanner");
+            return new[] { Path.Combine(dir!.FullName, "SmartStudyPlanner.Core"), Path.Combine(dir.FullName, "SmartStudyPlanner") };
         }
     }
 }

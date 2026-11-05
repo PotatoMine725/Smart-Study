@@ -24,6 +24,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\SmartStudyPlanner.Core\SmartStudyPlanner.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- M8-A TextClassifier seed dataset: trained at first run when no model exists on disk. -->
     <EmbeddedResource Include="Services\ML\TextClassifier\seed_intents.csv" />
   </ItemGroup>

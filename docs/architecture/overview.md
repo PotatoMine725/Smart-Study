@@ -38,14 +38,26 @@ Principles:
 | DB | **SQLite** + `Microsoft.EntityFrameworkCore.Sqlite` | `SmartStudyData.db` next to the binary |
 | ML | `Microsoft.ML` + `Microsoft.ML.FastTree` | study-time model in `%AppData%\SmartStudyPlanner\models\`; text classifier `text_classifier.zip` |
 | Tests | `xUnit` + `Microsoft.NET.Test.Sdk` + `coverlet.collector` + `Verify.CommunityToolkit.Mvvm` | 291/291 green at M1.1 acceptance |
-| Solution | `SmartStudyPlanner.slnx` (not `.sln`) | important when running `dotnet build` |
+| Solution | `SmartStudyPlanner.slnx` (not `.sln`) | important when running `dotnet build`. Three projects since mobile P0 (2026-11-05): `SmartStudyPlanner.Core`, `SmartStudyPlanner`, `SmartStudyPlanner.Tests`. The legacy `SmartStudyPlanner/SmartStudyPlanner.sln` lists only the WPF app and is not used by CI. |
 
 Project version: `1.5.0`.
 
 ## 4. Folder layout
 
+### 4.0 Projects (mobile P0, 2026-11-05)
+
+| Project | Target | Holds | References |
+|---|---|---|---|
+| `SmartStudyPlanner.Core` | `net10.0` (platform-free) | `Models/`, `Data/`, `Infrastructure/`, `Core/`, `Sync/`, and `Services/` except `ServiceLocator.cs`, `ThemeManager.cs` and the ML.NET side of `Services/ML/`. Of `Services/ML/`, only `IStudyTimePredictor`, `DeviceIdentity`, `DeviceHelper`, `DefaultMlConfidencePolicy` and `IModelStorageProvider` are in Core. | EF Core Sqlite only. **INV-1:** no `System.Windows.*`/WinForms. **INV-2:** no ML.NET. Both are guarded by `Tests/Core/CoreAssemblyPurityTests`. |
+| `SmartStudyPlanner` | `net10.0-windows10.0.19041.0`, WPF | UI (`App`, `Views`, `ViewModels`, `Controls`, `Converters`, `Themes`, `Assets`), the composition root `ServiceLocator`, `ThemeManager`, and the ML.NET implementations and schemas in `Services/ML/` | Core + every desktop package |
+| `SmartStudyPlanner.Tests` | `net10.0-windows10.0.19041.0` | xUnit suite | Core + the WPF app |
+
+Namespaces did not change: a file keeps its path **relative to its project**, so `SmartStudyPlanner/Sync/Merge/ThreeWayMerge.cs`
+is now `SmartStudyPlanner.Core/Sync/Merge/ThreeWayMerge.cs`. Core grants `InternalsVisibleTo` to the WPF app and Tests.
+The tree below is the **combined** view of both production projects, with relative paths.
+
 ```text
-SmartStudyPlanner/
+SmartStudyPlanner/ + SmartStudyPlanner.Core/   (combined; see §4.0 for which project owns each folder)
 ├── App.xaml(.cs)                # Startup: DB bootstrap (EnsureCreated + patch seams),
 │                                #   DI bootstrap, 3 background warmups
 ├── Assets/                      # icon.ico (app + window icon)

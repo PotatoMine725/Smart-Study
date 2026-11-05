@@ -86,10 +86,12 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
         [Fact]
         public void TheScanner_ActuallyMatchesTheKnownSites()
         {
-            var root = ProductionRoot();
-            Assert.True(Directory.Exists(root), root);
-            var files = SourceFiles(root).ToList();
+            var roots = ProductionRoots();
+            foreach (var root in roots) Assert.True(Directory.Exists(root), root);
+            var files = roots.SelectMany(SourceFiles).ToList();
             Assert.True(files.Count > 50, $"expected a full production tree, scanned {files.Count} files");
+            Assert.True(SourceFiles(roots[0]).Count() > 50, $"expected the full Core tree under {roots[0]}");
+            Assert.True(SourceFiles(roots[1]).Count() > 10, $"expected the full WPF tree under {roots[1]}");
 
             var hits = ScanProduction().ToList();
             Assert.Contains(hits, h => h.RelativePath.EndsWith("SemesterGraphWriter.cs", StringComparison.Ordinal) && h.Line.Contains("db.StudyTasks.Remove", StringComparison.Ordinal));
@@ -125,7 +127,7 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
 
         private static IEnumerable<(string RelativePath, int LineNumber, string Line)> ScanProduction()
         {
-            var root = ProductionRoot();
+            foreach (var root in ProductionRoots())
             foreach (var file in SourceFiles(root))
             {
                 var relative = Path.GetRelativePath(root, file).Replace(Path.DirectorySeparatorChar, '/');
@@ -171,15 +173,15 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
                      .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
                               && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
 
-        /// <summary>The production project directory, by EXACT name (a prefix would pull the test project in).</summary>
-        private static string ProductionRoot()
+        /// <summary>The production project directories (Core, then the WPF app), by EXACT name (a prefix would pull the test project in).</summary>
+        private static string[] ProductionRoots()
         {
             var dir = new DirectoryInfo(AppContext.BaseDirectory);
             while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "SmartStudyPlanner.slnx")))
                 dir = dir.Parent;
 
             Assert.NotNull(dir);
-            return Path.Combine(dir!.FullName, "SmartStudyPlanner");
+            return new[] { Path.Combine(dir!.FullName, "SmartStudyPlanner.Core"), Path.Combine(dir.FullName, "SmartStudyPlanner") };
         }
     }
 }

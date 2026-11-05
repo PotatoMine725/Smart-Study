@@ -60,7 +60,7 @@ namespace SmartStudyPlanner.Tests.Views
         [Fact]
         public void IWorkloadService_DocComment_KhongConNoiLeastLoadHayChanHorizon7Ngay()
         {
-            string src = ReadRepoFile("SmartStudyPlanner", "Services", "IWorkloadService.cs");
+            string src = ReadRepoFile("SmartStudyPlanner.Core", "Services", "IWorkloadService.cs");
 
             foreach (var token in new[] { "Least-Load", "7 ngày" })
             {

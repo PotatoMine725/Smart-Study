@@ -3,6 +3,10 @@
 **Date:** 2026-11-05 · **Author:** Claude Code (agent session, worktree `.claude/worktrees/g3-1-recon`,
 branch `docs-g3-1-soe-wiring-recon`) · **Base:** `origin/dev` `c58b0fa`
 
+> **Path note (added by mobile P0, 2026-11-05):** this report cites paths from before the Core split. Since PR #117,
+> non-UI files live under `SmartStudyPlanner.Core/` at the same relative path, and line numbers are unchanged (R100).
+> Old → new map: [P0 report §9](2026-11-05-p0-extract-core.md).
+
 **Scope.** Roadmap §A.4 **G3-1**: should Epic 3's optimizer (`IScheduleOptimizer.Optimize`) be called
 from production, and if so where? This is Phase 0, which measures and proposes and then **stops for the
 owner**. It adds **no production code**: one test-only measurement class, one stdout data file and this
