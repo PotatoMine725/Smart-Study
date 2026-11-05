@@ -155,6 +155,9 @@ Every path-anchored scanner fails **loudly** after the move: either `> 50`/`>= N
 | `Assembly.GetExecutingAssembly()` | Only `TextClassifierModelManager`, which stays in WPF with its embedded CSV. |
 | XAML `clr-namespace` without `;assembly=` | The XAML maps only `SmartStudyPlanner`, `.Controls`, `.Converters` (all WPF) and LiveCharts. No moved namespace is referenced from XAML. INFERENCE: the Phase 1 build is the proof. |
 | Pack URIs | Only `ThemeManager` (WPF). |
+| Name-based type lookup the compiler can't see (`Type.GetType("…")`, `AssemblyQualifiedName`, `TypeNameHandling`, `$type`, `JsonDerivedType`, `Activator.CreateInstance`, `Assembly.Load`) | **No hit** in any production `.cs`. No persisted type name depends on the assembly name. |
+| `partial` types split across the boundary (a Core-only probe would not catch this) | **No `partial` class/record/struct/interface** in production at all. |
+| CI and tooling path consumers | `ci.yml` has no `paths:` filter. It restores, builds `.slnx` and tests the test csproj, so Core joins through the `.slnx`. `tools/**` cites only `Services/ML/TextClassifier/seed_intents.csv` and `TextClassifierModelManager.cs`, both of which stay in WPF. No tool csproj references the app. |
 | Legacy `SmartStudyPlanner/SmartStudyPlanner.sln` | Lists only the app project. `docs/architecture/overview.md` says to use `.slnx`; CI uses `.slnx`. It keeps building through the ProjectReference. OQ-6. |
 | Warning attribution | CS8618 (`Models/*`) and NU1903 will also be attributed to `SmartStudyPlanner.Core.csproj`. The Phase 2 diff normalises file+code and ignores the project suffix; one extra NU1903 line for the new project is expected. |
 | INV-2 placement | `IStudyTimePredictor` lands in Core at `Services/ML/` (namespace `SmartStudyPlanner.Services.ML`), not under `Core/ML/Contracts`, because the namespace must not change in P0. OQ-7. |
@@ -189,7 +192,14 @@ Each question has a recommendation (**R**). Phase 1 starts only after these are 
    (`SmartStudyPlanner.Core/Scheduling`); it reads more nicely but changes the relative paths that the allowlists use.
 2. **OQ-2 — Test anchor edits (9 files, §4.5).** R: approve **path-only** edits. Each file's private
    `ProductionRoot()` becomes "both project roots", or is re-pointed to `SmartStudyPlanner.Core/...`, in place and in
-   each file's own style (no new shared helper). No assertion, allowlist, threshold or regex changes. Also confirm
+   each file's own style (no new shared helper). No allowlist or regex changes.
+   **Self-check sub-question (2a):** with both roots, the existing `files.Count > 50` becomes vacuous for the WPF
+   root, because Core alone has 176 files. Dropping or mis-pointing the WPF root would stay green, and the brief
+   asks to *prove* coverage of both projects. R: keep `> 50` on the total and **add a per-root non-vacuity
+   assertion** in each of the 4 whole-tree scanners (X-19, OD-5 guard, MutationRejected, SyncApplyAudit). Use
+   `Core > 50` and `WPF > 10`; WPF has 47 `.cs` files. This is an *added* assertion, not a changed one, and adds no
+   test method. Also run a Phase 2 mutation check: point the WPF root at an empty directory, and the check must turn
+   RED. Alternative: keep `> 50` only, and accept that the WPF root is not self-checked. Also confirm
    that the stop condition "a file under `Sync/**` or `Mutations/**` needs a code change" covers **production**
    files only: 4 of these test files sit under `Tests/Sync/**` or `Tests/.../Mutations/**`.
 3. **OQ-3 — ML-free `Services/ML` files that Core does not need.** These are `ITextClassifierModelManager`,
@@ -200,8 +210,16 @@ Each question has a recommendation (**R**). Phase 1 starts only after these are 
 4. **OQ-4 — IVT.** R: Core gets IVT to `SmartStudyPlanner` and `SmartStudyPlanner.Tests`, with no visibility
    widening. Confirm.
 5. **OQ-5 — Packages + warning diff rule.** R: Core gets **only** EF Core Sqlite 10.0.5; the WPF csproj is unchanged.
-   The Phase 2 warning diff compares normalised `file(line,col): code` and ignores the project suffix. An extra NU1903
-   line for `SmartStudyPlanner.Core.csproj` is accepted as expected. Confirm.
+   Pre-registered warning-diff rule:
+   - "Unchanged" means the same **set** of `(mapped path, line, col, code)`, where *mapped path* applies the
+     Appendix A old → new map (`SmartStudyPlanner\Models\…` → `SmartStudyPlanner.Core\Models\…`) and the project
+     suffix is ignored.
+   - Package advisories (NU19xx) compare as `(package, code)`. One extra NU1903 attribution for
+     `SmartStudyPlanner.Core.csproj` is expected.
+   - **The raw warning-line count (96) is expected to drop.** The baseline includes the WPF `_wpftmp.csproj` markup
+     pass, which compiles moved sources a second time, and moved files will now compile once.
+
+   Confirm.
 6. **OQ-6 — Legacy `SmartStudyPlanner/SmartStudyPlanner.sln`.** R: **leave it untouched** (it still builds, and
    deleting it is not P0). Alternatives: delete it, or add Core to it.
 7. **OQ-7 — INV-2 contract location.** R: accept that `IStudyTimePredictor`/`StudyTimePredictionResult` live in Core
