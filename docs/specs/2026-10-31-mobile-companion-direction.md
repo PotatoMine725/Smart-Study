@@ -1,6 +1,6 @@
 # Mobile Companion — Direction Spec
 
-> **Trạng thái:** **FROZEN 2026-10-31** (owner chốt M1–M5c và OD-M1..M5). Không có production code nào được viết từ spec này.
+> **Trạng thái:** **FROZEN 2026-10-31** (owner chốt M1–M5c và OD-M1..M5). Production code duy nhất từ spec này là P0: tách project, không đổi hành vi, PR #117 (2026-11-05).
 > **Nguồn:** thảo luận M1–M5 ngày 2026-10-31 (thread "Định hướng bản mobile").
 > **Nguyên mẫu UI (đã duyệt 2026-10-31):** https://claude.ai/artifact/JNKzyosJTrEeqaw1AMgwv3
 > **Rev 2 (2026-10-31):** làm rõ sau review PR #115 — mTLS hai chiều (OD-M1), lịch chính thức đi một chiều từ desktop (C-3/C-4), định danh task trong lịch (C-6), quyền thông báo bị từ chối (N-1). Không đổi quyết định nào; OD-M5 (giờ bắt đầu phiên) mở mới và đã chốt cùng ngày.
@@ -49,7 +49,7 @@ SmartStudyPlanner.Mobile    Avalonia Android, tham chiếu Core
 tools/TokenGen              design-tokens.json → Wpf ResourceDictionary + Avalonia .axaml
 ```
 
-- **INV-1:** `SmartStudyPlanner.Core` không được tham chiếu `System.Windows.*`. (Hiện có 6 ViewModel + `ThemeManager` vi phạm, phải tách trước.)
+- **INV-1:** `SmartStudyPlanner.Core` không được tham chiếu `System.Windows.*`. (Lúc viết spec có 6 ViewModel + `ThemeManager` vi phạm. **Đã giải quyết ở P0:** các file đó ở lại project WPF; `CoreAssemblyPurityTests` canh INV-1.)
 - **INV-2:** ML trong Core chỉ qua contract (`Core/ML/Contracts`). Mobile cài implementation "ML off" (heuristic fallback).
   - *Sai lệch đã ghi nhận (P0, owner OQ-7, 2026-11-05):*
     - `IStudyTimePredictor` và `StudyTimePredictionResult` đang ở Core tại `Services/ML/`, namespace `SmartStudyPlanner.Services.ML`, chứ chưa ở `Core/ML/Contracts`. Lý do: P0 không được đổi namespace.
