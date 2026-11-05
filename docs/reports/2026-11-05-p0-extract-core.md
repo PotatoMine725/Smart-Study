@@ -1,9 +1,9 @@
-# Mobile P0 — Extract `SmartStudyPlanner.Core` (Phase 0: recon + move manifest)
+# Mobile P0 — Extract `SmartStudyPlanner.Core`
 
 - **Date:** 2026-11-05
 - **Author/agent:** Claude Code (Opus 5.5), worktree `.claude/worktrees/p0-core`, branch `refactor-p0-extract-core`
-- **Status:** Phase 0 delivered. **STOPPED for the owner.** No production or test code has been written.
-  Phases 1–3 (move, verify, docs+PR) wait on the answers in §7.
+- **Status:** Phases 0–3 done. The owner answered OQ-1..OQ-10 on 2026-11-05 (§10). The draft PR into `dev` awaits the
+  owner's merge. §1–§8 are the Phase 0 recon as delivered; §9 holds the path map; §10–§12 hold the Phase 1–2 results.
 - **Authority:** mobile spec `docs/specs/2026-10-31-mobile-companion-direction.md` §4.1 (layout, INV-1, INV-2),
   §8 phase table row P0, then CLAUDE.md, then code on `origin/dev`.
 
@@ -176,7 +176,10 @@ Every path-anchored scanner fails **loudly** after the move: either `> 50`/`>= N
 
 ## 6. Follow-ups (non-blocking, not P0)
 
-- Move `IStudyTimePredictor` to `Core/ML/Contracts` with a namespace change, once INV-2 placement is enforced (OQ-7).
+- **Ticket `2026-11-05-p0-ml-contract-relocation`** (filed, owner OQ-7): in a separate PR, move `IStudyTimePredictor`
+  and `StudyTimePredictionResult` to `Core/ML/Contracts`, with a namespace change, so that INV-2 placement holds as
+  written.
+- **Post-merge checklist (owner OQ-8):** the owner pulls local `dev`, then runs `npx gitnexus analyze`.
 - Decide the home of the ML-free `Services/ML` files when the mobile "ML off" implementation is designed (OQ-3).
 - Widen F-4 to both assemblies if the owner wants it (OQ-9).
 - Package advisories NU1903/NU1904 (SQLitePCLRaw 2.1.11, System.Drawing.Common 4.7.0) are pre-existing.
@@ -258,6 +261,102 @@ Each question has a recommendation (**R**). Phase 1 starts only after these are 
 - *Why it had to be made:* every path-anchored guard would fail after the move, and changing a guard test is exactly
   what needs owner sign-off (brief Phase 2 + stop conditions).
 - *What it's for:* the owner sees all 9 edits, and why each one fails loudly rather than vacuously, before approving.
+
+### D-4 — The moves land in two commits, not one per folder
+- *Why it had to be made:* Phase 1 asked for "moves by folder, each one building". `Models/` builds alone, but
+  `Core/` does not: `Core/Parsing` and `Core/Risk` use `Services.Strategies`. The rest of the manifest (`Core/`,
+  `Data/`, `Infrastructure/`, `Sync/`, `Services/`) is one strongly connected group.
+- *What it's for:* every commit on the branch builds (`ae97f97` skeleton, `ffa60b5` Models, `ab81d47` the rest).
+- *Experience:* the old single project hid a folder-level cycle (`Core` ↔ `Services`). It matters later only if Core
+  is split further; P0 does not need it.
+
+### D-5 — The empty-root mutation proves that each per-root floor fires
+- *Why it had to be made:* owner OQ-2a. With both roots, `> 50` on the total stays green on Core alone.
+- *What it's for:* pointing the WPF root at an empty directory turned all four whole-tree scanners RED with
+  "expected the full WPF tree". The mutants were reverted with `git checkout`, and no mutant was committed.
+
+## 9. Path map old → new (for the G3-1 Phase 0 report)
+
+Every moved file keeps its path **relative to its project** and its content byte-for-byte (R100), so **line numbers
+in `file.cs:NN` citations are unchanged**. For files that moved, only the project prefix changes:
+`SmartStudyPlanner/<rel>` → `SmartStudyPlanner.Core/<rel>`. The full per-file list is Appendix A (`→ Core` rows).
+
+Files cited by [`2026-11-05-g3-1-soe-wiring-recon.md`](2026-11-05-g3-1-soe-wiring-recon.md):
+
+| Cited as | Now at |
+|---|---|
+| `IScheduleOptimizer.cs`, `ScheduleOptimizer.cs`, `LoadRebalanceStage.cs`, `ConstraintValidator.cs`, `IDeadlinePolicy.cs`, `OptimizerRunLogRow.cs`, `OptimizerRunLogWriter.cs` | `SmartStudyPlanner.Core/Services/Soe/` |
+| `PipelineContracts.cs` | `SmartStudyPlanner.Core/Services/Pipeline/PipelineContracts.cs` |
+| `BalanceWorkloadStage.cs` | `SmartStudyPlanner.Core/Services/Pipeline/Stages/BalanceWorkloadStage.cs` |
+| `WorkloadServiceImpl.cs`, `IWorkloadService.cs` | `SmartStudyPlanner.Core/Services/` |
+| `AppStartup.cs`, `AppDbContext.cs`, `TelemetrySchema.cs`, `SyncStamper.cs` | `SmartStudyPlanner.Core/Data/` |
+| `MergeSurfaceRegistry.cs` | `SmartStudyPlanner.Core/Sync/Merge/MergeSurfaceRegistry.cs` |
+| `ServiceLocator.cs` | unchanged: `SmartStudyPlanner/Services/ServiceLocator.cs` |
+| `DashboardViewModel.cs`, `WorkloadBalancerViewModel.cs`, `App.xaml.cs` | unchanged: `SmartStudyPlanner/` |
+| `SyncedEntityWritePathFenceTests.cs:39-44`, `:62` | unchanged path. Those lines are unchanged too: P0 edited only (new numbering) lines 89–91, 93–94, 130, 176–177 and 184 |
+| `SmartStudyPlanner.Tests/Services/Soe/SoeG31EffectSizeMeasurementTests.cs` | unchanged |
+
+## 10. Owner answers (2026-11-05)
+
+OQ-1..OQ-10: **every recommendation accepted.** In addition:
+- **OQ-2:** the `Sync/**`/`Mutations/**` stop condition covers production files only; path-only test edits are
+  approved.
+- **OQ-2a:** add the per-root assertion (Core > 50, WPF > 10) and the empty-WPF-root mutation check.
+- **OQ-7:** record the deviation in the spec, with a follow-up ticket: move `IStudyTimePredictor` to
+  `Core/ML/Contracts` in a separate PR (namespace change).
+- **OQ-8:** NOT RUN is fine. Post-merge checklist: the owner pulls `dev` and runs `npx gitnexus analyze`.
+- **OQ-10:** 1166 is the only allowed test-count change.
+
+## 11. Phase 1–2 results
+
+### 11.1 Commits (each builds)
+
+| Commit | Content |
+|---|---|
+| `ae97f97` | `SmartStudyPlanner.Core.csproj` (net10.0, EF Core Sqlite 10.0.5, `RootNamespace=SmartStudyPlanner`) + `AssemblyInfo.cs` (IVT → WPF, Tests), `.slnx` entry, `ProjectReference` from WPF and Tests |
+| `ffa60b5` | `git mv Models/` (16 files) |
+| `ab81d47` | `git mv` of `Core/`, `Data/`, `Infrastructure/`, `Sync/`, the non-UI `Services/` and 5 ML-free `Services/ML` files (160 files; D-4) |
+| `4694021` | path-only edits to the 9 anchored test files (§4.5) + per-root floors (OQ-2a) |
+| `59992d1` | `SmartStudyPlanner.Tests/Core/CoreAssemblyPurityTests.cs` (INV-1 guard) |
+
+### 11.2 Verification (OBSERVED)
+
+| Check | Baseline (`93cec97`) | After | Verdict |
+|---|---|---|---|
+| Release build `.slnx`, clean (`--no-incremental`) | 0 errors, 96 warning lines | 0 errors, 88 warning lines | the drop was pre-registered (OQ-5: no second `_wpftmp` compile of moved files) |
+| Normalised warning set `(mapped path, line, col, code)` | 27 | 27 | **identical** (0 only-before, 0 only-after) |
+| Package advisories `(package, code)` | {SQLitePCLRaw NU1903, System.Drawing.Common NU1904} | same | **identical** |
+| Full suite | 1164 / 0 / 1 / **1165** | 1165 / 0 / 1 / **1166** | +1 = the INV-1 guard, the only allowed delta (OQ-10) |
+| Suite after the moves, before the anchor edits | — | 1149 / **15 failed** / 1 / 1165 | all 15 failures are in the 9 predicted files; none passed vacuously, the self-checks caught it |
+| `git diff -M --name-status origin/dev HEAD` | — | **R100 = 176**, A = 4 (Core csproj, Core AssemblyInfo, guard test, this report), M = 12 (slnx, 2 csproj, 9 test files) | no production `.cs` modified |
+| `git log --follow SmartStudyPlanner.Core/Sync/Merge/ThreeWayMerge.cs` | — | reaches `16c89b1` (PR-1) | history preserved |
+| Mutation: WPF root → empty directory (4 whole-tree scanners) | — | 5 tests RED: 4 with "expected the full WPF tree", plus `TheGuard_ActuallyMatchesPlantedCalls` (WPF consumer missing) | per-root floors work; reverted |
+| Mutation: `Microsoft.ML` reference planted in Core | — | INV-1 guard RED, `Actual: ["Microsoft.ML.Data"]` | the guard can fail; reverted |
+| X-19 / OD-5 self-checks on the real tree | — | green, with both per-root floors | both roots are scanned |
+
+The INV-1 guard self-checks in the same `[Fact]`: the anchor assembly name is `SmartStudyPlanner.Core`, and the same
+probe on `typeof(App).Assembly` finds `PresentationFramework` and `Microsoft.ML*`.
+
+### 11.3 NOT RUN
+
+| Item | Reason |
+|---|---|
+| `gitnexus_detect_changes` / `gitnexus_impact` | The index is 63 commits stale and indexes the main checkout, not this worktree (owner OQ-8). **Post-merge:** the owner pulls `dev` and runs `npx gitnexus analyze`. |
+| Manual: start the app, open the Dashboard and the Workload Balancer | **Owner check.** Not run by the agent, because a first start initialises `%APPDATA%\SmartStudyPlanner\models` in the owner's real profile. INFERENCE for the reviewer: DI resolution and XAML compile are exercised by the build and by the tests that use `ServiceLocator`, but the app startup path itself is not. |
+
+## 12. Test edits (owner-approved, OQ-2 / OQ-2a / OQ-10)
+
+| File | Edit |
+|---|---|
+| `Infrastructure/Persistence/SQLite/Mutations/SyncedEntityWritePathFenceTests.cs` (X-19) | `ProductionRoot()` → `ProductionRoots()` (Core, WPF); scan per root with root-relative paths, so allowlist keys are unchanged; self-check adds Core > 50, WPF > 10 |
+| `Infrastructure/Persistence/SQLite/Repositories/StudyTaskRepositoryMutationGuardTests.cs` (OD-5) | same; offender messages keep root-relative paths |
+| `Infrastructure/Persistence/SQLite/Mutations/MutationRejectedCatchSourceScanTests.cs` (N10) | same |
+| `Sync/Apply/SyncApplyAuditFenceTests.cs` | same |
+| `Sync/Apply/ConflictResolverTests.cs` | `FindProductionFile` searches both roots |
+| `Sync/Fence/FenceSourceFenceTests.cs`, `Sync/Merge/MergeCorePurityTests.cs`, `Services/Soe/ObjectiveEvaluatorTests.cs`, `Views/WorkloadBalancerPageSourceTests.cs` | folder/file path → `SmartStudyPlanner.Core/...` |
+| `Core/CoreAssemblyPurityTests.cs` | **new** (INV-1/INV-2 guard, +1 test) |
+
+No assertion, allowlist, regex or threshold was changed. The per-root floors are **added** assertions (OQ-2a).
 
 ## Appendix A — Full manifest (223 files)
 

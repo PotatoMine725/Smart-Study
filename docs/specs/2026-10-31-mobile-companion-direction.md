@@ -4,6 +4,7 @@
 > **Nguồn:** thảo luận M1–M5 ngày 2026-10-31 (thread "Định hướng bản mobile").
 > **Nguyên mẫu UI (đã duyệt 2026-10-31):** https://claude.ai/artifact/JNKzyosJTrEeqaw1AMgwv3
 > **Rev 2 (2026-10-31):** làm rõ sau review PR #115 — mTLS hai chiều (OD-M1), lịch chính thức đi một chiều từ desktop (C-3/C-4), định danh task trong lịch (C-6), quyền thông báo bị từ chối (N-1). Không đổi quyết định nào; OD-M5 (giờ bắt đầu phiên) mở mới và đã chốt cùng ngày.
+> **Sửa đổi 2026-11-05 (owner):** P0 làm **trước** P2 (sửa OD-M4/§8, xem bên dưới). P0 đã thực hiện (draft PR, branch `refactor-p0-extract-core`). Có một sai lệch đã ghi nhận ở INV-2: vị trí của `IStudyTimePredictor` (§4.1).
 > **Thay thế:** mục *"Mobile / hybrid clients — revisit after LAN sync lands"* trong `system_roadmap.md` (deferred list).
 
 ---
@@ -50,6 +51,10 @@ tools/TokenGen              design-tokens.json → Wpf ResourceDictionary + Aval
 
 - **INV-1:** `SmartStudyPlanner.Core` không được tham chiếu `System.Windows.*`. (Hiện có 6 ViewModel + `ThemeManager` vi phạm, phải tách trước.)
 - **INV-2:** ML trong Core chỉ qua contract (`Core/ML/Contracts`). Mobile cài implementation "ML off" (heuristic fallback).
+  - *Sai lệch đã ghi nhận (P0, owner OQ-7, 2026-11-05):*
+    - `IStudyTimePredictor` và `StudyTimePredictionResult` đang ở Core tại `Services/ML/`, namespace `SmartStudyPlanner.Services.ML`, chứ chưa ở `Core/ML/Contracts`. Lý do: P0 không được đổi namespace.
+    - Core vẫn không tham chiếu ML.NET; `CoreAssemblyPurityTests` canh điều này.
+    - Follow-up: một PR riêng chuyển `IStudyTimePredictor` sang `Core/ML/Contracts`, có đổi namespace.
 
 ### 4.2 Sync (ràng buộc lên T2.1)
 
@@ -156,6 +161,12 @@ tools/TokenGen              design-tokens.json → Wpf ResourceDictionary + Aval
 | B | Tuần tự: xong E2 (T2.1–T2.5), rồi G3-1, rồi mới tới mobile. | An toàn nhất, không conflict. | Mobile bắt đầu rất muộn. |
 | C | Làm mobile ngay (P0, P2, P3 với dữ liệu giả), sync tính sau. | Sớm có app để xem, tạo động lực. | UI dựng trước khi contract sync ổn định thì dễ phải làm lại. Conflict với E2 nặng nhất. |
 
+**Sửa đổi 2026-11-05 (owner): P0 trước P2.**
+- Owner chốt thứ tự mới: chạy **P0 ngay**, sau đó tới G3-1 Phase 1.
+- **P2 TokenGen làm sau P0.** P2 chỉ đụng `Themes/` và `tools/`, nên không cần chen vào cửa sổ đóng băng của P0.
+- Thay cho cột "Khi nào" của dòng P0 và P2 trong §8 (cũ: P0 "Sau P2 và G3-1 Phase 0").
+- Lựa chọn A của OD-M4 vẫn giữ nguyên.
+
 ### OD-M5 — Giờ bắt đầu của phiên học (mở sau review #115) — **CHỐT 2026-10-31: A (khung giờ học tự đặt)**
 
 **Vấn đề.** Scheduler hiện tại chỉ chia **số phút mỗi ngày** cho từng task (`ScheduleDay.Tasks[].SoPhut`), không có giờ bắt đầu. Nguyên mẫu tab *Hôm nay* (07:30, 14:00...) và luật "nhắc 10 phút trước phiên" đều cần giờ bắt đầu.
@@ -172,12 +183,12 @@ Bối cảnh lúc chốt: #113/#114 đã merge; G3-1 Phase 0 đã có prompt, l�
 
 | Pha | Nội dung | Khi nào / phụ thuộc |
 |---|---|---|
-| P2 | `tools/TokenGen` + chuyển theme WPF sang token sinh ra (U-1, U-2). Chỉ đụng `Themes/` và `tools/`. | **Ngay**, song song với G3-1 Phase 0. |
-| P0 | Tách `SmartStudyPlanner.Core` (INV-1, INV-2), không đổi hành vi, test giữ xanh. **Một PR làm trong "cửa sổ đóng băng"**: không có PR code nào khác mở trong lúc này. **Giữ nguyên namespace**, chỉ đổi project, để git nhận diện rename. | Sau P2 và G3-1 Phase 0. **Trước** G3-1 Phase 1 và E2 Slice 6/T2.1. |
+| P2 | `tools/TokenGen` + chuyển theme WPF sang token sinh ra (U-1, U-2). Chỉ đụng `Themes/` và `tools/`. | ~~Ngay, song song với G3-1 Phase 0.~~ **Sau P0** (sửa đổi 2026-11-05, OD-M4). |
+| P0 | Tách `SmartStudyPlanner.Core` (INV-1, INV-2), không đổi hành vi, test giữ xanh. **Một PR làm trong "cửa sổ đóng băng"**: không có PR code nào khác mở trong lúc này. **Giữ nguyên namespace**, chỉ đổi project, để git nhận diện rename. **Trạng thái 2026-11-05: đã thực hiện**, draft PR vào `dev` chờ owner merge. 176 file rename R100; suite 1165/0/1 trên 1166 test (+1 là guard INV-1); warning set không đổi ([báo cáo](../reports/2026-11-05-p0-extract-core.md)). | ~~Sau P2 và G3-1 Phase 0.~~ **Sau G3-1 Phase 0, trước P2** (sửa đổi 2026-11-05). **Trước** G3-1 Phase 1 và E2 Slice 6/T2.1. |
 | P1 | T2.1 `ISyncTransport` + `LanTransport` + discovery (C-1, C-2) + ghép cặp QR/TLS (OD-M1). | Sau P0 và fence E2. |
 | P3 | Mobile shell Avalonia (Fluent + token, OD-M2): 3 tab, đọc dữ liệu đã sync. | Sau P0, P1, P2. |
 | P4 | Ghi từ phone: check-in, quick-add, Focus, lịch tạm (C-4, C-5). | Sau P3. |
 | P5 | Thông báo cục bộ do phone tự tính (OD-M3). | Sau P3. |
 | Sau | Tailscale, thông báo có nút bấm, widget, tính năng nhóm. | — |
 
-**Lưu ý:** báo cáo G3-1 Phase 0 trích đường dẫn theo cấu trúc cũ, sau P0 cần map lại.
+**Lưu ý:** báo cáo G3-1 Phase 0 trích đường dẫn theo cấu trúc cũ, sau P0 cần map lại. Bảng map cũ → mới ở [báo cáo P0 §9](../reports/2026-11-05-p0-extract-core.md).

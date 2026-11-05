@@ -4,6 +4,12 @@
 >
 > Format: one row per shipped change, newest first. Verification column shows the test count at the time of merge.
 
+## 2026-11-05 — Mobile **P0**: extract `SmartStudyPlanner.Core` (net10.0) from the WPF project — *structural refactor; no behaviour change, no schema change*
+
+| Area | Change | Verification |
+|---|---|---|
+| Mobile P0 (spec [2026-10-31](specs/2026-10-31-mobile-companion-direction.md) §4.1, §8; owner answers OQ-1..OQ-10, 2026-11-05) | **New project `SmartStudyPlanner.Core`** (`net10.0`, EF Core Sqlite only, `RootNamespace=SmartStudyPlanner`, IVT to the WPF app and Tests).<br><br>**What moved to Core:** `Models/`, `Data/`, `Infrastructure/`, `Core/`, `Sync/`, the non-UI `Services/`, and the five ML-free `Services/ML` files Core needs (`IStudyTimePredictor`, `DeviceIdentity`, `DeviceHelper`, `DefaultMlConfidencePolicy`, `IModelStorageProvider`). That is 176 files, `git mv`, R100, at the same path relative to the project; **namespaces unchanged**.<br><br>**What stays in the WPF app:** UI, the composition root `ServiceLocator`, `ThemeManager`, and every ML.NET implementation and schema (INV-2). It references Core.<br><br>**Tests:** the source-scanning guards (X-19, OD-5, N10, SyncApply audit, Fence/Merge/Soe/`IWorkloadService` scans) now point at both production roots, with path-only edits. The whole-tree scanners gained per-root non-vacuity floors. A new guard `CoreAssemblyPurityTests` checks INV-1/INV-2 on Core's referenced assemblies.<br><br>**Amendments and tickets:** OD-M4 amended (owner, 2026-11-05): P0 before P2 TokenGen. Known INV-2 deviation: `IStudyTimePredictor` sits in Core under `Services/ML`, not `Core/ML/Contracts`; ticket `2026-11-05-p0-ml-contract-relocation` filed. ([report](reports/2026-11-05-p0-extract-core.md)) | Draft PR — **1165 passed / 1 skipped / 1166 total**, 0 failed (baseline 1164 / 1 / 1165; +1 = the INV-1 guard, the only count change, owner OQ-10). Normalised build warning set identical (27 = 27; raw lines 96 → 88 as pre-registered). Mutants RED: empty WPF root (4 scanners) and an ML.NET reference planted in Core (guard). NOT RUN: GitNexus (stale index, owner OQ-8); app start / Dashboard / Workload Balancer (owner check) |
+
 ## 2026-10-16 — Epic 2 / T2.4 structural-conflict fence: **Slice 5 — task editor wired through the fence + X-19 write-path fence + OD-5 guard** — *behaviour change for editor saves that cross an unresolved conflict, and for `ThemTask` after a failed editor save; no schema change*
 
 | Area | Change | Verification |
