@@ -1,0 +1,267 @@
+# G3-1 Phase 0 -- SoeG31EffectSizeMeasurementTests stdout
+# base: origin/dev c58b0fa; Debug build; Windows 11; run 2026-11-05
+# cmd: dotnet test SmartStudyPlanner.Tests --filter FullyQualifiedName~SoeG31EffectSize --logger "console;verbosity=detailed"
+
+=== G3-1 effect size -- generated family (seed 20261105, today 2026-11-02) ===
+tasks {5,15,40,80,160} x density {tight,medium,loose} x capacity h {1,3,5,8} x 2 replicates
+ITEMS                   : 120
+SCHEDULE CHANGED BY OPT : 21
+VIOLATIONS  before/after: 5363 / 5363   (ConstraintValidator.ViolatingTaskCount, production boundary)
+VIOL CHUNKS before/after: 10534 / 10534   (ConstraintValidationResult.Violations.Count, chunk level)
+OVERDUE MIN before/after:671194 / 671194
+SCORE SUM   before/after: 116.1299 / 125.4998
+SCORE improved/worse    : 21 / 0
+TERMINATION             : Terminated_FixedPoint: 113 · Terminated_PassLimit: 7
+PASSES histogram        : 1p=99, 2p=6, 3p=5, 4p=10
+
+Changed scenarios        : 21/120 (17.5%)
+Objective delta (all)    : +9.3699 on sum 116.1299 (+8.07%)
+Delta on changed (abs)   : min 0.0752  median 0.4025  max 0.9613
+Delta on changed (rel)   : min 5.27%  median 45.10%  max 89.87%
+Term deltas on changed   : LB +3.0763  CC +0.1141  SQ +0.0000  FP +6.1795  FR +0.0000  (sums)
+Chunks moved / minutes   : 52 of 13368 chunks; 5655 min
+Move direction           : later 26 / earlier 26
+Max-min spread (sum)     : 15741 -> 12187 min
+Day-0 (today) changed    : 21 scenarios; today minutes 30410 -> 28769
+Projection hazards (new) : same-task-same-day 8; '(Phần n)' order breaks 10
+Newly past deadline      : 0 chunks
+Over capacity after Opt  : 0 scenarios; days emptied 0
+Violations changed       : 0 scenarios
+Reason codes (C1, all passes): Selected: 53 · Rejected_Infeasible: 48 · Rejected_LowerScore: 7 · Rejected_NoImprovement: 58
+Final-pass reason, unchanged scenarios: Rejected_Infeasible: 47 · Rejected_LowerScore: 2 · Rejected_NoImprovement: 50
+
+By task count:
+  tasks=5    n= 24 changed=  9 ( 37.5%) dScore=+12.83% moved=  16/  201 later/earlier=12/4 day0Chg=  9 viol=19->19 unchangedBy[infeasible/noop]=5/8
+  tasks=15   n= 24 changed=  7 ( 29.2%) dScore=+16.05% moved=  19/  667 later/earlier=9/10 day0Chg=  7 viol=132->132 unchangedBy[infeasible/noop]=7/10
+  tasks=40   n= 24 changed=  3 ( 12.5%) dScore= +5.20% moved=  12/ 1803 later/earlier=3/9 day0Chg=  3 viol=590->590 unchangedBy[infeasible/noop]=12/9
+  tasks=80   n= 24 changed=  2 (  8.3%) dScore= +1.52% moved=   5/ 3544 later/earlier=2/3 day0Chg=  2 viol=1395->1395 unchangedBy[infeasible/noop]=12/10
+  tasks=160  n= 24 changed=  0 (  0.0%) dScore= +0.00% moved=   0/ 7153 later/earlier=0/0 day0Chg=  0 viol=3227->3227 unchangedBy[infeasible/noop]=11/13
+By density:
+  loose      n= 40 changed= 11 ( 27.5%) dScore=+12.60% moved=  29/ 4452 later/earlier=11/18 day0Chg= 11 viol=1211->1211 unchangedBy[infeasible/noop]=10/17
+  medium     n= 40 changed=  8 ( 20.0%) dScore=+10.16% moved=  21/ 4441 later/earlier=13/8 day0Chg=  8 viol=1926->1926 unchangedBy[infeasible/noop]=15/17
+  tight      n= 40 changed=  2 (  5.0%) dScore= +1.44% moved=   2/ 4475 later/earlier=2/0 day0Chg=  2 viol=2226->2226 unchangedBy[infeasible/noop]=22/16
+By capacity:
+  cap=1   h n= 30 changed=  0 (  0.0%) dScore= +0.00% moved=   0/ 5533 later/earlier=0/0 day0Chg=  0 viol=1657->1657 unchangedBy[infeasible/noop]=3/27
+  cap=3   h n= 30 changed=  4 ( 13.3%) dScore= +6.01% moved=   8/ 3045 later/earlier=4/4 day0Chg=  4 viol=1426->1426 unchangedBy[infeasible/noop]=16/9
+  cap=5   h n= 30 changed=  7 ( 23.3%) dScore=+14.46% moved=  16/ 2533 later/earlier=8/8 day0Chg=  7 viol=1238->1238 unchangedBy[infeasible/noop]=15/7
+  cap=8   h n= 30 changed= 10 ( 33.3%) dScore=+12.91% moved=  28/ 2257 later/earlier=14/14 day0Chg= 10 viol=1042->1042 unchangedBy[infeasible/noop]=13/7
+
+All scenarios:
+id                         chunks days  viol in>out  overdue in>out  score in>out        passes kStars term  moved min  later/earl spread in>out day0 in>out  sameDay partBrk ms
+G31-n5-tight-c1-r0             11    7     2>2        176>176       1.3935>1.3935         1 0      FP       0    0     0/0         4>4        60>60          0       0 22.085
+G31-n5-tight-c1-r1             14   11     4>4        557>557       1.1501>1.1501         1 0      FP       0    0     0/0        32>32       60>60          0       0 2.725
+G31-n5-tight-c3-r0              9    5     4>4        544>544       0.8398>0.8398         1 0      FP       0    0     0/0        19>19      180>180         0       0 0.068
+G31-n5-tight-c3-r1              5    2     0>0          0>0         2.2500>2.5000         2 10     FP       1   90     1/0        90>90      180>90          0       0 0.047
+G31-n5-tight-c5-r0              6    2     1>1        109>109       2.2398>2.2398         1 0      FP       0    0     0/0        55>55      300>300         0       0 0.025
+G31-n5-tight-c5-r1              8    4     3>3        417>417       0.7053>0.7053         1 0      FP       0    0     0/0       296>296     300>300         0       0 0.048
+G31-n5-tight-c8-r0              6    2     1>1        182>182       1.7405>2.0463         2 10     FP       1  148     1/0       295>1       480>332         0       0 0.059
+G31-n5-tight-c8-r1              6    2     0>0          0>0         2.0316>2.0316         1 0      FP       0    0     0/0       343>343     480>480         0       0 0.025
+G31-n5-medium-c1-r0            12    8     1>1         21>21        1.1626>1.1626         1 0      FP       0    0     0/0        14>14       60>60          0       0 0.044
+G31-n5-medium-c1-r1            14   10     3>3        321>321       1.0929>1.0929         1 0      FP       0    0     0/0        26>26       60>60          0       0 0.099
+G31-n5-medium-c3-r0             7    3     0>0          0>0         1.7289>1.7289         1 0      FP       0    0     0/0        36>36      180>180         0       0 0.046
+G31-n5-medium-c3-r1             8    4     0>0          0>0         1.1359>1.1359         1 0      FP       0    0     0/0        78>78      180>180         0       0 0.036
+G31-n5-medium-c5-r0             7    3     0>0          0>0         1.1640>1.9665         3 110    FP       2  285     1/1       291>51      300>235         0       1 0.093
+G31-n5-medium-c5-r1             7    3     0>0          0>0         1.2301>1.8918         4 1110   FP       2  153     2/0       155>38      300>237         1       0 0.119
+G31-n5-medium-c8-r0             6    2     0>0          0>0         1.7823>1.8762         3 110    FP       2  201     2/0       374>28      480>279         0       0 0.117
+G31-n5-medium-c8-r1             6    2     0>0          0>0         1.4862>1.8887         4 1111   PL       4  308     2/2       446>34      480>240         0       1 0.088
+G31-n5-loose-c1-r0             15   11     0>0          0>0         1.1878>1.1878         1 0      FP       0    0     0/0        32>32       60>60          0       0 0.048
+G31-n5-loose-c1-r1             14   10     0>0          0>0         1.1276>1.1276         1 0      FP       0    0     0/0         1>1        60>60          0       0 0.062
+G31-n5-loose-c3-r0              8    4     0>0          0>0         1.1005>2.0618         3 110    FP       2  129     1/1       156>72      180>141         1       0 0.109
+G31-n5-loose-c3-r1              8    4     0>0          0>0         1.4702>1.4702         1 0      FP       0    0     0/0       103>103     180>180         0       0 0.033
+G31-n5-loose-c5-r0              7    3     0>0          0>0         1.1636>1.9715         2 10     FP       1  152     1/0       271>152     300>148         0       0 0.056
+G31-n5-loose-c5-r1              6    2     0>0          0>0         2.1761>2.1761         1 0      FP       0    0     0/0       183>183     300>300         0       0 0.023
+G31-n5-loose-c8-r0              5    1     0>0          0>0         2.4151>2.4151         1 0      FP       0    0     0/0         0>0       290>290         0       0 0.138
+G31-n5-loose-c8-r1              6    2     0>0          0>0         1.8730>2.1610         2 10     FP       1  172     1/0       465>121     480>308         1       0 0.056
+G31-n15-tight-c1-r0            47   33    14>14      1769>1769      0.9415>0.9415         1 0      FP       0    0     0/0        31>31       60>60          0       0 0.361
+G31-n15-tight-c1-r1            47   34    14>14      1804>1804      0.9280>0.9280         1 0      FP       0    0     0/0        56>56       60>60          0       0 0.142
+G31-n15-tight-c3-r0            22    8    13>13      1053>1053      0.9532>0.9532         1 0      FP       0    0     0/0       115>115     180>180         0       0 0.072
+G31-n15-tight-c3-r1            22    8    10>10       867>867       0.9808>0.9808         1 0      FP       0    0     0/0       120>120     180>180         0       0 0.064
+G31-n15-tight-c5-r0            22    8    11>11      1634>1634      0.7423>0.7423         1 0      FP       0    0     0/0       101>101     300>300         0       0 0.092
+G31-n15-tight-c5-r1            21    7     7>7        990>990       0.8062>0.8062         1 0      FP       0    0     0/0       141>141     300>300         0       0 0.093
+G31-n15-tight-c8-r0            19    5     8>8        865>865       0.7957>0.7957         1 0      FP       0    0     0/0       298>298     480>480         0       0 0.061
+G31-n15-tight-c8-r1            18    4     3>3        136>136       0.8629>0.8629         1 0      FP       0    0     0/0       393>393     480>480         0       0 0.050
+G31-n15-medium-c1-r0           50   37    11>11      1429>1429      0.9051>0.9051         1 0      FP       0    0     0/0        57>57       60>60          0       0 0.132
+G31-n15-medium-c1-r1           47   33    11>11      1581>1581      2.0378>2.0378         1 0      FP       0    0     0/0         0>0        60>60          0       0 0.153
+G31-n15-medium-c3-r0           24   10     6>6        660>660       0.7987>0.7987         1 0      FP       0    0     0/0       169>169     180>180         0       0 0.069
+G31-n15-medium-c3-r1           27   13     7>7        704>704       0.9238>0.9238         1 0      FP       0    0     0/0        68>68      180>180         0       0 0.076
+G31-n15-medium-c5-r0           18    4     2>2         32>32        1.1781>1.8410         3 110    FP       2  187     1/1       168>76      300>265         0       0 0.346
+G31-n15-medium-c5-r1           22    9     3>3        595>595       0.6527>0.6527         1 0      FP       0    0     0/0       261>261     300>300         0       0 0.087
+G31-n15-medium-c8-r0           19    5     3>3        447>447       0.8657>1.1254         2 10     FP       1   12     1/0        37>25      480>468         0       1 0.120
+G31-n15-medium-c8-r1           18    4     0>0          0>0         0.9800>1.8205         4 1111   PL       4  672     3/1       441>114     480>312         1       0 0.665
+G31-n15-loose-c1-r0            46   32     2>2        303>303       0.8855>0.8855         1 0      FP       0    0     0/0        55>55       60>60          0       0 0.140
+G31-n15-loose-c1-r1            45   31     6>6        881>881       0.9166>0.9166         1 0      FP       0    0     0/0        41>41       60>60          0       0 0.148
+G31-n15-loose-c3-r0            27   13     1>1        156>156       0.6948>1.1530         4 1111   PL       4  413     1/3       172>57      180>163         2       0 0.308
+G31-n15-loose-c3-r1            25   12     0>0          0>0         0.9008>0.9761         2 10     FP       1    9     1/0        52>43      180>171         0       1 0.150
+G31-n15-loose-c5-r0            20    6     0>0          0>0         0.9867>0.9867         1 0      FP       0    0     0/0        13>13      300>300         0       0 0.059
+G31-n15-loose-c5-r1            22    8     0>0          0>0         0.6107>1.1410         4 1110   FP       3  321     1/2       231>106     300>279         0       1 0.245
+G31-n15-loose-c8-r0            20    6     0>0          0>0         0.6131>0.6131         1 0      FP       0    0     0/0       236>236     480>480         0       0 0.062
+G31-n15-loose-c8-r1            19    5     0>0          0>0         0.7288>1.3838         4 1111   PL       4  271     1/3       170>30      480>439         0       3 0.191
+G31-n40-tight-c1-r0           122   83    39>39      4758>4758      0.9247>0.9247         1 0      FP       0    0     0/0        42>42       60>60          0       0 0.294
+G31-n40-tight-c1-r1           120   81    39>39      4724>4724      0.9491>0.9491         1 0      FP       0    0     0/0        16>16       60>60          0       0 0.342
+G31-n40-tight-c3-r0            67   28    37>37      4487>4487      0.8943>0.8943         1 0      FP       0    0     0/0        71>71      180>180         0       0 0.143
+G31-n40-tight-c3-r1            69   30    36>36      4630>4630      0.8005>0.8005         1 0      FP       0    0     0/0       174>174     180>180         0       0 0.165
+G31-n40-tight-c5-r0            57   18    35>35      4478>4478      0.6209>0.6209         1 0      FP       0    0     0/0       291>291     300>300         0       0 0.149
+G31-n40-tight-c5-r1            58   19    33>33      4437>4437      0.6868>0.6868         1 0      FP       0    0     0/0       196>196     300>300         0       0 0.150
+G31-n40-tight-c8-r0            50   11    34>34      4203>4203      0.6311>0.6311         1 0      FP       0    0     0/0       472>472     480>480         0       0 0.135
+G31-n40-tight-c8-r1            49   10    30>30      3029>3029      0.7031>0.7031         1 0      FP       0    0     0/0       408>408     480>480         0       0 0.124
+G31-n40-medium-c1-r0          120   81    38>38      4223>4223      0.9949>0.9949         1 0      FP       0    0     0/0        13>13       60>60          0       0 0.414
+G31-n40-medium-c1-r1          131   92    38>38      5190>5190      0.9936>0.9936         1 0      FP       0    0     0/0        21>21       60>60          0       0 0.449
+G31-n40-medium-c3-r0           70   31    29>29      3986>3986      0.8229>0.8229         1 0      FP       0    0     0/0        45>45      180>180         0       0 0.193
+G31-n40-medium-c3-r1           67   29    29>29      3653>3653      0.9035>0.9035         1 0      FP       0    0     0/0        10>10      180>180         0       0 0.188
+G31-n40-medium-c5-r0           60   21    30>30      4393>4393      0.7353>0.7353         1 0      FP       0    0     0/0        33>33      300>300         0       0 0.157
+G31-n40-medium-c5-r1           57   18    24>24      3166>3166      0.7402>0.7402         1 0      FP       0    0     0/0       247>247     300>300         0       0 0.154
+G31-n40-medium-c8-r0           50   11    10>10      1161>1161      0.7866>0.9989         4 1111   PL       4  350     1/3       143>78      480>476         1       1 0.507
+G31-n40-medium-c8-r1           50   11    15>15      1639>1639      0.6485>0.6485         1 0      FP       0    0     0/0       409>409     480>480         0       0 0.142
+G31-n40-loose-c1-r0           125   86    31>31      4119>4119      0.9818>0.9818         1 0      FP       0    0     0/0         1>1        60>60          0       0 0.320
+G31-n40-loose-c1-r1           125   88    30>30      3922>3922      1.0460>1.0460         1 0      FP       0    0     0/0         8>8        60>60          0       0 0.322
+G31-n40-loose-c3-r0            73   34    15>15      2121>2121      0.8470>0.8470         1 0      FP       0    0     0/0        38>38      180>180         0       0 0.180
+G31-n40-loose-c3-r1            70   32    11>11      1701>1701      0.8647>0.8647         1 0      FP       0    0     0/0        27>27      180>180         0       0 0.173
+G31-n40-loose-c5-r0            56   17     3>3        276>276       0.7647>0.7647         1 0      FP       0    0     0/0       192>192     300>300         0       0 0.124
+G31-n40-loose-c5-r1            57   18     4>4        328>328       0.6901>1.0013         4 1111   PL       4  564     1/3       290>122     300>280         0       0 0.496
+G31-n40-loose-c8-r0            51   12     0>0          0>0         0.7277>0.7277         1 0      FP       0    0     0/0        56>56      480>480         0       0 0.113
+G31-n40-loose-c8-r1            49   10     0>0          0>0         0.7783>1.2712         4 1111   PL       4  457     1/3       252>66      480>430         0       1 0.412
+G31-n80-tight-c1-r0           250  174    79>79     10230>10230     0.9473>0.9473         1 0      FP       0    0     0/0        52>52       60>60          0       0 0.789
+G31-n80-tight-c1-r1           260  182    79>79     10742>10742     0.9524>0.9524         1 0      FP       0    0     0/0        37>37       60>60          0       0 0.631
+G31-n80-tight-c3-r0           134   56    77>77      9503>9503      0.8692>0.8692         1 0      FP       0    0     0/0        70>70      180>180         0       0 0.303
+G31-n80-tight-c3-r1           135   56    77>77      9655>9655      0.8569>0.8569         1 0      FP       0    0     0/0        65>65      180>180         0       0 0.338
+G31-n80-tight-c5-r0           112   33    77>77      9449>9449      0.8267>0.8267         1 0      FP       0    0     0/0        59>59      300>300         0       0 0.262
+G31-n80-tight-c5-r1           114   35    72>72      9396>9396      0.6764>0.6764         1 0      FP       0    0     0/0       230>230     300>300         0       0 0.263
+G31-n80-tight-c8-r0           102   23    72>72      9878>9878      0.6965>0.6965         1 0      FP       0    0     0/0        62>62      480>480         0       0 0.235
+G31-n80-tight-c8-r1           101   22    72>72      9218>9218      0.7449>0.7449         1 0      FP       0    0     0/0        89>89      480>480         0       0 0.226
+G31-n80-medium-c1-r0          244  168    76>76      9746>9746      1.0168>1.0168         1 0      FP       0    0     0/0        16>16       60>60          0       0 1.366
+G31-n80-medium-c1-r1          233  156    76>76      9014>9014      0.9463>0.9463         1 0      FP       0    0     0/0        46>46       60>60          0       0 0.615
+G31-n80-medium-c3-r0          132   53    69>69      8022>8022      0.8256>0.8256         1 0      FP       0    0     0/0        37>37      180>180         0       0 0.385
+G31-n80-medium-c3-r1          134   56    70>70      8691>8691      0.8873>0.8873         1 0      FP       0    0     0/0        51>51      180>180         0       0 0.334
+G31-n80-medium-c5-r0          112   34    63>63      7972>7972      0.6214>0.6214         1 0      FP       0    0     0/0       299>299     300>300         0       0 0.255
+G31-n80-medium-c5-r1          114   35    63>63      8064>8064      0.7121>0.7121         1 0      FP       0    0     0/0       265>265     300>300         0       0 0.252
+G31-n80-medium-c8-r0           98   19    46>46      5249>5249      0.8397>0.8397         1 0      FP       0    0     0/0        11>11      480>480         0       0 0.215
+G31-n80-medium-c8-r1          100   21    49>49      6079>6079      0.6950>0.6950         1 0      FP       0    0     0/0       221>221     480>480         0       0 0.209
+G31-n80-loose-c1-r0           240  165    69>69      8398>8398      0.9945>0.9945         1 0      FP       0    0     0/0        27>27       60>60          0       0 0.607
+G31-n80-loose-c1-r1           230  153    67>67      7533>7533      0.9368>0.9368         1 0      FP       0    0     0/0        51>51       60>60          0       0 0.601
+G31-n80-loose-c3-r0           137   58    37>37      4699>4699      0.8345>0.8345         1 0      FP       0    0     0/0        16>16      180>180         0       0 0.327
+G31-n80-loose-c3-r1           134   55    44>44      5171>5171      0.8986>0.8986         1 0      FP       0    0     0/0        55>55      180>180         0       0 0.311
+G31-n80-loose-c5-r0           113   34    22>22      2434>2434      0.6455>0.7424         3 110    FP       2  267     1/1       283>137     300>275         0       0 0.703
+G31-n80-loose-c5-r1           112   33    22>22      2878>2878      0.8558>0.8558         1 0      FP       0    0     0/0        57>57      300>300         0       0 0.312
+G31-n80-loose-c8-r0           102   23     7>7        781>781       0.6506>0.8517         4 1110   FP       3  494     1/2       344>131     480>411         1       0 1.455
+G31-n80-loose-c8-r1           101   22    10>10      1248>1248      0.6825>0.6825         1 0      FP       0    0     0/0        36>36      480>480         0       0 0.207
+G31-n160-tight-c1-r0          481  324   160>160    19289>19289     0.9573>0.9573         1 0      FP       0    0     0/0        56>56       60>60          0       0 1.303
+G31-n160-tight-c1-r1          511  356   160>160    21196>21196     0.9818>0.9818         1 0      FP       0    0     0/0        40>40       60>60          0       0 1.471
+G31-n160-tight-c3-r0          276  117   158>158    20529>20529     0.8001>0.8001         1 0      FP       0    0     0/0       168>168     180>180         0       0 0.614
+G31-n160-tight-c3-r1          276  117   157>157    20601>20601     0.8495>0.8495         1 0      FP       0    0     0/0        26>26      180>180         0       0 0.579
+G31-n160-tight-c5-r0          226   67   154>154    19141>19141     0.6954>0.6954         1 0      FP       0    0     0/0       282>282     300>300         0       0 0.459
+G31-n160-tight-c5-r1          224   65   152>152    18507>18507     0.7975>0.7975         1 0      FP       0    0     0/0        45>45      300>300         0       0 0.491
+G31-n160-tight-c8-r0          198   39   151>151    17691>17691     0.7801>0.7801         1 0      FP       0    0     0/0        38>38      480>480         0       0 0.421
+G31-n160-tight-c8-r1          200   41   151>151    18141>18141     0.6753>0.6753         1 0      FP       0    0     0/0       388>388     480>480         0       0 0.412
+G31-n160-medium-c1-r0         487  334   157>157    19682>19682     0.9453>0.9453         1 0      FP       0    0     0/0        59>59       60>60          0       0 1.167
+G31-n160-medium-c1-r1         494  339   155>155    19491>19491     0.9510>0.9510         1 0      FP       0    0     0/0        51>51       60>60          0       0 1.161
+G31-n160-medium-c3-r0         273  114   149>149    18725>18725     0.7807>0.7807         1 0      FP       0    0     0/0       143>143     180>180         0       0 0.550
+G31-n160-medium-c3-r1         270  111   145>145    18128>18128     0.8498>0.8498         1 0      FP       0    0     0/0        26>26      180>180         0       0 0.529
+G31-n160-medium-c5-r0         221   64   142>142    16380>16380     0.7396>0.7396         1 0      FP       0    0     0/0       288>288     300>300         0       0 0.407
+G31-n160-medium-c5-r1         227   69   146>146    18360>18360     0.7772>0.7772         1 0      FP       0    0     0/0        75>75      300>300         0       0 0.437
+G31-n160-medium-c8-r0         203   44   129>129    16879>16879     0.7000>0.7000         1 0      FP       0    0     0/0       266>266     480>480         0       0 0.364
+G31-n160-medium-c8-r1         202   45   131>131    17397>17397     0.7062>0.7062         1 0      FP       0    0     0/0       185>185     480>480         0       0 0.348
+G31-n160-loose-c1-r0          504  348   147>147    19252>19252     0.9825>0.9825         1 0      FP       0    0     0/0        19>19       60>60          0       0 1.134
+G31-n160-loose-c1-r1          494  336   149>149    18634>18634     1.0045>1.0045         1 0      FP       0    0     0/0         1>1        60>60          0       0 1.068
+G31-n160-loose-c3-r0          268  109   122>122    14882>14882     0.8287>0.8287         1 0      FP       0    0     0/0        25>25      180>180         0       0 0.527
+G31-n160-loose-c3-r1          268  111   123>123    15028>15028     0.8520>0.8520         1 0      FP       0    0     0/0        14>14      180>180         0       0 0.522
+G31-n160-loose-c5-r0          224   66    90>90     11260>11260     0.7690>0.7690         1 0      FP       0    0     0/0       133>133     300>300         0       0 0.446
+G31-n160-loose-c5-r1          223   65    79>79     10215>10215     0.7762>0.7762         1 0      FP       0    0     0/0       187>187     300>300         0       0 0.408
+G31-n160-loose-c8-r0          203   44    64>64      8150>8150      0.6810>0.6810         1 0      FP       0    0     0/0        99>99      480>480         0       0 0.354
+G31-n160-loose-c8-r1          200   41    56>56      6729>6729      0.7627>0.7627         1 0      FP       0    0     0/0         2>2       480>480         0       0 0.350
+
+
+=== G3-1 latency -- per call, ms (Stopwatch, Debug build, this machine) ===
+allocator = SoeScheduleMetrics.RunScenarioWithIdentity (includes building the HocKy fixture: an upper bound on GenerateScheduleWithIdentity)
+
+tasks  chunks(max)  alloc p50/p95/max      optimize p50/p95/max   alloc+opt p95
+    5           15   0.026/ 0.059/  1.576   0.043/ 0.093/  0.151     0.129
+   15           50   0.096/ 0.220/  1.424   0.128/ 0.295/  0.729     0.408
+   40          131   0.254/ 0.677/  2.858   0.171/ 0.537/  4.997     1.044
+   80          260   0.639/ 2.000/  2.703   0.264/ 0.695/  2.255     2.652
+  160          511   0.882/ 7.439/  8.730   0.279/ 1.104/  3.158     8.523
+
+=== G3-1 telemetry -- OptimizerRunLogs rows per Optimize call (n=120 generated scenarios) ===
+  2 rows: 99 calls
+  4 rows: 6 calls
+  6 rows: 5 calls
+  8 rows: 10 calls
+  Persist on file-backed SQLite: p50=20.639 p95=36.338 max=183.412 ms
+
+
+=== G3-1 effect size -- T3.6 corpus (SoeCorpusGenerator seed 12345), S0 = allocator, S = Optimize(S0) ===
+ITEMS                   : 230
+SCHEDULE CHANGED BY OPT : 36
+VIOLATIONS  before/after: 328 / 328   (ConstraintValidator.ViolatingTaskCount, production boundary)
+VIOL CHUNKS before/after: 862 / 862   (ConstraintValidationResult.Violations.Count, chunk level)
+OVERDUE MIN before/after:50480 / 50480
+SCORE SUM   before/after: 437.8589 / 450.0417
+SCORE improved/worse    : 36 / 0
+TERMINATION             : Terminated_FixedPoint: 229 · Terminated_PassLimit: 1
+PASSES histogram        : 1p=194, 2p=24, 3p=11, 4p=1
+
+Changed scenarios        : 36/230 (15.7%)
+Objective delta (all)    : +12.1828 on sum 437.8589 (+2.78%)
+Delta on changed (abs)   : min 0.0868  median 0.2500  max 1.0425
+Delta on changed (rel)   : min 4.02%  median 14.26%  max 111.91%
+Term deltas on changed   : LB +7.2264  CC +0.3083  SQ +0.0000  FP +4.6480  FR +0.0000  (sums)
+Chunks moved / minutes   : 50 of 1873 chunks; 2295 min
+Move direction           : later 37 / earlier 13
+Max-min spread (sum)     : 9275 -> 7390 min
+Day-0 (today) changed    : 36 scenarios; today minutes 20735 -> 19590
+Projection hazards (new) : same-task-same-day 17; '(Phần n)' order breaks 7
+Newly past deadline      : 0 chunks
+Over capacity after Opt  : 0 scenarios; days emptied 0
+Violations changed       : 0 scenarios
+Reason codes (C1, all passes): Selected: 50 · Rejected_Infeasible: 3 · Rejected_LowerScore: 4 · Rejected_NoImprovement: 222
+Final-pass reason, unchanged scenarios: Rejected_Infeasible: 3 · Rejected_LowerScore: 1 · Rejected_NoImprovement: 190
+
+Per category:
+  capacity-edge  n= 10 changed=  0 dScoreSum=+0.0000 day0Changed=  0
+  infeasible     n= 60 changed=  0 dScoreSum=+0.0000 day0Changed=  0
+  inversion      n= 40 changed=  6 dScoreSum=+1.3750 day0Changed=  6
+  mixed-random   n= 60 changed= 10 dScoreSum=+4.4390 day0Changed= 10
+  overdue        n= 20 changed=  6 dScoreSum=+0.8493 day0Changed=  6
+  tie            n= 20 changed= 11 dScoreSum=+4.6445 day0Changed= 11
+  window-boundary n= 20 changed=  3 dScoreSum=+0.8750 day0Changed=  3
+
+Changed items only:
+id                         chunks days  viol in>out  overdue in>out  score in>out        passes kStars term  moved min  later/earl spread in>out day0 in>out  sameDay partBrk ms
+INV-005                         3    2     0>0          0>0         2.4167>2.6667         2 10     FP       1   30     1/0        60>0       120>90          1       0 -
+INV-008                         3    2     0>0          0>0         2.2917>2.5000         2 10     FP       1   60     1/0        90>30      120>60          0       0 -
+INV-017                         3    2     0>0          0>0         2.4167>2.6667         2 10     FP       1   30     1/0        60>0       120>90          1       0 -
+INV-020                         3    2     0>0          0>0         2.2917>2.5000         2 10     FP       1   60     1/0        90>30      120>60          1       0 -
+INV-029                         3    2     0>0          0>0         2.4167>2.6667         2 10     FP       1   30     1/0        60>0       120>90          1       0 -
+INV-032                         3    2     0>0          0>0         2.2917>2.5000         2 10     FP       1   60     1/0        90>30      120>60          1       0 -
+TIE-000                         3    2     0>0          0>0         2.1583>2.3667         2 10     FP       1   30     1/0        45>15       60>30          0       0 -
+TIE-001                         4    2     0>0          0>0         2.1125>2.4500         2 10     FP       1   60     1/0       105>15      120>60          0       0 -
+TIE-004                         5    3     0>0          0>0         1.6196>2.4400         3 110    FP       2   45     1/1        45>0        60>45          1       0 -
+TIE-006                         3    2     0>0          0>0         2.1583>2.3667         2 10     FP       1   30     1/0        45>15       60>30          0       0 -
+TIE-007                         4    2     0>0          0>0         2.1125>2.4500         2 10     FP       1   60     1/0       105>15      120>60          0       0 -
+TIE-010                         5    3     0>0          0>0         1.6196>2.4400         3 110    FP       2   45     1/1        45>0        60>45          0       1 -
+TIE-012                         3    2     0>0          0>0         2.1583>2.3667         2 10     FP       1   30     1/0        45>15       60>30          0       0 -
+TIE-013                         4    2     0>0          0>0         2.1125>2.4500         2 10     FP       1   60     1/0       105>15      120>60          0       0 -
+TIE-016                         5    3     0>0          0>0         1.6196>2.4400         3 110    FP       2   45     1/1        45>0        60>45          1       0 -
+TIE-018                         3    2     0>0          0>0         2.1583>2.3667         2 10     FP       1   30     1/0        45>15       60>30          0       0 -
+TIE-019                         4    2     0>0          0>0         2.1125>2.4500         2 10     FP       1   60     1/0       105>15      120>60          0       0 -
+ODUE-001                        3    2     1>1         60>60        2.2444>2.3417         2 10     FP       1   10     1/0        40>20       90>80          1       0 -
+ODUE-002                        3    2     1>1         75>75        2.2921>2.4380         2 10     FP       1   20     1/0        65>25      120>100         1       0 -
+ODUE-010                        3    2     1>1         75>75        2.4167>2.5667         2 10     FP       1   30     1/0        45>15       90>60          1       0 -
+ODUE-011                        3    2     1>1         90>90        2.3750>2.6111         2 10     FP       1   40     1/0        70>10      120>80          1       0 -
+ODUE-016                        3    2     1>1         45>45        2.1611>2.2479         2 10     FP       1   10     1/0        55>35       90>80          1       0 -
+ODUE-017                        3    2     1>1         60>60        2.2296>2.3630         2 10     FP       1   20     1/0        80>40      120>100         1       0 -
+WIN-005                         3    2     0>0          0>0         1.9833>2.2750         3 110    FP       2   50     1/1        50>10       60>30          1       0 -
+WIN-010                         3    2     0>0          0>0         1.9833>2.2750         3 110    FP       2   50     1/1        50>10       60>30          1       0 -
+WIN-015                         3    2     0>0          0>0         1.9833>2.2750         3 110    FP       2   50     1/1        50>10       60>30          1       0 -
+MIX-004                        11    9     1>1        260>260       1.2038>1.3755         2 10     FP       1   50     1/0        70>50       90>40          0       1 -
+MIX-008                        11    5     0>0          0>0         0.9316>1.9741         4 1111   PL       4  220     1/3       180>40      240>220         0       2 -
+MIX-012                         5    2     2>2        200>200       2.2756>2.6089         3 110    FP       2  200     1/1       160>0       240>160         0       0 -
+MIX-019                        13   10     1>1        260>260       1.1731>1.3095         2 10     FP       1   10     1/0        60>50       90>80          0       1 -
+MIX-022                        11    6     0>0          0>0         0.6642>1.1905         3 110    FP       2  360     1/1       220>180     240>240         0       0 -
+MIX-024                        12    7     1>1        120>120       1.0322>1.2296         2 10     FP       1   40     1/0        60>40      180>140         0       0 -
+MIX-025                        12    8     0>0          0>0         1.2476>1.4761         2 10     FP       1   10     1/0        20>10       90>80          0       1 -
+MIX-032                         7    3     0>0          0>0         1.5683>2.2290         3 110    FP       2  260     1/1       200>100     240>220         0       1 -
+MIX-042                         6    4     2>2        300>300       1.5887>2.3222         3 110    FP       2   40     1/1        40>20       90>90          0       0 -
+MIX-059                        17    8     4>4        500>500       0.8020>1.2106         3 110    FP       2   60     2/0       200>140     240>220         1       0 -
+
+
+
