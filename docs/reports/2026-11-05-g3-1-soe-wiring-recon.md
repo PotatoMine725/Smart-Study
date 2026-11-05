@@ -23,17 +23,18 @@ code, not from running it. **NOT RUN** means it was not executed.
   objective by **+2.78%**. It never repairs a deadline violation: tasks 328→328, chunks 862→862, overdue
   minutes 50 480→50 480. It never makes a score worse. These figures reproduce the deleted 2026-08-20
   probe (doc-sync report §2) **line for line**, so that recollection is now a committed, re-runnable
-  measurement (closes doc-sync follow-up **M-1**).
+  measurement (closes doc-sync follow-up **M-1** once this PR is merged).
 - **Generated family (120 scenarios).** **21 of 120** change (17.5%), objective **+8.07%**, violations
   again unchanged everywhere. **The effect shrinks as the semester grows**: 37.5% of scenarios change at
   5 tasks, 8.3% at 80, **0% at 160**. It is also zero at 1 h/day capacity and 5% under tight deadlines.
   In the scenarios Optimize leaves alone, the most common reason at the larger sizes is that the
   deadline gate rejected the proposed move (`Rejected_Infeasible`).
-- **What a user would see.** In **55 of the 57** changed scenarios (corpus + family), today's planned
-  minutes **go down**. In the other 2 they stay the same. They **never go up**. The stage moves a chunk
-  from the fullest day (today, under earliest-feasible packing) to the lightest used day, which is
-  usually the last one. On the Dashboard, which only shows today, wiring Optimize therefore means
-  "today's plan gets shorter" in roughly one schedule in six on the corpus. Moves also create new
+- **What a user would see.** Across corpus + family, today's planned minutes **never go up**. They
+  **go down in 55 of the 57** changed scenarios and stay the same in the other 2. Earliest-feasible
+  packing makes today the fullest day, so it is the stage's usual source. Moves go to a later day in
+  37 of 50 on the corpus and in 26 of 52 on the family, where the other half go earlier. On the
+  Dashboard, which only shows today, wiring Optimize therefore means "today's plan gets shorter" in
+  roughly one schedule in six on the corpus. Moves also create new
   display oddities: two "(Phần n)" rows of the same task on one day (25 new cases), and part numbers
   out of date order (17 cases).
 - **Cost.** Negligible on the UI thread: Optimize p95 is ≤ 1.2 ms at 160 tasks / 511 chunks. Persisting
@@ -177,7 +178,7 @@ chunk, so the stage is a no-op.
 | `IWorkloadService` signature | Unchanged | **Changes**: the stage only sees `IWorkloadService`, whose sole schedule member returns `List<ScheduleDay>` (identity already lost). It needs `GenerateScheduleWithIdentity` made public on the interface, or a new port | Unchanged | Unchanged |
 | Projection `ScheduledItem → ScheduleDay` | Inside the impl: keep the allocator's `Days` frame (7-day window, "Hôm nay"/"Ngày mai" names, overflow days), clear `Tasks`/`TotalMinutes`, then re-add the optimized items grouped by `Date`. `Optimize` never sees the frame, so it must be kept from S0. Never empties a day (OBSERVED 0) and never creates one (INFERENCE: the destination is always a used day) | Same projection, but in the stage | Same projection, in the decorator, which calls the internal `GenerateScheduleWithIdentity` on the concrete type (same assembly) | n/a |
 | DI / `ServiceLocator` | Register `IScheduleOptimizer` (stage list `[LoadRebalanceStage]`, `ConstraintValidator`, `ObjectiveEvaluator`, `new SoeWeights()`) and add it to `WorkloadServiceImpl`'s constructor | Same registration, plus the new port | Register the decorator as `IWorkloadService` in place of `WorkloadServiceImpl` (`ServiceLocator.cs:79`); the flag is read here | — |
-| Test impact | **High.** `WorkloadServiceScheduleTests` pins the allocator through `GenerateSchedule`, including `…NgayDungLaTienToLienTuc_ChiNgayCuoiConCho` ("only the last day has room"), which a committed move breaks by construction. Either those tests construct the impl without an optimizer (optional ctor parameter, null = off) or they are re-pinned | Medium | **Low.** Allocator characterization stays as-is; the decorator gets its own tests | None |
+| Test impact | **High (INFERENCE, hand-traced, not run).** `WorkloadServiceScheduleTests` pins the allocator through `GenerateSchedule`. `…NgayDungLaTienToLienTuc_ChiNgayCuoiConCho` ("only the last day has room") breaks whenever a move is committed on its input. Hand trace of its fixture (A 130, B 45, C 200, D 25 min): no-op at 1 h and 2 h; at **3 h** the stage would move A (130 min) from day 0 to day 2, which breaks the test if the fixture's deadlines admit the move. Other characterization tests are exposed the same way. Either they construct the impl without an optimizer (optional ctor parameter, null = off) or they are re-pinned | Medium | **Low.** Allocator characterization stays as-is; the decorator gets its own tests | None |
 | Consistency | Balancer and Dashboard agree | **Balancer and Dashboard disagree** on the same semester (today differs in ~1 in 6) | Agree | Agree |
 | Kill switch | Needs an extra flag | Needs an extra flag | Natural: register the impl or the decorator | — |
 
@@ -257,8 +258,9 @@ the obvious candidate; deciding is Q-4.
 ### 3g. Gaps against the ratified decisions (INFERENCE)
 
 1. **Direction of moves vs CP-3.** T3.3/CP-3 ruled earliest-feasible placement (work as early as
-   possible). `LoadRebalanceStage` (T3.9 §8, ratified) moves work off the earliest full day, usually
-   today, and onto a later one: 37 later vs 13 earlier on the corpus, and today never gains. Each
+   possible). `LoadRebalanceStage` (T3.9 §8, ratified) moves work off the fullest day, usually today:
+   37 later vs 13 earlier on the corpus, 26 vs 26 on the family, and **today never gains** (55 of 57
+   lose minutes, 2 stay the same). Each
    ruling is internally consistent; nothing rules on the composition. **Undecided, and the main thing
    wiring would change.** (Q-2)
 2. **Projection.** G2/T3.8 define `ScheduledItem` but not how an optimized list is projected back:
@@ -288,8 +290,8 @@ the obvious candidate; deciding is Q-4.
 - **Q-1 (the G3-1 decision).** Wire or not, given §0: about one schedule in six changes, objective
   +2.8% (corpus) / +8.1% (family) on the whole set, zero feasibility effect, no effect on large or
   tight semesters, cost ≈ 1 ms plus telemetry.
-- **Q-2.** If wired: is "Optimize may move work out of today onto a later day" acceptable as the
-  composition of CP-3 and T3.9 §8? If not, which options are on the table: restrict the destination,
+- **Q-2.** If wired: is "Optimize may move work out of today" acceptable as the composition of CP-3
+  and T3.9 §8? If not, which options are on the table: restrict the destination,
   exclude day 0 as a source, or accept it as is? Any change to the stage is a new T3.9-level ruling.
 - **Q-3.** Seam: A, B, C or D (§3b), and whether a user-visible toggle or only a code-level kill switch
   is wanted.
@@ -330,7 +332,7 @@ the obvious candidate; deciding is Q-4.
 | F-1 | G3-1 decision record (doc-sync **M-2**), written once Q-1..Q-5 are answered | owner (decision) / agent (write-up) | `docs/plans/` | needs owner decision |
 | F-2 | Fix overview §5.11 drift (§3g.6) | agent | `docs/architecture/overview.md` | defect candidate (docs) |
 | F-3 | Roadmap §A.4 G3-1: "effect size does not exist as a durable artifact" is no longer true after this PR merges; point to this report | agent | `docs/specs/system_roadmap.md` | deferred until merge |
-| F-4 | Doc-sync report M-1 is closed by this harness | agent | `docs/reports/2026-08-20-doc-synchronization.md` follow-ups | knowledge only |
+| F-4 | Doc-sync report M-1 closes once this harness is merged | agent | `docs/reports/2026-08-20-doc-synchronization.md` follow-ups | deferred until merge |
 
 ---
 
@@ -363,8 +365,9 @@ the obvious candidate; deciding is Q-4.
   first, not the second.
 
 ### D4 — Measure the user-visible proxies (day 0, move direction, projection hazards), not just the objective
-- **Why.** The objective says "+2.8%", but the user sees today's plan on the Dashboard. The advisor
-  pass flagged that earliest-feasible packing makes today the likely move source.
+- **Why.** The objective says "+2.8%", but the user sees today's plan on the Dashboard. Earliest-feasible
+  packing fills days in date order, which makes today the fullest day and so the stage's likely source.
+  That had to be measured, not assumed.
 - **What it's for.** This turned a vague "small effect" into the concrete owner question Q-2: in 55 of
   57 changed schedules, today's plan gets shorter.
 - **Experience.** For a scheduling change, always report what happens to *today*. It is the only day
@@ -374,7 +377,7 @@ the obvious candidate; deciding is Q-4.
 - **Why.** The task forbids it, and the choice depends on Q-2/Q-3 (whether today may lose work, and
   whether a kill switch is wanted), which are owner calls.
 - **What it's for.** §3b lays out the options with their concrete cost, notably that B forces an
-  `IWorkloadService` change and A breaks a pinned allocator characterization test, so the owner chooses
+  `IWorkloadService` change and A exposes pinned allocator characterization tests, so the owner chooses
   with the trade-offs visible.
 - **Experience.** In a recon, the useful output for a CRITICAL-risk symbol is "which pinned tests does
   each option break", not a recommendation.
