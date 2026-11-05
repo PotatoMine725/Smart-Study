@@ -46,7 +46,7 @@ namespace SmartStudyPlanner.Tests.Sync.Fence
                 dir = dir.Parent;
 
             Assert.NotNull(dir);
-            var root = Path.Combine(dir!.FullName, "SmartStudyPlanner", "Sync", "Fence");
+            var root = Path.Combine(dir!.FullName, "SmartStudyPlanner.Core", "Sync", "Fence");
             Assert.True(Directory.Exists(root), root);
             return root;
         }

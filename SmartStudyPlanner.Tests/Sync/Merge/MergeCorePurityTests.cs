@@ -26,7 +26,7 @@ namespace SmartStudyPlanner.Tests.Sync.Merge
                 dir = dir.Parent;
 
             Assert.NotNull(dir);
-            var path = Path.Combine(dir!.FullName, "SmartStudyPlanner", "Sync", "Merge");
+            var path = Path.Combine(dir!.FullName, "SmartStudyPlanner.Core", "Sync", "Merge");
             Assert.True(Directory.Exists(path), $"Merge source directory not found at '{path}'.");
             return path;
         }

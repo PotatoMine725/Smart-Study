@@ -26,22 +26,23 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
 
         private static readonly IReadOnlyCollection<string> AllowedCatchSites = Array.Empty<string>();
 
-        private static string ProductionRoot()
+        /// <summary>The production project directories: Core, then the WPF app.</summary>
+        private static string[] ProductionRoots()
         {
             var dir = new DirectoryInfo(AppContext.BaseDirectory);
             while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "SmartStudyPlanner.slnx")))
                 dir = dir.Parent;
 
             Assert.NotNull(dir);
-            var root = Path.Combine(dir!.FullName, "SmartStudyPlanner");
-            Assert.True(Directory.Exists(root), root);
-            return root;
+            var roots = new[] { Path.Combine(dir!.FullName, "SmartStudyPlanner.Core"), Path.Combine(dir.FullName, "SmartStudyPlanner") };
+            foreach (var root in roots) Assert.True(Directory.Exists(root), root);
+            return roots;
         }
 
-        private static IReadOnlyList<string> ProductionSourceFiles()
+        private static IReadOnlyList<string> ProductionSourceFiles(string root)
         {
             var sep = Path.DirectorySeparatorChar;
-            return Directory.EnumerateFiles(ProductionRoot(), "*.cs", SearchOption.AllDirectories)
+            return Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
                 .Where(f => !f.Contains($"{sep}obj{sep}", StringComparison.Ordinal)
                          && !f.Contains($"{sep}bin{sep}", StringComparison.Ordinal))
                 .ToList();
@@ -50,8 +51,11 @@ namespace SmartStudyPlanner.Tests.Infrastructure.Persistence.SQLite.Mutations
         [Fact]
         public void N10_NoProductionCodeCatchesMutationRejectedException()
         {
-            var files = ProductionSourceFiles();
+            var roots = ProductionRoots();
+            var files = roots.SelectMany(ProductionSourceFiles).ToList();
             Assert.True(files.Count > 50, $"scanner found only {files.Count} files -- wrong root?");
+            Assert.True(ProductionSourceFiles(roots[0]).Count > 50, $"expected the full Core tree under {roots[0]}");
+            Assert.True(ProductionSourceFiles(roots[1]).Count > 10, $"expected the full WPF tree under {roots[1]}");
 
             var offenders = files
                 .Where(f => !AllowedCatchSites.Contains(Path.GetFileName(f)))

@@ -398,7 +398,7 @@ namespace SmartStudyPlanner.Tests.Services.Soe
         public void SourceFiles_ContainNoHanChotOrDeadlineToken()
         {
             string repoRoot = RepoLocator.FindRepoRoot();
-            string soeDir = Path.Combine(repoRoot, "SmartStudyPlanner", "Services", "Soe");
+            string soeDir = Path.Combine(repoRoot, "SmartStudyPlanner.Core", "Services", "Soe");
             string[] filesToScan =
             {
                 "IObjectiveEvaluator.cs",
