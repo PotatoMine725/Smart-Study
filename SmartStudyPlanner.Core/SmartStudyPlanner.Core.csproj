@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Platform-free core (mobile spec §4.1). INV-1: no System.Windows.*; INV-2: no ML.NET, ML only via contracts. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Namespaces are unchanged from the WPF project (SmartStudyPlanner.Models, SmartStudyPlanner.Core.Scheduling, ...). -->
+    <RootNamespace>SmartStudyPlanner</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.5" />
+  </ItemGroup>
+
+</Project>
