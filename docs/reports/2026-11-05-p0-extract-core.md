@@ -2,7 +2,7 @@
 
 - **Date:** 2026-11-05
 - **Author/agent:** Claude Code (Opus 5.5), worktree `.claude/worktrees/p0-core`, branch `refactor-p0-extract-core`
-- **Status:** Phases 0–3 done. The owner answered OQ-1..OQ-10 on 2026-11-05 (§10). The draft PR into `dev` awaits the
+- **Status:** Phases 0–3 done. The owner answered OQ-1..OQ-10 on 2026-11-05 (§10). Draft PR #117 into `dev` awaits the
   owner's merge. §1–§8 are the Phase 0 recon as delivered; §9 holds the path map; §10–§12 hold the Phase 1–2 results.
 - **Authority:** mobile spec `docs/specs/2026-10-31-mobile-companion-direction.md` §4.1 (layout, INV-1, INV-2),
   §8 phase table row P0, then CLAUDE.md, then code on `origin/dev`.
